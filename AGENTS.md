@@ -10,8 +10,10 @@
 
 ### Project info
 
-- Backend: Rust web server with `axum`
+- Backend: Rust web server
+  - Web framework: `axum`
   - Package manager: `cargo`
 - Frontend: SvelteKit with TypeScript
   - Package manager: `bun`
+  - Icons: `lucide-svelte`
 - Auth, Database, Storage: Appwrite
