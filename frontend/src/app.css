@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-950 text-gray-100 font-sans;
+  }
+}
+
+@layer components {
+  .interactive-hover {
+    @apply transition-all duration-150 hover:-translate-y-px active:translate-y-0;
+  }
+
+  .text-display {
+    @apply text-6xl font-bold tracking-tight;
+  }
+
+  .text-lead {
+    @apply text-lg font-medium;
+  }
+
+  .text-title {
+    @apply text-xl font-bold;
+  }
+
+  .text-subtitle {
+    @apply text-base font-medium;
+  }
+
+  .text-body {
+    @apply text-base font-normal;
+  }
+
+  .text-caption {
+    @apply text-sm font-normal;
+  }
+
+  .text-button {
+    @apply text-base font-medium tracking-wide;
+  }
+
+  .text-nav {
+    @apply text-base font-medium;
+  }
+
+  .text-eyebrow {
+    @apply text-sm font-semibold uppercase tracking-widest;
+  }
+
+  .text-label {
+    @apply text-xs font-semibold uppercase tracking-widest;
+  }
+}
