@@ -3,5 +3,7 @@ node_modules
 dist
 build
 .tmp
-.lsmcp/cache
+.lsmcp
 .svelte-kit
+.zed
+.vscode
