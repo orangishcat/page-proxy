@@ -3,21 +3,66 @@
 </script>
 
 <script lang="ts">
-  import { Bell, User } from 'lucide-svelte';
+  import { Bell, Moon, Sun } from 'lucide-svelte';
+  import AccountWidget from '$lib/components/AccountWidget.svelte';
+  import { onMount } from 'svelte';
+  import Button from '$lib/components/Button.svelte';
 
   export let variant: NavbarVariant = 'app';
 
+  let isAccountOpen = false;
+  let isDarkMode = true;
+
   const navClasses =
-    'interactive-hover grid w-full max-w-7xl grid-cols-3 items-center gap-8 rounded-3xl bg-gray-800 px-8 py-4 text-gray-100 shadow-lg hover:bg-gray-900 active:bg-gray-950';
+    'grid w-full max-w-7xl grid-cols-3 items-center gap-8 rounded-3xl bg-gray-200 px-8 py-4 text-gray-950 shadow-lg dark:bg-gray-800 dark:text-gray-100';
 
   const itemClasses =
-    'interactive-hover text-nav rounded-full px-4 py-1.5 hover:bg-accent-500/15';
+    'text-nav rounded-full px-4 py-1.5 hover:underline underline-offset-4 opacity-60 hover:opacity-100 active:opacity-80 transition-all duration-150 cursor-pointer';
 
-  const iconButtonClasses =
-    'interactive-hover grid h-9 w-9 place-items-center rounded-full hover:bg-accent-500/15';
+  const iconButtonClasses = 'grid h-10 w-10 place-items-center rounded-full p-0';
+  const accountButtonClasses = 'p-0';
 
-  const ctaClasses =
-    'interactive-hover rounded-2xl border border-accent-500 bg-gradient-to-br from-primary-400 to-primary-500 px-5 py-2 text-button text-gray-100 hover:brightness-110 active:brightness-95';
+  const accountMenuClasses =
+    'absolute right-0 top-12 z-10 grid w-44 gap-1 rounded-2xl border border-gray-200 bg-white p-2 text-gray-950 shadow-xl dark:border-gray-950 dark:bg-gray-800 dark:text-gray-100';
+
+  const accountItemClasses =
+    'text-body rounded-xl px-3 py-2 text-left text-gray-950 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-100 dark:hover:bg-gray-950/30 dark:active:bg-gray-950/50';
+
+  const toggleAccount = () => {
+    isAccountOpen = !isAccountOpen;
+  };
+
+  const applyTheme = (theme: 'light' | 'dark') => {
+    const root = document.documentElement;
+    const body = document.body;
+
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      body.classList.add('dark');
+      isDarkMode = true;
+      localStorage.setItem('theme', 'dark');
+    } else {
+      root.classList.remove('dark');
+      body.classList.remove('dark');
+      isDarkMode = false;
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
+  const toggleTheme = () => {
+    applyTheme(isDarkMode ? 'light' : 'dark');
+  };
+
+  onMount(() => {
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme === 'light' || storedTheme === 'dark') {
+      applyTheme(storedTheme);
+      return;
+    }
+
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(prefersDark ? 'dark' : 'light');
+  });
 </script>
 
 <nav class={navClasses}>
@@ -37,14 +82,43 @@
 
   <div class="flex justify-self-end gap-2">
     {#if variant === 'other'}
-      <button class={ctaClasses} type="button">Get Started</button>
+      <Button type="button">Get Started</Button>
     {:else}
-      <button class={iconButtonClasses} type="button" aria-label="Notifications">
+      <Button
+        variant="accent"
+        class={iconButtonClasses}
+        type="button"
+        aria-label="Toggle theme"
+        on:click={toggleTheme}
+      >
+        {#if isDarkMode}
+          <Sun class="h-4 w-4 text-secondary-500" aria-hidden="true" />
+        {:else}
+          <Moon class="h-4 w-4 text-secondary-500" aria-hidden="true" />
+        {/if}
+      </Button>
+      <Button variant="accent" class={iconButtonClasses} type="button" aria-label="Notifications">
         <Bell class="h-4 w-4 text-secondary-500" aria-hidden="true" />
-      </button>
-      <button class={iconButtonClasses} type="button" aria-label="Account">
-        <User class="h-4 w-4 text-secondary-500" aria-hidden="true" />
-      </button>
+      </Button>
+      <div class="relative">
+        <button
+          class={accountButtonClasses}
+          type="button"
+          aria-label="Account"
+          aria-expanded={isAccountOpen}
+          aria-controls={`account-menu-${variant}`}
+          on:click={toggleAccount}
+        >
+          <AccountWidget />
+        </button>
+        {#if isAccountOpen}
+          <div class={accountMenuClasses} id={`account-menu-${variant}`} role="menu">
+            <button class={accountItemClasses} type="button" role="menuitem">Profile</button>
+            <button class={accountItemClasses} type="button" role="menuitem">Settings</button>
+            <button class={accountItemClasses} type="button" role="menuitem">Sign out</button>
+          </div>
+        {/if}
+      </div>
     {/if}
   </div>
 </nav>

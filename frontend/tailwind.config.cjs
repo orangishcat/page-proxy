@@ -1,4 +1,5 @@
 module.exports = {
+  darkMode: 'class',
   content: ['./src/**/*.{html,js,svelte,ts}'],
   theme: {
     extend: {
@@ -7,12 +8,17 @@ module.exports = {
           950: '#222121',
           900: '#2d2d2c',
           800: '#393a34',
-          300: '#d9d9d9',
-          100: '#f8f2e2'
+          700: '#3a4234',
+          600: '#4a5443',
+          500: '#6a755f',
+          400: '#8c987e',
+          300: '#b2bea3',
+          200: '#d2dcc6',
+          100: '#eef3e7'
         },
         primary: {
-          500: '#fbb124',
-          400: '#efda39',
+          400: '#fbb124',
+          500: '#efda39',
           600: '#dac300'
         },
         secondary: {

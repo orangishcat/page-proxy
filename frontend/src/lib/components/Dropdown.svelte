@@ -12,14 +12,14 @@
   };
 
   const itemClasses =
-    'interactive-hover text-body rounded-lg px-2 py-2 text-left text-gray-100 hover:bg-gray-950/20 active:bg-gray-950/40';
+    'text-body rounded-lg px-2 py-2 text-left text-gray-950 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-100 dark:hover:bg-gray-950/20 dark:active:bg-gray-950/40';
 </script>
 
 <div
-  class="box-border min-w-72 max-w-full rounded-2xl border border-gray-950 bg-gray-800 px-5 pb-4 pt-3 text-gray-100"
+  class="box-border min-w-72 max-w-full rounded-2xl border border-gray-200 bg-white px-5 pb-4 pt-3 text-gray-950 dark:border-gray-950 dark:bg-gray-800 dark:text-gray-100"
 >
   <button
-    class="interactive-hover text-body flex w-full items-center justify-between gap-4 rounded-xl px-2 py-2 text-left active:bg-gray-950/40"
+    class="text-body flex w-full items-center justify-between gap-4 rounded-xl px-2 py-2 text-left hover:bg-gray-100 active:bg-gray-200 dark:hover:bg-gray-950/20 dark:active:bg-gray-950/40"
     type="button"
     on:click={toggle}
   >
@@ -32,7 +32,7 @@
   </button>
 
   {#if isOpen}
-    <div class="mt-2 grid gap-2 border-t border-secondary-700 pt-3">
+    <div class="mt-2 grid gap-2 border-t border-secondary-500 pt-3 dark:border-secondary-700">
       {#if $$slots.default}
         <slot />
       {:else}

@@ -7,5 +7,5 @@ indent_style = space
 indent_size = 4
 max_line_length = 120
 
-[{*.svelte,*.ts}]
+[{*.svelte,*.ts,*.js,*.cjs,*.mjs}]
 indent_size = 2

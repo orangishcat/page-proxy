@@ -4,13 +4,13 @@
 
 @layer base {
   body {
-    @apply bg-gray-950 text-gray-100 font-sans;
+    @apply bg-gray-100 text-gray-950 dark:bg-gray-950 dark:text-gray-100 font-sans;
   }
 }
 
 @layer components {
   .interactive-hover {
-    @apply transition-all duration-150 hover:-translate-y-px active:translate-y-0;
+    @apply transition-all duration-100 hover:scale-105 active:scale-100;
   }
 
   .text-display {

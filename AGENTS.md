@@ -8,6 +8,7 @@
   Explicitly state all errors that can occur and handle them appropriately.
 - Respect `.editorconfig`
 - Use base tailwind classes instead of defining custom units.
+- Use `rem` instead of `px` in all places.
 
 ### Project info
 

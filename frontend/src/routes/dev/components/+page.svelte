@@ -14,16 +14,33 @@
   const entries: Array<
     | { name: string; type: 'button'; variant: ButtonVariant; label: string }
     | { name: string; type: 'dropdown'; label: string; initialOpen: boolean }
-    | { name: string; type: 'component'; component: typeof GridItem }
+    | { name: string; type: 'component'; component: typeof AccountWidget }
   > = [
     {name: 'Button / Primary', type: 'button', variant: 'primary', label: 'Primary Button'},
     {name: 'Button / Secondary', type: 'button', variant: 'secondary', label: 'Secondary Button'},
     {name: 'Dropdown', type: 'dropdown', label: 'Dropdown', initialOpen: false},
-    {name: 'Grid item', type: 'component', component: GridItem}
+    {name: 'Account', type: 'component', component: AccountWidget}
   ];
 
-  const widgets: Array<{ name: string; component: typeof AccountWidget }> = [
-    {name: 'Account', component: AccountWidget}
+  const widgets: Array<{
+    name: string;
+    component: typeof GridItem;
+    props: { title: string; author: string; image: string; avatars: string[] };
+  }> = [
+    {
+      name: 'Grid item',
+      component: GridItem,
+      props: {
+        title: 'Amazon Redesign',
+        author: 'Author 1, Author 2',
+        image:
+          'https://images.unsplash.com/photo-1470337458703-46ad1756a187?auto=format&fit=crop&w=900&q=80',
+        avatars: [
+          'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80',
+          'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=200&q=80'
+        ]
+      }
+    }
   ];
 
   const navbars: Array<{ name: string; variant: NavbarVariant }> = [
@@ -33,39 +50,39 @@
   ];
 
   const dropdownOptionClasses =
-    'interactive-hover text-body rounded-lg px-2 py-2 text-left text-gray-100 hover:bg-gray-950/20 active:bg-gray-950/40';
+    'text-body rounded-lg px-2 py-2 text-left text-gray-950 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-100 dark:hover:bg-gray-950/20 dark:active:bg-gray-950/40';
 
   const figmaColorGroups = [
     {
       name: 'Gray',
       colors: [
-        {label: '#222121', className: 'bg-gray-950 border-gray-100'},
-        {label: '#393A34', className: 'bg-gray-800 border-gray-100'},
-        {label: '#2D2D2C', className: 'bg-gray-900 border-gray-100'},
-        {label: '#F8F2E2', className: 'bg-gray-100 border-gray-950'},
-        {label: '#D9D9D9', className: 'bg-gray-300 border-gray-950'}
+        {label: '#222121', className: 'bg-gray-950 border-gray-300 dark:border-gray-100'},
+        {label: '#393A34', className: 'bg-gray-800 border-gray-300 dark:border-gray-100'},
+        {label: '#2D2D2C', className: 'bg-gray-900 border-gray-300 dark:border-gray-100'},
+        {label: '#F8F2E2', className: 'bg-gray-100 border-gray-400 dark:border-gray-950'},
+        {label: '#D9D9D9', className: 'bg-gray-300 border-gray-400 dark:border-gray-950'}
       ]
     },
     {
       name: 'Primary',
       colors: [
-        {label: '#FBB124', className: 'bg-primary-500 border-gray-100'},
-        {label: '#EFDA39', className: 'bg-primary-400 border-gray-100'},
-        {label: '#DAC300', className: 'bg-primary-600 border-gray-100'}
+        {label: '#FBB124', className: 'bg-primary-500 border-gray-300 dark:border-gray-100'},
+        {label: '#EFDA39', className: 'bg-primary-400 border-gray-300 dark:border-gray-100'},
+        {label: '#DAC300', className: 'bg-primary-600 border-gray-300 dark:border-gray-100'}
       ]
     },
     {
       name: 'Secondary',
       colors: [
-        {label: '#CB9227', className: 'bg-accent-500 border-gray-100'},
-        {label: '#AB9904', className: 'bg-accent-600 border-gray-100'}
+        {label: '#CB9227', className: 'bg-accent-500 border-gray-300 dark:border-gray-100'},
+        {label: '#AB9904', className: 'bg-accent-600 border-gray-300 dark:border-gray-100'}
       ]
     },
     {
       name: 'Accent',
       colors: [
-        {label: '#86D24B', className: 'bg-secondary-500 border-gray-100'},
-        {label: '#5A6C4C', className: 'bg-secondary-700 border-gray-100'}
+        {label: '#86D24B', className: 'bg-secondary-500 border-gray-300 dark:border-gray-100'},
+        {label: '#5A6C4C', className: 'bg-secondary-700 border-gray-300 dark:border-gray-100'}
       ]
     }
   ];
@@ -80,10 +97,10 @@
   <section class="grid w-full gap-4 mt-8 text-center">
     <div class="text-eyebrow">Figma Colors</div>
     <div class="flex place-items-center justify-center">
-      <div class="grid gap-4 text-body pr-8 py-8 rounded-lg dark:bg-gray-900">
+      <div class="grid gap-4 text-body pr-8 py-8 rounded-lg bg-gray-100 dark:bg-gray-900">
         {#each figmaColorGroups as group (group.name)}
           <div class="flex w-full flex-col items-center gap-4 md:flex-row md:items-center">
-            <div class="text-label text-gray-300 md:w-32 md:text-right">
+            <div class="text-label text-gray-600 md:w-32 md:text-right dark:text-gray-300">
               {group.name}
             </div>
             <div class="flex flex-wrap items-center justify-center gap-4 md:justify-start">
@@ -126,7 +143,7 @@
       <div class="grid w-full place-items-center gap-4 text-center">
         <div class="text-label">{widget.name}</div>
         <div class="flex w-full items-center justify-center">
-          <svelte:component this={widget.component}/>
+          <svelte:component this={widget.component} {...widget.props}/>
         </div>
       </div>
     {/each}
