@@ -32,6 +32,20 @@ module.exports = {
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui']
+      },
+      keyframes: {
+        'dialog-in': {
+          '0%': { opacity: '0', transform: 'translate(-50%, -50%) scale(0.96)' },
+          '100%': { opacity: '1', transform: 'translate(-50%, -50%) scale(1)' }
+        },
+        'dialog-out': {
+          '0%': { opacity: '1', transform: 'translate(-50%, -50%) scale(1)' },
+          '100%': { opacity: '0', transform: 'translate(-50%, -50%) scale(0.96)' }
+        }
+      },
+      animation: {
+        'dialog-in': 'dialog-in 160ms ease-out',
+        'dialog-out': 'dialog-out 120ms ease-in'
       }
     }
   },

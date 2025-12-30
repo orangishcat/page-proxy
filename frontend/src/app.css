@@ -13,6 +13,10 @@
     @apply text-6xl font-bold tracking-tight;
   }
 
+  .text-heading {
+    @apply text-4xl font-bold tracking-tight;
+  }
+
   .text-lead {
     @apply text-lg font-medium;
   }
