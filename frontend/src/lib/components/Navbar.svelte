@@ -11,6 +11,7 @@
   export let variant: NavbarVariant = 'app';
 
   let isDarkMode = true;
+  const homeHref = variant === 'other' ? '/' : '/app';
 
   const navClasses =
     'grid w-full max-w-7xl grid-cols-3 items-center gap-8 rounded-3xl bg-gray-200 px-8 py-4 text-gray-950 shadow-lg dark:bg-gray-800 dark:text-gray-100';
@@ -54,7 +55,10 @@
 </script>
 
 <nav class={navClasses}>
-  <span class="text-title justify-self-start">Page Proxy</span>
+  <a class="flex items-center gap-1.5 justify-self-start" href={homeHref} aria-label="Page Proxy">
+    <img src="/logo.png" alt="" class="h-10 w-10" draggable="false" />
+    <span class="text-title">Page Proxy</span>
+  </a>
 
   <div class="flex flex-wrap items-center justify-center gap-2 justify-self-center">
     {#if variant === 'app'}
