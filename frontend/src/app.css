@@ -9,10 +9,6 @@
 }
 
 @layer components {
-  .interactive-hover {
-    @apply transition-all duration-100 hover:scale-105 active:scale-100;
-  }
-
   .text-display {
     @apply text-6xl font-bold tracking-tight;
   }
@@ -38,7 +34,7 @@
   }
 
   .text-button {
-    @apply text-base font-medium tracking-wide;
+    @apply text-base font-medium;
   }
 
   .text-nav {

@@ -1,4 +1,4 @@
-# Agents
+# AGENTS.md
 
 ### General code guidelines
 
@@ -7,8 +7,6 @@
 - Do not wrap try-except blocks anywhere unless explicitly stated by the prompt.
   Explicitly state all errors that can occur and handle them appropriately.
 - Respect `.editorconfig`
-- Use base tailwind classes instead of defining custom units.
-- Use `rem` instead of `px` in all places.
 
 ### Project info
 
@@ -17,7 +15,14 @@
   - Package manager: `cargo`
 - Frontend: SvelteKit with TypeScript
   - Package manager: `bun`
+  - Components: `bits-ui`
   - CSS: `tailwindcss`
   - Icons: `lucide-svelte`
+  - Network: `axios`
   - [Figma file](https://www.figma.com/file/1E8P0X0wBphOq6kbXWMhbW/page-proxy--)
 - Auth, Database, Storage: Appwrite
+
+### Frontend guidelines
+- Prefer Svelte runes to old Svelte.
+- Use base tailwind classes instead of defining custom units.
+- Use `rem` instead of `px` in all places.

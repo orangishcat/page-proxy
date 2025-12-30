@@ -10,7 +10,6 @@
 
   export let variant: NavbarVariant = 'app';
 
-  let isAccountOpen = false;
   let isDarkMode = true;
 
   const navClasses =
@@ -20,17 +19,6 @@
     'text-nav rounded-full px-4 py-1.5 hover:underline underline-offset-4 opacity-60 hover:opacity-100 active:opacity-80 transition-all duration-150 cursor-pointer';
 
   const iconButtonClasses = 'grid h-10 w-10 place-items-center rounded-full p-0';
-  const accountButtonClasses = 'p-0';
-
-  const accountMenuClasses =
-    'absolute right-0 top-12 z-10 grid w-44 gap-1 rounded-2xl border border-gray-200 bg-white p-2 text-gray-950 shadow-xl dark:border-gray-950 dark:bg-gray-800 dark:text-gray-100';
-
-  const accountItemClasses =
-    'text-body rounded-xl px-3 py-2 text-left text-gray-950 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-100 dark:hover:bg-gray-950/30 dark:active:bg-gray-950/50';
-
-  const toggleAccount = () => {
-    isAccountOpen = !isAccountOpen;
-  };
 
   const applyTheme = (theme: 'light' | 'dark') => {
     const root = document.documentElement;
@@ -100,25 +88,7 @@
       <Button variant="accent" class={iconButtonClasses} type="button" aria-label="Notifications">
         <Bell class="h-4 w-4 text-secondary-500" aria-hidden="true" />
       </Button>
-      <div class="relative">
-        <button
-          class={accountButtonClasses}
-          type="button"
-          aria-label="Account"
-          aria-expanded={isAccountOpen}
-          aria-controls={`account-menu-${variant}`}
-          on:click={toggleAccount}
-        >
-          <AccountWidget />
-        </button>
-        {#if isAccountOpen}
-          <div class={accountMenuClasses} id={`account-menu-${variant}`} role="menu">
-            <button class={accountItemClasses} type="button" role="menuitem">Profile</button>
-            <button class={accountItemClasses} type="button" role="menuitem">Settings</button>
-            <button class={accountItemClasses} type="button" role="menuitem">Sign out</button>
-          </div>
-        {/if}
-      </div>
+      <AccountWidget />
     {/if}
   </div>
 </nav>

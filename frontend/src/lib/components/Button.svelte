@@ -7,7 +7,7 @@
   export let type: 'button' | 'submit' | 'reset' = 'button';
 
   const baseClasses =
-    'box-border rounded-xl px-4 py-2 text-button text-gray-950 hover:opacity-80 active:opacity-60 dark:text-gray-100';
+    'box-border rounded-xl px-5 py-2 text-button text-gray-950 hover:opacity-80 active:opacity-60 dark:text-gray-100';
 
   const variantClasses = {
     primary:
