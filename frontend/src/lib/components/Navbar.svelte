@@ -1,17 +1,17 @@
 <script lang="ts" context="module">
-  export type NavbarVariant = 'app' | 'dashboard' | 'other';
+  export type NavbarVariant = 'app' | 'dashboard' | 'landing';
 </script>
 
 <script lang="ts">
-  import { Bell, Moon, Sun } from 'lucide-svelte';
+  import {Bell, Moon, Sun} from 'lucide-svelte';
   import AccountWidget from '$lib/components/AccountWidget.svelte';
-  import { onMount } from 'svelte';
+  import {onMount} from 'svelte';
   import Button from '$lib/components/Button.svelte';
 
   export let variant: NavbarVariant = 'app';
 
   let isDarkMode = true;
-  const homeHref = variant === 'other' ? '/' : '/app';
+  const homeHref = variant === 'landing' ? '/' : '/app';
 
   const navClasses =
     'grid w-full max-w-7xl grid-cols-3 items-center gap-8 rounded-3xl bg-gray-200 px-8 py-4 text-gray-950 shadow-lg dark:bg-gray-800 dark:text-gray-100';
@@ -56,7 +56,7 @@
 
 <nav class={navClasses}>
   <a class="flex items-center gap-1.5 justify-self-start" href={homeHref} aria-label="Page Proxy">
-    <img src="/logo.png" alt="" class="h-10 w-10" draggable="false" />
+    <img src="/logo.png" alt="" class="h-10 w-10" draggable="false"/>
     <span class="text-title">Page Proxy</span>
   </a>
 
@@ -66,6 +66,11 @@
       <span class={itemClasses}>Edit</span>
       <span class={itemClasses}>View</span>
       <span class={itemClasses}>Tools</span>
+    {:else if variant === 'landing'}
+      <a class={itemClasses} href="/">Tools</a>
+      <a class={itemClasses} href="/">Explore</a>
+      <a class={itemClasses} href="/">Export</a>
+      <a class={itemClasses} href="/">Creator</a>
     {:else}
       <a class={itemClasses} href="/">Dashboard</a>
       <a class={itemClasses} href="/">Explore</a>
@@ -73,8 +78,10 @@
   </div>
 
   <div class="flex justify-self-end gap-2">
-    {#if variant === 'other'}
-      <Button type="button">Get Started</Button>
+    {#if variant === 'landing'}
+      <a href="/app">
+        <Button type="button">Get Started</Button>
+      </a>
     {:else}
       <Button
         variant="accent"
@@ -84,15 +91,15 @@
         on:click={toggleTheme}
       >
         {#if isDarkMode}
-          <Sun class="h-4 w-4 text-secondary-500" aria-hidden="true" />
+          <Sun class="h-4 w-4 text-accent-500" aria-hidden="true"/>
         {:else}
-          <Moon class="h-4 w-4 text-secondary-500" aria-hidden="true" />
+          <Moon class="h-4 w-4 text-accent-500" aria-hidden="true"/>
         {/if}
       </Button>
       <Button variant="accent" class={iconButtonClasses} type="button" aria-label="Notifications">
-        <Bell class="h-4 w-4 text-secondary-500" aria-hidden="true" />
+        <Bell class="h-4 w-4 text-accent-500" aria-hidden="true"/>
       </Button>
-      <AccountWidget />
+      <AccountWidget/>
     {/if}
   </div>
 </nav>

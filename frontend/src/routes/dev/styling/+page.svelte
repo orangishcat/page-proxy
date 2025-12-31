@@ -92,8 +92,8 @@
     {
       name: "Accent",
       colors: [
-        {label: "#86D24B", className: "bg-secondary-500 border-gray-300 dark:border-gray-100"},
-        {label: "#5A6C4C", className: "bg-secondary-700 border-gray-300 dark:border-gray-100"},
+        {label: "#86D24B", className: "bg-accent-500 border-gray-300 dark:border-gray-100"},
+        {label: "#5A6C4C", className: "bg-accent-700 border-gray-300 dark:border-gray-100"},
       ],
     },
   ];

@@ -24,14 +24,14 @@
 
 <DropdownMenu.Root>
   <DropdownMenu.Trigger class={accountButtonClasses} aria-label="Account">
-    <div class="grid h-10 w-10 place-items-center rounded-full bg-secondary-500">
+    <div class="grid h-10 w-10 place-items-center rounded-full bg-accent-500">
       <User class="h-5 w-5 text-gray-950" aria-hidden="true"/>
     </div>
   </DropdownMenu.Trigger>
   <DropdownMenu.Portal>
     <DropdownMenu.Content class={accountMenuClasses} align="end" sideOffset={12} preventScroll={false}>
       <div class={accountHeaderClasses}>
-        <div class="grid h-10 w-10 place-items-center rounded-full bg-secondary-500">
+        <div class="grid h-10 w-10 place-items-center rounded-full bg-accent-500">
           <User class="h-5 w-5 text-gray-950" aria-hidden="true"/>
         </div>
         <div class="min-w-0">

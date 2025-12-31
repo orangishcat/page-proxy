@@ -11,8 +11,8 @@
 
   const variantClasses = {
     primary:
-      'border border-accent-500 bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] from-primary-600 to-primary-400',
-    secondary: 'border border-accent-600 bg-primary-600',
+      'border border-primary-600 bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] from-primary-600 to-primary-400',
+    secondary: 'border border-secondary-500 bg-secondary-500',
     accent:
       'bg-transparent text-gray-950 p-2 flex justify-center hover:bg-gray-300 hover:opacity-100 active:opacity-100 dark:text-gray-100 dark:hover:bg-gray-700'
   } satisfies Record<ButtonVariant, string>;

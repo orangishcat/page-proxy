@@ -22,25 +22,25 @@ module.exports = {
           600: '#dac300'
         },
         secondary: {
+          500: '#cb9227',
+          600: '#AB9904'
+        },
+        accent: {
           500: '#86d24b',
           700: '#5a6c4c'
         },
-        accent: {
-          500: '#cb9227',
-          600: '#ab9904'
-        }
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui']
       },
       keyframes: {
         'dialog-in': {
-          '0%': { opacity: '0', transform: 'translate(-50%, -50%) scale(0.96)' },
-          '100%': { opacity: '1', transform: 'translate(-50%, -50%) scale(1)' }
+          '0%': {opacity: '0', transform: 'translate(-50%, -50%) scale(0.96)'},
+          '100%': {opacity: '1', transform: 'translate(-50%, -50%) scale(1)'}
         },
         'dialog-out': {
-          '0%': { opacity: '1', transform: 'translate(-50%, -50%) scale(1)' },
-          '100%': { opacity: '0', transform: 'translate(-50%, -50%) scale(0.96)' }
+          '0%': {opacity: '1', transform: 'translate(-50%, -50%) scale(1)'},
+          '100%': {opacity: '0', transform: 'translate(-50%, -50%) scale(0.96)'}
         }
       },
       animation: {

@@ -26,3 +26,5 @@
 - Prefer Svelte runes to old Svelte.
 - Use base tailwind classes instead of defining custom units.
 - Use `rem` instead of `px` in all places.
+- Use components wherever possible.
+- Use classes in `app.css` for typography.
