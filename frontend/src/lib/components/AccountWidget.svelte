@@ -23,7 +23,7 @@
 </script>
 
 <DropdownMenu.Root>
-  <DropdownMenu.Trigger class={accountButtonClasses} aria-label="Account">
+  <DropdownMenu.Trigger class="{accountButtonClasses} {$$props.class}" aria-label="Account">
     <div class="grid h-10 w-10 place-items-center rounded-full bg-accent-500">
       <User class="h-5 w-5 text-gray-950" aria-hidden="true"/>
     </div>

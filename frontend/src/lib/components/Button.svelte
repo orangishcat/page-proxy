@@ -1,13 +1,32 @@
-<script lang="ts" context="module">
+<script lang="ts" module>
+  import type {Snippet} from 'svelte';
+  import type {HTMLButtonAttributes} from 'svelte/elements';
+
   export type ButtonVariant = 'primary' | 'secondary' | 'accent';
+
+  export type ButtonProps = HTMLButtonAttributes & {
+    variant?: ButtonVariant;
+    children?: Snippet;
+  };
+
 </script>
 
 <script lang="ts">
-  export let variant: ButtonVariant = 'primary';
-  export let type: 'button' | 'submit' | 'reset' = 'button';
+  let {
+    variant = 'primary',
+    type,
+    disabled = false,
+    class: className = '',
+    children,
+    ...restProps
+  }: ButtonProps = $props();
+
+  const buttonType = $derived(
+    type === 'submit' || type === 'reset' ? type : 'button'
+  );
 
   const baseClasses =
-    'box-border rounded-xl px-5 py-2 text-button text-gray-950 hover:opacity-80 active:opacity-60 dark:text-gray-100';
+    'box-border rounded-xl px-5 py-2 text-button text-gray-950 hover:opacity-80 active:opacity-60 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-100';
 
   const variantClasses = {
     primary:
@@ -18,6 +37,15 @@
   } satisfies Record<ButtonVariant, string>;
 </script>
 
-<button class={`${baseClasses} ${variantClasses[variant]} ${$$props.class}`} type={type}>
-  <slot>Button</slot>
+<button
+  {...restProps}
+  class={`${baseClasses} ${variantClasses[variant]} ${className}`}
+  type={buttonType}
+  disabled={disabled}
+>
+  {#if children}
+    {@render children()}
+  {:else}
+    Button
+  {/if}
 </button>

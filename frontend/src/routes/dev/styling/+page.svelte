@@ -19,10 +19,12 @@
     {name: "Account", type: "component", component: AccountWidget},
   ];
 
+  type WidgetComponent = typeof GridItem | typeof Dialog;
+
   const widgets: Array<{
     name: string;
-    component: any;
-    props: any;
+    component: WidgetComponent;
+    props: Record<string, unknown>;
   }> = [
     {
       name: "Grid item",
@@ -31,7 +33,7 @@
         title: "Amazon Redesign",
         author: "Author 1, Author 2",
         image: "https://images.unsplash.com/photo-1470337458703-46ad1756a187?auto=format&fit=crop&w=900&q=80",
-        avatars: [
+        imageUrls: [
           "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80",
           "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=200&q=80",
         ],
@@ -41,7 +43,7 @@
   ];
 
   const navbars: Array<{ name: string; variant: NavbarVariant }> = [
-    {name: "Navbar / Other", variant: "other"},
+    {name: "Navbar / Landing", variant: "landing"},
     {name: "Navbar / App", variant: "app"},
     {name: "Navbar / Dashboard", variant: "dashboard"},
   ];
@@ -100,7 +102,7 @@
 </script>
 
 <svelte:head>
-  <title>Components</title>
+  <title>Styling</title>
 </svelte:head>
 
 <main class="mx-auto grid w-full max-w-7xl justify-items-center gap-48 px-8 py-20">
@@ -139,7 +141,8 @@
           <div class="text-label">{entry.name}</div>
           <div class="flex w-full items-center justify-center">
             {#if entry.type === "component"}
-              <svelte:component this={entry.component}/>
+              {@const Component = entry.component}
+              <Component/>
             {:else if entry.type === "button"}
               <Button variant={entry.variant}>{entry.label}</Button>
             {:else if entry.type === "dropdown"}
@@ -152,10 +155,11 @@
 
     <div class="flex gap-10 mt-10">
       {#each widgets as widget (widget.name)}
+        {@const Component = widget.component}
         <div class="flex flex-col gap-5 w-full justify-center">
           <div class="text-label">{widget.name}</div>
           <div class="flex w-full items-center justify-center">
-            <svelte:component this={widget.component} {...widget.props}/>
+            <Component {...widget.props}/>
           </div>
         </div>
       {/each}

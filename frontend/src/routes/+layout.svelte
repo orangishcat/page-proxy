@@ -3,7 +3,7 @@
 </script>
 
 <svelte:head>
-  <link rel="icon" href="/icon.icns" />
+  <link rel="icon" href="/icon.png" />
 </svelte:head>
 
 <slot />

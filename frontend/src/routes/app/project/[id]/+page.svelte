@@ -6,7 +6,7 @@
   import Navbar from '$lib/components/Navbar.svelte';
 </script>
 
-<main class="min-h-screen bg-[#222121] text-gray-100">
+<main class="min-h-screen text-gray-100">
   <div class="mx-auto flex w-full max-w-[78rem] flex-col gap-10 px-6 pb-20 pt-8">
     <div class="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
       <Navbar variant="app" />

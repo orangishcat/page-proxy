@@ -11,20 +11,27 @@
 ### Project info
 
 - Backend: Rust web server
-  - Web framework: `axum`
-  - Package manager: `cargo`
+    - Web framework: `axum`
+    - Package manager: `cargo`
 - Frontend: SvelteKit with TypeScript
-  - Package manager: `bun`
-  - Components: `bits-ui`
-  - CSS: `tailwindcss`
-  - Icons: `lucide-svelte`
-  - Network: `axios`
-  - [Figma file](https://www.figma.com/file/1E8P0X0wBphOq6kbXWMhbW/page-proxy--)
+    - Package manager: `bun`
+    - Components: `bits-ui`
+    - CSS: `tailwindcss`
+    - Icons: `lucide-svelte`
+    - Network: `axios`
+    - [Figma file](https://www.figma.com/file/1E8P0X0wBphOq6kbXWMhbW/page-proxy--)
 - Auth, Database, Storage: Appwrite
 
 ### Frontend guidelines
+
 - Prefer Svelte runes to old Svelte.
+- Use `svelte-autofixer` to lint all code added.
 - Use base tailwind classes instead of defining custom units.
 - Use `rem` instead of `px` in all places.
 - Use components wherever possible.
 - Use classes in `app.css` for typography.
+- Use `axios` for all network requests.
+- For all UI edits, assume the colors are for dark mode, and do the inverse of the action for light mode.
+  - For example, if the prompt says to darken an element, make it lighter in light mode.
+- After edits, use `bun run check` to check for errors. If node is below v22, use the node executable at
+  `~/.nvm/versions/node/v22.14.0/bin`.

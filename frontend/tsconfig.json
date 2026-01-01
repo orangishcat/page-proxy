@@ -1,7 +1,22 @@
 {
-  "extends": "./.svelte-kit/tsconfig.json",
-  "compilerOptions": {
-    "types": ["svelte"],
-    "verbatimModuleSyntax": true
-  }
+    "extends": "./.svelte-kit/tsconfig.json",
+    "include": [
+        "src/**/*.ts",
+        "src/**/*.js",
+        "src/**/*.svelte"
+    ],
+    "exclude": [
+        "**/node_modules/**",
+        "**/.pnpm/**",
+        ".svelte-kit",
+        "dist",
+        "build"
+    ],
+    "compilerOptions": {
+        "types": [
+            "svelte"
+        ],
+        "verbatimModuleSyntax": true,
+        "skipLibCheck": true
+    }
 }

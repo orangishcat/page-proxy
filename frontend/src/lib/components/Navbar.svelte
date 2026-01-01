@@ -1,25 +1,27 @@
-<script lang="ts" context="module">
+<script lang="ts" module>
   export type NavbarVariant = 'app' | 'dashboard' | 'landing';
 </script>
 
 <script lang="ts">
   import {Bell, Moon, Sun} from 'lucide-svelte';
   import AccountWidget from '$lib/components/AccountWidget.svelte';
-  import {onMount} from 'svelte';
+  import {createEventDispatcher, onMount} from 'svelte';
   import Button from '$lib/components/Button.svelte';
 
-  export let variant: NavbarVariant = 'app';
+  let {variant = 'app'} = $props<{variant?: NavbarVariant}>();
 
-  let isDarkMode = true;
-  const homeHref = variant === 'landing' ? '/' : '/app';
+  let isDarkMode = $state(true);
+  const homeHref = $derived(variant === 'landing' ? '/' : '/app');
+  const dispatch = createEventDispatcher<{ newfile: void }>();
 
   const navClasses =
-    'grid w-full max-w-7xl grid-cols-3 items-center gap-8 rounded-3xl bg-gray-200 px-8 py-4 text-gray-950 shadow-lg dark:bg-gray-800 dark:text-gray-100';
+    'grid w-full max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-8 rounded-3xl bg-gray-200 px-8 py-4 text-gray-950 shadow-lg dark:bg-gray-900 dark:text-gray-100';
 
   const itemClasses =
     'text-nav rounded-full px-4 py-1.5 hover:underline underline-offset-4 opacity-60 hover:opacity-100 active:opacity-80 transition-all duration-150 cursor-pointer';
 
   const iconButtonClasses = 'grid h-10 w-10 place-items-center rounded-full p-0';
+  const iconColor = () => (isDarkMode ? 'text-gray-400' : 'text-gray-300');
 
   const applyTheme = (theme: 'light' | 'dark') => {
     const root = document.documentElement;
@@ -72,14 +74,30 @@
       <a class={itemClasses} href="/">Export</a>
       <a class={itemClasses} href="/">Creator</a>
     {:else}
+      <a class="{itemClasses} w-28 text-right" href="/">Explore</a>
       <a class={itemClasses} href="/">Dashboard</a>
-      <a class={itemClasses} href="/">Explore</a>
+      <button class="{itemClasses} w-28 text-left" type="button" onclick={() => dispatch('newfile')}>
+        New
+      </button>
     {/if}
   </div>
 
-  <div class="flex justify-self-end gap-2">
+  <div class="flex justify-self-end gap-4">
     {#if variant === 'landing'}
-      <a href="/app">
+      <Button
+        variant="accent"
+        class={iconButtonClasses}
+        type="button"
+        aria-label="Toggle theme"
+        onclick={toggleTheme}
+      >
+        {#if isDarkMode}
+          <Sun class={`h-4 w-4 ${iconColor()}`} strokeWidth={2.5} aria-hidden="true"/>
+        {:else}
+          <Moon class={`h-4 w-4 ${iconColor()}`} strokeWidth={2.5} aria-hidden="true"/>
+        {/if}
+      </Button>
+      <a href="/app" class="ml-4">
         <Button type="button">Get Started</Button>
       </a>
     {:else}
@@ -88,18 +106,18 @@
         class={iconButtonClasses}
         type="button"
         aria-label="Toggle theme"
-        on:click={toggleTheme}
+        onclick={toggleTheme}
       >
         {#if isDarkMode}
-          <Sun class="h-4 w-4 text-accent-500" aria-hidden="true"/>
+          <Sun class={`h-4 w-4 ${iconColor()}`} strokeWidth={2.5} aria-hidden="true"/>
         {:else}
-          <Moon class="h-4 w-4 text-accent-500" aria-hidden="true"/>
+          <Moon class={`h-4 w-4 ${iconColor()}`} strokeWidth={2.5} aria-hidden="true"/>
         {/if}
       </Button>
       <Button variant="accent" class={iconButtonClasses} type="button" aria-label="Notifications">
-        <Bell class="h-4 w-4 text-accent-500" aria-hidden="true"/>
+        <Bell class={`h-4 w-4 ${iconColor()}`} strokeWidth={2.5} aria-hidden="true"/>
       </Button>
-      <AccountWidget/>
+      <AccountWidget class="ml-2"/>
     {/if}
   </div>
 </nav>
