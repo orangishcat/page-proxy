@@ -1,6 +1,6 @@
 import {Account, Client, Databases, ID} from 'appwrite';
 import type {FileEntry, Result} from './file-types';
-import {err, ok} from './file-types';
+import {err, ok, sanitizeFileTitle} from './file-types';
 
 const appwriteEndpoint = import.meta.env.PUBLIC_APPWRITE_ENDPOINT;
 const appwriteProjectId = import.meta.env.PUBLIC_APPWRITE_PROJECT_ID;
@@ -22,7 +22,7 @@ const getClient = () => {
 };
 
 const ensureTextFilename = (name: string) => {
-  const trimmed = name.trim();
+  const trimmed = sanitizeFileTitle(name);
   if (trimmed.endsWith('.js')) {
     return trimmed;
   }
@@ -109,6 +109,31 @@ export const listFiles = (): Promise<Result<FileEntry[]>> => {
         return err('Network error while loading Appwrite files.');
       }
       return err(`Appwrite error (${status}) while loading files.`);
+    });
+};
+
+export const getFile = (id: string): Promise<Result<FileEntry>> => {
+  if (!isAppwriteReady()) {
+    return Promise.resolve(err('Appwrite is not configured.'));
+  }
+
+  const databases = new Databases(getClient());
+
+  return databases
+    .getDocument(databaseId, tableId, id)
+    .then((document) => ok(toAppwriteFile(document)))
+    .catch((error) => {
+      const status = getErrorCode(error);
+      if (status === 401) {
+        return err('Not authenticated with Appwrite.');
+      }
+      if (status === 403) {
+        return err('Not authorized to read Appwrite files.');
+      }
+      if (!status) {
+        return err('Network error while loading Appwrite file.');
+      }
+      return err(`Appwrite error (${status}) while loading file.`);
     });
 };
 

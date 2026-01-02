@@ -1,16 +1,23 @@
 import type {FileEntry, Result} from './file-types';
-import {err, ok} from './file-types';
+import {err, ok, sanitizeFileTitle} from './file-types';
 
 const legacyLocalStorageKey = 'page-proxy-files';
 const localStorageFilePrefix = 'file_';
+const localFileScheme = 'file://';
 
 const ensureTextFilename = (name: string) => {
-  const trimmed = name.trim();
+  const trimmed = sanitizeFileTitle(name);
   if (trimmed.endsWith('.js')) {
     return trimmed;
   }
   return `${trimmed || 'Untitled'}.js`;
 };
+
+const toLocalFileId = (id: string) =>
+  id.startsWith(localFileScheme) ? id : `${localFileScheme}${id}`;
+
+const fromLocalFileId = (id: string) =>
+  id.startsWith(localFileScheme) ? id.slice(localFileScheme.length) : id;
 
 const toLocalStorageKey = (id: string) => `${localStorageFilePrefix}${id}`;
 
@@ -78,7 +85,7 @@ const readLocalFiles = (): FileEntry[] => {
     const id = key.slice(localStorageFilePrefix.length);
     const content = localStorage.getItem(key) ?? '';
     entries.push({
-      id,
+      id: toLocalFileId(id),
       name: ensureTextFilename(id),
       content,
       updatedAt: new Date().toISOString(),
@@ -94,6 +101,28 @@ export const getLoginState = (): Promise<Result<boolean>> => Promise.resolve(ok(
 export const listFiles = (): Promise<Result<FileEntry[]>> =>
   Promise.resolve(ok(readLocalFiles()));
 
+export const getFile = (id: string): Promise<Result<FileEntry>> => {
+  if (typeof localStorage === 'undefined') {
+    return Promise.resolve(
+      err('Local storage is unavailable in this environment.')
+    );
+  }
+  const baseId = fromLocalFileId(id);
+  const key = toLocalStorageKey(baseId);
+  const content = localStorage.getItem(key);
+  if (content === null) {
+    return Promise.resolve(err('Local file not found.'));
+  }
+  const entry: FileEntry = {
+    id: toLocalFileId(baseId),
+    name: ensureTextFilename(baseId),
+    content,
+    updatedAt: new Date().toISOString(),
+    source: 'local'
+  };
+  return Promise.resolve(ok(entry));
+};
+
 export const createFile = (
   name: string,
   content: string
@@ -107,7 +136,7 @@ export const createFile = (
   const baseId = ensureTextFilename(name);
   const id = ensureUniqueLocalId(baseId);
   const entry: FileEntry = {
-    id,
+    id: toLocalFileId(id),
     name: ensureTextFilename(id),
     content,
     updatedAt: new Date().toISOString(),
@@ -123,7 +152,8 @@ export const deleteFile = (id: string): Promise<Result<string>> => {
       err('Local storage is unavailable in this environment.')
     );
   }
-  const key = toLocalStorageKey(id);
+  const baseId = fromLocalFileId(id);
+  const key = toLocalStorageKey(baseId);
   if (!localStorage.getItem(key)) {
     return Promise.resolve(err('Local file not found.'));
   }

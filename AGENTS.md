@@ -19,6 +19,7 @@
     - CSS: `tailwindcss`
     - Icons: `lucide-svelte`
     - Network: `axios`
+    - Test: `vitest`
     - [Figma file](https://www.figma.com/file/1E8P0X0wBphOq6kbXWMhbW/page-proxy--)
 - Auth, Database, Storage: Appwrite
 

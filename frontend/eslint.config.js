@@ -6,7 +6,12 @@ import globals from "globals";
 
 export default [
   {
-    ignores: ["**/.svelte-kit/**", "**/node_modules/**", "**/dist/**"],
+    ignores: [
+      "**/.svelte-kit/**",
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/src/lib/preview/penpal.min.js"
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -33,6 +38,15 @@ export default [
         ...globals.node,
       },
       sourceType: "commonjs",
+    },
+  },
+  {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+      },
     },
   },
   {

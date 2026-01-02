@@ -1,6 +1,7 @@
 <script lang="ts">
   import {createEventDispatcher} from 'svelte';
   import {Dialog} from 'bits-ui';
+  import {isFileTitleValid} from '$lib/data/file-types';
 
   type NewFileDetails = {
     title: string;
@@ -38,7 +39,18 @@
     return /^https?:\/\/[^\s/$.?#].[^\s]*$/i.test(value);
   };
 
-  const isTitleValid = () => titleValue().length > 0;
+  const getTitleError = () => {
+    const value = titleValue();
+    if (!value) {
+      return 'Title is required.';
+    }
+    if (!isFileTitleValid(value)) {
+      return 'Remove ":" and "/" from the title.';
+    }
+    return null;
+  };
+
+  const isTitleValid = () => getTitleError() === null;
   const isFormValid = () => isTitleValid() && isValidWebsite();
 
   const resetForm = () => {
@@ -67,7 +79,11 @@
 
   $effect(() => {
     if (!open) {
-      resetForm();
+      title = '';
+      website = '';
+      description = '';
+      attemptedSubmit = false;
+      touched = {title: false, website: false};
     }
   });
 </script>
@@ -97,7 +113,9 @@
           <span class="flex items-center justify-between gap-4">
             <span class="text-label text-gray-600 dark:text-gray-300">Title</span>
             {#if (attemptedSubmit || touched.title) && !isTitleValid()}
-              <span class="text-caption text-red-600 dark:text-red-400">Title is required.</span>
+              <span class="text-caption text-red-600 dark:text-red-400">
+                {getTitleError()}
+              </span>
             {/if}
           </span>
           <input
@@ -116,7 +134,7 @@
 
         <label class="grid gap-2">
           <span class="flex items-center justify-between gap-4">
-            <span class="text-label text-gray-600 dark:text-gray-300">Website</span>
+            <span class="text-label ztext-gray-600 dark:text-gray-300">Website</span>
             {#if (attemptedSubmit || touched.website) && !isValidWebsite()}
               <span class="text-caption text-red-600 dark:text-red-400">Invalid URL</span>
             {/if}

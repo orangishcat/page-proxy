@@ -6,6 +6,14 @@ export type FileEntry = {
   source: 'local' | 'appwrite';
 };
 
+const invalidTitlePattern = /[:/]/;
+
+export const isFileTitleValid = (title: string) =>
+  !invalidTitlePattern.test(title);
+
+export const sanitizeFileTitle = (title: string) =>
+  title.replace(/[:/]+/g, '-').replace(/\s+/g, ' ').trim();
+
 export type Result<T> =
   | {ok: true; value: T}
   | {ok: false; error: string};

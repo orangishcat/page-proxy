@@ -27,6 +27,9 @@
   let deleteTarget = $state<FileEntry | null>(null);
   let isDeleting = $state(false);
 
+  const toProjectHref = (file: FileEntry) =>
+    `/app/project/${encodeURIComponent(file.id)}`;
+
   const menuTriggerClasses =
     'grid h-10 w-10 place-items-center rounded-full border border-gray-200 bg-gray-100 text-gray-700 shadow-md transition hover:bg-gray-200 active:bg-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 dark:active:bg-gray-600';
   const menuContentClasses =
@@ -57,12 +60,18 @@
     event: CustomEvent<{title: string; website: string; description: string}>
   ) => {
     const {title, website, description} = event.detail;
-    const contentLines = [
-      website ? `Website: ${website}` : null,
-      description ? `Description: ${description}` : null
-    ].filter((line): line is string => Boolean(line));
-    const content = contentLines.join('\n');
-    const result = await createFile(title || 'Untitled.txt', content);
+    const metaLines = [
+      '// ==Page Proxy==',
+      `// @title ${title.trim()}`,
+      `// @website ${website.trim()}`
+    ];
+    const trimmedDescription = description.trim();
+    if (trimmedDescription) {
+      metaLines.push(`// @description ${trimmedDescription}`);
+    }
+    metaLines.push('// ==/Page Proxy==', '', '');
+    const content = metaLines.join('\n');
+    const result = await createFile(title || 'Untitled', content);
     if (isResultError(result)) {
       errorMessage = result.error;
       status = 'error';
@@ -171,6 +180,7 @@
           <GridItem
             title={file.name}
             author={file.source === 'appwrite' ? 'Appwrite' : 'Local file'}
+            href={toProjectHref(file)}
           >
             {#snippet end()}
               <DropdownMenu.Root>
