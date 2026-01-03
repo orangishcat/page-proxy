@@ -4,6 +4,7 @@ dist
 build
 .tmp
 .lsmcp
+.claude
 .svelte-kit
 test-results
 .zed

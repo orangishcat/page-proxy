@@ -3,6 +3,7 @@ import type {FileEntry, Result} from './file-types';
 import * as localFiles from './local-files';
 import {err, isFileTitleValid} from './file-types';
 
+export type {AccountProfile} from './cloud-files';
 export type {FileEntry, Result} from './file-types';
 export {isResultError} from './file-types';
 
@@ -12,6 +13,11 @@ const getMode = () => (useLocalStorageMode ? 'local' : 'cloud');
 
 export const getLoginState = (): Promise<Result<boolean>> =>
   getMode() === 'local' ? localFiles.getLoginState() : cloudFiles.getLoginState();
+
+export const getAccount = (): Promise<Result<cloudFiles.AccountProfile | null>> =>
+  cloudFiles.getAccount();
+
+export const signOut = (): Promise<Result<boolean>> => cloudFiles.signOut();
 
 export const listFiles = (): Promise<Result<FileEntry[]>> =>
   getMode() === 'local' ? localFiles.listFiles() : cloudFiles.listFiles();

@@ -160,3 +160,9 @@ export const deleteFile = (id: string): Promise<Result<string>> => {
   localStorage.removeItem(key);
   return Promise.resolve(ok(id));
 };
+
+export const getAccount = (): Promise<Result<null>> =>
+  Promise.resolve(ok(null));
+
+export const signOut = (): Promise<Result<boolean>> =>
+  Promise.resolve(ok(false));

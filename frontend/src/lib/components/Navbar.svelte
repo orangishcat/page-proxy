@@ -8,20 +8,18 @@
   import {createEventDispatcher, onMount} from 'svelte';
   import Button from '$lib/components/Button.svelte';
 
-  let {variant = 'app'} = $props<{variant?: NavbarVariant}>();
+  let {variant = 'app'} = $props<{ variant?: NavbarVariant }>();
 
   let isDarkMode = $state(true);
   const homeHref = $derived(variant === 'landing' ? '/' : '/app');
   const dispatch = createEventDispatcher<{ newfile: void }>();
 
   const navClasses =
-    'grid w-full max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-8 rounded-3xl bg-gray-200 px-8 py-4 text-gray-950 shadow-lg dark:bg-gray-900 dark:text-gray-100';
-
+    'grid w-full max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-8 rounded-2xl bg-gray-200 px-8 py-3 text-gray-950 shadow-lg dark:bg-gray-900 dark:text-gray-100';
   const itemClasses =
     'text-nav rounded-full px-4 py-1.5 hover:underline underline-offset-4 opacity-60 hover:opacity-100 active:opacity-80 transition-all duration-150 cursor-pointer';
 
-  const iconButtonClasses = 'grid h-10 w-10 place-items-center rounded-full p-0';
-  const iconColor = () => (isDarkMode ? 'text-gray-400' : 'text-gray-300');
+  const iconButtonClasses = 'grid place-items-center rounded-full p-0';
 
   const applyTheme = (theme: 'light' | 'dark') => {
     const root = document.documentElement;
@@ -56,7 +54,7 @@
   });
 </script>
 
-<nav class={navClasses}>
+<nav class={navClasses} class:max-w-full={variant === 'app'}>
   <a class="flex items-center gap-1.5 justify-self-start" href={homeHref} aria-label="Page Proxy">
     <img src="/logo.png" alt="" class="h-10 w-10" draggable="false"/>
     <span class="text-title">Page Proxy</span>
@@ -82,42 +80,29 @@
     {/if}
   </div>
 
-  <div class="flex justify-self-end gap-4">
+  <div class="flex flex-1 justify-self-end gap-6">
+    <Button
+      variant="outline"
+      class={iconButtonClasses}
+      type="button"
+      aria-label="Toggle theme"
+      onclick={toggleTheme}
+    >
+      {#if isDarkMode}
+        <Sun class="h-4 w-4" strokeWidth={2.5} aria-hidden="true"/>
+      {:else}
+        <Moon class="h-4 w-4" strokeWidth={2.5} aria-hidden="true"/>
+      {/if}
+    </Button>
     {#if variant === 'landing'}
-      <Button
-        variant="accent"
-        class={iconButtonClasses}
-        type="button"
-        aria-label="Toggle theme"
-        onclick={toggleTheme}
-      >
-        {#if isDarkMode}
-          <Sun class={`h-4 w-4 ${iconColor()}`} strokeWidth={2.5} aria-hidden="true"/>
-        {:else}
-          <Moon class={`h-4 w-4 ${iconColor()}`} strokeWidth={2.5} aria-hidden="true"/>
-        {/if}
-      </Button>
       <a href="/app" class="ml-4">
         <Button type="button">Get Started</Button>
       </a>
     {:else}
-      <Button
-        variant="accent"
-        class={iconButtonClasses}
-        type="button"
-        aria-label="Toggle theme"
-        onclick={toggleTheme}
-      >
-        {#if isDarkMode}
-          <Sun class={`h-4 w-4 ${iconColor()}`} strokeWidth={2.5} aria-hidden="true"/>
-        {:else}
-          <Moon class={`h-4 w-4 ${iconColor()}`} strokeWidth={2.5} aria-hidden="true"/>
-        {/if}
+      <Button variant="outline" class={iconButtonClasses} type="button" aria-label="Notifications">
+        <Bell class="h-4 w-4" strokeWidth={2.5} aria-hidden="true"/>
       </Button>
-      <Button variant="accent" class={iconButtonClasses} type="button" aria-label="Notifications">
-        <Bell class={`h-4 w-4 ${iconColor()}`} strokeWidth={2.5} aria-hidden="true"/>
-      </Button>
-      <AccountWidget class="ml-2"/>
+      <AccountWidget/>
     {/if}
   </div>
 </nav>

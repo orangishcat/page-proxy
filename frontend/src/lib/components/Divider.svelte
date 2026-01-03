@@ -2,12 +2,12 @@
   import { Separator } from 'bits-ui';
 
   const props = $props<{ class?: string }>();
-  const restProps = $derived(() => {
+  const restProps = $derived.by(() => {
     const { class: _class, ...rest } = props;
     return rest;
   });
-  const dividerClasses = $derived(() =>
-    `h-[0.0625rem] w-full bg-gray-200 dark:bg-gray-600 ${props.class ?? ''}`.trim()
+  const dividerClasses = $derived.by(() =>
+    `h-px w-full bg-gray-300/70 dark:bg-gray-500/80 ${props.class ?? ''}`.trim()
   );
 </script>
 

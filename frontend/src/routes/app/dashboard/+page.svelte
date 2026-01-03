@@ -120,7 +120,7 @@
 </script>
 
 <main class="min-h-screen text-gray-100">
-  <div class="mx-auto flex w-full justify-center place-items-center flex-col gap-14 px-6 pb-20 pt-8 relative">
+  <div class="mx-auto flex w-full justify-center place-items-center flex-col gap-14 px-32 pb-20 pt-6 relative">
     <Navbar variant="dashboard" on:newfile={handleNewFile} />
     <NewFileModal bind:open={isNewModalOpen} on:submit={handleCreateFile} />
     <Dialog.Root bind:open={isDeleteDialogOpen}>
@@ -161,7 +161,7 @@
       </Dialog.Portal>
     </Dialog.Root>
 
-    <section class="grid w-full max-w-7xl gap-6 md:grid-cols-3 lg:grid-cols-4 min-h-[18rem] relative">
+    <section class="grid w-full max-w-7xl gap-6 md:grid-cols-3 lg:grid-cols-4 min-h-[18rem] relative pb-6">
       {#if status === 'loading'}
         <div class="col-span-full flex min-h-[18rem] items-center justify-center text-lead text-gray-300">
           Loading files...

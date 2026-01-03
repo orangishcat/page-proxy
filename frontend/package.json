@@ -10,8 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
-    "lint": "eslint .",
-    "page-load-check": "bun ./scripts/page-load-check.mjs"
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

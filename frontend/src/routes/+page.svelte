@@ -7,7 +7,7 @@
 </script>
 
 <main class="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
-  <div class="mx-auto flex justify-center place-items-center min-h-[90vh] w-full flex-col px-6 pb-12 pt-8">
+  <div class="mx-auto flex justify-center place-items-center min-h-[90vh] w-full flex-col px-6 pb-12 pt-6">
     <Navbar variant="landing" />
 
     <section class="flex flex-1 items-center justify-center">

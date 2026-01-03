@@ -9,8 +9,7 @@ export default [
     ignores: [
       "**/.svelte-kit/**",
       "**/node_modules/**",
-      "**/dist/**",
-      "**/src/lib/preview/penpal.min.js"
+      "**/dist/**"
     ],
   },
   js.configs.recommended,

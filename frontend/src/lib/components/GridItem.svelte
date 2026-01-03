@@ -18,8 +18,8 @@
   }>();
 </script>
 
-<article
-  class="relative w-full rounded-3xl border border-gray-200 bg-white p-6 text-gray-950 shadow-lg hover:brightness-90 active:bg-gray-200 active:brightness-75 focus-within:ring-2 focus-within:ring-primary-400 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100"
+<article class="relative w-full rounded-3xl border border-gray-200 bg-white p-6 text-gray-950 shadow-lg ring-0
+ transition hover:ring-1 hover:ring-gray-500/70 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100"
 >
   {#if href}
     <a
@@ -30,7 +30,7 @@
   {/if}
   <div class={`relative z-10 ${href ? 'pointer-events-none' : ''}`}>
     {#if image}
-      <img class="mb-5 h-40 w-full rounded-3xl object-cover" src={image} alt={title} />
+      <img class="mb-5 h-40 w-full rounded-3xl object-cover" src={image} alt={title}/>
     {:else}
       <div class="mb-5 h-40 rounded-3xl bg-gray-200 dark:bg-gray-850"></div>
     {/if}

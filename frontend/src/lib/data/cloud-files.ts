@@ -2,6 +2,11 @@ import {Account, Client, Databases, ID} from 'appwrite';
 import type {FileEntry, Result} from './file-types';
 import {err, ok, sanitizeFileTitle} from './file-types';
 
+export type AccountProfile = {
+  name: string;
+  email: string;
+};
+
 const appwriteEndpoint = import.meta.env.PUBLIC_APPWRITE_ENDPOINT;
 const appwriteProjectId = import.meta.env.PUBLIC_APPWRITE_PROJECT_ID;
 const databaseId = import.meta.env.PUBLIC_APPWRITE_DATABASE_ID;
@@ -84,6 +89,56 @@ export const getLoginState = (): Promise<Result<boolean>> => {
         return err('Network error while checking Appwrite login.');
       }
       return err(`Appwrite error (${status}) while checking login.`);
+    });
+};
+
+export const getAccount = (): Promise<Result<AccountProfile | null>> => {
+  if (!isAppwriteReady()) {
+    return Promise.resolve(ok(null));
+  }
+
+  const account = new Account(getClient());
+
+  return account
+    .get()
+    .then((profile) => ok({name: profile.name, email: profile.email}))
+    .catch((error) => {
+      const status = getErrorCode(error);
+      if (status === 401) {
+        return ok(null);
+      }
+      if (status === 403) {
+        return err('Not authorized to read the Appwrite account.');
+      }
+      if (!status) {
+        return err('Network error while loading Appwrite account.');
+      }
+      return err(`Appwrite error (${status}) while loading account.`);
+    });
+};
+
+export const signOut = (): Promise<Result<boolean>> => {
+  if (!isAppwriteReady()) {
+    return Promise.resolve(ok(false));
+  }
+
+  const account = new Account(getClient());
+
+  return account
+    .deleteSession('current')
+    .then(() => ok(true))
+    .catch((error) => {
+      const status = getErrorCode(error);
+      if (status === 401) {
+        return ok(false);
+      }
+      if (status === 403) {
+        return err('Not authorized to sign out of Appwrite.');
+      }
+      if (!status) {
+        return err('Network error while signing out of Appwrite.');
+      }
+      return err(`Appwrite error (${status}) while signing out.`);
     });
 };
 
