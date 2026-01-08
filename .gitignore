@@ -1,11 +1,27 @@
+# OS + editor
+.DS_Store
 .idea
+.vscode
+.zed
+
+# Package managers
 node_modules
-dist
+
+# Build outputs
 build
+dist
+.svelte-kit
+.output
+
+# Tooling + temp
 .tmp
 .lsmcp
 .claude
-.svelte-kit
 test-results
-.zed
-.vscode
+
+# WXT / web-ext
+web-ext.config.ts
+
+# Local artifacts
+latest
+version

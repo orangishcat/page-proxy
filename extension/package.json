@@ -1,0 +1,30 @@
+{
+    "name": "page-proxy-extension",
+    "private": true,
+    "version": "0.1.0",
+    "type": "module",
+    "engines": {
+        "node": ">=22"
+    },
+    "scripts": {
+        "dev": "wxt",
+        "build": "wxt build",
+        "prepare": "wxt prepare",
+        "check": "tsc -p tsconfig.json --noEmit"
+    },
+    "devDependencies": {
+        "@types/chrome": "^0.1.32",
+        "@wxt-dev/module-svelte": "^2.0.3",
+        "autoprefixer": "^10.4.23",
+        "postcss": "^8.5.6",
+        "svelte": "^5.38.10",
+        "tailwindcss": "^3.4.19",
+        "typescript": "^5.9.3",
+        "wxt": "^0.20.11"
+    },
+    "dependencies": {
+        "axios": "^1.12.2",
+        "bits-ui": "^2.14.4",
+        "lucide-svelte": "^0.562.0"
+    }
+}
