@@ -1,7 +1,7 @@
 import {browser} from 'wxt/browser';
 import {defineContentScript} from 'wxt/utils/define-content-script';
 
-import type {ElementInfo, SelectToolMessage} from '../lib/selection';
+import type {ElementInfo, SelectToolMessage} from '@/lib/selection';
 
 const hoverClass = 'pp-hover';
 const selectedClass = 'pp-selected';
