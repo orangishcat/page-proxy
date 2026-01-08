@@ -4,7 +4,7 @@
   import {Copy, MousePointer, Plus} from 'lucide-svelte';
 
   import Button from '../../lib/components/Button.svelte';
-  import type {ElementInfo, SelectToolMessage} from '../../lib/selection';
+  import type {ElementInfo, SelectToolMessage} from '@/lib/selection';
 
   let selectionMode = $state(false);
   let hoveredInfo = $state<null | ElementInfo>(null);
