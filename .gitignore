@@ -10,8 +10,9 @@ node_modules
 # Build outputs
 build
 dist
-.svelte-kit
 .output
+.svelte-kit
+dev
 
 # Tooling + temp
 .tmp

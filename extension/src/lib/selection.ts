@@ -4,6 +4,7 @@ export type ElementInfo = {
   name: string | null;
   className: string | null;
   selector: string;
+  attributes: Record<string, string>;
   boundingBox: {
     x: number;
     y: number;

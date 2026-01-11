@@ -3,5 +3,5 @@
   "compilerOptions": {
     "types": ["chrome"]
   },
-  "include": ["src"]
+  "include": ["src/**/*"]
 }

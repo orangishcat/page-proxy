@@ -67,6 +67,9 @@ const getElementSelector = (element: Element) => {
 
 const getElementInfo = (element: Element): ElementInfo => {
   const rect = element.getBoundingClientRect();
+  const attributes = Object.fromEntries(
+    Array.from(element.attributes).map((attr) => [attr.name, attr.value])
+  );
 
   return {
     tag: element.tagName.toLowerCase(),
@@ -74,6 +77,7 @@ const getElementInfo = (element: Element): ElementInfo => {
     name: element.getAttribute('name') ?? element.getAttribute('aria-label') ?? null,
     className: element.getAttribute('class'),
     selector: getElementSelector(element),
+    attributes,
     boundingBox: {
       x: rect.x + window.scrollX,
       y: rect.y + window.scrollY,

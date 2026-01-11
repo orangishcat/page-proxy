@@ -2,7 +2,7 @@
   import Button from '$lib/components/Button.svelte';
   import Navbar from '$lib/components/Navbar.svelte';
   import {getFile, isResultError} from '$lib/data/files';
-  import {Copy, ExternalLink, Globe, MousePointer, Plus} from 'lucide-svelte';
+  import {Copy, ExternalLink, Globe, HelpCircle, MousePointer, Plus} from 'lucide-svelte';
   import {connect, type RemoteProxy, WindowMessenger} from 'penpal';
   import {page} from '$app/stores';
   import {onDestroy, onMount} from 'svelte';
@@ -304,7 +304,7 @@
 
       <div class="flex h-full flex-col gap-6">
         <div
-          class="flex min-h-0 flex-1 flex-col rounded-xl border border-gray-800 bg-gray-900 p-6 shadow-[0_1.1rem_2.2rem_rgba(0,0,0,0.4)]">
+          class="flex h-56 min-h-40 max-h-96 shrink-0 resize-y flex-col overflow-hidden rounded-xl border border-gray-800 bg-gray-900 p-6 shadow-[0_1.1rem_2.2rem_rgba(0,0,0,0.4)]">
           <div class="flex items-center justify-start gap-2 pb-4">
             <Button
               variant="outline"
@@ -323,68 +323,85 @@
               <Plus class="h-5 w-5"/>
             </Button>
           </div>
-          <div class="h-full text-sm text-gray-300">
-            <div class="h-[30%] overflow-y-auto">
-              <p class="text-label text-gray-500">Hovering</p>
-              {#if hoveredInfo}
-                <p class="text-body text-gray-200">{hoveredInfo.tag}</p>
-                <p class="text-caption text-gray-400">{hoveredInfo.className ?? '—'}</p>
-              {:else}
-                <p class="text-caption text-gray-500 mt-2">Hover an element to preview.</p>
-              {/if}
-            </div>
-            <div class="h-[70%] overflow-y-auto">
-              <p class="text-label text-gray-500">Selected</p>
-              {#if selectedInfo}
-                <div class="space-y-2">
-                  <p class="text-body text-gray-200">{selectedInfo.tag}</p>
-                  <div class="text-caption text-gray-400">
-                    {#if selectedInfo.id}
-                      <p>ID: {selectedInfo.id}</p>
-                    {/if}
-                    <p>Name: {selectedInfo.name ?? '—'}</p>
-                    <p>Class: {selectedInfo.className ?? '—'}</p>
-                    <div class="flex items-center justify-between gap-3">
-                      <p>Selector: {selectedInfo.selector}</p>
-                      <button
-                        class="flex h-7 w-7 items-center justify-center rounded-full border border-gray-800 text-gray-400 transition hover:border-gray-600 hover:text-gray-200"
-                        type="button"
-                        aria-label="Copy selector"
-                        onclick={() => copyToClipboard(selectedInfo.selector)}
-                      >
-                        <Copy class="h-3.5 w-3.5"/>
-                      </button>
-                    </div>
-                    <div class="flex items-center justify-between gap-3">
-                      <p>Box: {formatBoundingBox(selectedInfo.boundingBox)}</p>
-                      <button
-                        class="flex h-7 w-7 items-center justify-center rounded-full border border-gray-800 text-gray-400 transition hover:border-gray-600 hover:text-gray-200"
-                        type="button"
-                        aria-label="Copy bounding box"
-                        onclick={() =>
-                          copyToClipboard(formatBoundingBox(selectedInfo.boundingBox))
-                        }
-                      >
-                        <Copy class="h-3.5 w-3.5"/>
-                      </button>
+          <div class="flex-1 min-h-0 text-sm text-gray-300">
+            <div class="h-full overflow-y-auto pr-2">
+              <div class="min-h-40 space-y-2">
+                <p class="text-label text-gray-500">Selected</p>
+                {#if selectedInfo}
+                  <div class="space-y-2">
+                    <p class="text-body text-gray-200">{selectedInfo.tag}</p>
+                    <div class="text-caption text-gray-400">
+                      {#if selectedInfo.id}
+                        <p>ID: {selectedInfo.id}</p>
+                      {/if}
+                      <p>Name: {selectedInfo.name ?? '—'}</p>
+                      <p>Class: {selectedInfo.className ?? '—'}</p>
+                      <div class="flex items-center justify-between gap-3">
+                        <p>Selector: {selectedInfo.selector}</p>
+                        <button
+                          class="flex h-7 w-7 items-center justify-center rounded-full border border-gray-800 text-gray-400 transition hover:border-gray-600 hover:text-gray-200"
+                          type="button"
+                          aria-label="Copy selector"
+                          onclick={() => copyToClipboard(selectedInfo.selector)}
+                        >
+                          <Copy class="h-3.5 w-3.5"/>
+                        </button>
+                      </div>
+                      <div class="flex items-center justify-between gap-3">
+                        <p>Box: {formatBoundingBox(selectedInfo.boundingBox)}</p>
+                        <button
+                          class="flex h-7 w-7 items-center justify-center rounded-full border border-gray-800 text-gray-400 transition hover:border-gray-600 hover:text-gray-200"
+                          type="button"
+                          aria-label="Copy bounding box"
+                          onclick={() =>
+                            copyToClipboard(formatBoundingBox(selectedInfo.boundingBox))
+                          }
+                        >
+                          <Copy class="h-3.5 w-3.5"/>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              {:else}
-                <p class="text-caption text-gray-500 mt-2">Select an element to lock details.</p>
+                {:else}
+                  <p class="text-caption text-gray-500 mt-2">
+                    Select an element to lock details.
+                  </p>
+                {/if}
+              </div>
+              <div class="mt-6 space-y-2">
+                <p class="text-label text-gray-500">Hovering</p>
+                {#if hoveredInfo}
+                  <p class="text-body text-gray-200">{hoveredInfo.tag}</p>
+                  <p class="text-caption text-gray-400">{hoveredInfo.className ?? '—'}</p>
+                {:else}
+                  <p class="text-caption text-gray-500 mt-2">
+                    Hover an element to preview.
+                  </p>
+                {/if}
+              </div>
+              {#if errorMessage}
+                <p class="text-caption text-red-300 mt-4">{errorMessage}</p>
               {/if}
             </div>
-            {#if errorMessage}
-              <p class="text-caption text-red-300">{errorMessage}</p>
-            {/if}
           </div>
         </div>
 
         <div
           class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-800 bg-gray-900 shadow-[0_1.1rem_2.2rem_rgba(0,0,0,0.4)]">
+          <div class="flex items-center justify-between border-b border-gray-800 px-6 py-4">
+            <p class="text-title text-gray-100">Script Editor</p>
+            <button
+              class="flex h-8 w-8 items-center justify-center rounded-full border border-gray-800 text-gray-400 transition hover:border-gray-600 hover:text-gray-200"
+              type="button"
+              aria-label="Script editor help"
+              title="Write JavaScript that targets the selected element."
+            >
+              <HelpCircle class="h-4 w-4"/>
+            </button>
+          </div>
           <div class="flex-1 min-h-0">
             <div
-              class="h-full w-full bg-gray-950/70 text-body text-gray-200"
+              class="script-editor h-full w-full bg-gray-950/70 text-body text-gray-200"
               bind:this={editorHost}
             ></div>
           </div>
@@ -393,3 +410,17 @@
     </section>
   </div>
 </main>
+
+<style>
+  :global(.script-editor .cm-editor) {
+    background-color: transparent;
+  }
+
+  :global(.script-editor .cm-gutters) {
+    background-color: #2b2c2a;
+  }
+
+  :global(.script-editor .cm-content) {
+    padding-top: 0;
+  }
+</style>
