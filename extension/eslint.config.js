@@ -1,8 +1,21 @@
-import js from '@eslint/js';
 import svelte from 'eslint-plugin-svelte';
 import svelteParser from 'svelte-eslint-parser';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
+
+const typedTsConfigs = tseslint.configs.recommendedTypeChecked.map((cfg) => ({
+  ...cfg,
+  files: ['**/*.{ts,tsx}'],
+  languageOptions: {
+    ...cfg.languageOptions,
+    parser: tseslint.parser,
+    parserOptions: {
+      ...(cfg.languageOptions?.parserOptions ?? {}),
+      projectService: true,
+      tsconfigRootDir: import.meta.dirname,
+    },
+  },
+}));
 
 export default [
   {
@@ -11,66 +24,84 @@ export default [
       '**/.wxt/**',
       '**/.output/**',
       '**/node_modules/**',
-      '**/dist/**'
-    ]
+      '**/dist/**',
+    ],
   },
-  js.configs.recommended,
-  ...tseslint.configs.recommended,
+
+  // JS
   {
-    files: ['**/*.ts', '**/*.js'],
+    files: ['**/*.{js,cjs,mjs}'],
     languageOptions: {
-      parser: tseslint.parser,
-      globals: {
-        ...globals.browser,
-        ...globals.node
-      }
+      globals: { ...globals.browser, ...globals.node },
+      sourceType: 'module',
+    },
+  },
+
+  ...typedTsConfigs,
+
+  {
+    files: ['**/*.{ts,tsx}'],
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
     },
     rules: {
       '@typescript-eslint/no-unused-vars': [
         'error',
-        {argsIgnorePattern: '^_', varsIgnorePattern: '^_'}
-      ]
-    }
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+    },
   },
-  {
-    files: ['**/*.cjs'],
-    languageOptions: {
-      globals: {
-        ...globals.node
-      },
-      sourceType: 'commonjs'
-    }
-  },
-  {
-    files: ['**/*.d.ts'],
-    rules: {
-      '@typescript-eslint/no-unused-vars': 'off',
-      '@typescript-eslint/no-empty-object-type': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/ban-ts-comment': 'off'
-    }
-  },
+
   {
     files: ['**/*.svelte'],
     languageOptions: {
       parser: svelteParser,
       parserOptions: {
         parser: tseslint.parser,
-        extraFileExtensions: ['.svelte']
+        extraFileExtensions: ['.svelte'],
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
-      globals: {
-        ...globals.browser
-      }
+      globals: { ...globals.browser },
     },
     plugins: {
-      svelte
+      svelte,
+      '@typescript-eslint': tseslint.plugin,
     },
     rules: {
       ...svelte.configs.recommended.rules,
       '@typescript-eslint/no-unused-vars': [
         'error',
-        {argsIgnorePattern: '^_', varsIgnorePattern: '^_'}
-      ]
-    }
-  }
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+    },
+  },
+
+  {
+    files: ['**/*.d.ts'],
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/ban-ts-comment': 'off',
+    },
+  },
+  {
+    ignores: [
+      '**/.svelte-kit/**',
+      '**/.wxt/**',
+      '**/.output/**',
+      '**/node_modules/**',
+      '**/dist/**',
+
+      '**/wxt.config.ts',
+      '**/web-ext.config.ts',
+    ],
+  },
 ];

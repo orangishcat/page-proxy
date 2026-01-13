@@ -26,3 +26,4 @@ web-ext.config.ts
 # Local artifacts
 latest
 version
+page proxy__.canvas.json

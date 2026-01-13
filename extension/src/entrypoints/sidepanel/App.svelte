@@ -91,7 +91,7 @@
       return true;
     }
 
-    if (target.isContentEditable) {
+    if (target instanceof HTMLElement && target.isContentEditable) {
       return true;
     }
 
@@ -268,7 +268,7 @@
               }}
               disabled
             >
-              <CircleQuestionMark class="{iconSize}"/>
+              <CircleQuestionMark class={iconSize}/>
             </Button>
             <Button
               class={toolButtonClasses(activeTool === 'share')}

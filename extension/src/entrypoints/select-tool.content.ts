@@ -141,7 +141,7 @@ const isEditableTarget = (target: EventTarget | null) => {
     return true;
   }
 
-  if (target.isContentEditable) {
+  if (target instanceof HTMLElement && target.isContentEditable) {
     return true;
   }
 
