@@ -1,69 +1,175 @@
 <script lang="ts">
-  type SaveStyleItem = {
-    key: string;
-    label: string;
-    value: string;
+  import {onDestroy} from 'svelte';
+  import Button from '@/lib/components/Button.svelte';
+  import type {ElementInfo} from '@/lib/selection';
+  import type {StyleEntry} from './code-editor/state';
+  import type {PropertyItem} from './select-tool/state';
+  import {hasSelection, propertyItems, selectedInfo} from './select-tool/state';
+  import {
+    buildDefinitionComment,
+    formatStyleCode,
+    insertDefinitions,
+    styleEntries
+  } from './code-editor/state';
+  import {setErrorMessage} from './tool-errors';
+
+  let styleName = $state('');
+  let propertySelections = $state<Record<string, boolean>>({});
+  let lastSelectedSelector = $state<string | null>(null);
+  let hasSelectionValue = $state(false);
+  let selectedInfoValue = $state<ElementInfo | null>(null);
+  let propertyItemsValue = $state<PropertyItem[]>([]);
+  let styleEntriesValue = $state<StyleEntry[]>([]);
+
+  const unsubscribeHasSelection = hasSelection.subscribe((value) => {
+    hasSelectionValue = value;
+  });
+  const unsubscribeSelectedInfo = selectedInfo.subscribe((value) => {
+    selectedInfoValue = value;
+  });
+  const unsubscribePropertyItems = propertyItems.subscribe((value) => {
+    propertyItemsValue = value;
+  });
+  const unsubscribeStyleEntries = styleEntries.subscribe((value) => {
+    styleEntriesValue = value;
+  });
+
+  onDestroy(() => {
+    unsubscribeHasSelection();
+    unsubscribeSelectedInfo();
+    unsubscribePropertyItems();
+    unsubscribeStyleEntries();
+  });
+
+  const setPropertySelectionsFromItems = () => {
+    const nextSelections: Record<string, boolean> = {};
+    propertyItemsValue.forEach((item) => {
+      nextSelections[item.key] = item.primary;
+    });
+    propertySelections = nextSelections;
   };
 
-  type SaveStyleToolProps = {
-    items: SaveStyleItem[];
-    selections: Record<string, boolean>;
-    styleName: string;
-    hasSelection: boolean;
-    onToggleSelection: (key: string, checked: boolean) => void;
-    onSave: () => void;
-    onStyleNameChange: (value: string) => void;
+  const saveStyleDefinition = () => {
+    if (!selectedInfoValue) {
+      return;
+    }
+
+    const selectedProperties = propertyItemsValue.filter(
+      (item) => propertySelections[item.key]
+    );
+
+    if (selectedProperties.length === 0) {
+      setErrorMessage('Select at least one property to save a style.');
+      return;
+    }
+
+    const entryName = styleName.trim() || 'Style';
+    const properties: Record<string, string> = {};
+    let bbox: (typeof selectedProperties)[number]['rawValue'] | null = null;
+
+    selectedProperties.forEach((item) => {
+      if (item.key === 'bbox' && typeof item.rawValue !== 'string') {
+        bbox = item.rawValue;
+        properties[item.key] = item.value;
+        return;
+      }
+
+      properties[item.key] = item.value;
+    });
+
+    const entry = {
+      name: entryName,
+      selector: selectedInfoValue.selector,
+      bbox: bbox && typeof bbox !== 'string' ? bbox : undefined,
+      properties
+    };
+
+    const index = styleEntriesValue.length + 1;
+    const variableName = `style_${index}`;
+
+    const commentLine = buildDefinitionComment(
+      'style',
+      entry.name,
+      entry.selector,
+      entry.bbox ?? null,
+      entry.properties,
+      'prop'
+    );
+
+    const codeLine = formatStyleCode(entry, variableName);
+
+    if (!insertDefinitions([commentLine, codeLine])) {
+      return;
+    }
+
+    styleName = `Style ${index + 1}`;
   };
 
-  let {
-    items,
-    selections,
-    styleName,
-    hasSelection,
-    onToggleSelection,
-    onSave,
-    onStyleNameChange
-  }: SaveStyleToolProps = $props();
+  $effect(() => {
+    propertyItemsValue;
+    setPropertySelectionsFromItems();
+  });
+
+  $effect(() => {
+    if (!hasSelectionValue) {
+      lastSelectedSelector = null;
+      styleName = '';
+      return;
+    }
+
+    if (!selectedInfoValue) {
+      return;
+    }
+
+    if (selectedInfoValue.selector === lastSelectedSelector) {
+      return;
+    }
+
+    lastSelectedSelector = selectedInfoValue.selector;
+    styleName = `Style ${styleEntriesValue.length + 1}`;
+  });
 </script>
 
-<div class="h-full w-full">
-  <div class="absolute left-[8.75%] top-[20.67%] h-[9.42%] w-[82.5%]">
-    <div class="grid h-full w-full grid-cols-[13.33%,4.55%,65.15%,4.55%,12.42%] items-center">
-      <span class="pp-name-label">Name:</span>
-      <span></span>
-      <input
-        class="pp-input-text h-full w-full rounded-[12.5%] bg-[#32332e]/20 px-[3.72%] text-white"
-        type="text"
-        value={styleName}
-        disabled={!hasSelection}
-        oninput={(event) => onStyleNameChange(event.currentTarget.value)}
-      />
-      <span></span>
-      <button
-        class="pp-action-button h-[96%] w-full disabled:opacity-50"
-        type="button"
-        onclick={onSave}
-        disabled={!hasSelection}
-      >
-        Save
-      </button>
-    </div>
+<div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4">
+  <div class="flex flex-wrap items-center gap-3">
+    <span class="text-label text-gray-600 dark:text-gray-300">Name</span>
+    <input
+      class="flex-1 rounded-lg bg-gray-100/70 px-3 py-2 text-body text-gray-900 placeholder:text-gray-500 disabled:opacity-60 dark:bg-gray-800/60 dark:text-gray-100"
+      type="text"
+      value={styleName}
+      disabled={!hasSelectionValue}
+      oninput={(event) => {
+        styleName = event.currentTarget.value;
+      }}
+    />
+    <Button
+      class="min-w-24"
+      variant="primary"
+      onclick={saveStyleDefinition}
+      disabled={!hasSelectionValue}
+    >
+      Save
+    </Button>
   </div>
-  <div class="absolute left-[7.75%] top-[34.95%] h-[56.23%] w-[84.5%]">
-    <div class="absolute left-[22.49%] top-0 h-full w-[0.3%] bg-[#d9d9d9]"></div>
-    <div class="flex h-full flex-col overflow-y-auto">
-      {#each items as item (item.key)}
-        <div class="grid h-[20%] grid-cols-[22.49%,1fr] items-center bg-[#393a34]">
-          <label class="flex items-center gap-[3.95%] pl-[2.96%]">
+  <div class="flex-1 overflow-y-auto rounded-lg border border-gray-200/70 dark:border-gray-700/70">
+    <div class="divide-y divide-gray-200/70 dark:divide-gray-700/70">
+      {#each propertyItemsValue as item (item.key)}
+        <div class="flex items-center justify-between gap-4 bg-gray-100/70 px-3 py-3 dark:bg-gray-800">
+          <label class="flex items-center gap-3">
             <input
-              class="h-[35%] w-[35%] rounded-[12.5%] border border-[#d9d9d9] bg-transparent accent-[#86d24b]"
+              class="h-4 w-4 rounded border border-gray-300 bg-transparent accent-accent-500 dark:border-gray-500"
               type="checkbox"
-              checked={selections[item.key] ?? false}
-              onchange={(event) => onToggleSelection(item.key, event.currentTarget.checked)}
+              checked={propertySelections[item.key] ?? false}
+              onchange={(event) => {
+                propertySelections = {
+                  ...propertySelections,
+                  [item.key]: event.currentTarget.checked
+                };
+              }}
             />
-            <span class="pp-save-style-label">{item.label}</span>
+            <span class="text-caption text-gray-700 dark:text-gray-200">{item.label}</span>
           </label>
-          <span class="pp-save-style-value pr-[2.96%]">{item.value}</span>
+          <span class="text-caption text-gray-600 dark:text-gray-300">{item.value}</span>
         </div>
       {/each}
     </div>

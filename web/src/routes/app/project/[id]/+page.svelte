@@ -279,7 +279,6 @@
               />
               <Button
                 variant="outline"
-                type="button"
                 aria-label="Open website in new tab"
                 onclick={openWebsite}
               >
@@ -340,7 +339,6 @@
                         <p>Selector: {selectedInfo.selector}</p>
                         <button
                           class="flex h-7 w-7 items-center justify-center rounded-full border border-gray-800 text-gray-400 transition hover:border-gray-600 hover:text-gray-200"
-                          type="button"
                           aria-label="Copy selector"
                           onclick={() => copyToClipboard(selectedInfo.selector)}
                         >
@@ -351,7 +349,6 @@
                         <p>Box: {formatBoundingBox(selectedInfo.boundingBox)}</p>
                         <button
                           class="flex h-7 w-7 items-center justify-center rounded-full border border-gray-800 text-gray-400 transition hover:border-gray-600 hover:text-gray-200"
-                          type="button"
                           aria-label="Copy bounding box"
                           onclick={() =>
                             copyToClipboard(formatBoundingBox(selectedInfo.boundingBox))
@@ -392,7 +389,6 @@
             <p class="text-title text-gray-100">Script Editor</p>
             <button
               class="flex h-8 w-8 items-center justify-center rounded-full border border-gray-800 text-gray-400 transition hover:border-gray-600 hover:text-gray-200"
-              type="button"
               aria-label="Script editor help"
               title="Write JavaScript that targets the selected element."
             >

@@ -32,8 +32,8 @@
 
   const variantClasses = {
     primary:
-      'border border-primary-600 bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] from-primary-600 to-primary-400 px-5 py-2',
-    secondary: 'border border-secondary-500 bg-secondary-500 px-5 py-2',
+      'border border-primary-600 bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] from-primary-600 to-primary-400 px-5 py-2 text-black dark:text-white',
+    secondary: 'border border-secondary-500 bg-secondary-500 px-5 py-2 text-black dark:text-white',
     outline:
       'p-2 text-gray-500 dark:text-gray-400'
   } satisfies Record<ButtonVariant, string>;

@@ -37,12 +37,3 @@
   `~/.nvm/versions/node/v22.14.0/bin`.
 - Extension UI should use all colors, styles, and components from the web UI, and resemble existing pages from the web
   UI.
-
-### Agent only
-
-- Before working, review the feature log for implementation details.
-  - File name: `feature-log.md`
-  - Found in the web and extension directories
-  - Use appropriate file based on which side you are working on
-- Log design decisions and implementation details in the feature log.
-  - Keep it neat and formatted into sections based on feature

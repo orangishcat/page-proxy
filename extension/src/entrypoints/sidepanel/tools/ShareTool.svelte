@@ -1,32 +1,39 @@
 <script lang="ts">
-  type ShareToolProps = {
-    title: string;
-    website: string;
-    description: string;
-  };
+  import {onDestroy} from 'svelte';
+  import Button from '@/lib/components/Button.svelte';
+  import type {ScriptMetadataState} from './code-editor/state';
+  import {scriptMetadata} from './code-editor/state';
 
-  let {title, website, description}: ShareToolProps = $props();
+  let scriptMetadataValue = $state<ScriptMetadataState>({
+    title: 'Page Proxy',
+    website: '',
+    description: ''
+  });
+
+  const unsubscribeScriptMetadata = scriptMetadata.subscribe((value) => {
+    scriptMetadataValue = value;
+  });
+
+  onDestroy(() => {
+    unsubscribeScriptMetadata();
+  });
 </script>
 
-<div class="h-full w-full">
-  <div class="absolute left-[4.25%] top-[24.62%] w-[91.5%]">
-    <span class="pp-share-title">{title}</span>
-    {#if website}
-      <br />
-      <span class="pp-share-text">Applies to </span>
-      <span class="pp-share-link">{website}</span>
+<div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4">
+  <div class="space-y-2">
+    <span class="text-subtitle text-gray-900 dark:text-gray-100">{scriptMetadataValue.title}</span>
+    {#if scriptMetadataValue.website}
+      <div class="text-caption text-gray-600 dark:text-gray-300">
+        Applies to <span class="text-gray-800 underline dark:text-gray-100">{scriptMetadataValue.website}</span>
+      </div>
     {/if}
-    {#if description}
-      <br />
-      <br />
-      <span class="pp-share-body">{description}</span>
+    {#if scriptMetadataValue.description}
+      <p class="text-body text-gray-700 dark:text-gray-200">{scriptMetadataValue.description}</p>
     {/if}
   </div>
-  <button
-    class="pp-action-button absolute left-[42%] top-[79.03%] h-[11.25%] w-[16.25%] opacity-60"
-    type="button"
-    disabled
-  >
-    Publish
-  </button>
+  <div class="mt-auto flex justify-center">
+    <Button class="w-full max-w-xs" variant="secondary" disabled>
+      Publish
+    </Button>
+  </div>
 </div>

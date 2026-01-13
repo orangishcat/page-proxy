@@ -2,6 +2,7 @@ import {browser} from 'wxt/browser';
 import {defineContentScript} from 'wxt/utils/define-content-script';
 
 import type {ElementInfo, SelectToolMessage} from '@/lib/selection';
+import type {SidepanelShortcutId, SidepanelShortcutMessage} from '@/lib/sidepanel-shortcuts';
 
 const hoverClass = 'pp-hover';
 const selectedClass = 'pp-selected';
@@ -16,6 +17,20 @@ const selectionStyles = `
   outline-offset: 0.125rem !important;
 }
 `;
+const filteredSelectionClasses = new Set([hoverClass, selectedClass]);
+
+const filterSelectionClasses = (value: string | null) => {
+  if (!value) {
+    return null;
+  }
+
+  const tokens = value
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0 && !filteredSelectionClasses.has(token));
+
+  return tokens.length > 0 ? tokens.join(' ') : null;
+};
 
 const escapeSelector = (value: string) => {
   if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
@@ -35,7 +50,9 @@ const getElementSelector = (element: Element) => {
 
   while (current && segments.length < 4) {
     let segment = current.tagName.toLowerCase();
-    const classList = Array.from(current.classList).filter(Boolean).slice(0, 2);
+    const classList = Array.from(current.classList)
+      .filter((token) => token && !filteredSelectionClasses.has(token))
+      .slice(0, 2);
 
     if (classList.length > 0) {
       segment += `.${classList.map(escapeSelector).join('.')}`;
@@ -68,14 +85,23 @@ const getElementSelector = (element: Element) => {
 const getElementInfo = (element: Element): ElementInfo => {
   const rect = element.getBoundingClientRect();
   const attributes = Object.fromEntries(
-    Array.from(element.attributes).map((attr) => [attr.name, attr.value])
+    Array.from(element.attributes)
+      .map((attr) => {
+        if (attr.name === 'class') {
+          const filtered = filterSelectionClasses(attr.value);
+          return filtered ? ([attr.name, filtered] as const) : null;
+        }
+
+        return [attr.name, attr.value] as const;
+      })
+      .filter((entry): entry is readonly [string, string] => entry !== null)
   );
 
   return {
     tag: element.tagName.toLowerCase(),
     id: element.id || null,
     name: element.getAttribute('name') ?? element.getAttribute('aria-label') ?? null,
-    className: element.getAttribute('class'),
+    className: filterSelectionClasses(element.getAttribute('class')),
     selector: getElementSelector(element),
     attributes,
     boundingBox: {
@@ -100,6 +126,47 @@ const getEventTarget = (event: Event): Element | null => {
   }
 
   return null;
+};
+
+const isEditableTarget = (target: EventTarget | null) => {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+
+  if (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement
+  ) {
+    return true;
+  }
+
+  if (target.isContentEditable) {
+    return true;
+  }
+
+  return Boolean(target.closest('input, textarea, select, [contenteditable=\"true\"], [contenteditable=\"\"]'));
+};
+
+const getShortcutTool = (event: KeyboardEvent): SidepanelShortcutId | null => {
+  if (!event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) {
+    return null;
+  }
+
+  switch (event.code) {
+    case 'Digit1':
+      return 'select';
+    case 'Digit2':
+      return 'new-element';
+    case 'Digit3':
+      return 'styles';
+    case 'Digit4':
+      return 'help';
+    case 'Digit5':
+      return 'share';
+    default:
+      return null;
+  }
 };
 
 export default defineContentScript({
@@ -260,6 +327,23 @@ export default defineContentScript({
       });
     };
 
+    const onShortcutKeyDown = (event: KeyboardEvent) => {
+      if (isEditableTarget(event.target) || isEditableTarget(document.activeElement)) {
+        return;
+      }
+
+      const tool = getShortcutTool(event);
+      if (!tool) {
+        return;
+      }
+
+      const message: SidepanelShortcutMessage = {
+        type: 'sidepanel:shortcut',
+        payload: {tool}
+      };
+      void browser.runtime.sendMessage(message);
+    };
+
     const attachListeners = () => {
       window.addEventListener('pointermove', onPointerMove, {capture: true});
       window.addEventListener('mouseout', onPointerOut, {capture: true});
@@ -285,6 +369,8 @@ export default defineContentScript({
       }
     };
 
+    window.addEventListener('keydown', onShortcutKeyDown, {capture: true});
+
     browser.runtime.onMessage.addListener((message: SelectToolMessage) => {
       if (message.type !== 'select:toggle') {
         return;
@@ -304,6 +390,10 @@ export default defineContentScript({
 
       detachListeners();
       postMessage({type: 'select:hover', payload: null});
+    });
+
+    window.addEventListener('unload', () => {
+      window.removeEventListener('keydown', onShortcutKeyDown, {capture: true});
     });
   }
 });
