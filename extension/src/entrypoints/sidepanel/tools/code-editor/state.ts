@@ -1,19 +1,7 @@
-import type {BoundingBox} from '../select-tool/state';
 import {get, writable} from 'svelte/store';
+import type {BoundingBox, ElementEntry, StyleEntry} from '@/lib/sandbox';
 
-export type ElementEntry = {
-  name: string;
-  selector: string;
-  bbox: BoundingBox;
-  attributes: Record<string, string>;
-};
-
-export type StyleEntry = {
-  name: string;
-  selector: string;
-  bbox?: BoundingBox;
-  properties: Record<string, string>;
-};
+export type {BoundingBox, ElementEntry, StyleEntry};
 
 export type ScriptMetadataState = {
   title: string;
@@ -51,31 +39,6 @@ export const insertDefinitions = (lines: string[]) => {
 
 const formatBoundingBoxCompact = (box: BoundingBox) =>
   `${box.x.toFixed(2)}, ${box.y.toFixed(2)}, ${box.width.toFixed(2)}, ${box.height.toFixed(2)}`;
-
-export const buildDefinitionComment = (
-  prefix: 'element' | 'style',
-  name: string,
-  selector: string,
-  bbox: BoundingBox | null,
-  entries: Record<string, string>,
-  entryPrefix: 'attr' | 'prop'
-) => {
-  const encoded = (value: string) => value.replace(/"/g, "'");
-  const baseParts = [
-    `// pp:${prefix} name="${encoded(name)}"`,
-    `selector="${encoded(selector)}"`
-  ];
-
-  if (bbox) {
-    baseParts.push(`bbox="${formatBoundingBoxCompact(bbox)}"`);
-  }
-
-  Object.entries(entries).forEach(([key, value]) => {
-    baseParts.push(`${entryPrefix}:${key}="${encoded(value)}"`);
-  });
-
-  return baseParts.join(' ');
-};
 
 export const formatElementCode = (entry: ElementEntry, variableName: string) => {
   const payload = {

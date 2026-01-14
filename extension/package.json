@@ -39,6 +39,7 @@
         "@codemirror/lint": "^6.9.2",
         "@codemirror/state": "^6.5.3",
         "@codemirror/view": "^6.39.8",
+        "@endo/lockdown": "^1.0.18",
         "axios": "^1.12.2",
         "bits-ui": "^2.14.4",
         "eslint-linter-browserify": "^9.39.2",

@@ -6,7 +6,6 @@
   import type {PropertyItem} from './select-tool/state';
   import {selectedInfo, hasSelection, propertyItems} from './select-tool/state';
   import {
-    buildDefinitionComment,
     elementEntries,
     formatElementCode,
     insertDefinitions
@@ -39,9 +38,6 @@
     unsubscribeElementEntries();
   });
 
-  const buildNewElementLines = (items: PropertyItem[]) =>
-    items.map((item) => `${item.label}: ${item.value}`);
-
   const saveElementDefinition = () => {
     if (!selectedInfoValue) {
       return;
@@ -58,25 +54,14 @@
     const index = elementEntriesValue.length + 1;
     const variableName = `element_${index}`;
 
-    const commentLine = buildDefinitionComment(
-      'element',
-      entry.name,
-      entry.selector,
-      entry.bbox,
-      entry.attributes,
-      'attr'
-    );
-
     const codeLine = formatElementCode(entry, variableName);
 
-    if (!insertDefinitions([commentLine, codeLine])) {
+    if (!insertDefinitions([codeLine])) {
       return;
     }
 
     elementName = `element-${index + 1}`;
   };
-
-  const newElementLines = $derived.by(() => buildNewElementLines(propertyItemsValue));
 
   $effect(() => {
     if (!hasSelectionValue) {
@@ -100,15 +85,24 @@
   });
 </script>
 
-<div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4">
-  {#if hasSelectionValue}
-    <p class="text-body whitespace-pre-line">
-      {newElementLines.join('\n')}
-    </p>
-  {/if}
-  <div class="mt-auto flex justify-center">
+<div class="flex w-full min-h-0 flex-1 flex-col px-4 py-4">
+  <div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+    {#if hasSelectionValue}
+      <div class="grid grid-cols-[fit-content(7rem)_minmax(0,1fr)] gap-x-4 gap-y-2 text-body whitespace-pre-line">
+        {#each propertyItemsValue as prop (prop.key)}
+          <span class="min-w-0 text-right truncate text-gray-500">{prop.label}</span>
+          <span class="min-w-0 break-words text-left">{prop.value}</span>
+        {/each}
+      </div>
+    {:else}
+      <div class="text-caption text-gray-500 dark:text-gray-400 flex h-full justify-center place-items-center">
+        Select an element to preview
+      </div>
+    {/if}
+  </div>
+  <div class="flex h-12 items-center justify-center">
     <Button
-      class="w-full max-w-xs"
+      class="w-42 text-sm"
       variant="primary"
       onclick={saveElementDefinition}
       disabled={!hasSelectionValue}

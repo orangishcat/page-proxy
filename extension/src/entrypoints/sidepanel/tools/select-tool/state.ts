@@ -16,6 +16,15 @@ const formatBoundingBoxCompact = (box: BoundingBox) =>
 
 const getPrimaryPropertyItems = (info: ElementInfo): PropertyItem[] => {
   const items: PropertyItem[] = [];
+  if (info.tag) {
+    items.push({
+      key: 'tag',
+      label: 'Tag',
+      value: info.tag,
+      rawValue: info.tag,
+      primary: true
+    });
+  }
 
   if (info.id) {
     items.push({
@@ -47,15 +56,13 @@ const getPrimaryPropertyItems = (info: ElementInfo): PropertyItem[] => {
     });
   }
 
-  if (info.tag) {
-    items.push({
-      key: 'tag',
-      label: 'Tag',
-      value: info.tag,
-      rawValue: info.tag,
-      primary: true
-    });
-  }
+  items.push({
+    key: 'selector',
+    label: 'Selector',
+    value: info.selector,
+    rawValue: info.selector,
+    primary: true
+  });
 
   items.push({
     key: 'bbox',
@@ -64,6 +71,16 @@ const getPrimaryPropertyItems = (info: ElementInfo): PropertyItem[] => {
     rawValue: info.boundingBox,
     primary: true
   });
+
+  if (info.innerText) {
+    items.push({
+      key: 'innerText',
+      label: 'Inner text',
+      value: info.innerText,
+      rawValue: info.innerText,
+      primary: false
+    });
+  }
 
   return items;
 };
@@ -74,7 +91,7 @@ const buildPropertyList = (info: ElementInfo | null): PropertyItem[] => {
   }
 
   const properties = getPrimaryPropertyItems(info);
-  const reservedKeys = new Set(['id', 'class', 'name', 'tag']);
+  const reservedKeys = new Set(['id', 'class', 'name', 'tag', 'selector']);
 
   Object.entries(info.attributes)
     .filter(([key, value]) => !reservedKeys.has(key) && value.length > 0)

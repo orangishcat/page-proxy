@@ -1,27 +1,26 @@
 <script lang="ts">
   import {onDestroy, onMount} from 'svelte';
+  import {get} from 'svelte/store';
   import {browser} from 'wxt/browser';
   import {EditorState} from '@codemirror/state';
   import {EditorView, keymap} from '@codemirror/view';
   import {indentWithTab} from '@codemirror/commands';
-  import {esLint, javascript} from '@codemirror/lang-javascript';
+  import {javascript} from '@codemirror/lang-javascript';
   import {autocompletion, type CompletionSource} from '@codemirror/autocomplete';
   import {defaultHighlightStyle, syntaxHighlighting} from '@codemirror/language';
-  import {linter, lintGutter} from '@codemirror/lint';
-  import {Linter} from 'eslint-linter-browserify';
   import {ExternalLink} from 'lucide-svelte';
 
   import {pageModificationFunctions} from '@/lib/page-modification';
   import {parseScriptMetadata} from '@/lib/utils/script-metadata';
+  import {requestSandboxEvaluation} from './sandbox/actions';
   import {
     elementEntries,
     scriptMetadata,
     setEditorApi,
     styleEntries
   } from './code-editor/state';
-  import type {ElementEntry, ScriptMetadataState, StyleEntry} from './code-editor/state';
-  import type {BoundingBox} from './select-tool/state';
-  import {setErrorMessage} from './tool-errors';
+  import type {ScriptMetadataState} from './code-editor/state';
+  import {errorMessage, setErrorMessage} from './tool-errors';
 
   const defineBlockStart = '// Define elements/styles';
   const defineBlockEnd = '// End define elements/styles';
@@ -53,27 +52,7 @@
     ''
   ].join('\n');
 
-  const pageModificationGlobals = Object.fromEntries(
-    pageModificationFunctions.map((name) => [name, 'readonly'])
-  );
-
-  const baseSuggestions = [
-    'document',
-    'window',
-    'console',
-    'document.body',
-    'document.querySelector',
-    'document.querySelectorAll',
-    'document.getElementById',
-    'document.createElement',
-    'element.style',
-    'element.classList',
-    'element.dataset',
-    'pp',
-    'pp.element',
-    'pp.style',
-    ...pageModificationFunctions
-  ];
+  const baseSuggestions = ['pp.element', 'pp.style', ...pageModificationFunctions];
 
   const updateScriptMetadata = (content: string) => {
     const metadata = parseScriptMetadata(content);
@@ -121,124 +100,54 @@
     return [content.trimEnd(), '', defineBlockStart, defineBlockEnd, ''].join('\n');
   };
 
-  const parseBoundingBoxValue = (value: string): BoundingBox | null => {
-    const parts = value
-      .split(',')
-      .map((part) => Number(part.trim()))
-      .filter((part) => Number.isFinite(part));
+  let lastSandboxError = $state<string | null>(null);
+  let sandboxRequestId = $state(0);
 
-    if (parts.length !== 4) {
-      return null;
-    }
-
-    return {
-      x: parts[0],
-      y: parts[1],
-      width: parts[2],
-      height: parts[3]
-    };
-  };
-
-  const parseDefinitionTokens = (line: string) => {
-    const tokenRegex = /([a-zA-Z0-9:_-]+)="([^"]*)"/g;
-    return Array.from(line.matchAll(tokenRegex)).map((match) => ({
-      key: match[1],
-      value: match[2]
-    }));
-  };
-
-  const parseDefinitionsFromContent = (content: string) => {
+  const getDefinitionBlock = (content: string) => {
     const lines = content.split('\n');
     const startIndex = lines.findIndex((line) => line.trim() === defineBlockStart);
     const endIndex = lines.findIndex((line) => line.trim() === defineBlockEnd);
 
     if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) {
-      return {elements: [], styles: []};
+      return '';
     }
 
-    const elements: ElementEntry[] = [];
-    const styles: StyleEntry[] = [];
+    return lines.slice(startIndex + 1, endIndex).join('\n');
+  };
 
-    lines.slice(startIndex + 1, endIndex).forEach((line) => {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('// pp:element')) {
-        const tokens = parseDefinitionTokens(trimmed);
-        const attributes: Record<string, string> = {};
-        let name = '';
-        let selector = '';
-        let bbox: BoundingBox | null = null;
-
-        tokens.forEach(({key, value}) => {
-          if (key === 'name') {
-            name = value;
-            return;
-          }
-          if (key === 'selector') {
-            selector = value;
-            return;
-          }
-          if (key === 'bbox') {
-            bbox = parseBoundingBoxValue(value);
-            return;
-          }
-          if (key.startsWith('attr:')) {
-            attributes[key.replace('attr:', '')] = value;
-          }
-        });
-
-        if (name || selector) {
-          elements.push({
-            name: name || 'Element',
-            selector,
-            bbox: bbox ?? {x: 0, y: 0, width: 0, height: 0},
-            attributes
-          });
-        }
+  const updateSandboxError = (errors: string[]) => {
+    if (errors.length === 0) {
+      if (lastSandboxError && get(errorMessage) === lastSandboxError) {
+        setErrorMessage(null);
       }
+      lastSandboxError = null;
+      return;
+    }
 
-      if (trimmed.startsWith('// pp:style')) {
-        const tokens = parseDefinitionTokens(trimmed);
-        const properties: Record<string, string> = {};
-        let name = '';
-        let selector = '';
-        let bbox: BoundingBox | null = null;
-
-        tokens.forEach(({key, value}) => {
-          if (key === 'name') {
-            name = value;
-            return;
-          }
-          if (key === 'selector') {
-            selector = value;
-            return;
-          }
-          if (key === 'bbox') {
-            bbox = parseBoundingBoxValue(value);
-            return;
-          }
-          if (key.startsWith('prop:')) {
-            properties[key.replace('prop:', '')] = value;
-          }
-        });
-
-        if (name || selector) {
-          styles.push({
-            name: name || 'Style',
-            selector,
-            bbox: bbox ?? undefined,
-            properties
-          });
-        }
-      }
-    });
-
-    return {elements, styles};
+    const message = errors[0];
+    lastSandboxError = message;
+    setErrorMessage(message);
   };
 
   const syncDefinitions = (content: string) => {
-    const parsed = parseDefinitionsFromContent(content);
-    elementEntries.set(parsed.elements);
-    styleEntries.set(parsed.styles);
+    const definitionBlock = getDefinitionBlock(content);
+    if (!definitionBlock.trim()) {
+      updateSandboxError([]);
+      elementEntries.set([]);
+      styleEntries.set([]);
+      return;
+    }
+
+    const requestId = ++sandboxRequestId;
+    void requestSandboxEvaluation(definitionBlock).then((result) => {
+      if (requestId !== sandboxRequestId) {
+        return;
+      }
+
+      updateSandboxError(result.errors);
+      elementEntries.set(result.elements);
+      styleEntries.set(result.styles);
+    });
   };
 
   const updateEditorContent = (content: string) => {
@@ -313,41 +222,11 @@
     if (!editorHost || editorView) {
       return;
     }
-    const eslintConfig = [
-      {
-        languageOptions: {
-          ecmaVersion: 2022,
-          sourceType: 'script',
-          globals: {
-            window: 'readonly',
-            document: 'readonly',
-            navigator: 'readonly',
-            console: 'readonly',
-            ...pageModificationGlobals
-          }
-        },
-        rules: {
-          'no-undef': 'error',
-          'no-unused-vars': [
-            'warn',
-            {
-              vars: 'all',
-              args: 'none',
-              ignoreRestSiblings: true
-            }
-          ],
-          'no-console': 'off'
-        }
-      }
-    ];
-    const eslintLinter = new Linter();
     const state = EditorState.create({
       doc: editorValue,
       extensions: [
         javascript({typescript: false}),
         syntaxHighlighting(defaultHighlightStyle),
-        lintGutter(),
-        linter(esLint(eslintLinter, eslintConfig)),
         keymap.of([indentWithTab]),
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
@@ -396,17 +275,15 @@
   class="relative h-[63.44%] w-full bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
   aria-label="Code editor panel"
 >
-  <div class="absolute left-0 top-0 h-[7.71%] w-full bg-[#393a34]">
-    <div class="absolute left-[4.25%] top-[21.59%]">
-      <span class="pp-editor-title">{scriptMetadataValue.title}</span>
+  <div class="h-8 w-full bg-[#393a34] flex items-center justify-between px-4">
+    <div>
+      <span class="text-body">{scriptMetadataValue.title}</span>
       {#if scriptMetadataValue.website}
         <span class="pp-editor-title-muted"> @ </span>
         <span class="pp-editor-title-accent">{scriptMetadataValue.website}</span>
       {/if}
     </div>
-    <ExternalLink class="absolute left-[92.25%] top-[22.73%] h-[45.45%] w-[5%] text-[#a8a8a8]" />
+    <ExternalLink class="w-6 h-6 text-[#a8a8a8]" />
   </div>
-  <div class="absolute left-[5.13%] top-[7.18%] h-[82.31%] w-[92%]">
-    <div class="h-full w-full" bind:this={editorHost}></div>
-  </div>
+  <div class="h-full w-full overflow-auto" bind:this={editorHost}></div>
 </section>

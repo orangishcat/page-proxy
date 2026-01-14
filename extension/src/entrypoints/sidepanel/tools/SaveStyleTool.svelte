@@ -6,12 +6,12 @@
   import type {PropertyItem} from './select-tool/state';
   import {hasSelection, propertyItems, selectedInfo} from './select-tool/state';
   import {
-    buildDefinitionComment,
     formatStyleCode,
     insertDefinitions,
     styleEntries
   } from './code-editor/state';
   import {setErrorMessage} from './tool-errors';
+  import {Save} from "lucide-svelte";
 
   let styleName = $state('');
   let propertySelections = $state<Record<string, boolean>>({});
@@ -87,18 +87,9 @@
     const index = styleEntriesValue.length + 1;
     const variableName = `style_${index}`;
 
-    const commentLine = buildDefinitionComment(
-      'style',
-      entry.name,
-      entry.selector,
-      entry.bbox ?? null,
-      entry.properties,
-      'prop'
-    );
-
     const codeLine = formatStyleCode(entry, variableName);
 
-    if (!insertDefinitions([commentLine, codeLine])) {
+    if (!insertDefinitions([codeLine])) {
       return;
     }
 
@@ -130,8 +121,8 @@
   });
 </script>
 
-<div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4">
-  <div class="flex flex-wrap items-center gap-3">
+<div class="flex min-h-0 w-full flex-1 flex-col gap-4 px-4 py-4">
+  <div class="flex items-center gap-2">
     <span class="text-label text-gray-600 dark:text-gray-300">Name</span>
     <input
       class="flex-1 rounded-lg bg-gray-100/70 px-3 py-2 text-body text-gray-900 placeholder:text-gray-500 disabled:opacity-60 dark:bg-gray-800/60 dark:text-gray-100"
@@ -143,34 +134,45 @@
       }}
     />
     <Button
-      class="min-w-24"
-      variant="primary"
+      class="!p-2"
+      variant="secondary"
       onclick={saveStyleDefinition}
       disabled={!hasSelectionValue}
     >
-      Save
+      <Save class="h-4 w-4"/>
     </Button>
   </div>
-  <div class="flex-1 overflow-y-auto rounded-lg border border-gray-200/70 dark:border-gray-700/70">
-    <div class="divide-y divide-gray-200/70 dark:divide-gray-700/70">
-      {#each propertyItemsValue as item (item.key)}
-        <div class="flex items-center justify-between gap-4 bg-gray-100/70 px-3 py-3 dark:bg-gray-800">
-          <label class="flex items-center gap-3">
-            <input
-              class="h-4 w-4 rounded border border-gray-300 bg-transparent accent-accent-500 dark:border-gray-500"
-              type="checkbox"
-              checked={propertySelections[item.key] ?? false}
-              onchange={(event) => {
-                propertySelections = {
-                  ...propertySelections,
-                  [item.key]: event.currentTarget.checked
-                };
-              }}
-            />
-            <span class="text-caption text-gray-700 dark:text-gray-200">{item.label}</span>
-          </label>
-          <span class="text-caption text-gray-600 dark:text-gray-300">{item.value}</span>
+  <div class="flex-1 min-h-0 overflow-y-auto rounded-lg border border-gray-200/70 bg-gray-100/70 dark:border-gray-700/70 dark:bg-gray-800">
+    <div class="grid grid-cols-[max-content_max-content_minmax(0,1fr)]">
+      {#each propertyItemsValue as item, index (item.key)}
+        {@const inputId = `save-style-prop-${item.key}`}
+        <div
+          class="flex place-items-center min-h-0 justify-center px-3 py-3 {index > 0 ? 'border-t border-gray-200/70 dark:border-gray-700/70' : ''}"
+        >
+          <input
+            id={inputId}
+            class="h-4 w-4 rounded border border-gray-300 bg-transparent accent-accent-500 dark:border-gray-500"
+            type="checkbox"
+            checked={propertySelections[item.key] ?? false}
+            onchange={(event) => {
+              propertySelections = {
+                ...propertySelections,
+                [item.key]: event.currentTarget.checked
+              };
+            }}
+          />
         </div>
+        <label
+          class="text-caption flex place-items-center justify-end text-right text-gray-700 dark:text-gray-200 px-3 py-3 {index > 0 ? 'border-t border-gray-200/70 dark:border-gray-700/70' : ''}"
+          for={inputId}
+        >
+          {item.label}
+        </label>
+        <span
+          class="text-caption text-gray-600 dark:text-gray-300 px-3 py-3 {index > 0 ? 'border-t border-gray-200/70 dark:border-gray-700/70' : ''}"
+        >
+          {item.value}
+        </span>
       {/each}
     </div>
   </div>

@@ -7,6 +7,7 @@
   import NewElementTool from './tools/NewElementTool.svelte';
   import SaveStyleTool from './tools/SaveStyleTool.svelte';
   import ShareTool from './tools/ShareTool.svelte';
+  import HelpTool from './tools/HelpTool.svelte';
   import StylesTool from './tools/StylesTool.svelte';
   import CodeEditorTool from './tools/CodeEditorTool.svelte';
   import Button from '@/lib/components/Button.svelte';
@@ -120,10 +121,6 @@
   };
 
   const handleShortcut = (tool: ToolbarControlId) => {
-    if (tool === 'help') {
-      return;
-    }
-
     if (tool === 'select') {
       activateSelectTool();
       return;
@@ -134,7 +131,7 @@
       return;
     }
 
-    setActiveTool(tool);
+    setActiveTool(tool === 'help' ? 'help' : tool);
   };
 
   onMount(() => {
@@ -256,7 +253,7 @@
           <!-- Right side -->
           <div class="h-full flex flex-row gap-4 place-items-center">
             <Button
-              class="transition hover:!opacity-100 cursor-pointer"
+              class={toolButtonClasses(activeTool === 'help')}
               variant="outline"
               aria-label="Help"
               onmouseenter={() => {
@@ -266,7 +263,7 @@
               onmouseleave={() => {
                 hoveredTool = null;
               }}
-              disabled
+              onclick={() => setActiveTool('help')}
             >
               <CircleQuestionMark class={iconSize}/>
             </Button>
@@ -295,11 +292,11 @@
         {:else if activeTool === 'new-element'}
           <NewElementTool />
         {:else if activeTool === 'styles'}
-          <StylesTool
-            onSaveStyle={() => setActiveTool('save-style')}
-          />
+          <StylesTool />
         {:else if activeTool === 'save-style'}
           <SaveStyleTool />
+        {:else if activeTool === 'help'}
+          <HelpTool />
         {:else if activeTool === 'share'}
           <ShareTool />
         {:else if activeTool === 'none'}

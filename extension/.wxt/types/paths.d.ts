@@ -6,9 +6,11 @@ declare module "wxt/browser" {
     | ""
     | "/"
     | "/background.js"
+    | "/content-scripts/sandbox-runner.js"
     | "/content-scripts/select-tool.js"
     | "/dashboard.html"
     | "/logo_filled.png"
+    | "/sandbox-main-world.js"
     | "/sidepanel.html"
   type HtmlPublicPath = Extract<PublicPath, `${string}.html`>
   export interface WxtRuntime {

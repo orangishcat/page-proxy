@@ -11,6 +11,7 @@
     body,
     #app {
         height: 100%;
+        overflow: auto;
     }
 
     .dark {
@@ -20,48 +21,49 @@
 
 @layer components {
     .text-display {
-        @apply text-6xl font-bold tracking-tight;
+        @apply text-[3.25rem] font-bold tracking-tight;
     }
 
     .text-heading {
-        @apply text-4xl font-bold tracking-tight;
+        @apply text-[2rem] font-bold tracking-tight;
     }
 
     .text-lead {
-        @apply text-lg font-medium;
+        @apply text-base font-medium;
     }
 
     .text-title {
-        @apply text-xl font-bold;
+        @apply text-base font-bold;
     }
 
     .text-subtitle {
-        @apply text-base font-medium;
+        @apply text-xs font-medium;
     }
 
     .text-body {
-        @apply text-base font-normal;
+        @apply text-xs font-normal;
     }
 
     .text-caption {
-        @apply text-sm font-normal;
+        @apply text-xs font-normal;
     }
 
     .text-button {
-        @apply text-base font-medium;
+        @apply text-xs font-medium;
     }
 
     .text-nav {
-        @apply text-base font-medium;
+        @apply text-xs font-medium;
     }
 
     .text-eyebrow {
-        @apply text-sm font-semibold uppercase tracking-widest;
+        @apply text-xs font-semibold uppercase tracking-widest;
     }
 
     .text-label {
         @apply text-xs font-semibold uppercase tracking-widest;
     }
+
 
     .cm-editor {
         @apply h-full w-full text-[100%] leading-[187.5%] text-white;
@@ -169,47 +171,46 @@
     }
 
     .text-display {
-        @apply text-6xl font-bold tracking-tight;
+        @apply text-[3.25rem] font-bold tracking-tight;
     }
 
     .text-heading {
-        @apply text-4xl font-bold tracking-tight;
+        @apply text-[2rem] font-bold tracking-tight;
     }
 
     .text-lead {
-        @apply text-lg font-medium;
+        @apply text-base font-medium;
     }
 
     .text-title {
-        @apply text-xl font-bold;
+        @apply text-base font-bold;
     }
 
     .text-subtitle {
-        @apply text-base font-medium;
+        @apply text-xs font-medium;
     }
 
     .text-body {
-        @apply text-base font-normal;
+        @apply text-xs font-normal;
     }
 
     .text-caption {
-        @apply text-sm font-normal;
+        @apply text-xs font-normal;
     }
 
     .text-button {
-        @apply text-base font-medium;
+        @apply text-xs font-medium;
     }
 
     .text-nav {
-        @apply text-base font-medium;
+        @apply text-xs font-medium;
     }
 
     .text-eyebrow {
-        @apply text-sm font-semibold uppercase tracking-widest;
+        @apply text-xs font-semibold uppercase tracking-widest;
     }
 
     .text-label {
         @apply text-xs font-semibold uppercase tracking-widest;
     }
 }
-

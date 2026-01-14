@@ -3,6 +3,7 @@ export type ElementInfo = {
   id: string | null;
   name: string | null;
   className: string | null;
+  innerText: string | null;
   selector: string;
   attributes: Record<string, string>;
   boundingBox: {

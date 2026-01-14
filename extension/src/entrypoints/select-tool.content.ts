@@ -7,6 +7,7 @@ import type {SidepanelShortcutId, SidepanelShortcutMessage} from '@/lib/sidepane
 const hoverClass = 'pp-hover';
 const selectedClass = 'pp-selected';
 const styleId = 'page-proxy-selection-styles';
+const selectorLabelId = 'page-proxy-selector-label';
 const selectionStyles = `
 .pp-hover {
   outline: 0.125rem solid #86d24b !important;
@@ -15,6 +16,22 @@ const selectionStyles = `
 .pp-selected {
   outline: 0.125rem solid #bb9348 !important;
   outline-offset: 0.125rem !important;
+}
+.pp-selected-label {
+  position: fixed;
+  z-index: 2147483647;
+  pointer-events: none;
+  max-width: 24rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  background: #86d24b;
+  color: #1b2614;
+  font: 600 0.75rem/1.2 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.25);
 }
 `;
 const filteredSelectionClasses = new Set([hoverClass, selectedClass]);
@@ -84,6 +101,8 @@ const getElementSelector = (element: Element) => {
 
 const getElementInfo = (element: Element): ElementInfo => {
   const rect = element.getBoundingClientRect();
+  const innerText =
+    element instanceof HTMLElement ? element.innerText.trim() : '';
   const attributes = Object.fromEntries(
     Array.from(element.attributes)
       .map((attr) => {
@@ -102,6 +121,7 @@ const getElementInfo = (element: Element): ElementInfo => {
     id: element.id || null,
     name: element.getAttribute('name') ?? element.getAttribute('aria-label') ?? null,
     className: filterSelectionClasses(element.getAttribute('class')),
+    innerText: innerText.length > 0 && innerText.length < 500 ? innerText : null,
     selector: getElementSelector(element),
     attributes,
     boundingBox: {
@@ -112,6 +132,19 @@ const getElementInfo = (element: Element): ElementInfo => {
     }
   };
 };
+
+const truncate = (value: string, maxLength = 120) => {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `${value.slice(0, Math.max(0, maxLength - 1))}…`;
+};
+
+const describeElement = (element: Element) => {
+  const info = getElementInfo(element);
+  return `${info.tag}${info.id ? `#${info.id}` : ''}${info.className ? `.${info.className.replace(' ', '.')}` : ''}`;
+}
 
 const getEventTarget = (event: Event): Element | null => {
   const path = event.composedPath();
@@ -177,6 +210,8 @@ export default defineContentScript({
     let selectedTarget: Element | null = null;
     let hoverFrame: number | null = null;
     let queuedHoverTarget: Element | null = null;
+    let labelFrame: number | null = null;
+    let queuedLabelTarget: Element | null = null;
 
     const ensureSelectionStyles = () => {
       if (document.getElementById(styleId)) {
@@ -190,6 +225,24 @@ export default defineContentScript({
       container.appendChild(style);
     };
 
+    const ensureSelectorLabel = () => {
+      const existing = document.getElementById(selectorLabelId);
+      if (existing) {
+        return existing as HTMLDivElement;
+      }
+
+      const label = document.createElement('div');
+      label.id = selectorLabelId;
+      label.className = 'pp-selected-label';
+      label.dataset.pageProxy = 'selector-label';
+      document.body.appendChild(label);
+      return label;
+    };
+
+    const removeSelectorLabel = () => {
+      document.getElementById(selectorLabelId)?.remove();
+    };
+
     const clearHover = () => {
       if (!hoverTarget) {
         return;
@@ -197,6 +250,8 @@ export default defineContentScript({
 
       hoverTarget.classList.remove(hoverClass);
       hoverTarget = null;
+      queuedLabelTarget = null;
+      removeSelectorLabel();
     };
 
     const clearSelected = () => {
@@ -206,6 +261,49 @@ export default defineContentScript({
 
       selectedTarget.classList.remove(selectedClass);
       selectedTarget = null;
+    };
+
+    const scheduleLabelUpdate = (target: Element | null) => {
+      queuedLabelTarget = target;
+      if (labelFrame !== null) {
+        return;
+      }
+
+      labelFrame = window.requestAnimationFrame(() => {
+        labelFrame = null;
+        const currentTarget = queuedLabelTarget;
+        if (!currentTarget || !selectionEnabled) {
+          removeSelectorLabel();
+          return;
+        }
+        if (!currentTarget.isConnected) {
+          removeSelectorLabel();
+          return;
+        }
+
+        const label = ensureSelectorLabel();
+        label.textContent = truncate(describeElement(currentTarget));
+        const rootFontSize = Number.parseFloat(
+          window.getComputedStyle(document.documentElement).fontSize
+        ) || 16;
+        const offset = 0.5 * rootFontSize;
+        const maxWidth = Math.max(0, window.innerWidth - offset * 2);
+        label.style.maxWidth = `${maxWidth}px`;
+        label.style.top = '0px';
+        label.style.left = '0px';
+
+        const rect = currentTarget.getBoundingClientRect();
+        const labelRect = label.getBoundingClientRect();
+        const topCandidate = rect.top - labelRect.height - offset;
+        const top = topCandidate > offset ? topCandidate : rect.bottom + offset;
+        const left = Math.min(
+          Math.max(offset, rect.left),
+          window.innerWidth - labelRect.width - offset
+        );
+
+        label.style.top = `${Math.max(offset, top)}px`;
+        label.style.left = `${Math.max(offset, left)}px`;
+      });
     };
 
     const postMessage = (message: SelectToolMessage) => {
@@ -237,6 +335,7 @@ export default defineContentScript({
         ensureSelectionStyles();
         hoverTarget.classList.add(hoverClass);
       }
+      scheduleLabelUpdate(hoverTarget);
       postMessage({
         type: 'select:hover',
         payload: nextTarget ? getElementInfo(nextTarget) : null
@@ -327,6 +426,14 @@ export default defineContentScript({
       });
     };
 
+    const onViewportChange = () => {
+      if (!selectionEnabled || !hoverTarget) {
+        return;
+      }
+
+      scheduleLabelUpdate(hoverTarget);
+    };
+
     const onShortcutKeyDown = (event: KeyboardEvent) => {
       if (isEditableTarget(event.target) || isEditableTarget(document.activeElement)) {
         return;
@@ -351,6 +458,8 @@ export default defineContentScript({
       window.addEventListener('pointerdown', onPointerDown, {capture: true, passive: false});
       window.addEventListener('pointerup', onPointerUp, {capture: true, passive: false});
       window.addEventListener('click', onClick, {capture: true, passive: false});
+      window.addEventListener('scroll', onViewportChange, {capture: true});
+      window.addEventListener('resize', onViewportChange);
     };
 
     const detachListeners = () => {
@@ -360,12 +469,18 @@ export default defineContentScript({
       window.removeEventListener('pointerdown', onPointerDown, {capture: true});
       window.removeEventListener('pointerup', onPointerUp, {capture: true});
       window.removeEventListener('click', onClick, {capture: true});
+      window.removeEventListener('scroll', onViewportChange, {capture: true});
+      window.removeEventListener('resize', onViewportChange);
       clearHover();
       clearSelected();
       queuedHoverTarget = null;
       if (hoverFrame !== null) {
         window.cancelAnimationFrame(hoverFrame);
         hoverFrame = null;
+      }
+      if (labelFrame !== null) {
+        window.cancelAnimationFrame(labelFrame);
+        labelFrame = null;
       }
     };
 

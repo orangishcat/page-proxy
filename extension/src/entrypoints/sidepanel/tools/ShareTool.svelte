@@ -19,8 +19,8 @@
   });
 </script>
 
-<div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4">
-  <div class="space-y-2">
+<div class="flex w-full min-h-0 flex-1 flex-col px-4 py-4">
+  <div class="min-h-0 flex-1 space-y-2 overflow-y-auto">
     <span class="text-subtitle text-gray-900 dark:text-gray-100">{scriptMetadataValue.title}</span>
     {#if scriptMetadataValue.website}
       <div class="text-caption text-gray-600 dark:text-gray-300">
@@ -31,7 +31,7 @@
       <p class="text-body text-gray-700 dark:text-gray-200">{scriptMetadataValue.description}</p>
     {/if}
   </div>
-  <div class="mt-auto flex justify-center">
+  <div class="flex h-12 items-center justify-center">
     <Button class="w-full max-w-xs" variant="secondary" disabled>
       Publish
     </Button>
