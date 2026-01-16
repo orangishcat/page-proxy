@@ -6,6 +6,12 @@ import {
   type SandboxEvaluateRequest,
   type SandboxResult
 } from '@/lib/sandbox';
+import {
+  buildScriptRunResponse,
+  isScriptRunResponse,
+  type ScriptRunRequest,
+  type ScriptRunResult
+} from '@/lib/script-runner';
 
 const isRestrictedUrl = (url: string | undefined) => {
   if (!url) {
@@ -24,13 +30,15 @@ const isRestrictedUrl = (url: string | undefined) => {
   );
 };
 
-const emptyResult: SandboxResult = {elements: [], styles: [], errors: []};
+const emptyResult: SandboxResult = {elements: [], selectors: [], errors: []};
+const emptyRunResult: ScriptRunResult = {errors: []};
 
 const toResult = (message: string): SandboxResult => ({
   elements: [],
-  styles: [],
+  selectors: [],
   errors: [message]
 });
+const toRunResult = (message: string): ScriptRunResult => ({errors: [message]});
 
 const buildRequestId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -70,8 +78,45 @@ export const requestSandboxEvaluation = async (code: string): Promise<SandboxRes
     })
     .then((response) => ({
       elements: response.elements,
-      styles: response.styles,
+      selectors: response.selectors,
       errors: response.errors
     }))
     .catch(() => toResult('Unable to connect to the active tab.'));
+};
+
+export const requestScriptRun = async (code: string): Promise<ScriptRunResult> => {
+  if (!code.trim()) {
+    return emptyRunResult;
+  }
+
+  const tabs = await browser.tabs.query({active: true, currentWindow: true});
+  const activeTab = tabs[0];
+  if (!activeTab?.id) {
+    return toRunResult('No active tab found.');
+  }
+
+  if (isRestrictedUrl(activeTab.url)) {
+    return toRunResult('Script execution is unavailable on this page.');
+  }
+
+  const requestId = buildRequestId();
+  const request: ScriptRunRequest = {
+    type: 'script:run',
+    requestId,
+    code
+  };
+
+  return browser.tabs
+    .sendMessage(activeTab.id, request)
+    .then((response) => {
+      if (!isScriptRunResponse(response) || response.requestId !== requestId) {
+        return buildScriptRunResponse(requestId, 'Script returned an invalid response.');
+      }
+
+      return response;
+    })
+    .then((response) => ({
+      errors: response.error ? [response.error] : []
+    }))
+    .catch(() => toRunResult('Unable to connect to the active tab.'));
 };

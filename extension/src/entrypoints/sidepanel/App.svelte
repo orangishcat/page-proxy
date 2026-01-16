@@ -3,29 +3,36 @@
   import {browser} from 'wxt/browser';
   import {CircleQuestionMark, MousePointer, Plus, Share} from 'lucide-svelte';
 
+  import {get} from 'svelte/store';
   import SelectTool from './tools/SelectTool.svelte';
   import NewElementTool from './tools/NewElementTool.svelte';
-  import SaveStyleTool from './tools/SaveStyleTool.svelte';
   import ShareTool from './tools/ShareTool.svelte';
   import HelpTool from './tools/HelpTool.svelte';
-  import StylesTool from './tools/StylesTool.svelte';
+  import SelectorsTool from './tools/SelectorsTool.svelte';
   import CodeEditorTool from './tools/CodeEditorTool.svelte';
   import Button from '@/lib/components/Button.svelte';
   import {attachSelectionListener, sendSelectionToggle} from './tools/select-tool/actions';
-  import {errorMessage} from './tools/tool-errors';
+  import {errorMessage, setErrorMessage} from './tools/tool-errors';
   import {
     isSidepanelShortcutMessage,
     type SidepanelShortcutId
   } from '@/lib/sidepanel-shortcuts';
+  import type {SelectorSavePayload} from '@/lib/selection';
+  import {
+    elementEntries,
+    formatSelectorCode,
+    insertDefinitions,
+    sanitizeVariableName,
+    selectorEntries
+  } from './tools/code-editor/state';
 
-  type ToolId = 'select' | 'new-element' | 'styles' | 'save-style' | 'help' | 'share' | 'none';
+  type ToolId = 'select' | 'new-element' | 'selectors' | 'help' | 'share' | 'none';
   type ToolbarControlId = SidepanelShortcutId;
 
   const toolLabels: Record<ToolId, string> = {
     select: 'Select',
     'new-element': 'New element',
-    styles: 'Styles',
-    'save-style': 'Save style',
+    selectors: 'Selectors',
     share: 'Share',
     help: 'Help',
     none: ''
@@ -45,7 +52,7 @@
   const shortcutLabels: Record<ToolbarControlId, string> = {
     select: '⇧1',
     'new-element': '⇧2',
-    styles: '⇧3',
+    selectors: '⇧3',
     help: '⇧4',
     share: '⇧5'
   };
@@ -110,7 +117,7 @@
       case 'Digit2':
         return 'new-element';
       case 'Digit3':
-        return 'styles';
+        return 'selectors';
       case 'Digit4':
         return 'help';
       case 'Digit5':
@@ -134,10 +141,70 @@
     setActiveTool(tool === 'help' ? 'help' : tool);
   };
 
+  const saveSelectorDefinition = (payload: SelectorSavePayload) => {
+    const selector = payload.selector?.trim();
+    if (!selector) {
+      setErrorMessage('Selector requires a valid selector string.');
+      return;
+    }
+
+    const properties = payload.properties;
+    const hasRules = Object.keys(properties.contains).length > 0 ||
+      Object.keys(properties.matches).length > 0 ||
+      properties.keyOnly.length > 0;
+    if (!hasRules) {
+      setErrorMessage('Add at least one rule to save a selector.');
+      return;
+    }
+
+    const existingEntries = get(selectorEntries);
+    const name = payload.name?.trim() || `Selector ${existingEntries.length + 1}`;
+    const variableName = sanitizeVariableName(name);
+    const existingVariableNames = new Set(
+      [...get(elementEntries), ...existingEntries].map((entry) =>
+        sanitizeVariableName(entry.name)
+      )
+    );
+
+    if (existingVariableNames.has(variableName)) {
+      setErrorMessage(`Variable name "${variableName}" already exists.`);
+      return;
+    }
+
+    const entry = {
+      name,
+      selector,
+      bbox: payload.bbox,
+      properties
+    };
+
+    if (!insertDefinitions([formatSelectorCode(entry, variableName)])) {
+      setErrorMessage('Unable to save selector to the editor.');
+    }
+  };
+
+  const isSelectorSaveMessage = (message: unknown): message is {type: 'selector:save'; payload: SelectorSavePayload} => {
+    if (!message || typeof message !== 'object') {
+      return false;
+    }
+
+    const payload = (message as {payload?: unknown}).payload;
+    if (!payload || typeof payload !== 'object') {
+      return false;
+    }
+
+    return (message as {type?: string}).type === 'selector:save';
+  };
+
   onMount(() => {
     const cleanup = attachSelectionListener();
 
     const handleRuntimeMessage = (message: unknown) => {
+      if (isSelectorSaveMessage(message)) {
+        saveSelectorDefinition(message.payload);
+        return;
+      }
+
       if (!isSidepanelShortcutMessage(message)) {
         return;
       }
@@ -232,17 +299,17 @@
               <Plus class={iconSize}/>
             </Button>
             <Button
-              class="{toolButtonClasses(activeTool === 'styles')} text-sm"
+              class="{toolButtonClasses(activeTool === 'selectors')} text-sm"
               variant="outline"
-              aria-label="Styles tool"
+              aria-label="Selectors tool"
               onmouseenter={() => {
-                hoveredTool = 'styles';
-                lastHoveredTool = 'styles';
+                hoveredTool = 'selectors';
+                lastHoveredTool = 'selectors';
               }}
               onmouseleave={() => {
                 hoveredTool = null;
               }}
-              onclick={() => setActiveTool('styles')}
+              onclick={() => setActiveTool('selectors')}
             >
               $0
             </Button>
@@ -268,8 +335,8 @@
               <CircleQuestionMark class={iconSize}/>
             </Button>
             <Button
-              class={toolButtonClasses(activeTool === 'share')}
-              variant="secondary"
+              class="{toolButtonClasses(activeTool === 'share')} bg-secondary-500"
+              variant="outline"
               aria-label="Share tool"
               onmouseenter={() => {
                 hoveredTool = 'share';
@@ -286,15 +353,11 @@
         </div>
 
         {#if activeTool === 'select'}
-          <SelectTool
-            onSaveToStyles={() => setActiveTool('save-style')}
-          />
+          <SelectTool />
         {:else if activeTool === 'new-element'}
           <NewElementTool />
-        {:else if activeTool === 'styles'}
-          <StylesTool />
-        {:else if activeTool === 'save-style'}
-          <SaveStyleTool />
+        {:else if activeTool === 'selectors'}
+          <SelectorsTool />
         {:else if activeTool === 'help'}
           <HelpTool />
         {:else if activeTool === 'share'}

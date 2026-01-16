@@ -14,7 +14,7 @@
     <div class="rounded-lg bg-gray-100 p-4 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <p class="text-subtitle">Getting started</p>
       <p class="text-caption mt-1 text-gray-600 dark:text-gray-300">
-        Placeholder: explain how to select an element, inspect styles, and save them.
+        Placeholder: explain how to select an element, inspect selectors, and save them.
       </p>
     </div>
     <div class="rounded-lg bg-gray-100 p-4 text-gray-900 dark:bg-gray-900 dark:text-gray-100">

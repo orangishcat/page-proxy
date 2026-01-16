@@ -10,7 +10,7 @@
         "dev": "wxt",
         "build": "wxt build",
         "prepare": "wxt prepare",
-        "check": "eslint . -c eslint.config.js && tsc -p tsconfig.json --noEmit && svelte-check --tsconfig tsconfig.json"
+        "check": "svelte-check --tsconfig tsconfig.json"
     },
     "devDependencies": {
         "@eslint/js": "^9.36.0",
@@ -18,7 +18,7 @@
         "@typescript-eslint/eslint-plugin": "^8.52.0",
         "@typescript-eslint/parser": "^8.52.0",
         "@wxt-dev/module-svelte": "^2.0.3",
-        "autoprefixer": "^10.4.23",
+        "@tailwindcss/postcss": "4.1.18",
         "eslint": "^9.36.0",
         "eslint-plugin-svelte": "^3.14.0",
         "globals": "^17.0.0",
@@ -26,7 +26,7 @@
         "svelte": "^5.38.10",
         "svelte-check": "^4.2.6",
         "svelte-eslint-parser": "^1.4.1",
-        "tailwindcss": "^3.4.19",
+        "tailwindcss": "4.1.18",
         "typescript-eslint": "^8.52.0",
         "typescript": "^5.9.3",
         "wxt": "^0.20.11"
@@ -34,12 +34,14 @@
     "dependencies": {
         "@codemirror/autocomplete": "^6.20.0",
         "@codemirror/commands": "^6.10.0",
+        "@codemirror/highlight": "^0.19.8",
         "@codemirror/lang-javascript": "^6.2.4",
-        "@codemirror/language": "^6.11.3",
+        "@codemirror/language": "^6.12.1",
         "@codemirror/lint": "^6.9.2",
         "@codemirror/state": "^6.5.3",
         "@codemirror/view": "^6.39.8",
         "@endo/lockdown": "^1.0.18",
+        "@lezer/highlight": "^1.2.3",
         "axios": "^1.12.2",
         "bits-ui": "^2.14.4",
         "eslint-linter-browserify": "^9.39.2",

@@ -2,14 +2,17 @@
   import {onDestroy} from 'svelte';
   import Button from '@/lib/components/Button.svelte';
   import type {ElementInfo} from '@/lib/selection';
-  import type {ElementEntry} from './code-editor/state';
+  import type {ElementEntry, SelectorEntry} from './code-editor/state';
   import type {PropertyItem} from './select-tool/state';
   import {selectedInfo, hasSelection, propertyItems} from './select-tool/state';
   import {
     elementEntries,
     formatElementCode,
-    insertDefinitions
+    insertDefinitions,
+    sanitizeVariableName,
+    selectorEntries
   } from './code-editor/state';
+  import {setErrorMessage} from './tool-errors';
 
   let elementName = $state('');
   let lastSelectedSelector = $state<string | null>(null);
@@ -17,6 +20,7 @@
   let selectedInfoValue = $state<ElementInfo | null>(null);
   let propertyItemsValue = $state<PropertyItem[]>([]);
   let elementEntriesValue = $state<ElementEntry[]>([]);
+  let selectorEntriesValue = $state<SelectorEntry[]>([]);
 
   const unsubscribeHasSelection = hasSelection.subscribe((value) => {
     hasSelectionValue = value;
@@ -30,12 +34,16 @@
   const unsubscribeElementEntries = elementEntries.subscribe((value) => {
     elementEntriesValue = value;
   });
+  const unsubscribeSelectorEntries = selectorEntries.subscribe((value) => {
+    selectorEntriesValue = value;
+  });
 
   onDestroy(() => {
     unsubscribeHasSelection();
     unsubscribeSelectedInfo();
     unsubscribePropertyItems();
     unsubscribeElementEntries();
+    unsubscribeSelectorEntries();
   });
 
   const saveElementDefinition = () => {
@@ -51,8 +59,17 @@
       attributes: selectedInfoValue.attributes
     };
 
-    const index = elementEntriesValue.length + 1;
-    const variableName = `element_${index}`;
+    const variableName = sanitizeVariableName(entryName);
+    const existingVariableNames = new Set(
+      [...elementEntriesValue, ...selectorEntriesValue].map((currentEntry) =>
+        sanitizeVariableName(currentEntry.name)
+      )
+    );
+
+    if (existingVariableNames.has(variableName)) {
+      setErrorMessage(`Variable name "${variableName}" already exists.`);
+      return;
+    }
 
     const codeLine = formatElementCode(entry, variableName);
 
@@ -60,6 +77,7 @@
       return;
     }
 
+    const index = elementEntriesValue.length + 1;
     elementName = `element-${index + 1}`;
   };
 
@@ -100,9 +118,9 @@
       </div>
     {/if}
   </div>
-  <div class="flex h-12 items-center justify-center">
+  <div class="flex h-8 mt-4 items-center justify-center">
     <Button
-      class="w-42 text-sm"
+      class="text-sm"
       variant="primary"
       onclick={saveElementDefinition}
       disabled={!hasSelectionValue}

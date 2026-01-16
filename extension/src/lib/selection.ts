@@ -14,10 +14,38 @@ export type ElementInfo = {
   };
 };
 
+export type SelectorRuleFilters = {
+  contains: Record<string, string>;
+  matches: Record<string, string>;
+  keyOnly: string[];
+};
+
+export type SelectorSavePayload = {
+  name: string | null;
+  selector: string;
+  bbox?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  properties: SelectorRuleFilters;
+};
+
 export type SelectToolMessage =
   | {
       type: 'select:toggle';
       enabled: boolean;
+    }
+  | {
+      type: 'select:parent';
+    }
+  | {
+      type: 'selector:open';
+    }
+  | {
+      type: 'selector:save';
+      payload: SelectorSavePayload;
     }
   | {
       type: 'select:hover';

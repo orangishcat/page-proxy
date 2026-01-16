@@ -1,7 +1,7 @@
 import {get, writable} from 'svelte/store';
-import type {BoundingBox, ElementEntry, StyleEntry} from '@/lib/sandbox';
+import type {BoundingBox, ElementEntry, SelectorEntry} from '@/lib/sandbox';
 
-export type {BoundingBox, ElementEntry, StyleEntry};
+export type {BoundingBox, ElementEntry, SelectorEntry};
 
 export type ScriptMetadataState = {
   title: string;
@@ -10,7 +10,7 @@ export type ScriptMetadataState = {
 };
 
 export const elementEntries = writable<ElementEntry[]>([]);
-export const styleEntries = writable<StyleEntry[]>([]);
+export const selectorEntries = writable<SelectorEntry[]>([]);
 export const scriptMetadata = writable<ScriptMetadataState>({
   title: 'Page Proxy',
   website: '',
@@ -51,7 +51,7 @@ export const formatElementCode = (entry: ElementEntry, variableName: string) => 
   return `const ${variableName} = pp.element(${JSON.stringify(payload, null, 2)});`;
 };
 
-export const formatStyleCode = (entry: StyleEntry, variableName: string) => {
+export const formatSelectorCode = (entry: SelectorEntry, variableName: string) => {
   const payload = {
     name: entry.name,
     selector: entry.selector,
@@ -59,7 +59,10 @@ export const formatStyleCode = (entry: StyleEntry, variableName: string) => {
     properties: entry.properties
   };
 
-  return `const ${variableName} = pp.style(${JSON.stringify(payload, null, 2)});`;
+  return `const ${variableName} = pp.selector(${JSON.stringify(payload, null, 2)});`;
 };
+
+export const sanitizeVariableName = (name: string) =>
+  name.replace(/[^A-Za-z0-9_]/g, '_');
 
 export const getFormattedBoundingBox = formatBoundingBoxCompact;

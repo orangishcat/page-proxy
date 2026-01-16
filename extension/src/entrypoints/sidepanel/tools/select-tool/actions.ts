@@ -78,6 +78,84 @@ export const sendSelectionToggle = (enabled: boolean) => {
     });
 };
 
+export const sendSelectParent = () => {
+  setErrorMessage(null);
+
+  void browser.tabs
+    .query({active: true, currentWindow: true})
+    .then((tabs) => {
+      const activeTab = tabs[0];
+      const tabId = activeTab?.id;
+      if (tabId === undefined) {
+        setErrorMessage('No active tab found.');
+        return;
+      }
+
+      if (isRestrictedUrl(activeTab?.url)) {
+        setErrorMessage('Selection is unavailable on this page.');
+        return;
+      }
+
+      return browser.tabs
+        .sendMessage(tabId, {
+          type: 'select:parent'
+        } satisfies SelectToolMessage)
+        .catch(() =>
+          injectSelectTool(tabId)
+            .then(() =>
+              browser.tabs.sendMessage(tabId, {
+                type: 'select:parent'
+              } satisfies SelectToolMessage)
+            )
+            .catch(() => {
+              setErrorMessage('Unable to connect to the active tab.');
+            })
+        );
+    })
+    .catch(() => {
+      setErrorMessage('Unable to connect to the active tab.');
+    });
+};
+
+export const sendSelectorPopup = () => {
+  setErrorMessage(null);
+
+  void browser.tabs
+    .query({active: true, currentWindow: true})
+    .then((tabs) => {
+      const activeTab = tabs[0];
+      const tabId = activeTab?.id;
+      if (tabId === undefined) {
+        setErrorMessage('No active tab found.');
+        return;
+      }
+
+      if (isRestrictedUrl(activeTab?.url)) {
+        setErrorMessage('Selection is unavailable on this page.');
+        return;
+      }
+
+      return browser.tabs
+        .sendMessage(tabId, {
+          type: 'selector:open'
+        } satisfies SelectToolMessage)
+        .catch(() =>
+          injectSelectTool(tabId)
+            .then(() =>
+              browser.tabs.sendMessage(tabId, {
+                type: 'selector:open'
+              } satisfies SelectToolMessage)
+            )
+            .catch(() => {
+              setErrorMessage('Unable to connect to the active tab.');
+            })
+        );
+    })
+    .catch(() => {
+      setErrorMessage('Unable to connect to the active tab.');
+    });
+};
+
 export const attachSelectionListener = () => {
   const listener = (message: SelectToolMessage) => {
     if (message.type === 'select:hover') {

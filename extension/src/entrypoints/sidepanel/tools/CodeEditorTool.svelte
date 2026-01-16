@@ -7,29 +7,81 @@
   import {indentWithTab} from '@codemirror/commands';
   import {javascript} from '@codemirror/lang-javascript';
   import {autocompletion, type CompletionSource} from '@codemirror/autocomplete';
-  import {defaultHighlightStyle, syntaxHighlighting} from '@codemirror/language';
-  import {ExternalLink} from 'lucide-svelte';
+  import {tags as t} from '@lezer/highlight';
+  import {
+    HighlightStyle,
+    indentRange,
+    indentUnit,
+    syntaxHighlighting
+  } from '@codemirror/language';
+  import {ExternalLink, Play} from 'lucide-svelte';
 
   import {pageModificationFunctions} from '@/lib/page-modification';
+  import Button from '@/lib/components/Button.svelte';
   import {parseScriptMetadata} from '@/lib/utils/script-metadata';
-  import {requestSandboxEvaluation} from './sandbox/actions';
+  import {
+    requestSandboxEvaluation,
+    requestScriptRun
+  } from './sandbox/actions';
   import {
     elementEntries,
     scriptMetadata,
     setEditorApi,
-    styleEntries
+    selectorEntries
   } from './code-editor/state';
   import type {ScriptMetadataState} from './code-editor/state';
   import {errorMessage, setErrorMessage} from './tool-errors';
 
-  const defineBlockStart = '// Define elements/styles';
-  const defineBlockEnd = '// End define elements/styles';
+  const defineBlockStart = '// Define elements/selectors';
+  const defineBlockEnd = '// End define elements/selectors';
   const editorStorageKey = 'page-proxy:sidepanel:script';
+  const editorTheme = EditorView.theme({
+    '&': {
+      color: '#5c6e74',
+      backgroundColor: '#282824',
+      fontSize: '0.8125rem',
+      fontFamily: "Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace",
+      lineHeight: '1.5',
+      textShadow: 'none'
+    },
+    '.cm-content': {
+      caretColor: '#5c6e74'
+    },
+    '.cm-selectionBackground, ::selection': {
+      backgroundColor: '#b3d4fc'
+    },
+    '&.cm-focused .cm-selectionBackground': {
+      backgroundColor: '#b3d4fc'
+    },
+    '.cm-cursor': {
+      borderLeftColor: '#5c6e74'
+    },
+    '.cm-gutters': {
+      backgroundColor: '#282824',
+      color: '#5c6e74',
+      border: 'none'
+    }
+  });
+  const selectorHighlightStyle = HighlightStyle.define([
+    {tag: t.comment, color: '#93a1a1'},
+    {tag: t.punctuation, color: '#999999'},
+    {tag: [t.propertyName, t.tagName, t.bool, t.number, t.constant(t.name), t.constant(t.variableName), t.deleted], color: '#990055'},
+    {tag: [t.attributeName, t.string, t.character, t.standard(t.name), t.inserted], color: '#669900'},
+    {tag: [t.operator, t.url], color: '#a67f59'},
+    {tag: [t.keyword, t.attributeValue, t.controlKeyword, t.definitionKeyword, t.moduleKeyword, t.operatorKeyword], color: '#0077aa'},
+    {tag: [t.function(t.variableName), t.function(t.propertyName)], color: '#dd4a68'},
+    {tag: [t.regexp, t.variableName, t.atom], color: '#ee9900'},
+    {tag: t.strong, fontWeight: '700'},
+    {tag: t.emphasis, fontStyle: 'italic'}
+  ]);
 
   let editorHost = $state<HTMLDivElement | null>(null);
   let editorView = $state<EditorView | null>(null);
   let editorValue = $state('');
   let saveTimer: number | null = null;
+  let sandboxSyncTimer: number | null = null;
+  let pendingSandboxContent: string | null = null;
+  let isRunning = $state(false);
   let scriptMetadataValue = $state<ScriptMetadataState>({
     title: 'Page Proxy',
     website: '',
@@ -52,7 +104,7 @@
     ''
   ].join('\n');
 
-  const baseSuggestions = ['pp.element', 'pp.style', ...pageModificationFunctions];
+  const baseSuggestions = ['pp.element', 'pp.selector', ...pageModificationFunctions];
 
   const updateScriptMetadata = (content: string) => {
     const metadata = parseScriptMetadata(content);
@@ -101,6 +153,7 @@
   };
 
   let lastSandboxError = $state<string | null>(null);
+  let lastRunError = $state<string | null>(null);
   let sandboxRequestId = $state(0);
 
   const getDefinitionBlock = (content: string) => {
@@ -129,25 +182,89 @@
     setErrorMessage(message);
   };
 
-  const syncDefinitions = (content: string) => {
+  const formatIndentation = (content: string) => {
+    if (!content.trim()) {
+      return content;
+    }
+
+    const state = EditorState.create({
+      doc: content,
+      extensions: [javascript({typescript: false}), indentUnit.of('  ')]
+    });
+    const changes = indentRange(state, 0, state.doc.length);
+    return changes.empty ? content : changes.apply(state.doc).toString();
+  };
+
+  const syncDefinitionsNow = (content: string) => {
     const definitionBlock = getDefinitionBlock(content);
-    if (!definitionBlock.trim()) {
+    const formattedDefinition = formatIndentation(definitionBlock);
+    if (!formattedDefinition.trim()) {
       updateSandboxError([]);
       elementEntries.set([]);
-      styleEntries.set([]);
+      selectorEntries.set([]);
       return;
     }
 
     const requestId = ++sandboxRequestId;
-    void requestSandboxEvaluation(definitionBlock).then((result) => {
+    void requestSandboxEvaluation(formattedDefinition).then((result) => {
       if (requestId !== sandboxRequestId) {
         return;
       }
 
       updateSandboxError(result.errors);
       elementEntries.set(result.elements);
-      styleEntries.set(result.styles);
+      selectorEntries.set(result.selectors);
     });
+  };
+
+  const syncDefinitions = (content: string) => {
+    pendingSandboxContent = content;
+
+    if (sandboxSyncTimer) {
+      window.clearTimeout(sandboxSyncTimer);
+    }
+
+    sandboxSyncTimer = window.setTimeout(() => {
+      const latestContent = pendingSandboxContent ?? '';
+      pendingSandboxContent = null;
+      sandboxSyncTimer = null;
+      syncDefinitionsNow(latestContent);
+    }, 1000);
+  };
+
+  const updateRunError = (errors: string[]) => {
+    if (errors.length === 0) {
+      if (lastRunError && get(errorMessage) === lastRunError) {
+        setErrorMessage(null);
+      }
+      lastRunError = null;
+      return;
+    }
+
+    const message = errors[0];
+    lastRunError = message;
+    setErrorMessage(message);
+  };
+
+  const runScript = () => {
+    if (isRunning) {
+      return;
+    }
+
+    if (!editorValue.trim()) {
+      setErrorMessage('Script is empty.');
+      return;
+    }
+
+    isRunning = true;
+    const formattedScript = formatIndentation(editorValue);
+    void requestScriptRun(formattedScript)
+      .then((result) => {
+        updateRunError(result.errors);
+      })
+      .finally(() => {
+        isRunning = false;
+      });
   };
 
   const updateEditorContent = (content: string) => {
@@ -226,7 +343,8 @@
       doc: editorValue,
       extensions: [
         javascript({typescript: false}),
-        syntaxHighlighting(defaultHighlightStyle),
+        editorTheme,
+        syntaxHighlighting(selectorHighlightStyle, {fallback: true}),
         keymap.of([indentWithTab]),
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
@@ -262,6 +380,10 @@
       window.clearTimeout(saveTimer);
     }
 
+    if (sandboxSyncTimer) {
+      window.clearTimeout(sandboxSyncTimer);
+    }
+
     if (editorView) {
       editorView.destroy();
       editorView = null;
@@ -283,7 +405,18 @@
         <span class="pp-editor-title-accent">{scriptMetadataValue.website}</span>
       {/if}
     </div>
-    <ExternalLink class="w-6 h-6 text-[#a8a8a8]" />
+    <div class="flex items-center gap-3">
+      <Button
+        class="!px-3 !py-1 text-xs"
+        variant="secondary"
+        aria-label="Run script"
+        onclick={runScript}
+        disabled={isRunning}
+      >
+        <Play class="h-4 w-4" />
+      </Button>
+      <ExternalLink class="w-6 h-6 text-[#a8a8a8]" />
+    </div>
   </div>
   <div class="h-full w-full overflow-auto" bind:this={editorHost}></div>
 </section>

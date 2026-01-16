@@ -8,7 +8,7 @@ import {
   type ElementEntry,
   type SandboxEvaluateResponse,
   type SandboxResult,
-  type StyleEntry
+  type SelectorEntry
 } from '@/lib/sandbox';
 
 type CompartmentConstructor = new (
@@ -25,8 +25,19 @@ type LockdownOptions = {
 };
 
 const lockdownFn = lockdown as unknown as (options?: LockdownOptions) => void;
-const initialLockdownReady =
+const lockdownMarkerKey = '__pageProxySesLockdown__';
+
+const hasHarden = () =>
   typeof (globalThis as {harden?: unknown}).harden === 'function';
+
+const hasLockdownMarker = () =>
+  (globalThis as Record<string, unknown>)[lockdownMarkerKey] === true;
+
+const setLockdownMarker = () => {
+  (globalThis as Record<string, unknown>)[lockdownMarkerKey] = true;
+};
+
+const initialLockdownReady = hasHarden() || hasLockdownMarker();
 let lockdownReady = initialLockdownReady;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -110,8 +121,206 @@ const sanitizeStringMap = (
   return result;
 };
 
+const sanitizeStringList = (
+  value: unknown,
+  errors: string[],
+  label: string
+): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const result: string[] = [];
+  value.forEach((entry, index) => {
+    if (typeof entry !== 'string') {
+      errors.push(`${label} "${index}" must be a string.`);
+      return;
+    }
+    result.push(entry);
+  });
+
+  return result;
+};
+
+const sanitizeSelectorProperties = (
+  value: unknown,
+  errors: string[]
+) => {
+  if (!isRecord(value)) {
+    return {contains: {}, matches: {}, keyOnly: []};
+  }
+
+  const hasExplicitFilters =
+    Object.prototype.hasOwnProperty.call(value, 'contains') ||
+    Object.prototype.hasOwnProperty.call(value, 'matches') ||
+    Object.prototype.hasOwnProperty.call(value, 'keyOnly');
+
+  if (!hasExplicitFilters) {
+    return {
+      contains: {},
+      matches: sanitizeStringMap(value, errors, 'pp.selector property'),
+      keyOnly: []
+    };
+  }
+
+  return {
+    contains: sanitizeStringMap(
+      readDataProperty(value, 'contains'),
+      errors,
+      'pp.selector property contains'
+    ),
+    matches: sanitizeStringMap(
+      readDataProperty(value, 'matches'),
+      errors,
+      'pp.selector property matches'
+    ),
+    keyOnly: sanitizeStringList(
+      readDataProperty(value, 'keyOnly'),
+      errors,
+      'pp.selector property keyOnly'
+    )
+  };
+};
+
+const selectionClassesToIgnore = new Set(['pp-hover', 'pp-selected']);
+
+const filterSelectionClasses = (value: string | null) => {
+  if (!value) {
+    return null;
+  }
+
+  const tokens = value
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0 && !selectionClassesToIgnore.has(token));
+
+  return tokens.length > 0 ? tokens.join(' ') : null;
+};
+
+const getBoundingBox = (element: Element) => {
+  const rect = element.getBoundingClientRect();
+  return {
+    x: rect.x + window.scrollX,
+    y: rect.y + window.scrollY,
+    width: rect.width,
+    height: rect.height
+  };
+};
+
+const formatBoundingBoxCompact = (box: BoundingBox) =>
+  `${box.x.toFixed(2)}, ${box.y.toFixed(2)}, ${box.width.toFixed(2)}, ${box.height.toFixed(2)}`;
+
+const getElementPropertyValue = (element: Element, key: string): string | null => {
+  switch (key) {
+    case 'tag':
+      return element.tagName.toLowerCase();
+    case 'id':
+      return element.id || null;
+    case 'class':
+      return filterSelectionClasses(element.getAttribute('class'));
+    case 'name':
+      return element.getAttribute('name') ?? element.getAttribute('aria-label');
+    case 'innerText':
+      if (element instanceof HTMLElement) {
+        const text = element.innerText.trim();
+        return text.length > 0 ? text : null;
+      }
+      return null;
+    case 'bbox':
+      return formatBoundingBoxCompact(getBoundingBox(element));
+    default:
+      return element.getAttribute(key);
+  }
+};
+
+const hasElementProperty = (element: Element, key: string) => {
+  switch (key) {
+    case 'tag':
+    case 'selector':
+    case 'bbox':
+      return true;
+    case 'id':
+      return element.id.length > 0;
+    case 'class':
+      return Boolean(filterSelectionClasses(element.getAttribute('class')));
+    case 'name':
+      return Boolean(element.getAttribute('name') ?? element.getAttribute('aria-label'));
+    case 'innerText':
+      return element instanceof HTMLElement && element.innerText.trim().length > 0;
+    default:
+      return element.hasAttribute(key);
+  }
+};
+
+const isValidSelector = (selector: string) => {
+  if (!selector) {
+    return false;
+  }
+
+  if (typeof CSS === 'undefined' || typeof CSS.supports !== 'function') {
+    return false;
+  }
+
+  return CSS.supports(`selector(${selector})`);
+};
+
+const matchesSelector = (element: Element, selector: string) => {
+  if (!isValidSelector(selector)) {
+    return false;
+  }
+
+  return element.matches(selector);
+};
+
+const matchesSelectorProperties = (
+  element: Element,
+  properties: {contains: Record<string, string>; matches: Record<string, string>; keyOnly: string[]}
+) => {
+  for (const key of properties.keyOnly) {
+    if (!hasElementProperty(element, key)) {
+      return false;
+    }
+  }
+
+  for (const [key, value] of Object.entries(properties.contains)) {
+    if (key === 'selector') {
+      if (!matchesSelector(element, value)) {
+        return false;
+      }
+      continue;
+    }
+
+    const propertyValue = getElementPropertyValue(element, key);
+    if (!propertyValue || !propertyValue.includes(value)) {
+      return false;
+    }
+  }
+
+  for (const [key, value] of Object.entries(properties.matches)) {
+    if (key === 'selector') {
+      if (!matchesSelector(element, value)) {
+        return false;
+      }
+      continue;
+    }
+
+    const propertyValue = getElementPropertyValue(element, key);
+    if (propertyValue !== value) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 const ensureLockdown = (errors: string[]) => {
   if (lockdownReady) {
+    return true;
+  }
+
+  if (hasHarden() || hasLockdownMarker()) {
+    setLockdownMarker();
+    lockdownReady = true;
     return true;
   }
 
@@ -125,6 +334,7 @@ const ensureLockdown = (errors: string[]) => {
     stackFiltering: 'concise',
     overrideTaming: 'severe'
   });
+  setLockdownMarker();
   lockdownReady = true;
   return true;
 };
@@ -178,29 +388,28 @@ const createElementEntry = (value: unknown, errors: string[]): ElementEntry | nu
   return {name, selector, bbox, attributes};
 };
 
-const createStyleEntry = (value: unknown, errors: string[]): StyleEntry | null => {
+const createSelectorEntry = (value: unknown, errors: string[]): SelectorEntry | null => {
   if (!isRecord(value)) {
-    errors.push('pp.style expects an object definition.');
+    errors.push('pp.selector expects an object definition.');
     return null;
   }
 
   const selector = readString(value, 'selector');
   if (!selector) {
-    errors.push('pp.style requires a string selector.');
+    errors.push('pp.selector requires a string selector.');
     return null;
   }
 
-  const name = readString(value, 'name')?.trim() || 'Style';
+  const name = readString(value, 'name')?.trim() || 'Selector';
   const bbox = parseBoundingBox(
     readDataProperty(value, 'bbox'),
     errors,
-    'pp.style',
+    'pp.selector',
     false
   );
-  const properties = sanitizeStringMap(
+  const properties = sanitizeSelectorProperties(
     readDataProperty(value, 'properties'),
-    errors,
-    'pp.style property'
+    errors
   );
 
   return {name, selector, bbox: bbox ?? undefined, properties};
@@ -209,26 +418,26 @@ const createStyleEntry = (value: unknown, errors: string[]): StyleEntry | null =
 const evaluateDefinitionBlock = (code: string): SandboxResult => {
   const errors: string[] = [];
   const elements: ElementEntry[] = [];
-  const styles: StyleEntry[] = [];
+  const selectors: SelectorEntry[] = [];
 
   if (!code.trim()) {
-    return {elements, styles, errors};
+    return {elements, selectors, errors};
   }
 
   if (!ensureLockdown(errors)) {
-    return {elements, styles, errors};
+    return {elements, selectors, errors};
   }
 
   const CompartmentCtor = getCompartmentConstructor();
   if (!CompartmentCtor) {
     errors.push('Sandbox initialization failed: Compartment is unavailable.');
-    return {elements, styles, errors};
+    return {elements, selectors, errors};
   }
 
   const harden = getHarden();
   if (!harden) {
     errors.push('Sandbox initialization failed: harden is unavailable.');
-    return {elements, styles, errors};
+    return {elements, selectors, errors};
   }
 
   const registerElement = (definition: unknown) => {
@@ -239,24 +448,75 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
     return entry ? harden({definition: entry}) : harden({});
   };
 
-  const registerStyle = (definition: unknown) => {
-    const entry = createStyleEntry(definition, errors);
+  const registerSelector = (definition: unknown) => {
+    const entry = createSelectorEntry(definition, errors);
     if (entry) {
-      styles.push(entry);
+      selectors.push(entry);
     }
-    return entry ? harden({definition: entry}) : harden({});
+    return entry
+      ? harden({
+          definition: entry,
+          query: () =>
+            Array.from(document.querySelectorAll(entry.selector)).filter((element) =>
+              matchesSelectorProperties(element, entry.properties)
+            )
+        })
+      : harden({});
+  };
+
+  const applyStyle = (elementsValue: unknown, values: unknown) => {
+    if (!Array.isArray(elementsValue)) {
+      errors.push('pp.applyStyle expects an array of elements.');
+      return harden({});
+    }
+
+    if (!isRecord(values)) {
+      errors.push('pp.applyStyle expects a style object with string values.');
+      return harden({});
+    }
+
+    const entries = Object.entries(values).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string'
+    );
+
+    if (entries.length === 0) {
+      errors.push('pp.applyStyle expects at least one style value.');
+      return harden({});
+    }
+
+    elementsValue.forEach((element) => {
+      if (!element || (typeof element !== 'object' && typeof element !== 'function')) {
+        return;
+      }
+
+      if (!('style' in element)) {
+        return;
+      }
+
+      const styledElement = element as Element & {style?: CSSStyleDeclaration};
+      if (!styledElement.style) {
+        return;
+      }
+
+      entries.forEach(([key, value]) => {
+        styledElement.style?.setProperty(key, value);
+      });
+    });
+
+    return harden({});
   };
 
   const sandboxApi = harden({
     element: registerElement,
-    style: registerStyle
+    selector: registerSelector,
+    applyStyle
   });
 
   const compartment = new CompartmentCtor({pp: sandboxApi});
   harden(compartment.globalThis);
   compartment.evaluate(`'use strict';\n${code}`);
 
-  return {elements, styles, errors};
+  return {elements, selectors, errors};
 };
 
 const getTargetOrigin = () => {
@@ -347,7 +607,7 @@ export default defineUnlistedScript(() => {
         type: 'sandbox:result',
         requestId,
         elements: result.elements,
-        styles: result.styles,
+        selectors: result.selectors,
         errors: result.errors
       },
       cleanupListeners,

@@ -83,21 +83,181 @@ export const element = (definition: ElementDefinition) => ({
   resolve: () => resolveElement(definition)
 });
 
-export type StyleDefinition = {
+export type SelectorDefinition = {
   name: string;
   selector: string;
-  properties: Record<string, string>;
+  properties: {
+    contains: Record<string, string>;
+    matches: Record<string, string>;
+    keyOnly: string[];
+  };
   bbox?: ElementSize & {x: number; y: number};
 };
 
-export const style = (definition: StyleDefinition) => ({
+const selectionClassesToIgnore = new Set(['pp-hover', 'pp-selected']);
+
+const filterSelectionClasses = (value: string | null) => {
+  if (!value) {
+    return null;
+  }
+
+  const tokens = value
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0 && !selectionClassesToIgnore.has(token));
+
+  return tokens.length > 0 ? tokens.join(' ') : null;
+};
+
+const getBoundingBox = (element: Element) => {
+  const rect = element.getBoundingClientRect();
+  return {
+    x: rect.x + window.scrollX,
+    y: rect.y + window.scrollY,
+    width: rect.width,
+    height: rect.height
+  };
+};
+
+const formatBoundingBoxCompact = (box: ElementSize & {x: number; y: number}) =>
+  `${box.x.toFixed(2)}, ${box.y.toFixed(2)}, ${box.width.toFixed(2)}, ${box.height.toFixed(2)}`;
+
+const getElementPropertyValue = (element: Element, key: string): string | null => {
+  switch (key) {
+    case 'tag':
+      return element.tagName.toLowerCase();
+    case 'id':
+      return element.id || null;
+    case 'class':
+      return filterSelectionClasses(element.getAttribute('class'));
+    case 'name':
+      return element.getAttribute('name') ?? element.getAttribute('aria-label');
+    case 'innerText':
+      if (element instanceof HTMLElement) {
+        const text = element.innerText.trim();
+        return text.length > 0 ? text : null;
+      }
+      return null;
+    case 'bbox':
+      return formatBoundingBoxCompact(getBoundingBox(element));
+    default:
+      return element.getAttribute(key);
+  }
+};
+
+const hasElementProperty = (element: Element, key: string) => {
+  switch (key) {
+    case 'tag':
+    case 'selector':
+    case 'bbox':
+      return true;
+    case 'id':
+      return element.id.length > 0;
+    case 'class':
+      return Boolean(filterSelectionClasses(element.getAttribute('class')));
+    case 'name':
+      return Boolean(element.getAttribute('name') ?? element.getAttribute('aria-label'));
+    case 'innerText':
+      return element instanceof HTMLElement && element.innerText.trim().length > 0;
+    default:
+      return element.hasAttribute(key);
+  }
+};
+
+const isValidMatchSelector = (selector: string) => {
+  if (!selector) {
+    return false;
+  }
+
+  if (typeof CSS === 'undefined' || typeof CSS.supports !== 'function') {
+    return false;
+  }
+
+  return CSS.supports(`selector(${selector})`);
+};
+
+const matchesSelector = (element: Element, selector: string) => {
+  if (!isValidMatchSelector(selector)) {
+    return false;
+  }
+
+  return element.matches(selector);
+};
+
+export const selector = (definition: SelectorDefinition) => ({
   definition,
-  apply: () => null
+  apply: () => null,
+  query: () => {
+    const elements = Array.from(document.querySelectorAll(definition.selector));
+    if (elements.length === 0) {
+      return [];
+    }
+
+    const {contains, matches, keyOnly} = definition.properties;
+    return elements.filter((element) => {
+      for (const key of keyOnly) {
+        if (!hasElementProperty(element, key)) {
+          return false;
+        }
+      }
+
+      for (const [key, value] of Object.entries(contains)) {
+        if (key === 'selector') {
+          if (!matchesSelector(element, value)) {
+            return false;
+          }
+          continue;
+        }
+
+        const propertyValue = getElementPropertyValue(element, key);
+        if (!propertyValue || !propertyValue.includes(value)) {
+          return false;
+        }
+      }
+
+      for (const [key, value] of Object.entries(matches)) {
+        if (key === 'selector') {
+          if (!matchesSelector(element, value)) {
+            return false;
+          }
+          continue;
+        }
+
+        const propertyValue = getElementPropertyValue(element, key);
+        if (propertyValue !== value) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }
 });
+
+export type StyleValues = Record<string, string>;
+
+export const applyStyle = (elements: Element[], values: StyleValues) => {
+  const entries = Object.entries(values);
+  if (entries.length === 0) {
+    return;
+  }
+
+  elements.forEach((element) => {
+    if (!('style' in element)) {
+      return;
+    }
+
+    const styledElement = element as HTMLElement | SVGElement;
+    entries.forEach(([key, value]) => {
+      styledElement.style.setProperty(key, value);
+    });
+  });
+};
 
 export const pp = {
   element,
-  style
+  selector,
+  applyStyle
 };
 
-export const pageModificationFunctions = ['pp'];
+export const pageModificationFunctions = ['pp.applyStyle'];

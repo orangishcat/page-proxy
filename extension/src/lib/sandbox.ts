@@ -12,11 +12,17 @@ export type ElementEntry = {
   attributes: Record<string, string>;
 };
 
-export type StyleEntry = {
+export type SelectorPropertyFilters = {
+  contains: Record<string, string>;
+  matches: Record<string, string>;
+  keyOnly: string[];
+};
+
+export type SelectorEntry = {
   name: string;
   selector: string;
   bbox?: BoundingBox;
-  properties: Record<string, string>;
+  properties: SelectorPropertyFilters;
 };
 
 export type SandboxEvaluateRequest = {
@@ -29,7 +35,7 @@ export type SandboxEvaluateResponse = {
   type: 'sandbox:result';
   requestId: string;
   elements: ElementEntry[];
-  styles: StyleEntry[];
+  selectors: SelectorEntry[];
   errors: string[];
 };
 
@@ -59,7 +65,7 @@ export const isSandboxResponse = (value: unknown): value is SandboxEvaluateRespo
     value.type === 'sandbox:result' &&
     typeof value.requestId === 'string' &&
     Array.isArray(value.elements) &&
-    Array.isArray(value.styles) &&
+    Array.isArray(value.selectors) &&
     Array.isArray(value.errors)
   );
 };
@@ -71,6 +77,6 @@ export const buildSandboxErrorResponse = (
   type: 'sandbox:result',
   requestId,
   elements: [],
-  styles: [],
+  selectors: [],
   errors: [message]
 });

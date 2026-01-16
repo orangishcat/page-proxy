@@ -32,7 +32,7 @@
           Close
         </Dialog.Close>
         <Dialog.Close
-          class="rounded-lg border border-secondary-500 bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] from-primary-600 to-primary-400 px-4 py-1.5 text-button text-gray-700 hover:brightness-110 active:brightness-95 dark:text-gray-100"
+          class="rounded-lg border border-secondary-500 bg-radial from-primary-600 to-primary-400 px-4 py-1.5 text-button text-gray-700 hover:brightness-110 active:brightness-95 dark:text-gray-100"
         >
           Confirm
         </Dialog.Close>

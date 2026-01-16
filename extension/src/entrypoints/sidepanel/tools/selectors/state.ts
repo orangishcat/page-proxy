@@ -1,10 +1,10 @@
 import {derived} from 'svelte/store';
-import {styleEntries} from '../code-editor/state';
+import {selectorEntries} from '../code-editor/state';
 
-export type StylesToolEntry = {
+export type SelectorsToolEntry = {
   name: string;
-  propertyCount: number;
-  propertyNamesText: string;
+  ruleCount: number;
+  ruleNamesText: string;
 };
 
 const specialPropertyOrder = [
@@ -17,9 +17,15 @@ const specialPropertyOrder = [
   'bbox'
 ];
 
-export const styleEntriesDisplay = derived(styleEntries, (entries): StylesToolEntry[] =>
+export const selectorEntriesDisplay = derived(selectorEntries, (entries): SelectorsToolEntry[] =>
   entries.map((entry) => {
-    const propertyKeys = Object.keys(entry.properties);
+    const propertyKeys = Array.from(
+      new Set([
+        ...Object.keys(entry.properties.contains),
+        ...Object.keys(entry.properties.matches),
+        ...entry.properties.keyOnly
+      ])
+    );
     const propertySet = new Set(propertyKeys);
     const names: string[] = [];
 
@@ -30,7 +36,7 @@ export const styleEntriesDisplay = derived(styleEntries, (entries): StylesToolEn
       }
 
       if (key === 'bbox') {
-        if (entry.bbox) {
+        if (entry.bbox || propertySet.has(key)) {
           names.push(key);
         }
         return;
@@ -50,8 +56,8 @@ export const styleEntriesDisplay = derived(styleEntries, (entries): StylesToolEn
 
     return {
       name: entry.name,
-      propertyCount: names.length,
-      propertyNamesText: names.length > 0 ? names.join(', ') : 'No properties'
+      ruleCount: names.length,
+      ruleNamesText: names.length > 0 ? names.join(', ') : 'No rules'
     };
   })
 );

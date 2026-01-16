@@ -32,7 +32,7 @@
     {/if}
   </div>
   <div class="flex h-12 items-center justify-center">
-    <Button class="w-full max-w-xs" variant="secondary" disabled>
+    <Button variant="secondary" disabled>
       Publish
     </Button>
   </div>

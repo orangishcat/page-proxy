@@ -2,13 +2,9 @@
   import {onDestroy} from 'svelte';
   import Button from '@/lib/components/Button.svelte';
   import type {PropertyItem} from './select-tool/state';
+  import {sendSelectParent, sendSelectorPopup} from './select-tool/actions';
   import {hasSelection, propertyItems} from './select-tool/state';
-
-  type SelectToolProps = {
-    onSaveToStyles: () => void;
-  };
-
-  let {onSaveToStyles}: SelectToolProps = $props();
+  import {ArrowUpIcon} from 'lucide-svelte';
   let hasSelectionValue = $state(false);
   let propertyItemsValue = $state<PropertyItem[]>([]);
 
@@ -40,14 +36,23 @@
       </div>
     {/if}
   </div>
-  <div class="flex mt-4 items-center justify-center">
+  <div class="relative mt-4 flex w-full items-center justify-center">
     <Button
-      class="w-42 text-sm {hasSelectionValue || 'hidden'}"
-      variant="primary"
-      onclick={onSaveToStyles}
+      class={`left-0 h-8 w-8 !p-0 rounded-lg text-white dark:text-white bg-[#55503E] hover:opacity-55 active:opacity-40 ${hasSelectionValue ? 'absolute' : 'hidden'}`}
+      variant="outline"
+      aria-label="Select parent element"
+      onclick={sendSelectParent}
       disabled={!hasSelectionValue}
     >
-      Save to styles
+      <ArrowUpIcon class="h-5 w-5" />
+    </Button>
+    <Button
+      class={`w-40 text-sm ${hasSelectionValue ? '' : 'hidden'}`}
+      variant="primary"
+      onclick={sendSelectorPopup}
+      disabled={!hasSelectionValue}
+    >
+      Save selector
     </Button>
   </div>
 </div>

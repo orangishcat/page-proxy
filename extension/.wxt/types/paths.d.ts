@@ -6,6 +6,7 @@ declare module "wxt/browser" {
     | ""
     | "/"
     | "/background.js"
+    | "/code-runner-main-world.js"
     | "/content-scripts/sandbox-runner.js"
     | "/content-scripts/select-tool.js"
     | "/dashboard.html"
