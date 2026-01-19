@@ -12,23 +12,7 @@ import {
   type ScriptRunRequest,
   type ScriptRunResult
 } from '@/lib/script-runner';
-
-const isRestrictedUrl = (url: string | undefined) => {
-  if (!url) {
-    return true;
-  }
-
-  const normalized = url.toLowerCase();
-  return (
-    normalized.startsWith('chrome://') ||
-    normalized.startsWith('brave://') ||
-    normalized.startsWith('edge://') ||
-    normalized.startsWith('about:') ||
-    normalized.startsWith('chrome-extension://') ||
-    normalized.startsWith('moz-extension://') ||
-    normalized.startsWith('view-source:')
-  );
-};
+import {isRestrictedUrl} from '@/lib/utils/url-utils';
 
 const emptyResult: SandboxResult = {elements: [], selectors: [], errors: []};
 const emptyRunResult: ScriptRunResult = {errors: []};

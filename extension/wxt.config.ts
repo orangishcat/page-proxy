@@ -27,7 +27,7 @@ export default defineConfig({
     host_permissions: ['<all_urls>'],
     web_accessible_resources: [
       {
-        resources: ['page-wrapper.js', 'sandbox-main-world.js', 'code-runner-main-world.js'],
+        resources: ['page-wrapper.js', 'sandbox-main-world.js', 'code-runner-main-world.js', 'tailwindcss.min.js'],
         matches: ['<all_urls>']
       }
     ]

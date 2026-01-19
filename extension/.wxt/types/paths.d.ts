@@ -10,7 +10,7 @@ declare module "wxt/browser" {
     | "/content-scripts/sandbox-runner.js"
     | "/content-scripts/select-tool.js"
     | "/dashboard.html"
-    | "/logo_filled.png"
+    | "/icon.png"
     | "/sandbox-main-world.js"
     | "/sidepanel.html"
   type HtmlPublicPath = Extract<PublicPath, `${string}.html`>

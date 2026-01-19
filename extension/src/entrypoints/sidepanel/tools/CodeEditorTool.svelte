@@ -1,132 +1,145 @@
 <script lang="ts">
-  import {onDestroy, onMount} from 'svelte';
-  import {get} from 'svelte/store';
-  import {browser} from 'wxt/browser';
-  import {EditorState} from '@codemirror/state';
-  import {EditorView, keymap} from '@codemirror/view';
-  import {indentWithTab} from '@codemirror/commands';
-  import {javascript} from '@codemirror/lang-javascript';
-  import {autocompletion, type CompletionSource} from '@codemirror/autocomplete';
-  import {tags as t} from '@lezer/highlight';
-  import {
-    HighlightStyle,
-    indentRange,
-    indentUnit,
-    syntaxHighlighting
-  } from '@codemirror/language';
-  import {ExternalLink, Play} from 'lucide-svelte';
+  import { onDestroy, onMount } from "svelte";
+  import { get } from "svelte/store";
+  import { browser } from "wxt/browser";
+  import { EditorState } from "@codemirror/state";
+  import { EditorView, keymap } from "@codemirror/view";
+  import { indentWithTab } from "@codemirror/commands";
+  import { javascript } from "@codemirror/lang-javascript";
+  import { autocompletion, type CompletionSource } from "@codemirror/autocomplete";
+  import { tags as t } from "@lezer/highlight";
+  import { HighlightStyle, indentRange, indentUnit, syntaxHighlighting } from "@codemirror/language";
+  import { ExternalLink, Play } from "lucide-svelte";
 
-  import {pageModificationFunctions} from '@/lib/page-modification';
-  import Button from '@/lib/components/Button.svelte';
-  import {parseScriptMetadata} from '@/lib/utils/script-metadata';
-  import {
-    requestSandboxEvaluation,
-    requestScriptRun
-  } from './sandbox/actions';
-  import {
-    elementEntries,
-    scriptMetadata,
-    setEditorApi,
-    selectorEntries
-  } from './code-editor/state';
-  import type {ScriptMetadataState} from './code-editor/state';
-  import {errorMessage, setErrorMessage} from './tool-errors';
+  import { pageModificationFunctions } from "@/lib/page-modification";
+  import Button from "@/lib/components/Button.svelte";
+  import { parseScriptMetadata } from "@/lib/utils/script-metadata";
+  import { isRestrictedUrl } from "@/lib/utils/url-utils";
+  import { buildWebsiteGlobForUrl, matchWebsiteGlob } from "@/lib/utils/website-glob";
+  import { requestSandboxEvaluation, requestScriptRun } from "./sandbox/actions";
+  import { elementEntries, scriptMetadata, setEditorApi, selectorEntries } from "./code-editor/state";
+  import type { ScriptMetadataState } from "./code-editor/state";
+  import { errorMessage, setErrorMessage } from "./tool-errors";
 
-  const defineBlockStart = '// Define elements/selectors';
-  const defineBlockEnd = '// End define elements/selectors';
-  const editorStorageKey = 'page-proxy:sidepanel:script';
+  type StoredScript = {
+    id: string;
+    content: string;
+    updatedAt: number;
+  };
+
+  const defineBlockStart = "// Define elements/selectors";
+  const defineBlockEnd = "// End define elements/selectors";
+  const scriptStorageKey = "page-proxy:sidepanel:scripts";
+  const legacyEditorStorageKey = "page-proxy:sidepanel:script";
+  const protectedComment =
+    "// This page is protected. Either switch to a different page or allow the extension access to this page to run scripts.";
   const editorTheme = EditorView.theme({
-    '&': {
-      color: '#5c6e74',
-      backgroundColor: '#282824',
-      fontSize: '0.8125rem',
-      fontFamily: "Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace",
-      lineHeight: '1.5',
-      textShadow: 'none'
+    "&": {
+      color: "#5c6e74",
+      backgroundColor: "#282824",
+      fontSize: "0.8125rem",
+      fontFamily: "JetBrains Mono, Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace",
+      lineHeight: "1.5",
+      textShadow: "none",
     },
-    '.cm-content': {
-      caretColor: '#5c6e74'
+    ".cm-content": {
+      caretColor: "#5c6e74",
     },
-    '.cm-selectionBackground, ::selection': {
-      backgroundColor: '#b3d4fc'
+    ".cm-selectionBackground, ::selection": {
+      backgroundColor: "#b3d4fc",
     },
-    '&.cm-focused .cm-selectionBackground': {
-      backgroundColor: '#b3d4fc'
+    "&.cm-focused .cm-selectionBackground": {
+      backgroundColor: "#b3d4fc",
     },
-    '.cm-cursor': {
-      borderLeftColor: '#5c6e74'
+    ".cm-cursor": {
+      borderLeftColor: "#5c6e74",
     },
-    '.cm-gutters': {
-      backgroundColor: '#282824',
-      color: '#5c6e74',
-      border: 'none'
-    }
+    ".cm-gutters": {
+      backgroundColor: "#282824",
+      color: "#5c6e74",
+      border: "none",
+    },
   });
   const selectorHighlightStyle = HighlightStyle.define([
-    {tag: t.comment, color: '#93a1a1'},
-    {tag: t.punctuation, color: '#999999'},
-    {tag: [t.propertyName, t.tagName, t.bool, t.number, t.constant(t.name), t.constant(t.variableName), t.deleted], color: '#990055'},
-    {tag: [t.attributeName, t.string, t.character, t.standard(t.name), t.inserted], color: '#669900'},
-    {tag: [t.operator, t.url], color: '#a67f59'},
-    {tag: [t.keyword, t.attributeValue, t.controlKeyword, t.definitionKeyword, t.moduleKeyword, t.operatorKeyword], color: '#0077aa'},
-    {tag: [t.function(t.variableName), t.function(t.propertyName)], color: '#dd4a68'},
-    {tag: [t.regexp, t.variableName, t.atom], color: '#ee9900'},
-    {tag: t.strong, fontWeight: '700'},
-    {tag: t.emphasis, fontStyle: 'italic'}
+    { tag: t.comment, color: "#93a1a1" },
+    { tag: t.punctuation, color: "#999999" },
+    {
+      tag: [t.propertyName, t.tagName, t.bool, t.number, t.constant(t.name), t.constant(t.variableName), t.deleted],
+      color: "#990055",
+    },
+    { tag: [t.attributeName, t.string, t.character, t.standard(t.name), t.inserted], color: "#669900" },
+    { tag: [t.operator, t.url], color: "#a67f59" },
+    {
+      tag: [t.keyword, t.attributeValue, t.controlKeyword, t.definitionKeyword, t.moduleKeyword, t.operatorKeyword],
+      color: "#0077aa",
+    },
+    { tag: [t.function(t.variableName), t.function(t.propertyName)], color: "#dd4a68" },
+    { tag: [t.regexp, t.variableName, t.atom], color: "#ee9900" },
+    { tag: t.strong, fontWeight: "700" },
+    { tag: t.emphasis, fontStyle: "italic" },
   ]);
 
   let editorHost = $state<HTMLDivElement | null>(null);
   let editorView = $state<EditorView | null>(null);
-  let editorValue = $state('');
+  let editorValue = $state("");
   let saveTimer: number | null = null;
   let sandboxSyncTimer: number | null = null;
   let pendingSandboxContent: string | null = null;
   let isRunning = $state(false);
+  let storedScripts = $state<StoredScript[]>([]);
+  let activeScriptId = $state<string | null>(null);
+  let activeTabId = $state<number | null>(null);
+  let activeTabUrl = $state<string | null>(null);
+  let isProtectedPage = $state(false);
+  let isProgrammaticUpdate = false;
   let scriptMetadataValue = $state<ScriptMetadataState>({
-    title: 'Page Proxy',
-    website: '',
-    description: ''
+    title: "Page Proxy",
+    website: "",
+    description: "",
   });
 
   const unsubscribeScriptMetadata = scriptMetadata.subscribe((value) => {
     scriptMetadataValue = value;
   });
 
-  const defaultScript = [
-    '// ==Page Proxy==',
-    '// @title Page Proxy',
-    '// @website',
-    '// @description',
-    '// ==/Page Proxy==',
-    '',
-    defineBlockStart,
-    defineBlockEnd,
-    ''
-  ].join('\n');
+  const buildDefaultScript = (website: string) => {
+    const normalizedWebsite = website.trim();
+    return [
+      "// ==Page Proxy==",
+      "// @title Page Proxy",
+      normalizedWebsite ? `// @website ${normalizedWebsite}` : "// @website",
+      "// @description",
+      "// ==/Page Proxy==",
+      "",
+      defineBlockStart,
+      defineBlockEnd,
+      "",
+    ].join("\n");
+  };
 
-  const baseSuggestions = ['pp.element', 'pp.selector', ...pageModificationFunctions];
+  const baseSuggestions = ["pp.element", "pp.selector", ...pageModificationFunctions];
 
   const updateScriptMetadata = (content: string) => {
     const metadata = parseScriptMetadata(content);
     if (!metadata) {
       scriptMetadata.set({
-        title: 'Page Proxy',
-        website: '',
-        description: ''
+        title: "Page Proxy",
+        website: "",
+        description: "",
       });
       return;
     }
     scriptMetadata.set({
-      title: metadata.title || 'Page Proxy',
+      title: metadata.title || "Page Proxy",
       website: metadata.website,
-      description: metadata.description
+      description: metadata.description,
     });
   };
 
   const buildSuggestions = () =>
     Array.from(new Set(baseSuggestions)).map((label) => ({
       label,
-      type: label.startsWith('pp') ? 'function' : 'property'
+      type: label.startsWith("pp") ? "function" : "property",
     }));
 
   const suggestionSource: CompletionSource = (context) => {
@@ -134,14 +147,134 @@
     if (!word || (word.from === word.to && !context.explicit)) {
       return null;
     }
-    const options = buildSuggestions().filter((suggestion) =>
-      suggestion.label.startsWith(word.text)
-    );
-    return {from: word.from, options};
+    const options = buildSuggestions().filter((suggestion) => suggestion.label.startsWith(word.text));
+    return { from: word.from, options };
   };
 
+  const createScriptId = () =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  const buildProtectedDisplay = (content: string) => {
+    const baseContent = content.trim() ? content : buildDefaultScript("");
+    const lines = baseContent.split("\n");
+    if (lines[0]?.trim() === protectedComment) {
+      return baseContent;
+    }
+    return [protectedComment, "", baseContent].join("\n");
+  };
+
+  const stripProtectedDisplay = (content: string) => {
+    const lines = content.split("\n");
+    if (!lines[0] || lines[0].trim() !== protectedComment) {
+      return content;
+    }
+    lines.shift();
+    if (lines[0] === "") {
+      lines.shift();
+    }
+    return lines.join("\n");
+  };
+
+  const normalizeStoredScripts = (value: unknown) => {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value
+      .map((entry) => {
+        if (!entry || typeof entry !== "object") {
+          return null;
+        }
+        const data = entry as { id?: unknown; content?: unknown; updatedAt?: unknown };
+        if (typeof data.id !== "string" || typeof data.content !== "string") {
+          return null;
+        }
+        const updatedAt = typeof data.updatedAt === "number" ? data.updatedAt : Date.now();
+        return { id: data.id, content: data.content, updatedAt };
+      })
+      .filter((entry): entry is StoredScript => entry !== null);
+  };
+
+  const findMatchingScript = (url: string) => {
+    let bestMatch: StoredScript | null = null;
+    let bestScore = -1;
+    for (const entry of storedScripts) {
+      const metadata = parseScriptMetadata(entry.content);
+      const website = metadata?.website?.trim() ?? "";
+      if (!website) {
+        continue;
+      }
+      if (!matchWebsiteGlob(website, url)) {
+        continue;
+      }
+      const score = website.length;
+      if (score > bestScore) {
+        bestMatch = entry;
+        bestScore = score;
+      }
+    }
+    return bestMatch;
+  };
+
+  const upsertStoredScript = (content: string) => {
+    const sanitized = isProtectedPage ? stripProtectedDisplay(content) : content;
+    const updatedAt = Date.now();
+    if (!activeScriptId) {
+      const id = createScriptId();
+      activeScriptId = id;
+      storedScripts = [...storedScripts, { id, content: sanitized, updatedAt }];
+      return;
+    }
+    const index = storedScripts.findIndex((entry) => entry.id === activeScriptId);
+    if (index === -1) {
+      storedScripts = [...storedScripts, { id: activeScriptId, content: sanitized, updatedAt }];
+      return;
+    }
+    storedScripts = storedScripts.map((entry, idx) =>
+      idx === index ? { ...entry, content: sanitized, updatedAt } : entry
+    );
+  };
+
+  const persistScripts = (content: string) => {
+    upsertStoredScript(content);
+    void browser.storage.local
+      .set({ [scriptStorageKey]: storedScripts })
+      .catch(() => {
+        setErrorMessage("Unable to save script to extension storage.");
+      });
+  };
+
+  const loadScriptsFromStorage = () =>
+    browser.storage.local
+      .get([scriptStorageKey, legacyEditorStorageKey])
+      .then((result) => {
+        const stored = normalizeStoredScripts(result[scriptStorageKey]);
+        if (stored.length > 0) {
+          storedScripts = stored;
+          return;
+        }
+        const legacy = result[legacyEditorStorageKey];
+        if (typeof legacy === "string" && legacy.trim().length > 0) {
+          const migrated: StoredScript = {
+            id: createScriptId(),
+            content: ensureDefineBlock(legacy),
+            updatedAt: Date.now(),
+          };
+          storedScripts = [migrated];
+          void browser.storage.local
+            .set({ [scriptStorageKey]: storedScripts })
+            .catch(() => {
+              setErrorMessage("Unable to migrate stored script.");
+            });
+        }
+      })
+      .catch(() => {
+        setErrorMessage("Unable to load saved script from extension storage.");
+      });
+
   const ensureDefineBlock = (content: string) => {
-    const lines = content.split('\n');
+    const lines = content.split("\n");
     const startIndex = lines.findIndex((line) => line.trim() === defineBlockStart);
     const endIndex = lines.findIndex((line) => line.trim() === defineBlockEnd);
 
@@ -149,7 +282,7 @@
       return content;
     }
 
-    return [content.trimEnd(), '', defineBlockStart, defineBlockEnd, ''].join('\n');
+    return [content.trimEnd(), "", defineBlockStart, defineBlockEnd, ""].join("\n");
   };
 
   let lastSandboxError = $state<string | null>(null);
@@ -157,15 +290,15 @@
   let sandboxRequestId = $state(0);
 
   const getDefinitionBlock = (content: string) => {
-    const lines = content.split('\n');
+    const lines = content.split("\n");
     const startIndex = lines.findIndex((line) => line.trim() === defineBlockStart);
     const endIndex = lines.findIndex((line) => line.trim() === defineBlockEnd);
 
     if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) {
-      return '';
+      return "";
     }
 
-    return lines.slice(startIndex + 1, endIndex).join('\n');
+    return lines.slice(startIndex + 1, endIndex).join("\n");
   };
 
   const updateSandboxError = (errors: string[]) => {
@@ -189,13 +322,19 @@
 
     const state = EditorState.create({
       doc: content,
-      extensions: [javascript({typescript: false}), indentUnit.of('  ')]
+      extensions: [javascript({ typescript: false }), indentUnit.of("  ")],
     });
     const changes = indentRange(state, 0, state.doc.length);
     return changes.empty ? content : changes.apply(state.doc).toString();
   };
 
   const syncDefinitionsNow = (content: string) => {
+    if (isProtectedPage) {
+      updateSandboxError([]);
+      elementEntries.set([]);
+      selectorEntries.set([]);
+      return;
+    }
     const definitionBlock = getDefinitionBlock(content);
     const formattedDefinition = formatIndentation(definitionBlock);
     if (!formattedDefinition.trim()) {
@@ -218,6 +357,10 @@
   };
 
   const syncDefinitions = (content: string) => {
+    if (isProtectedPage) {
+      return;
+    }
+
     pendingSandboxContent = content;
 
     if (sandboxSyncTimer) {
@@ -225,7 +368,7 @@
     }
 
     sandboxSyncTimer = window.setTimeout(() => {
-      const latestContent = pendingSandboxContent ?? '';
+      const latestContent = pendingSandboxContent ?? "";
       pendingSandboxContent = null;
       sandboxSyncTimer = null;
       syncDefinitionsNow(latestContent);
@@ -252,7 +395,7 @@
     }
 
     if (!editorValue.trim()) {
-      setErrorMessage('Script is empty.');
+      setErrorMessage("Script is empty.");
       return;
     }
 
@@ -267,18 +410,28 @@
       });
   };
 
-  const updateEditorContent = (content: string) => {
+  const updateEditorContent = (
+    content: string,
+    options: { persist?: boolean; sync?: boolean } = {}
+  ) => {
+    const { persist = true, sync = true } = options;
     editorValue = content;
     updateScriptMetadata(content);
-    syncDefinitions(content);
-
-    if (editorView) {
-      editorView.dispatch({
-        changes: {from: 0, to: editorView.state.doc.length, insert: content}
-      });
+    if (sync) {
+      syncDefinitions(content);
     }
 
-    queueStorageSave(content);
+    if (editorView) {
+      isProgrammaticUpdate = true;
+      editorView.dispatch({
+        changes: { from: 0, to: editorView.state.doc.length, insert: content },
+      });
+      isProgrammaticUpdate = false;
+    }
+
+    if (persist) {
+      queueStorageSave(content);
+    }
   };
 
   const queueStorageSave = (content: string) => {
@@ -287,17 +440,13 @@
     }
 
     saveTimer = window.setTimeout(() => {
-      void browser.storage.local
-        .set({[editorStorageKey]: content})
-        .catch(() => {
-          setErrorMessage('Unable to save script to extension storage.');
-        });
+      persistScripts(content);
     }, 300);
   };
 
   const insertDefinitionLines = (linesToInsert: string[]) => {
     const content = ensureDefineBlock(editorValue);
-    const lines = content.split('\n');
+    const lines = content.split("\n");
     const endIndex = lines.findIndex((line) => line.trim() === defineBlockEnd);
 
     if (endIndex === -1) {
@@ -305,34 +454,74 @@
       return;
     }
 
-    lines.splice(endIndex, 0, ...linesToInsert, '');
-    updateEditorContent(lines.join('\n'));
+    lines.splice(endIndex, 0, ...linesToInsert, "");
+    updateEditorContent(lines.join("\n"));
   };
 
-  const loadEditorFromStorage = () => {
-    void browser.storage.local
-      .get(editorStorageKey)
-      .then((result) => {
-        const stored = result[editorStorageKey];
-        if (typeof stored === 'string' && stored.trim().length > 0) {
-          editorValue = ensureDefineBlock(stored);
-        } else {
-          editorValue = defaultScript;
-        }
-        updateScriptMetadata(editorValue);
-        syncDefinitions(editorValue);
-        if (editorView) {
-          editorView.dispatch({
-            changes: {from: 0, to: editorView.state.doc.length, insert: editorValue}
-          });
-        }
+  const loadScriptForUrl = (url: string | null) => {
+    const normalizedUrl = url?.trim() ?? "";
+    const match = normalizedUrl ? findMatchingScript(normalizedUrl) : null;
+    const websiteGlob = normalizedUrl ? buildWebsiteGlobForUrl(normalizedUrl) : "";
+    const baseContent = match
+      ? ensureDefineBlock(match.content)
+      : buildDefaultScript(websiteGlob);
+    activeScriptId = match?.id ?? null;
+    const displayContent = isProtectedPage ? buildProtectedDisplay(baseContent) : baseContent;
+    updateEditorContent(displayContent, { persist: false, sync: !isProtectedPage });
+  };
+
+  const applyActiveTab = (tab: { id?: number; url?: string } | null) => {
+    activeTabId = tab?.id ?? null;
+    activeTabUrl = tab?.url ?? null;
+    isProtectedPage = isRestrictedUrl(activeTabUrl ?? undefined);
+    if (isProtectedPage) {
+      updateSandboxError([]);
+      elementEntries.set([]);
+      selectorEntries.set([]);
+    }
+    if (!activeTabUrl) {
+      setErrorMessage("No active tab found.");
+      loadScriptForUrl(null);
+      return;
+    }
+    loadScriptForUrl(activeTabUrl);
+  };
+
+  const refreshActiveTab = () => {
+    void browser.tabs
+      .query({ active: true, currentWindow: true })
+      .then((tabs) => {
+        applyActiveTab(tabs[0] ?? null);
       })
       .catch(() => {
-        editorValue = defaultScript;
-        updateScriptMetadata(editorValue);
-        syncDefinitions(editorValue);
-        setErrorMessage('Unable to load saved script from extension storage.');
+        setErrorMessage("Unable to read the active tab.");
+        loadScriptForUrl(null);
       });
+  };
+
+  const handleTabActivated = (activeInfo: { tabId: number }) => {
+    void browser.tabs
+      .get(activeInfo.tabId)
+      .then((tab) => {
+        applyActiveTab(tab ?? null);
+      })
+      .catch(() => {
+        setErrorMessage("Unable to read the active tab.");
+      });
+  };
+
+  const handleTabUpdated = (
+    tabId: number,
+    changeInfo: { url?: string },
+    tab: { id?: number; url?: string }
+  ) => {
+    if (activeTabId !== tabId) {
+      return;
+    }
+    if (!changeInfo.url) {
+      return;
+    }
+    applyActiveTab(tab ?? null);
   };
 
   const setupEditor = () => {
@@ -342,36 +531,44 @@
     const state = EditorState.create({
       doc: editorValue,
       extensions: [
-        javascript({typescript: false}),
+        javascript({ typescript: false }),
         editorTheme,
-        syntaxHighlighting(selectorHighlightStyle, {fallback: true}),
+        syntaxHighlighting(selectorHighlightStyle, { fallback: true }),
         keymap.of([indentWithTab]),
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             editorValue = update.state.doc.toString();
             updateScriptMetadata(editorValue);
-            syncDefinitions(editorValue);
-            queueStorageSave(editorValue);
+            if (!isProgrammaticUpdate) {
+              syncDefinitions(editorValue);
+              queueStorageSave(editorValue);
+            }
           }
         }),
-        autocompletion({override: [suggestionSource]})
-      ]
+        autocompletion({ override: [suggestionSource] }),
+      ],
     });
     editorView = new EditorView({
       state,
-      parent: editorHost
+      parent: editorHost,
     });
   };
 
   onMount(() => {
-    editorValue = defaultScript;
-    loadEditorFromStorage();
+    editorValue = buildDefaultScript("");
     setupEditor();
-    setEditorApi({insertDefinitions: insertDefinitionLines});
+    setEditorApi({ insertDefinitions: insertDefinitionLines });
+    void loadScriptsFromStorage().then(() => {
+      refreshActiveTab();
+    });
+    browser.tabs.onActivated.addListener(handleTabActivated);
+    browser.tabs.onUpdated.addListener(handleTabUpdated);
 
     return () => {
       setEditorApi(null);
+      browser.tabs.onActivated.removeListener(handleTabActivated);
+      browser.tabs.onUpdated.removeListener(handleTabUpdated);
     };
   });
 
