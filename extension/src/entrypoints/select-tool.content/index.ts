@@ -4,7 +4,7 @@ import { createShadowRootUi } from "wxt/utils/content-script-ui/shadow-root";
 import { mount, unmount } from "svelte";
 import log from "loglevel";
 
-import type { ElementInfo, SelectorRuleFilters, SelectorSavePayload, SelectToolMessage } from "@/lib/selection";
+import type { ElementInfo, SelectorSavePayload, SelectToolMessage } from "@/lib/selection";
 import type { SidepanelShortcutId, SidepanelShortcutMessage } from "@/lib/sidepanel-shortcuts";
 import SelectorPopupContainer from "./SelectorPopupContainer.svelte";
 import "@/styles/app.css";
@@ -280,27 +280,49 @@ export default defineContentScript({
       logger.debug("selector popup closed");
     };
 
-    const postMessage = (message: SelectToolMessage) => void browser.runtime.sendMessage(message);
+    const isNoReceiverError = (error: unknown) => {
+      if (!error) return false;
+      const message =
+        typeof error === "string"
+          ? error
+          : error instanceof Error
+            ? error.message
+            : typeof (error as { message?: unknown }).message === "string"
+              ? (error as { message: string }).message
+              : "";
+      return (
+        message.includes("Receiving end does not exist") ||
+        message.includes("Could not establish connection") ||
+        message.includes("No receiving end")
+      );
+    };
 
-    const handleSave = (name: string, rules: SelectorRuleFilters) => {
+    const stopSelection = (reason: string) => {
+      if (!selectionEnabled) return;
+      selectionEnabled = false;
+      detachListeners();
+      logger.debug("selection stopped", { reason });
+    };
+
+    const sendRuntimeMessage = (message: SelectToolMessage | SidepanelShortcutMessage) =>
+      void browser.runtime.sendMessage(message).catch((error: unknown) => {
+        if (isNoReceiverError(error)) {
+          stopSelection("receiver-missing");
+          return;
+        }
+        logger.error("select tool message failed", { type: message.type, error });
+      });
+
+    const postMessage = (message: SelectToolMessage) => sendRuntimeMessage(message);
+
+    const handleSave = (payload: SelectorSavePayload) => {
       if (!popupTarget?.isConnected) return;
       const info = getElementInfo(popupTarget);
-      const propItems = buildPropertyList(info);
-      const propMap = new Map(propItems.map((p) => [p.key, p]));
-      const bboxItem = propMap.get("bbox");
-      const includesBBox = "bbox" in rules.contains || "bbox" in rules.matches || rules.keyOnly.includes("bbox");
-
-      const payload: SelectorSavePayload = {
-        name: name || null,
-        selector: info.selector,
-        bbox: includesBBox && bboxItem && typeof bboxItem.rawValue !== "string" ? bboxItem.rawValue : undefined,
-        properties: rules,
-      };
 
       logger.debug("selector popup save requested", {
         target: describeElementCompact(popupTarget),
         name: payload.name,
-        selector: payload.selector,
+        selector: payload.selector || info.selector,
       });
 
       void browser.runtime
@@ -475,7 +497,7 @@ export default defineContentScript({
       }
       const tool = getShortcutTool(event);
       if (!tool) return;
-      void browser.runtime.sendMessage({
+      sendRuntimeMessage({
         type: "sidepanel:shortcut",
         payload: { tool },
       } satisfies SidepanelShortcutMessage);

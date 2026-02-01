@@ -141,7 +141,48 @@
     setActiveTool(tool === 'help' ? 'help' : tool);
   };
 
+  const extractSelectorVariableName = (code: string) => {
+    const match = code.match(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*pp\.selector\s*\(/);
+    return match?.[1] ?? null;
+  };
+
+  const isLegacyProperties = (value: unknown): value is {
+    contains: Record<string, string>;
+    matches: Record<string, string>;
+    keyOnly: string[];
+  } =>
+    typeof value === 'object' &&
+    value !== null &&
+    (Object.prototype.hasOwnProperty.call(value, 'contains') ||
+      Object.prototype.hasOwnProperty.call(value, 'matches') ||
+      Object.prototype.hasOwnProperty.call(value, 'keyOnly'));
+
   const saveSelectorDefinition = (payload: SelectorSavePayload) => {
+    const rawCode = payload.code?.trim() ?? '';
+    if (rawCode) {
+      if (!rawCode.includes('pp.selector')) {
+        setErrorMessage('Selector definition must include pp.selector.');
+        return;
+      }
+
+      const existingEntries = get(selectorEntries);
+      const existingVariableNames = new Set(
+        [...get(elementEntries), ...existingEntries].map((entry) =>
+          sanitizeVariableName(entry.name)
+        )
+      );
+      const variableName = extractSelectorVariableName(rawCode);
+      if (variableName && existingVariableNames.has(sanitizeVariableName(variableName))) {
+        setErrorMessage(`Variable name "${variableName}" already exists.`);
+        return;
+      }
+
+      if (!insertDefinitions([rawCode])) {
+        setErrorMessage('Unable to save selector to the editor.');
+      }
+      return;
+    }
+
     const selector = payload.selector?.trim();
     if (!selector) {
       setErrorMessage('Selector requires a valid selector string.');
@@ -149,9 +190,11 @@
     }
 
     const properties = payload.properties;
-    const hasRules = Object.keys(properties.contains).length > 0 ||
-      Object.keys(properties.matches).length > 0 ||
-      properties.keyOnly.length > 0;
+    const hasRules = isLegacyProperties(properties)
+      ? Object.keys(properties.contains).length > 0 ||
+        Object.keys(properties.matches).length > 0 ||
+        properties.keyOnly.length > 0
+      : Object.keys(properties).length > 0;
     if (!hasRules) {
       setErrorMessage('Add at least one rule to save a selector.');
       return;
@@ -236,6 +279,7 @@
   });
 
   onDestroy(() => {
+    sendSelectionToggle(false);
     unsubscribeErrorMessage();
   });
 

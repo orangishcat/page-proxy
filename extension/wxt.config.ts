@@ -5,6 +5,11 @@ export default defineConfig({
   srcDir: 'src',
   entrypointsDir: 'entrypoints',
   modules: ['@wxt-dev/module-svelte'],
+  vite: () => ({
+    esbuild: {
+      charset: 'ascii'
+    }
+  }),
   manifest: {
     name: 'Page Proxy',
     description: 'Proxy and restyle pages with an extension-based UI.',

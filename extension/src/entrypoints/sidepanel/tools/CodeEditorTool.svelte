@@ -7,10 +7,10 @@
   import { indentWithTab } from "@codemirror/commands";
   import { javascript } from "@codemirror/lang-javascript";
   import { autocompletion, type CompletionSource } from "@codemirror/autocomplete";
-  import { tags as t } from "@lezer/highlight";
-  import { HighlightStyle, indentRange, indentUnit, syntaxHighlighting } from "@codemirror/language";
+  import { indentRange, indentUnit } from "@codemirror/language";
   import { ExternalLink, Play } from "lucide-svelte";
 
+  import { buildCodeEditorExtensions } from "@/lib/code-editor";
   import { pageModificationFunctions } from "@/lib/page-modification";
   import Button from "@/lib/components/Button.svelte";
   import { parseScriptMetadata } from "@/lib/utils/script-metadata";
@@ -33,51 +33,6 @@
   const legacyEditorStorageKey = "page-proxy:sidepanel:script";
   const protectedComment =
     "// This page is protected. Either switch to a different page or allow the extension access to this page to run scripts.";
-  const editorTheme = EditorView.theme({
-    "&": {
-      color: "#5c6e74",
-      backgroundColor: "#282824",
-      fontSize: "0.8125rem",
-      fontFamily: "JetBrains Mono, Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace",
-      lineHeight: "1.5",
-      textShadow: "none",
-    },
-    ".cm-content": {
-      caretColor: "#5c6e74",
-    },
-    ".cm-selectionBackground, ::selection": {
-      backgroundColor: "#b3d4fc",
-    },
-    "&.cm-focused .cm-selectionBackground": {
-      backgroundColor: "#b3d4fc",
-    },
-    ".cm-cursor": {
-      borderLeftColor: "#5c6e74",
-    },
-    ".cm-gutters": {
-      backgroundColor: "#282824",
-      color: "#5c6e74",
-      border: "none",
-    },
-  });
-  const selectorHighlightStyle = HighlightStyle.define([
-    { tag: t.comment, color: "#93a1a1" },
-    { tag: t.punctuation, color: "#999999" },
-    {
-      tag: [t.propertyName, t.tagName, t.bool, t.number, t.constant(t.name), t.constant(t.variableName), t.deleted],
-      color: "#990055",
-    },
-    { tag: [t.attributeName, t.string, t.character, t.standard(t.name), t.inserted], color: "#669900" },
-    { tag: [t.operator, t.url], color: "#a67f59" },
-    {
-      tag: [t.keyword, t.attributeValue, t.controlKeyword, t.definitionKeyword, t.moduleKeyword, t.operatorKeyword],
-      color: "#0077aa",
-    },
-    { tag: [t.function(t.variableName), t.function(t.propertyName)], color: "#dd4a68" },
-    { tag: [t.regexp, t.variableName, t.atom], color: "#ee9900" },
-    { tag: t.strong, fontWeight: "700" },
-    { tag: t.emphasis, fontStyle: "italic" },
-  ]);
 
   let editorHost = $state<HTMLDivElement | null>(null);
   let editorView = $state<EditorView | null>(null);
@@ -531,11 +486,8 @@
     const state = EditorState.create({
       doc: editorValue,
       extensions: [
-        javascript({ typescript: false }),
-        editorTheme,
-        syntaxHighlighting(selectorHighlightStyle, { fallback: true }),
+        ...buildCodeEditorExtensions(),
         keymap.of([indentWithTab]),
-        EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             editorValue = update.state.doc.toString();

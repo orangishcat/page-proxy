@@ -18,11 +18,13 @@ export type SelectorPropertyFilters = {
   keyOnly: string[];
 };
 
+export type SelectorPropertyValues = Record<string, string>;
+
 export type SelectorEntry = {
   name: string;
   selector: string;
   bbox?: BoundingBox;
-  properties: SelectorPropertyFilters;
+  properties: SelectorPropertyFilters | SelectorPropertyValues;
 };
 
 export type SandboxEvaluateRequest = {

@@ -142,12 +142,9 @@ const sanitizeStringList = (
   return result;
 };
 
-const sanitizeSelectorProperties = (
-  value: unknown,
-  errors: string[]
-) => {
+const sanitizeSelectorProperties = (value: unknown, errors: string[]) => {
   if (!isRecord(value)) {
-    return {contains: {}, matches: {}, keyOnly: []};
+    return {};
   }
 
   const hasExplicitFilters =
@@ -155,31 +152,27 @@ const sanitizeSelectorProperties = (
     Object.prototype.hasOwnProperty.call(value, 'matches') ||
     Object.prototype.hasOwnProperty.call(value, 'keyOnly');
 
-  if (!hasExplicitFilters) {
+  if (hasExplicitFilters) {
     return {
-      contains: {},
-      matches: sanitizeStringMap(value, errors, 'pp.selector property'),
-      keyOnly: []
+      contains: sanitizeStringMap(
+        readDataProperty(value, 'contains'),
+        errors,
+        'pp.selector property contains'
+      ),
+      matches: sanitizeStringMap(
+        readDataProperty(value, 'matches'),
+        errors,
+        'pp.selector property matches'
+      ),
+      keyOnly: sanitizeStringList(
+        readDataProperty(value, 'keyOnly'),
+        errors,
+        'pp.selector property keyOnly'
+      )
     };
   }
 
-  return {
-    contains: sanitizeStringMap(
-      readDataProperty(value, 'contains'),
-      errors,
-      'pp.selector property contains'
-    ),
-    matches: sanitizeStringMap(
-      readDataProperty(value, 'matches'),
-      errors,
-      'pp.selector property matches'
-    ),
-    keyOnly: sanitizeStringList(
-      readDataProperty(value, 'keyOnly'),
-      errors,
-      'pp.selector property keyOnly'
-    )
-  };
+  return sanitizeStringMap(value, errors, 'pp.selector property');
 };
 
 const selectionClassesToIgnore = new Set(['pp-hover', 'pp-selected']);
@@ -271,6 +264,56 @@ const matchesSelector = (element: Element, selector: string) => {
 
   return element.matches(selector);
 };
+
+const isLegacySelectorProperties = (
+  value: unknown
+): value is {contains: Record<string, string>; matches: Record<string, string>; keyOnly: string[]} =>
+  isRecord(value) &&
+  (Object.prototype.hasOwnProperty.call(value, 'contains') ||
+    Object.prototype.hasOwnProperty.call(value, 'matches') ||
+    Object.prototype.hasOwnProperty.call(value, 'keyOnly'));
+
+let activeSelectorProperties: Record<string, string> | null = null;
+
+const withSelectorProperties = (
+  properties: Record<string, string>,
+  fn: () => boolean
+) => {
+  activeSelectorProperties = properties;
+  const result = fn();
+  activeSelectorProperties = null;
+  return result;
+};
+
+const getActivePropertyValue = (key: string) =>
+  activeSelectorProperties ? activeSelectorProperties[key] : undefined;
+
+const propMatches = (element: Element, key: string) => {
+  const value = getActivePropertyValue(key);
+  if (typeof value !== 'string') {
+    return false;
+  }
+  if (key === 'selector') {
+    return matchesSelector(element, value);
+  }
+  const propertyValue = getElementPropertyValue(element, key);
+  return propertyValue === value;
+};
+
+const propContains = (element: Element, key: string) => {
+  const value = getActivePropertyValue(key);
+  if (typeof value !== 'string') {
+    return false;
+  }
+  if (key === 'selector') {
+    return matchesSelector(element, value);
+  }
+  const propertyValue = getElementPropertyValue(element, key);
+  return Boolean(propertyValue && propertyValue.includes(value));
+};
+
+const propExists = (element: Element, key: string) =>
+  hasElementProperty(element, key);
 
 const matchesSelectorProperties = (
   element: Element,
@@ -388,7 +431,25 @@ const createElementEntry = (value: unknown, errors: string[]): ElementEntry | nu
   return {name, selector, bbox, attributes};
 };
 
-const createSelectorEntry = (value: unknown, errors: string[]): SelectorEntry | null => {
+const readMatchFunction = (
+  value: Record<string, unknown>,
+  errors: string[]
+): ((element: Element) => boolean) | null => {
+  const matchValue = readDataProperty(value, 'matches');
+  if (matchValue === undefined) {
+    return null;
+  }
+  if (typeof matchValue !== 'function') {
+    errors.push('pp.selector matches must be a function.');
+    return null;
+  }
+  return matchValue as (element: Element) => boolean;
+};
+
+const createSelectorEntry = (
+  value: unknown,
+  errors: string[]
+): {entry: SelectorEntry; matches: ((element: Element) => boolean) | null} | null => {
   if (!isRecord(value)) {
     errors.push('pp.selector expects an object definition.');
     return null;
@@ -411,8 +472,12 @@ const createSelectorEntry = (value: unknown, errors: string[]): SelectorEntry | 
     readDataProperty(value, 'properties'),
     errors
   );
+  const matches = readMatchFunction(value, errors);
 
-  return {name, selector, bbox: bbox ?? undefined, properties};
+  return {
+    entry: {name, selector, bbox: bbox ?? undefined, properties},
+    matches
+  };
 };
 
 const evaluateDefinitionBlock = (code: string): SandboxResult => {
@@ -449,19 +514,27 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
   };
 
   const registerSelector = (definition: unknown) => {
-    const entry = createSelectorEntry(definition, errors);
-    if (entry) {
-      selectors.push(entry);
+    const result = createSelectorEntry(definition, errors);
+    if (!result) {
+      return harden({});
     }
-    return entry
-      ? harden({
-          definition: entry,
-          query: () =>
-            Array.from(document.querySelectorAll(entry.selector)).filter((element) =>
-              matchesSelectorProperties(element, entry.properties)
-            )
+    const {entry, matches} = result;
+    selectors.push(entry);
+    return harden({
+      definition: entry,
+      query: () =>
+        Array.from(document.querySelectorAll(entry.selector)).filter((element) => {
+          if (isLegacySelectorProperties(entry.properties)) {
+            return matchesSelectorProperties(element, entry.properties);
+          }
+          if (typeof matches !== 'function') {
+            return true;
+          }
+          return withSelectorProperties(entry.properties, () =>
+            Boolean(matches(element))
+          );
         })
-      : harden({});
+    });
   };
 
   const applyStyle = (elementsValue: unknown, values: unknown) => {
@@ -509,7 +582,10 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
   const sandboxApi = harden({
     element: registerElement,
     selector: registerSelector,
-    applyStyle
+    applyStyle,
+    propMatches,
+    propContains,
+    propExists
   });
 
   const compartment = new CompartmentCtor({pp: sandboxApi});

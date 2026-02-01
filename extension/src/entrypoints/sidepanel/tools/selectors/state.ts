@@ -1,5 +1,6 @@
 import {derived} from 'svelte/store';
 import {selectorEntries} from '../code-editor/state';
+import type {SelectorPropertyFilters} from '@/lib/sandbox';
 
 export type SelectorsToolEntry = {
   name: string;
@@ -19,12 +20,23 @@ const specialPropertyOrder = [
 
 export const selectorEntriesDisplay = derived(selectorEntries, (entries): SelectorsToolEntry[] =>
   entries.map((entry) => {
+    const isLegacyProperties = (value: unknown): value is SelectorPropertyFilters =>
+      typeof value === 'object' &&
+      value !== null &&
+      (Object.prototype.hasOwnProperty.call(value, 'contains') ||
+        Object.prototype.hasOwnProperty.call(value, 'matches') ||
+        Object.prototype.hasOwnProperty.call(value, 'keyOnly'));
+
     const propertyKeys = Array.from(
-      new Set([
-        ...Object.keys(entry.properties.contains),
-        ...Object.keys(entry.properties.matches),
-        ...entry.properties.keyOnly
-      ])
+      new Set(
+        isLegacyProperties(entry.properties)
+          ? [
+              ...Object.keys(entry.properties.contains),
+              ...Object.keys(entry.properties.matches),
+              ...entry.properties.keyOnly
+            ]
+          : Object.keys(entry.properties)
+      )
     );
     const propertySet = new Set(propertyKeys);
     const names: string[] = [];

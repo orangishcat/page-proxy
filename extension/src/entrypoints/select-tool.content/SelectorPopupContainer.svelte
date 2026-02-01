@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ElementInfo, SelectorRuleFilters } from "@/lib/selection";
+  import type { ElementInfo, SelectorSavePayload } from "@/lib/selection";
   import SelectorPopup from "./SelectorPopup.svelte";
   import { onMount, onDestroy } from "svelte";
 
@@ -15,7 +15,7 @@
     info: ElementInfo;
     propertyItems: PropertyItem[];
     targetElement: Element | null;
-    onSave: (name: string, rules: SelectorRuleFilters) => void;
+    onSave: (payload: SelectorSavePayload) => void;
     onCancel: () => void;
   };
 

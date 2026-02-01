@@ -20,6 +20,8 @@ export type SelectorRuleFilters = {
   keyOnly: string[];
 };
 
+export type SelectorPropertyValues = Record<string, string>;
+
 export type SelectorSavePayload = {
   name: string | null;
   selector: string;
@@ -29,7 +31,8 @@ export type SelectorSavePayload = {
     width: number;
     height: number;
   };
-  properties: SelectorRuleFilters;
+  properties: SelectorRuleFilters | SelectorPropertyValues;
+  code?: string;
 };
 
 export type SelectToolMessage =
