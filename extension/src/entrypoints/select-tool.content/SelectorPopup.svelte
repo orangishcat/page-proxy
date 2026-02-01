@@ -3,6 +3,7 @@
   import { onDestroy, onMount } from "svelte";
   import { EditorState } from "@codemirror/state";
   import { EditorView, keymap } from "@codemirror/view";
+  import { history, historyKeymap, isolateHistory } from "@codemirror/history";
   import { indentWithTab } from "@codemirror/commands";
 
   import { buildCodeEditorExtensions } from "@/lib/code-editor";
@@ -38,6 +39,10 @@
   let filterOperator = $state<FilterOperator>("matches");
   let selectedPropertyKey = $state<string | null>(null);
   let errorMessage = $state("");
+
+  const transparentDragImage = new Image();
+  transparentDragImage.src =
+    "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
 
   const filterFunctionMap: Record<FilterOperator, string> = {
     contains: "propContains",
@@ -94,6 +99,8 @@
       doc: editorValue,
       extensions: [
         ...buildCodeEditorExtensions(),
+        history(),
+        keymap.of(historyKeymap),
         keymap.of([indentWithTab]),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
@@ -194,6 +201,7 @@
     event.dataTransfer.setData("application/x-pp-filter", code);
     event.dataTransfer.setData("text/plain", code);
     event.dataTransfer.effectAllowed = "copy";
+    event.dataTransfer.setDragImage(transparentDragImage, 0, 0);
   };
 
   const findNearestWordBreak = (text: string, offset: number) => {
@@ -262,7 +270,7 @@
       return;
     }
     event.preventDefault();
-    event.stopPropagation();
+    event.stopImmediatePropagation();
     event.dataTransfer.dropEffect = "copy";
 
     const insertPos = getInsertPosFromCoords({ x: event.clientX, y: event.clientY });
@@ -287,7 +295,7 @@
     }
 
     event.preventDefault();
-    event.stopPropagation();
+    event.stopImmediatePropagation();
     hideDragCaret();
 
     const insertPos = getInsertPosFromCoords({ x: event.clientX, y: event.clientY });
@@ -298,6 +306,9 @@
     editorView.dispatch({
       changes: { from: insertPos, to: insertPos, insert: code },
       selection: { anchor: insertPos + code.length },
+      userEvent: "input",
+      annotations: isolateHistory.of("full"),
+      scrollIntoView: true,
     });
     editorView.focus();
   };
@@ -332,7 +343,7 @@
       editorView = null;
     }
     if (previewView) {
-      previewView.dom.removeEventListener("dragstart", handlePreviewDragStart);
+      previewView.dom.removeEventListener("dragstart", handlePreviewDragStart, { capture: true });
       previewView.destroy();
       previewView = null;
     }
