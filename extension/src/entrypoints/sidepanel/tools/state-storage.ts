@@ -15,12 +15,6 @@ export type StoredToolState = {
 };
 
 const storageKeyPrefix = "pageproxy:";
-const legacyBrowserStorageKeys = [
-  "page-proxy:sidepanel:scripts",
-  "page-proxy:sidepanel:script",
-  "page-proxy:sidepanel:tab-code-states",
-  "page-proxy:sidepanel:tab-tool-states",
-];
 
 const isToolId = (value: unknown): value is ToolId =>
   value === "select" ||
@@ -30,9 +24,9 @@ const isToolId = (value: unknown): value is ToolId =>
   value === "share" ||
   value === "none";
 
-const toStorageKey = (websiteGlob: string) => `${storageKeyPrefix}${websiteGlob}`;
+export const toStorageKey = (websiteGlob: string) => `${storageKeyPrefix}${websiteGlob.trim()}`;
 
-const fromStorageKey = (key: string) => {
+export const fromStorageKey = (key: string) => {
   if (!key.startsWith(storageKeyPrefix)) {
     return null;
   }
@@ -73,66 +67,48 @@ const coerceStoredToolState = (value: unknown, websiteGlob: string): StoredToolS
   };
 };
 
-const readStoredState = (websiteGlob: string) => {
-  if (typeof window === "undefined") {
-    return null;
-  }
+export const activeToolState = writable<ToolId>("none");
 
-  const raw = window.localStorage.getItem(toStorageKey(websiteGlob));
-  if (!raw || !raw.trim().startsWith("{")) {
-    return null;
-  }
-
-  const parsed = JSON.parse(raw) as unknown;
-  return coerceStoredToolState(parsed, websiteGlob);
-};
-
-const listStoredStates = () => {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
+export const listStoredToolStates = async () => {
+  const allValues = await browser.storage.local.get(null);
   const states: Array<{ websiteGlob: string; state: StoredToolState }> = [];
-  for (let index = 0; index < window.localStorage.length; index += 1) {
-    const key = window.localStorage.key(index);
-    if (!key) {
-      continue;
-    }
 
+  Object.entries(allValues).forEach(([key, value]) => {
     const websiteGlob = fromStorageKey(key);
     if (!websiteGlob) {
-      continue;
+      return;
     }
 
-    const state = readStoredState(websiteGlob);
+    const state = coerceStoredToolState(value, websiteGlob);
     if (!state) {
-      continue;
+      return;
     }
 
     states.push({ websiteGlob, state });
-  }
+  });
 
   return states;
 };
 
-export const activeToolState = writable<ToolId>("none");
-
-export const saveStoredToolState = (state: StoredToolState) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.setItem(toStorageKey(state.websiteGlob), JSON.stringify(state));
+export const saveStoredToolState = async (state: StoredToolState) => {
+  const key = toStorageKey(state.websiteGlob);
+  await browser.storage.local.set({
+    [key]: state,
+  });
 };
 
-export const removeStoredToolState = (websiteGlob: string) => {
-  if (typeof window === "undefined" || !websiteGlob.trim()) {
+export const removeStoredToolState = async (websiteGlob: string) => {
+  const normalized = websiteGlob.trim();
+  if (!normalized) {
     return;
   }
-  window.localStorage.removeItem(toStorageKey(websiteGlob));
+
+  await browser.storage.local.remove(toStorageKey(normalized));
 };
 
-export const findStoredToolStateForUrl = (url: string) => {
-  const matches = listStoredStates()
+export const findStoredToolStateForUrl = async (url: string) => {
+  const states = await listStoredToolStates();
+  const matches = states
     .filter((entry) => matchWebsiteGlob(entry.websiteGlob, url))
     .sort((left, right) => right.websiteGlob.length - left.websiteGlob.length);
 

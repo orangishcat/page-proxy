@@ -3,6 +3,8 @@
 ### General code guidelines
 
 - Prefer simplicity and elegance over complexity.
+- If a file is over 300 lines long, split it into smaller files, grouped by functionality.
+- If a function is over 50 lines long, consider splitting it into smaller functions.
 - Leave comments only when necessary.
 - Do not wrap try-except blocks anywhere unless explicitly stated by the prompt.
   Explicitly state all errors that can occur and handle them appropriately.

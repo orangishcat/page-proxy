@@ -16,17 +16,26 @@
   import Button from "@/lib/components/Button.svelte";
   import { parseScriptMetadata } from "@/lib/utils/script-metadata";
   import { isRestrictedUrl } from "@/lib/utils/url-utils";
-  import { buildWebsiteGlobForUrl } from "@/lib/utils/website-glob";
   import { requestSandboxEvaluation, requestScriptRun } from "./sandbox/actions";
   import { elementEntries, scriptMetadata, setEditorApi, selectorEntries } from "./code-editor/state";
   import type { ScriptMetadataState } from "./code-editor/state";
   import {
     activeToolState,
-    findStoredToolStateForUrl,
     removeStoredToolState,
     saveStoredToolState,
     type StoredToolState,
   } from "./state-storage";
+  import {
+    buildDefaultScript,
+    buildProtectedDisplay,
+    ensureDefineBlock,
+    ensureScriptImports,
+    isDefaultToolState,
+    normalizeContentForStorage,
+    resolveStoredToolStateForUrl,
+    resolveWebsiteGlob,
+    type ScriptFormatConfig,
+  } from "./state-loading";
   import { errorMessage, setErrorMessage } from "./tool-errors";
 
   const defineBlockStart = "// Define elements/selectors";
@@ -38,6 +47,12 @@
   ];
   const protectedComment =
     "// This page is protected. Either switch to a different page or allow the extension access to this page to run scripts.";
+  const scriptFormatConfig: ScriptFormatConfig = {
+    ppImportLines,
+    defineBlockStart,
+    defineBlockEnd,
+    protectedComment,
+  };
 
   let editorHost = $state<HTMLDivElement | null>(null);
   let editorView = $state<EditorView | null>(null);
@@ -63,37 +78,6 @@
     scriptMetadataValue = value;
   });
   let unsubscribeActiveToolState = () => {};
-
-  const buildDefaultScript = (website: string) => {
-    const normalizedWebsite = website.trim();
-    return [
-      ...ppImportLines,
-      "",
-      "// ==Page Proxy==",
-      "// @title Page Proxy",
-      normalizedWebsite ? `// @website ${normalizedWebsite}` : "// @website",
-      "// @description",
-      "// ==/Page Proxy==",
-      "",
-      defineBlockStart,
-      defineBlockEnd,
-      "",
-    ].join("\n");
-  };
-
-  const ensurePpImports = (content: string) => {
-    const withoutLegacyAlias = content
-      .split("\n")
-      .filter((line) => line.trim() !== "const pp = pa.pp;")
-      .join("\n");
-
-    const hasAllImports = ppImportLines.every((line) => withoutLegacyAlias.includes(line));
-    if (hasAllImports) {
-      return withoutLegacyAlias;
-    }
-
-    return [...ppImportLines, "", withoutLegacyAlias.trimStart()].join("\n");
-  };
 
   const baseSuggestions = ["pa.element", pqSelectorReference, ...pageModificationFunctions];
 
@@ -129,85 +113,21 @@
     return { from: word.from, options };
   };
 
-  const buildProtectedDisplay = (content: string) => {
-    const baseContent = content.trim() ? content : buildDefaultScript("");
-    const lines = baseContent.split("\n");
-    if (lines[0]?.trim() === protectedComment) {
-      return baseContent;
-    }
-    return [protectedComment, "", baseContent].join("\n");
-  };
-
-  const stripProtectedDisplay = (content: string) => {
-    const lines = content.split("\n");
-    if (!lines[0] || lines[0].trim() !== protectedComment) {
-      return content;
-    }
-    lines.shift();
-    if (lines[0] === "") {
-      lines.shift();
-    }
-    return lines.join("\n");
-  };
-
-  const ensureDefineBlock = (content: string) => {
-    const lines = content.split("\n");
-    const startIndex = lines.findIndex((line) => line.trim() === defineBlockStart);
-    const endIndex = lines.findIndex((line) => line.trim() === defineBlockEnd);
-
-    if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-      return content;
-    }
-
-    return [content.trimEnd(), "", defineBlockStart, defineBlockEnd, ""].join("\n");
-  };
-
-  const normalizeContentForStorage = (content: string) => {
-    const raw = isProtectedPage ? stripProtectedDisplay(content) : content;
-    return ensurePpImports(ensureDefineBlock(raw));
-  };
-
-  const buildDefaultToolState = (websiteGlob: string): StoredToolState => ({
-    activeTool: "none",
-    codeEditor: {
-      content: normalizeContentForStorage(buildDefaultScript(websiteGlob)),
-    },
-    websiteGlob,
-    updatedAt: Date.now(),
-  });
-
-  const resolveWebsiteGlob = (content: string) => {
-    const metadata = parseScriptMetadata(content);
-    const fromMetadata = metadata?.website.trim() ?? "";
-    if (fromMetadata) {
-      return fromMetadata;
-    }
-
-    if (activeTabUrl) {
-      return buildWebsiteGlobForUrl(activeTabUrl);
-    }
-
-    return activeWebsiteGlob ?? "";
-  };
-
-  const isDefaultToolState = (state: StoredToolState) => {
-    const defaultState = buildDefaultToolState(state.websiteGlob);
-    return state.activeTool === defaultState.activeTool && state.codeEditor.content === defaultState.codeEditor.content;
-  };
-
   const persistToolState = (content: string) => {
     if (isProtectedPage) {
       return;
     }
 
-    const normalizedContent = normalizeContentForStorage(content);
-    const websiteGlob = resolveWebsiteGlob(normalizedContent);
+    const normalizedContent = normalizeContentForStorage(content, isProtectedPage, scriptFormatConfig);
+    const websiteGlob = resolveWebsiteGlob(normalizedContent, activeTabUrl, activeWebsiteGlob);
     if (!websiteGlob) {
       return;
     }
 
     if (activeWebsiteGlob && activeWebsiteGlob !== websiteGlob) {
-      removeStoredToolState(activeWebsiteGlob);
+      void removeStoredToolState(activeWebsiteGlob).catch(() => {
+        setErrorMessage("Unable to save script state to extension storage.");
+      });
     }
 
     const state: StoredToolState = {
@@ -221,15 +141,19 @@
 
     activeWebsiteGlob = websiteGlob;
 
-    if (isDefaultToolState(state)) {
-      removeStoredToolState(websiteGlob);
+    if (isDefaultToolState(state, scriptFormatConfig)) {
+      void removeStoredToolState(websiteGlob).catch(() => {
+        setErrorMessage("Unable to save script state to extension storage.");
+      });
       return;
     }
 
-    saveStoredToolState(state);
+    void saveStoredToolState(state).catch(() => {
+      setErrorMessage("Unable to save script state to extension storage.");
+    });
   };
 
-  const flushPendingAutosave = () => {
+  const autoSave = () => {
     if (saveTimer) {
       window.clearTimeout(saveTimer);
       saveTimer = null;
@@ -242,10 +166,6 @@
     const content = pendingAutosaveContent;
     pendingAutosaveContent = null;
     persistToolState(content);
-  };
-
-  const persistCurrentTabStateNow = () => {
-    flushPendingAutosave();
   };
 
   let lastSandboxError = $state<string | null>(null);
@@ -390,11 +310,11 @@
     }
 
     if (persist) {
-      queueStorageSave(content);
+      saveToStorage(content);
     }
   };
 
-  const queueStorageSave = (content: string) => {
+  const saveToStorage = (content: string) => {
     pendingAutosaveContent = content;
 
     if (saveTimer) {
@@ -403,12 +323,12 @@
 
     saveTimer = window.setTimeout(() => {
       saveTimer = null;
-      flushPendingAutosave();
+      autoSave();
     }, 300);
   };
 
   const insertDefinitionLines = (linesToInsert: string[]) => {
-    const content = ensureDefineBlock(editorValue);
+    const content = ensureDefineBlock(editorValue, scriptFormatConfig);
     const lines = content.split("\n");
     const endIndex = lines.findIndex((line) => line.trim() === defineBlockEnd);
 
@@ -427,24 +347,26 @@
       activeWebsiteGlob = null;
       isLoadingStoredState = true;
       activeToolState.set("none");
-      const baseContent = buildDefaultScript("");
-      const displayContent = isProtectedPage ? buildProtectedDisplay(baseContent) : baseContent;
+      const baseContent = buildDefaultScript("", scriptFormatConfig);
+      const displayContent = isProtectedPage ? buildProtectedDisplay(baseContent, scriptFormatConfig) : baseContent;
       updateEditorContent(displayContent, { persist: false, sync: !isProtectedPage });
       isLoadingStoredState = false;
-      return;
+      return Promise.resolve();
     }
 
-    const matched = findStoredToolStateForUrl(normalizedUrl);
-    const fallbackWebsiteGlob = buildWebsiteGlobForUrl(normalizedUrl);
-    const state = matched?.state ?? buildDefaultToolState(fallbackWebsiteGlob);
-    activeWebsiteGlob = matched?.websiteGlob ?? fallbackWebsiteGlob;
+    return resolveStoredToolStateForUrl(normalizedUrl, scriptFormatConfig).then((resolvedState) => {
+      activeWebsiteGlob = resolvedState.websiteGlob;
 
-    isLoadingStoredState = true;
-    activeToolState.set(state.activeTool);
-    const baseContent = ensurePpImports(ensureDefineBlock(state.codeEditor.content));
-    const displayContent = isProtectedPage ? buildProtectedDisplay(baseContent) : baseContent;
-    updateEditorContent(displayContent, { persist: false, sync: !isProtectedPage });
-    isLoadingStoredState = false;
+      isLoadingStoredState = true;
+      activeToolState.set(resolvedState.state.activeTool);
+      const baseContent = ensureScriptImports(
+        ensureDefineBlock(resolvedState.state.codeEditor.content, scriptFormatConfig),
+        scriptFormatConfig,
+      );
+      const displayContent = isProtectedPage ? buildProtectedDisplay(baseContent, scriptFormatConfig) : baseContent;
+      updateEditorContent(displayContent, { persist: false, sync: !isProtectedPage });
+      isLoadingStoredState = false;
+    });
   };
 
   const applyActiveTab = (tab: { id?: number; url?: string } | null) => {
@@ -454,7 +376,7 @@
       activeTabId !== null && (activeTabId !== nextTabId || (activeTabUrl ?? null) !== (nextTabUrl ?? null));
 
     if (shouldPersistCurrent) {
-      persistCurrentTabStateNow();
+      autoSave();
     }
 
     activeTabId = nextTabId;
@@ -469,7 +391,7 @@
       activeWebsiteGlob = null;
       isLoadingStoredState = true;
       activeToolState.set("none");
-      const protectedContent = buildProtectedDisplay(buildDefaultScript(""));
+      const protectedContent = buildProtectedDisplay(buildDefaultScript("", scriptFormatConfig), scriptFormatConfig);
       updateEditorContent(protectedContent, { persist: false, sync: false });
       isLoadingStoredState = false;
       return;
@@ -477,11 +399,13 @@
 
     if (!activeTabUrl) {
       setErrorMessage("No active tab found.");
-      loadStateForUrl(null);
+      void loadStateForUrl(null);
       return;
     }
 
-    loadStateForUrl(activeTabUrl);
+    void loadStateForUrl(activeTabUrl).catch(() => {
+      setErrorMessage("Unable to load saved script state.");
+    });
   };
 
   const refreshActiveTab = () => {
@@ -492,7 +416,7 @@
       })
       .catch(() => {
         setErrorMessage("Unable to read the active tab.");
-        loadStateForUrl(null);
+        void loadStateForUrl(null);
       });
   };
 
@@ -518,14 +442,14 @@
   };
 
   const handlePageHide = () => {
-    persistCurrentTabStateNow();
+    autoSave();
   };
 
   const handleVisibilityChange = () => {
     if (document.visibilityState !== "hidden") {
       return;
     }
-    persistCurrentTabStateNow();
+    autoSave();
   };
 
   const setupEditor = () => {
@@ -543,7 +467,7 @@
             updateScriptMetadata(editorValue);
             if (!isProgrammaticUpdate) {
               syncDefinitions(editorValue);
-              queueStorageSave(editorValue);
+              saveToStorage(editorValue);
             }
           }
         }),
@@ -557,14 +481,14 @@
   };
 
   onMount(() => {
-    editorValue = buildDefaultScript("");
+    editorValue = buildDefaultScript("", scriptFormatConfig);
     setupEditor();
     setEditorApi({ insertDefinitions: insertDefinitionLines });
     unsubscribeActiveToolState = activeToolState.subscribe(() => {
       if (isLoadingStoredState) {
         return;
       }
-      queueStorageSave(editorValue);
+      saveToStorage(editorValue);
     });
     refreshActiveTab();
     browser.tabs.onActivated.addListener(handleTabActivated);
@@ -574,7 +498,7 @@
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      persistCurrentTabStateNow();
+      autoSave();
       setEditorApi(null);
       browser.tabs.onActivated.removeListener(handleTabActivated);
       browser.tabs.onUpdated.removeListener(handleTabUpdated);
@@ -585,7 +509,7 @@
   });
 
   onDestroy(() => {
-    persistCurrentTabStateNow();
+    autoSave();
 
     if (saveTimer) {
       window.clearTimeout(saveTimer);
