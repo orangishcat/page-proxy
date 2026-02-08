@@ -1,43 +1,35 @@
 <script lang="ts">
-  import {onDestroy, onMount} from 'svelte';
-  import {browser} from 'wxt/browser';
-  import {CircleQuestionMark, MousePointer, Plus, Share} from 'lucide-svelte';
+  import { onDestroy, onMount } from "svelte";
+  import { browser } from "wxt/browser";
+  import { CircleQuestionMark, MousePointer, Plus, Share } from "lucide-svelte";
 
-  import {get} from 'svelte/store';
-  import SelectTool from './tools/SelectTool.svelte';
-  import NewElementTool from './tools/NewElementTool.svelte';
-  import ShareTool from './tools/ShareTool.svelte';
-  import HelpTool from './tools/HelpTool.svelte';
-  import SelectorsTool from './tools/SelectorsTool.svelte';
-  import CodeEditorTool from './tools/CodeEditorTool.svelte';
-  import Button from '@/lib/components/Button.svelte';
-  import {attachSelectionListener, sendSelectionToggle} from './tools/select-tool/actions';
-  import {errorMessage, setErrorMessage} from './tools/tool-errors';
-  import {
-    isSidepanelShortcutMessage,
-    type SidepanelShortcutId
-  } from '@/lib/sidepanel-shortcuts';
-  import type {SelectorSavePayload} from '@/lib/selection';
-  import {
-    elementEntries,
-    insertDefinitions,
-    sanitizeVariableName,
-    selectorEntries
-  } from './tools/code-editor/state';
+  import { get } from "svelte/store";
+  import SelectTool from "./tools/SelectTool.svelte";
+  import NewElementTool from "./tools/NewElementTool.svelte";
+  import ShareTool from "./tools/ShareTool.svelte";
+  import HelpTool from "./tools/HelpTool.svelte";
+  import SelectorsTool from "./tools/SelectorsTool.svelte";
+  import CodeEditorTool from "./tools/CodeEditorTool.svelte";
+  import Button from "@/lib/components/Button.svelte";
+  import { attachSelectionListener, sendSelectionToggle } from "./tools/select-tool/actions";
+  import { errorMessage, setErrorMessage } from "./tools/tool-errors";
+  import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
+  import type { SelectorSavePayload } from "@/lib/selection";
+  import { elementEntries, insertDefinitions, sanitizeVariableName, selectorEntries } from "./tools/code-editor/state";
 
-  type ToolId = 'select' | 'new-element' | 'selectors' | 'help' | 'share' | 'none';
+  type ToolId = "select" | "new-element" | "selectors" | "help" | "share" | "none";
   type ToolbarControlId = SidepanelShortcutId;
 
   const toolLabels: Record<ToolId, string> = {
-    select: 'Select',
-    'new-element': 'New element',
-    selectors: 'Selectors',
-    share: 'Share',
-    help: 'Help',
-    none: ''
+    select: "Select",
+    "new-element": "New element",
+    selectors: "Selectors",
+    share: "Share",
+    help: "Help",
+    none: "",
   };
 
-  let activeTool = $state<ToolId>('none');
+  let activeTool = $state<ToolId>("none");
   let hoveredTool = $state<ToolbarControlId | null>(null);
   let lastHoveredTool = $state<ToolbarControlId | null>(null);
   let isToolbarHovered = $state(false);
@@ -49,40 +41,36 @@
 
   const activeToolLabel = $derived(toolLabels[activeTool]);
   const shortcutLabels: Record<ToolbarControlId, string> = {
-    select: '⇧1',
-    'new-element': '⇧2',
-    selectors: '⇧3',
-    help: '⇧4',
-    share: '⇧5'
+    select: "⇧1",
+    "new-element": "⇧2",
+    selectors: "⇧3",
+    help: "⇧4",
+    share: "⇧5",
   };
   const hoverCandidate = $derived(hoveredTool ?? lastHoveredTool);
-  const hoveredShortcutLabel = $derived(hoverCandidate ? shortcutLabels[hoverCandidate] : '');
-  const hoveredToolLabel = $derived(hoverCandidate ? toolLabels[hoverCandidate] : '');
-  const hoveredToolText = $derived(
-    hoverCandidate
-      ? `${hoveredToolLabel} (${hoveredShortcutLabel})`
-      : ''
-  );
+  const hoveredShortcutLabel = $derived(hoverCandidate ? shortcutLabels[hoverCandidate] : "");
+  const hoveredToolLabel = $derived(hoverCandidate ? toolLabels[hoverCandidate] : "");
+  const hoveredToolText = $derived(hoverCandidate ? `${hoveredToolLabel} (${hoveredShortcutLabel})` : "");
   const showHoveredToolLabel = $derived(Boolean(isToolbarHovered && hoverCandidate));
   const toolLabelText = $derived(showHoveredToolLabel ? hoveredToolText : activeToolLabel);
-  const isSelectToolActive = $derived(activeTool === 'select');
+  const isSelectToolActive = $derived(activeTool === "select");
 
   const setActiveTool = (tool: ToolId) => {
-    const wasSelectTool = activeTool === 'select';
+    const wasSelectTool = activeTool === "select";
     activeTool = tool;
-    const isSelectTool = tool === 'select';
+    const isSelectTool = tool === "select";
     if (wasSelectTool !== isSelectTool) {
       sendSelectionToggle(isSelectTool);
     }
   };
 
   const activateSelectTool = () => {
-    if (activeTool === 'select') {
+    if (activeTool === "select") {
       sendSelectionToggle(true);
       return;
     }
 
-    setActiveTool('select');
+    setActiveTool("select");
   };
 
   const isEditableTarget = (target: EventTarget | null) => {
@@ -111,57 +99,55 @@
     }
 
     switch (event.code) {
-      case 'Digit1':
-        return 'select';
-      case 'Digit2':
-        return 'new-element';
-      case 'Digit3':
-        return 'selectors';
-      case 'Digit4':
-        return 'help';
-      case 'Digit5':
-        return 'share';
+      case "Digit1":
+        return "select";
+      case "Digit2":
+        return "new-element";
+      case "Digit3":
+        return "selectors";
+      case "Digit4":
+        return "help";
+      case "Digit5":
+        return "share";
       default:
         return null;
     }
   };
 
   const handleShortcut = (tool: ToolbarControlId) => {
-    if (tool === 'select') {
+    if (tool === "select") {
       activateSelectTool();
       return;
     }
 
-    if (tool === 'share') {
-      setActiveTool('share');
+    if (tool === "share") {
+      setActiveTool("share");
       return;
     }
 
-    setActiveTool(tool === 'help' ? 'help' : tool);
+    setActiveTool(tool === "help" ? "help" : tool);
   };
 
   const extractSelectorVariableName = (code: string) => {
-    const match = code.match(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*pp\.selector\s*\(/);
+    const match = code.match(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*pa\.selector\s*\(/);
     return match?.[1] ?? null;
   };
 
   const saveSelectorDefinition = (payload: SelectorSavePayload) => {
     const rawCode = payload.code.trim();
-    if (!rawCode.includes('pp.selector')) {
-      setErrorMessage('Selector definition must include pp.selector.');
+    if (!rawCode.includes("pq.selector")) {
+      setErrorMessage("Selector definition must include pq.selector.");
       return;
     }
 
     const existingEntries = get(selectorEntries);
     const existingVariableNames = new Set(
-      [...get(elementEntries), ...existingEntries].map((entry) =>
-        sanitizeVariableName(entry.name)
-      )
+      [...get(elementEntries), ...existingEntries].map((entry) => sanitizeVariableName(entry.name)),
     );
 
     const variableName = extractSelectorVariableName(rawCode);
     if (!variableName) {
-      setErrorMessage('Selector definition must include a const assignment.');
+      setErrorMessage("Selector definition must include a const assignment.");
       return;
     }
 
@@ -171,21 +157,23 @@
     }
 
     if (!insertDefinitions([rawCode])) {
-      setErrorMessage('Unable to save selector to the editor.');
+      setErrorMessage("Unable to save selector to the editor.");
     }
   };
 
-  const isSelectorSaveMessage = (message: unknown): message is {type: 'selector:save'; payload: SelectorSavePayload} => {
-    if (!message || typeof message !== 'object') {
+  const isSelectorSaveMessage = (
+    message: unknown,
+  ): message is { type: "selector:save"; payload: SelectorSavePayload } => {
+    if (!message || typeof message !== "object") {
       return false;
     }
 
-    const payload = (message as {payload?: unknown}).payload;
-    if (!payload || typeof payload !== 'object') {
+    const payload = (message as { payload?: unknown }).payload;
+    if (!payload || typeof payload !== "object") {
       return false;
     }
 
-    return (message as {type?: string}).type === 'selector:save';
+    return (message as { type?: string }).type === "selector:save";
   };
 
   onMount(() => {
@@ -217,12 +205,12 @@
       handleShortcut(tool);
     };
 
-    window.addEventListener('keydown', onKeyDown, {capture: true});
+    window.addEventListener("keydown", onKeyDown, { capture: true });
     browser.runtime.onMessage.addListener(handleRuntimeMessage);
 
     return () => {
       cleanup();
-      window.removeEventListener('keydown', onKeyDown, {capture: true});
+      window.removeEventListener("keydown", onKeyDown, { capture: true });
       browser.runtime.onMessage.removeListener(handleRuntimeMessage);
     };
   });
@@ -232,9 +220,10 @@
     unsubscribeErrorMessage();
   });
 
-  const toolButtonClasses = (selected: boolean) => 'w-8 h-8 !p-0 rounded-lg text-white dark:text-white ' +
-    (selected ? 'bg-accent-500 hover:!opacity-100' : 'bg-[#55503E] hover:opacity-55 active:opacity-40');
-  const iconSize = 'w-5 h-5';
+  const toolButtonClasses = (selected: boolean) =>
+    "w-8 h-8 !p-0 rounded-lg text-white dark:text-white " +
+    (selected ? "bg-accent-500 hover:!opacity-100" : "bg-[#55503E] hover:opacity-55 active:opacity-40");
+  const iconSize = "w-5 h-5";
 </script>
 
 <main class="flex h-full w-full overflow-hidden bg-[#222121] text-white">
@@ -261,105 +250,107 @@
           <!-- Left side -->
           <div class="h-full min-w-0 flex flex-1 flex-row gap-3 place-items-center">
             <Button
-              class={toolButtonClasses(activeTool === 'select')}
+              class={toolButtonClasses(activeTool === "select")}
               variant="outline"
               aria-label="Toggle selection mode"
               aria-pressed={isSelectToolActive}
               onmouseenter={() => {
-                hoveredTool = 'select';
-                lastHoveredTool = 'select';
+                hoveredTool = "select";
+                lastHoveredTool = "select";
               }}
               onmouseleave={() => {
                 hoveredTool = null;
               }}
               onclick={activateSelectTool}
             >
-              <MousePointer class={iconSize}/>
+              <MousePointer class={iconSize} />
             </Button>
             <Button
-              class={toolButtonClasses(activeTool === 'new-element')}
+              class={toolButtonClasses(activeTool === "new-element")}
               variant="outline"
               aria-label="New element tool"
               onmouseenter={() => {
-                hoveredTool = 'new-element';
-                lastHoveredTool = 'new-element';
+                hoveredTool = "new-element";
+                lastHoveredTool = "new-element";
               }}
               onmouseleave={() => {
                 hoveredTool = null;
               }}
-              onclick={() => setActiveTool('new-element')}
+              onclick={() => setActiveTool("new-element")}
             >
-              <Plus class={iconSize}/>
+              <Plus class={iconSize} />
             </Button>
             <Button
               class="{toolButtonClasses(activeTool === 'selectors')} text-sm"
               variant="outline"
               aria-label="Selectors tool"
               onmouseenter={() => {
-                hoveredTool = 'selectors';
-                lastHoveredTool = 'selectors';
+                hoveredTool = "selectors";
+                lastHoveredTool = "selectors";
               }}
               onmouseleave={() => {
                 hoveredTool = null;
               }}
-              onclick={() => setActiveTool('selectors')}
+              onclick={() => setActiveTool("selectors")}
             >
               $0
             </Button>
-            <span class="min-w-0 max-w-full flex-1 truncate transition duration-300 {showHoveredToolLabel ? 'text-gray-600 dark:text-gray-400' : ''}">
+            <span
+              class="min-w-0 max-w-full flex-1 truncate transition duration-300 {showHoveredToolLabel
+                ? 'text-gray-600 dark:text-gray-400'
+                : ''}"
+            >
               {toolLabelText}
             </span>
           </div>
           <!-- Right side -->
           <div class="h-full flex flex-row gap-4 place-items-center">
             <Button
-              class={toolButtonClasses(activeTool === 'help')}
+              class={toolButtonClasses(activeTool === "help")}
               variant="outline"
               aria-label="Help"
               onmouseenter={() => {
-                hoveredTool = 'help';
-                lastHoveredTool = 'help';
+                hoveredTool = "help";
+                lastHoveredTool = "help";
               }}
               onmouseleave={() => {
                 hoveredTool = null;
               }}
-              onclick={() => setActiveTool('help')}
+              onclick={() => setActiveTool("help")}
             >
-              <CircleQuestionMark class={iconSize}/>
+              <CircleQuestionMark class={iconSize} />
             </Button>
             <Button
               class="{toolButtonClasses(activeTool === 'share')} bg-secondary-500"
               variant="outline"
               aria-label="Share tool"
               onmouseenter={() => {
-                hoveredTool = 'share';
-                lastHoveredTool = 'share';
+                hoveredTool = "share";
+                lastHoveredTool = "share";
               }}
               onmouseleave={() => {
                 hoveredTool = null;
               }}
-              onclick={() => setActiveTool('share')}
+              onclick={() => setActiveTool("share")}
             >
-              <Share class={iconSize}/>
+              <Share class={iconSize} />
             </Button>
           </div>
         </div>
 
-        {#if activeTool === 'select'}
+        {#if activeTool === "select"}
           <SelectTool />
-        {:else if activeTool === 'new-element'}
+        {:else if activeTool === "new-element"}
           <NewElementTool />
-        {:else if activeTool === 'selectors'}
+        {:else if activeTool === "selectors"}
           <SelectorsTool />
-        {:else if activeTool === 'help'}
+        {:else if activeTool === "help"}
           <HelpTool />
-        {:else if activeTool === 'share'}
+        {:else if activeTool === "share"}
           <ShareTool />
-        {:else if activeTool === 'none'}
+        {:else if activeTool === "none"}
           <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4 justify-center place-items-center">
-            <p class="text-caption text-gray-500 dark:text-gray-400">
-              Select a tool from the top bar
-            </p>
+            <p class="text-caption text-gray-500 dark:text-gray-400">Select a tool from the top bar</p>
           </div>
         {:else}
           <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4">

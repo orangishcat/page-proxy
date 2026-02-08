@@ -29,6 +29,11 @@
 
   const defineBlockStart = "// Define elements/selectors";
   const defineBlockEnd = "// End define elements/selectors";
+  const ppImportLines = [
+    'import * as pq from "@/lib/pp/pp-query";',
+    'import * as ps from "@/lib/pp/pp-style";',
+    'import * as pa from "@/lib/pp/pp-api";',
+  ];
   const scriptStorageKey = "page-proxy:sidepanel:scripts";
   const legacyEditorStorageKey = "page-proxy:sidepanel:script";
   const protectedComment =
@@ -60,6 +65,8 @@
   const buildDefaultScript = (website: string) => {
     const normalizedWebsite = website.trim();
     return [
+      ...ppImportLines,
+      "",
       "// ==Page Proxy==",
       "// @title Page Proxy",
       normalizedWebsite ? `// @website ${normalizedWebsite}` : "// @website",
@@ -72,7 +79,21 @@
     ].join("\n");
   };
 
-  const baseSuggestions = ["pp.element", "pp.selector", ...pageModificationFunctions];
+  const ensurePpImports = (content: string) => {
+    const withoutLegacyAlias = content
+      .split("\n")
+      .filter((line) => line.trim() !== "const pp = pa.pp;")
+      .join("\n");
+
+    const hasAllImports = ppImportLines.every((line) => withoutLegacyAlias.includes(line));
+    if (hasAllImports) {
+      return withoutLegacyAlias;
+    }
+
+    return [...ppImportLines, "", withoutLegacyAlias.trimStart()].join("\n");
+  };
+
+  const baseSuggestions = ["pa.element", "pq.selector", ...pageModificationFunctions];
 
   const updateScriptMetadata = (content: string) => {
     const metadata = parseScriptMetadata(content);
@@ -94,7 +115,7 @@
   const buildSuggestions = () =>
     Array.from(new Set(baseSuggestions)).map((label) => ({
       label,
-      type: label.startsWith("pp") ? "function" : "property",
+      type: /^(pa|pq|ps)\./.test(label) ? "function" : "property",
     }));
 
   const suggestionSource: CompletionSource = (context) => {
@@ -187,17 +208,15 @@
       return;
     }
     storedScripts = storedScripts.map((entry, idx) =>
-      idx === index ? { ...entry, content: sanitized, updatedAt } : entry
+      idx === index ? { ...entry, content: sanitized, updatedAt } : entry,
     );
   };
 
   const persistScripts = (content: string) => {
     upsertStoredScript(content);
-    void browser.storage.local
-      .set({ [scriptStorageKey]: storedScripts })
-      .catch(() => {
-        setErrorMessage("Unable to save script to extension storage.");
-      });
+    void browser.storage.local.set({ [scriptStorageKey]: storedScripts }).catch(() => {
+      setErrorMessage("Unable to save script to extension storage.");
+    });
   };
 
   const loadScriptsFromStorage = () =>
@@ -213,15 +232,13 @@
         if (typeof legacy === "string" && legacy.trim().length > 0) {
           const migrated: StoredScript = {
             id: createScriptId(),
-            content: ensureDefineBlock(legacy),
+            content: ensurePpImports(ensureDefineBlock(legacy)),
             updatedAt: Date.now(),
           };
           storedScripts = [migrated];
-          void browser.storage.local
-            .set({ [scriptStorageKey]: storedScripts })
-            .catch(() => {
-              setErrorMessage("Unable to migrate stored script.");
-            });
+          void browser.storage.local.set({ [scriptStorageKey]: storedScripts }).catch(() => {
+            setErrorMessage("Unable to migrate stored script.");
+          });
         }
       })
       .catch(() => {
@@ -365,10 +382,7 @@
       });
   };
 
-  const updateEditorContent = (
-    content: string,
-    options: { persist?: boolean; sync?: boolean } = {}
-  ) => {
+  const updateEditorContent = (content: string, options: { persist?: boolean; sync?: boolean } = {}) => {
     const { persist = true, sync = true } = options;
     editorValue = content;
     updateScriptMetadata(content);
@@ -417,9 +431,7 @@
     const normalizedUrl = url?.trim() ?? "";
     const match = normalizedUrl ? findMatchingScript(normalizedUrl) : null;
     const websiteGlob = normalizedUrl ? buildWebsiteGlobForUrl(normalizedUrl) : "";
-    const baseContent = match
-      ? ensureDefineBlock(match.content)
-      : buildDefaultScript(websiteGlob);
+    const baseContent = match ? ensurePpImports(ensureDefineBlock(match.content)) : buildDefaultScript(websiteGlob);
     activeScriptId = match?.id ?? null;
     const displayContent = isProtectedPage ? buildProtectedDisplay(baseContent) : baseContent;
     updateEditorContent(displayContent, { persist: false, sync: !isProtectedPage });
@@ -465,11 +477,7 @@
       });
   };
 
-  const handleTabUpdated = (
-    tabId: number,
-    changeInfo: { url?: string },
-    tab: { id?: number; url?: string }
-  ) => {
+  const handleTabUpdated = (tabId: number, changeInfo: { url?: string }, tab: { id?: number; url?: string }) => {
     if (activeTabId !== tabId) {
       return;
     }

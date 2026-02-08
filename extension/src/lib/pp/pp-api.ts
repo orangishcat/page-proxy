@@ -1,5 +1,5 @@
-import * as pq from './pp-query';
-import * as ps from './pp-style';
+import * as pq from "./pp-query";
+import * as ps from "./pp-style";
 
 export const createApi = () => ({
   element: pq.element,
@@ -7,14 +7,16 @@ export const createApi = () => ({
   applyStyle: ps.applyStyle,
   propMatches: pq.propMatches,
   propContains: pq.propContains,
-  propExists: pq.propExists
+  propExists: pq.propExists,
 });
 
 export const pp = createApi();
 
 export const pageModificationFunctions = [
-  'pp.applyStyle',
-  'pp.propMatches',
-  'pp.propContains',
-  'pp.propExists'
+  "pa.element",
+  "pq.selector",
+  "ps.applyStyle",
+  "pq.propMatches",
+  "pq.propContains",
+  "pq.propExists",
 ];

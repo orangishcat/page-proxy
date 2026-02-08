@@ -13,7 +13,6 @@ type PpModuleBindings = {
   pq: typeof pq;
   ps: typeof ps;
   pa: typeof pa;
-  pp: typeof pa.pp;
 };
 
 type WindowWithPpModules = typeof window & {
@@ -26,22 +25,33 @@ const ensurePpModules = (): PpModuleBindings => {
     target.__pageProxyPpModules__ = {
       pq,
       ps,
-      pa,
-      pp: pa.pp
+      pa
     };
   }
 
   return target.__pageProxyPpModules__;
 };
 
-const buildExecutableCode = (code: string) =>
-  [
-    'globalThis.pq = globalThis.__pageProxyPpModules__.pq;',
-    'globalThis.ps = globalThis.__pageProxyPpModules__.ps;',
-    'globalThis.pa = globalThis.__pageProxyPpModules__.pa;',
-    'globalThis.pp = globalThis.__pageProxyPpModules__.pp;',
-    code
-  ].join('\n');
+const stripPpImportText = (code: string) =>
+  code
+    .split('\n')
+    .filter((line) => {
+      const trimmed = line.trim();
+      if (trimmed === 'import * as pq from "@/lib/pp/pp-query";') {
+        return false;
+      }
+      if (trimmed === 'import * as ps from "@/lib/pp/pp-style";') {
+        return false;
+      }
+      if (trimmed === 'import * as pa from "@/lib/pp/pp-api";') {
+        return false;
+      }
+      if (trimmed === 'const pp = pa.pp;') {
+        return false;
+      }
+      return true;
+    })
+    .join('\n');
 
 const getTargetOrigin = () => {
   if (window.location.origin === 'null') {
@@ -142,8 +152,11 @@ export default defineUnlistedScript(() => {
     window.addEventListener('error', onError);
     window.addEventListener('unhandledrejection', onRejection);
 
-    ensurePpModules();
-    const executableCode = buildExecutableCode(code);
+    const modules = ensurePpModules();
+    (globalThis as Record<string, unknown>).pq = modules.pq;
+    (globalThis as Record<string, unknown>).ps = modules.ps;
+    (globalThis as Record<string, unknown>).pa = modules.pa;
+    const executableCode = stripPpImportText(code);
     injectBlobScript(
       executableCode,
       () => {

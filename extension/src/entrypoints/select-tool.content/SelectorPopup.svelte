@@ -50,9 +50,9 @@
 
   const buildDefaultCode = () => {
     return [
-      "const Style_1 = pp.selector({",
+      "const Style_1 = pq.selector({",
       `  ${JSON.stringify("name")}: ${JSON.stringify("Style 1")},`,
-      `  ${JSON.stringify("matches")}: (e) => pp.propMatches(` +
+      `  ${JSON.stringify("matches")}: (e) => pq.propMatches(` +
         `e, ${JSON.stringify("selector")}, ${JSON.stringify(info.selector)})`,
       "});",
     ].join("\n");
@@ -78,12 +78,12 @@
   const previewCode = $derived.by(() => {
     const propertyKey = activePropertyKey ?? "selectedPropertyName";
     if (filterOperator === "keyExists") {
-      return `pp.${filterFunctionMap[filterOperator]}(e, ${JSON.stringify(propertyKey)})`;
+      return `pq.${filterFunctionMap[filterOperator]}(e, ${JSON.stringify(propertyKey)})`;
     }
 
     const propertyValue = activePropertyValue ?? "selectedPropertyValue";
     return (
-      `pp.${filterFunctionMap[filterOperator]}(` +
+      `pq.${filterFunctionMap[filterOperator]}(` +
       `e, ${JSON.stringify(propertyKey)}, ${JSON.stringify(propertyValue)})`
     );
   });
@@ -177,8 +177,8 @@
       errorMessage = "Add a selector definition to save.";
       return;
     }
-    if (!code.includes("pp.selector")) {
-      errorMessage = "Selector definition must include pp.selector.";
+    if (!code.includes("pq.selector")) {
+      errorMessage = "Selector definition must include pq.selector.";
       return;
     }
 
