@@ -5,6 +5,43 @@ import {
   isScriptRunRequest,
   type ScriptRunResponse
 } from '@/lib/script-runner';
+import * as pq from '@/lib/pp/pp-query';
+import * as ps from '@/lib/pp/pp-style';
+import * as pa from '@/lib/pp/pp-api';
+
+type PpModuleBindings = {
+  pq: typeof pq;
+  ps: typeof ps;
+  pa: typeof pa;
+  pp: typeof pa.pp;
+};
+
+type WindowWithPpModules = typeof window & {
+  __pageProxyPpModules__?: PpModuleBindings;
+};
+
+const ensurePpModules = (): PpModuleBindings => {
+  const target = window as WindowWithPpModules;
+  if (!target.__pageProxyPpModules__) {
+    target.__pageProxyPpModules__ = {
+      pq,
+      ps,
+      pa,
+      pp: pa.pp
+    };
+  }
+
+  return target.__pageProxyPpModules__;
+};
+
+const buildExecutableCode = (code: string) =>
+  [
+    'globalThis.pq = globalThis.__pageProxyPpModules__.pq;',
+    'globalThis.ps = globalThis.__pageProxyPpModules__.ps;',
+    'globalThis.pa = globalThis.__pageProxyPpModules__.pa;',
+    'globalThis.pp = globalThis.__pageProxyPpModules__.pp;',
+    code
+  ].join('\n');
 
 const getTargetOrigin = () => {
   if (window.location.origin === 'null') {
@@ -105,8 +142,10 @@ export default defineUnlistedScript(() => {
     window.addEventListener('error', onError);
     window.addEventListener('unhandledrejection', onRejection);
 
+    ensurePpModules();
+    const executableCode = buildExecutableCode(code);
     injectBlobScript(
-      code,
+      executableCode,
       () => {
         respondOnce(
           requestId,
