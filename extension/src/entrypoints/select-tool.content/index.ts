@@ -4,7 +4,7 @@ import { createShadowRootUi } from "wxt/utils/content-script-ui/shadow-root";
 import { mount, unmount } from "svelte";
 import log from "loglevel";
 
-import type { ElementInfo, SelectorSavePayload, SelectToolMessage } from "@/lib/selection";
+import type { ElementInfo, SelectorSavePayload, SelectorSaveResult, SelectToolMessage } from "@/lib/selection";
 import type { SidepanelShortcutId, SidepanelShortcutMessage } from "@/lib/sidepanel-shortcuts";
 import SelectorPopupContainer from "./SelectorPopupContainer.svelte";
 import "@/styles/app.css";
@@ -315,8 +315,10 @@ export default defineContentScript({
 
     const postMessage = (message: SelectToolMessage) => sendRuntimeMessage(message);
 
-    const handleSave = (payload: SelectorSavePayload) => {
-      if (!popupTarget?.isConnected) return;
+    const handleSave = async (payload: SelectorSavePayload): Promise<SelectorSaveResult> => {
+      if (!popupTarget?.isConnected) {
+        return { ok: false, error: "Selected element is no longer available." };
+      }
       const info = getElementInfo(popupTarget);
 
       logger.debug("selector popup save requested", {
@@ -325,10 +327,30 @@ export default defineContentScript({
         selector: info.selector,
       });
 
-      void browser.runtime
+      const response = await browser.runtime
         .sendMessage({ type: "selector:save", payload } satisfies SelectToolMessage)
-        .then(() => clearSelectorPopup())
-        .catch(() => logger.error("Failed to save selector"));
+        .catch((error: unknown) => {
+          logger.error("Failed to save selector", { error });
+          return null;
+        });
+
+      if (response === null) {
+        return {
+          ok: false,
+          error: "Unable to save selector to the editor.",
+        };
+      }
+
+      const result = response as SelectorSaveResult | undefined;
+      if (result?.ok) {
+        clearSelectorPopup();
+        return result;
+      }
+
+      return {
+        ok: false,
+        error: result?.error ?? "Unable to save selector to the editor.",
+      };
     };
 
     const noSelectClass = "pp-no-select-tool";

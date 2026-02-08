@@ -12,6 +12,7 @@
 
   import { buildCodeEditorExtensions } from "@/lib/code-editor";
   import { pageModificationFunctions } from "@/lib/page-modification";
+  import { pqSelectorReference } from "@/lib/pp/function-references";
   import Button from "@/lib/components/Button.svelte";
   import { parseScriptMetadata } from "@/lib/utils/script-metadata";
   import { isRestrictedUrl } from "@/lib/utils/url-utils";
@@ -93,7 +94,7 @@
     return [...ppImportLines, "", withoutLegacyAlias.trimStart()].join("\n");
   };
 
-  const baseSuggestions = ["pa.element", "pq.selector", ...pageModificationFunctions];
+  const baseSuggestions = ["pa.element", pqSelectorReference, ...pageModificationFunctions];
 
   const updateScriptMetadata = (content: string) => {
     const metadata = parseScriptMetadata(content);

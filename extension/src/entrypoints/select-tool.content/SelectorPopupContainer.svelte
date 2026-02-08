@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ElementInfo, SelectorSavePayload } from "@/lib/selection";
+  import type { ElementInfo, SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
   import SelectorPopup from "./SelectorPopup.svelte";
   import { onMount, onDestroy } from "svelte";
 
@@ -15,7 +15,7 @@
     info: ElementInfo;
     propertyItems: PropertyItem[];
     targetElement: Element | null;
-    onSave: (payload: SelectorSavePayload) => void;
+    onSave: (payload: SelectorSavePayload) => Promise<SelectorSaveResult>;
     onCancel: () => void;
   };
 

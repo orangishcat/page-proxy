@@ -1,5 +1,6 @@
 <script lang="ts">
-  import type { ElementInfo, SelectorSavePayload } from "@/lib/selection";
+  import type { ElementInfo, SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
+  import { pqSelectorReference } from "@/lib/pp/function-references";
   import { onDestroy, onMount } from "svelte";
   import { EditorState } from "@codemirror/state";
   import { EditorView, keymap } from "@codemirror/view";
@@ -20,7 +21,7 @@
   type Props = {
     info: ElementInfo;
     propertyItems: PropertyItem[];
-    onSave: (payload: SelectorSavePayload) => void;
+    onSave: (payload: SelectorSavePayload) => Promise<SelectorSaveResult>;
     onCancel: () => void;
   };
 
@@ -50,7 +51,7 @@
 
   const buildDefaultCode = () => {
     return [
-      "const Style_1 = pq.selector({",
+      `const Style_1 = ${pqSelectorReference}({`,
       `  ${JSON.stringify("name")}: ${JSON.stringify("Style 1")},`,
       `  ${JSON.stringify("matches")}: (e) => pq.propMatches(` +
         `e, ${JSON.stringify("selector")}, ${JSON.stringify(info.selector)})`,
@@ -171,14 +172,14 @@
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const code = editorView?.state.doc.toString() ?? editorValue;
     if (!code.trim()) {
       errorMessage = "Add a selector definition to save.";
       return;
     }
-    if (!code.includes("pq.selector")) {
-      errorMessage = "Selector definition must include pq.selector.";
+    if (!code.includes(pqSelectorReference)) {
+      errorMessage = `Selector definition must include ${pqSelectorReference}.`;
       return;
     }
 
@@ -187,7 +188,13 @@
       code,
     };
 
-    onSave(payload);
+    const result = await onSave(payload);
+    if (!result.ok) {
+      errorMessage = result.error;
+      return;
+    }
+
+    errorMessage = "";
   };
 
   const handlePreviewDragStart = (event: DragEvent) => {

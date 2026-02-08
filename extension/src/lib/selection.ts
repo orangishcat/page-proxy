@@ -19,6 +19,15 @@ export type SelectorSavePayload = {
   code: string;
 };
 
+export type SelectorSaveResult =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
 export type SelectToolMessage =
   | {
       type: 'select:toggle';

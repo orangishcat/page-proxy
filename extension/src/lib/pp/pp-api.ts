@@ -1,5 +1,6 @@
 import * as pq from "./pp-query";
 import * as ps from "./pp-style";
+import { pqSelectorReference } from "./function-references";
 
 export const createApi = () => ({
   element: pq.element,
@@ -14,7 +15,7 @@ export const pp = createApi();
 
 export const pageModificationFunctions = [
   "pa.element",
-  "pq.selector",
+  pqSelectorReference,
   "ps.applyStyle",
   "pq.propMatches",
   "pq.propContains",

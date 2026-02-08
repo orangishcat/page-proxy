@@ -14,7 +14,8 @@
   import { attachSelectionListener, sendSelectionToggle } from "./tools/select-tool/actions";
   import { errorMessage, setErrorMessage } from "./tools/tool-errors";
   import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
-  import type { SelectorSavePayload } from "@/lib/selection";
+  import type { SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
+  import { pqSelectorReference } from "@/lib/pp/function-references";
   import { elementEntries, insertDefinitions, sanitizeVariableName, selectorEntries } from "./tools/code-editor/state";
 
   type ToolId = "select" | "new-element" | "selectors" | "help" | "share" | "none";
@@ -128,16 +129,22 @@
     setActiveTool(tool === "help" ? "help" : tool);
   };
 
+  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const selectorDefinitionPattern = new RegExp(
+    `\\bconst\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*${escapeRegExp(pqSelectorReference)}\\s*\\(`,
+  );
+
   const extractSelectorVariableName = (code: string) => {
-    const match = code.match(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*pa\.selector\s*\(/);
+    const match = code.match(selectorDefinitionPattern);
     return match?.[1] ?? null;
   };
 
-  const saveSelectorDefinition = (payload: SelectorSavePayload) => {
+  const saveSelectorDefinition = (payload: SelectorSavePayload): SelectorSaveResult => {
     const rawCode = payload.code.trim();
-    if (!rawCode.includes("pq.selector")) {
-      setErrorMessage("Selector definition must include pq.selector.");
-      return;
+    if (!rawCode.includes(pqSelectorReference)) {
+      const error = `Selector definition must include ${pqSelectorReference}.`;
+      setErrorMessage(error);
+      return { ok: false, error };
     }
 
     const existingEntries = get(selectorEntries);
@@ -147,18 +154,25 @@
 
     const variableName = extractSelectorVariableName(rawCode);
     if (!variableName) {
-      setErrorMessage("Selector definition must include a const assignment.");
-      return;
+      const error = "Selector definition must include a const assignment.";
+      setErrorMessage(error);
+      return { ok: false, error };
     }
 
     if (existingVariableNames.has(sanitizeVariableName(variableName))) {
-      setErrorMessage(`Variable name "${variableName}" already exists.`);
-      return;
+      const error = `Variable name "${variableName}" already exists.`;
+      setErrorMessage(error);
+      return { ok: false, error };
     }
 
     if (!insertDefinitions([rawCode])) {
-      setErrorMessage("Unable to save selector to the editor.");
+      const error = "Unable to save selector to the editor.";
+      setErrorMessage(error);
+      return { ok: false, error };
     }
+
+    setErrorMessage(null);
+    return { ok: true };
   };
 
   const isSelectorSaveMessage = (
@@ -181,8 +195,7 @@
 
     const handleRuntimeMessage = (message: unknown) => {
       if (isSelectorSaveMessage(message)) {
-        saveSelectorDefinition(message.payload);
-        return;
+        return saveSelectorDefinition(message.payload);
       }
 
       if (!isSidepanelShortcutMessage(message)) {
