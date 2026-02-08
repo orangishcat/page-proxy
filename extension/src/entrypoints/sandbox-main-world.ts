@@ -10,6 +10,9 @@ import {
   type SandboxResult,
   type SelectorEntry
 } from '@/lib/sandbox';
+import * as pq from '@/lib/pp/pp-query';
+import * as ps from '@/lib/pp/pp-style';
+import * as pa from '@/lib/pp/pp-api';
 
 type CompartmentConstructor = new (
   endowments?: Record<string, unknown>
@@ -120,115 +123,6 @@ const sanitizeStringMap = (
 
   return result;
 };
-
-const selectionClassesToIgnore = new Set(['pp-hover', 'pp-selected']);
-
-const filterSelectionClasses = (value: string | null) => {
-  if (!value) {
-    return null;
-  }
-
-  const tokens = value
-    .split(/\s+/)
-    .map((token) => token.trim())
-    .filter((token) => token.length > 0 && !selectionClassesToIgnore.has(token));
-
-  return tokens.length > 0 ? tokens.join(' ') : null;
-};
-
-const getBoundingBox = (element: Element) => {
-  const rect = element.getBoundingClientRect();
-  return {
-    x: rect.x + window.scrollX,
-    y: rect.y + window.scrollY,
-    width: rect.width,
-    height: rect.height
-  };
-};
-
-const formatBoundingBoxCompact = (box: BoundingBox) =>
-  `${box.x.toFixed(2)}, ${box.y.toFixed(2)}, ${box.width.toFixed(2)}, ${box.height.toFixed(2)}`;
-
-const getElementPropertyValue = (element: Element, key: string): string | null => {
-  switch (key) {
-    case 'tag':
-      return element.tagName.toLowerCase();
-    case 'id':
-      return element.id || null;
-    case 'class':
-      return filterSelectionClasses(element.getAttribute('class'));
-    case 'name':
-      return element.getAttribute('name') ?? element.getAttribute('aria-label');
-    case 'innerText':
-      if (element instanceof HTMLElement) {
-        const text = element.innerText.trim();
-        return text.length > 0 ? text : null;
-      }
-      return null;
-    case 'bbox':
-      return formatBoundingBoxCompact(getBoundingBox(element));
-    default:
-      return element.getAttribute(key);
-  }
-};
-
-const hasElementProperty = (element: Element, key: string) => {
-  switch (key) {
-    case 'tag':
-    case 'selector':
-    case 'bbox':
-      return true;
-    case 'id':
-      return element.id.length > 0;
-    case 'class':
-      return Boolean(filterSelectionClasses(element.getAttribute('class')));
-    case 'name':
-      return Boolean(element.getAttribute('name') ?? element.getAttribute('aria-label'));
-    case 'innerText':
-      return element instanceof HTMLElement && element.innerText.trim().length > 0;
-    default:
-      return element.hasAttribute(key);
-  }
-};
-
-const isValidSelector = (selector: string) => {
-  if (!selector) {
-    return false;
-  }
-
-  if (typeof CSS === 'undefined' || typeof CSS.supports !== 'function') {
-    return false;
-  }
-
-  return CSS.supports(`selector(${selector})`);
-};
-
-const matchesSelector = (element: Element, selector: string) => {
-  if (!isValidSelector(selector)) {
-    return false;
-  }
-
-  return element.matches(selector);
-};
-
-const propMatches = (element: Element, key: string, value: string) => {
-  if (key === 'selector') {
-    return matchesSelector(element, value);
-  }
-  const propertyValue = getElementPropertyValue(element, key);
-  return propertyValue === value;
-};
-
-const propContains = (element: Element, key: string, value: string) => {
-  if (key === 'selector') {
-    return matchesSelector(element, value);
-  }
-  const propertyValue = getElementPropertyValue(element, key);
-  return Boolean(propertyValue && propertyValue.includes(value));
-};
-
-const propExists = (element: Element, key: string) =>
-  hasElementProperty(element, key);
 
 const ensureLockdown = (errors: string[]) => {
   if (lockdownReady) {
@@ -410,9 +304,11 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
     return harden({
       definition: entry,
       query: () =>
-        Array.from(document.querySelectorAll('*')).filter((element) =>
-          Boolean(matches(element))
-        )
+        pq.selector({
+          name: entry.name,
+          bbox: entry.bbox,
+          matches
+        }).query()
     });
   };
 
@@ -436,35 +332,23 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
       return harden({});
     }
 
+    const styleValues = Object.fromEntries(entries);
+    const styledElements: Element[] = [];
     elementsValue.forEach((element) => {
-      if (!element || (typeof element !== 'object' && typeof element !== 'function')) {
-        return;
+      if (element instanceof Element) {
+        styledElements.push(element);
       }
-
-      if (!('style' in element)) {
-        return;
-      }
-
-      const styledElement = element as Element & {style?: CSSStyleDeclaration};
-      if (!styledElement.style) {
-        return;
-      }
-
-      entries.forEach(([key, value]) => {
-        styledElement.style?.setProperty(key, value);
-      });
     });
+    ps.applyStyle(styledElements, styleValues);
 
     return harden({});
   };
 
   const sandboxApi = harden({
+    ...pa.createApi(),
     element: registerElement,
     selector: registerSelector,
-    applyStyle,
-    propMatches,
-    propContains,
-    propExists
+    applyStyle
   });
 
   const compartment = new CompartmentCtor({pp: sandboxApi});
