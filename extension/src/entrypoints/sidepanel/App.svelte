@@ -20,7 +20,6 @@
   import type {SelectorSavePayload} from '@/lib/selection';
   import {
     elementEntries,
-    formatSelectorCode,
     insertDefinitions,
     sanitizeVariableName,
     selectorEntries
@@ -146,82 +145,32 @@
     return match?.[1] ?? null;
   };
 
-  const isLegacyProperties = (value: unknown): value is {
-    contains: Record<string, string>;
-    matches: Record<string, string>;
-    keyOnly: string[];
-  } =>
-    typeof value === 'object' &&
-    value !== null &&
-    (Object.prototype.hasOwnProperty.call(value, 'contains') ||
-      Object.prototype.hasOwnProperty.call(value, 'matches') ||
-      Object.prototype.hasOwnProperty.call(value, 'keyOnly'));
-
   const saveSelectorDefinition = (payload: SelectorSavePayload) => {
-    const rawCode = payload.code?.trim() ?? '';
-    if (rawCode) {
-      if (!rawCode.includes('pp.selector')) {
-        setErrorMessage('Selector definition must include pp.selector.');
-        return;
-      }
-
-      const existingEntries = get(selectorEntries);
-      const existingVariableNames = new Set(
-        [...get(elementEntries), ...existingEntries].map((entry) =>
-          sanitizeVariableName(entry.name)
-        )
-      );
-      const variableName = extractSelectorVariableName(rawCode);
-      if (variableName && existingVariableNames.has(sanitizeVariableName(variableName))) {
-        setErrorMessage(`Variable name "${variableName}" already exists.`);
-        return;
-      }
-
-      if (!insertDefinitions([rawCode])) {
-        setErrorMessage('Unable to save selector to the editor.');
-      }
-      return;
-    }
-
-    const selector = payload.selector?.trim();
-    if (!selector) {
-      setErrorMessage('Selector requires a valid selector string.');
-      return;
-    }
-
-    const properties = payload.properties;
-    const hasRules = isLegacyProperties(properties)
-      ? Object.keys(properties.contains).length > 0 ||
-        Object.keys(properties.matches).length > 0 ||
-        properties.keyOnly.length > 0
-      : Object.keys(properties).length > 0;
-    if (!hasRules) {
-      setErrorMessage('Add at least one rule to save a selector.');
+    const rawCode = payload.code.trim();
+    if (!rawCode.includes('pp.selector')) {
+      setErrorMessage('Selector definition must include pp.selector.');
       return;
     }
 
     const existingEntries = get(selectorEntries);
-    const name = payload.name?.trim() || `Selector ${existingEntries.length + 1}`;
-    const variableName = sanitizeVariableName(name);
     const existingVariableNames = new Set(
       [...get(elementEntries), ...existingEntries].map((entry) =>
         sanitizeVariableName(entry.name)
       )
     );
 
-    if (existingVariableNames.has(variableName)) {
+    const variableName = extractSelectorVariableName(rawCode);
+    if (!variableName) {
+      setErrorMessage('Selector definition must include a const assignment.');
+      return;
+    }
+
+    if (existingVariableNames.has(sanitizeVariableName(variableName))) {
       setErrorMessage(`Variable name "${variableName}" already exists.`);
       return;
     }
 
-    const entry = {
-      name,
-      selector,
-      bbox: payload.bbox,
-      properties
-    };
-
-    if (!insertDefinitions([formatSelectorCode(entry, variableName)])) {
+    if (!insertDefinitions([rawCode])) {
       setErrorMessage('Unable to save selector to the editor.');
     }
   };

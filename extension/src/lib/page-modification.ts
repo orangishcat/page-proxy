@@ -83,19 +83,9 @@ export const element = (definition: ElementDefinition) => ({
   resolve: () => resolveElement(definition)
 });
 
-export type SelectorPropertyFilters = {
-  contains: Record<string, string>;
-  matches: Record<string, string>;
-  keyOnly: string[];
-};
-
-export type SelectorPropertyValues = Record<string, string>;
-
 export type SelectorDefinition = {
   name: string;
-  selector: string;
-  properties: SelectorPropertyFilters | SelectorPropertyValues;
-  matches?: (element: Element) => boolean;
+  matches: (element: Element) => boolean;
   bbox?: ElementSize & {x: number; y: number};
 };
 
@@ -189,35 +179,7 @@ const matchesSelector = (element: Element, selector: string) => {
   return element.matches(selector);
 };
 
-const isLegacySelectorProperties = (
-  value: SelectorDefinition['properties']
-): value is SelectorPropertyFilters =>
-  typeof value === 'object' &&
-  value !== null &&
-  (Object.prototype.hasOwnProperty.call(value, 'contains') ||
-    Object.prototype.hasOwnProperty.call(value, 'matches') ||
-    Object.prototype.hasOwnProperty.call(value, 'keyOnly'));
-
-let activeSelectorProperties: SelectorPropertyValues | null = null;
-
-const withSelectorProperties = (
-  properties: SelectorPropertyValues,
-  fn: () => boolean
-) => {
-  activeSelectorProperties = properties;
-  const result = fn();
-  activeSelectorProperties = null;
-  return result;
-};
-
-const getActivePropertyValue = (key: string) =>
-  activeSelectorProperties ? activeSelectorProperties[key] : undefined;
-
-export const propMatches = (element: Element, key: string) => {
-  const value = getActivePropertyValue(key);
-  if (typeof value !== 'string') {
-    return false;
-  }
+export const propMatches = (element: Element, key: string, value: string) => {
   if (key === 'selector') {
     return matchesSelector(element, value);
   }
@@ -225,11 +187,7 @@ export const propMatches = (element: Element, key: string) => {
   return propertyValue === value;
 };
 
-export const propContains = (element: Element, key: string) => {
-  const value = getActivePropertyValue(key);
-  if (typeof value !== 'string') {
-    return false;
-  }
+export const propContains = (element: Element, key: string, value: string) => {
   if (key === 'selector') {
     return matchesSelector(element, value);
   }
@@ -244,60 +202,12 @@ export const selector = (definition: SelectorDefinition) => ({
   definition,
   apply: () => null,
   query: () => {
-    const elements = Array.from(document.querySelectorAll(definition.selector));
+    const elements = Array.from(document.querySelectorAll('*'));
     if (elements.length === 0) {
       return [];
     }
 
-    const properties = definition.properties;
-    if (isLegacySelectorProperties(properties)) {
-      const {contains, matches, keyOnly} = properties;
-      return elements.filter((element) => {
-        for (const key of keyOnly) {
-          if (!hasElementProperty(element, key)) {
-            return false;
-          }
-        }
-
-        for (const [key, value] of Object.entries(contains)) {
-          if (key === 'selector') {
-            if (!matchesSelector(element, value)) {
-              return false;
-            }
-            continue;
-          }
-
-          const propertyValue = getElementPropertyValue(element, key);
-          if (!propertyValue || !propertyValue.includes(value)) {
-            return false;
-          }
-        }
-
-        for (const [key, value] of Object.entries(matches)) {
-          if (key === 'selector') {
-            if (!matchesSelector(element, value)) {
-              return false;
-            }
-            continue;
-          }
-
-          const propertyValue = getElementPropertyValue(element, key);
-          if (propertyValue !== value) {
-            return false;
-          }
-        }
-
-        return true;
-      });
-    }
-
-    if (typeof definition.matches !== 'function') {
-      return elements;
-    }
-
-    return elements.filter((element) =>
-      withSelectorProperties(properties, () => Boolean(definition.matches?.(element)))
-    );
+    return elements.filter((element) => Boolean(definition.matches(element)));
   }
 });
 

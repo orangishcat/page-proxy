@@ -51,17 +51,6 @@ export const formatElementCode = (entry: ElementEntry, variableName: string) => 
   return `const ${variableName} = pp.element(${JSON.stringify(payload, null, 2)});`;
 };
 
-export const formatSelectorCode = (entry: SelectorEntry, variableName: string) => {
-  const payload = {
-    name: entry.name,
-    selector: entry.selector,
-    bbox: entry.bbox,
-    properties: entry.properties
-  };
-
-  return `const ${variableName} = pp.selector(${JSON.stringify(payload, null, 2)});`;
-};
-
 export const sanitizeVariableName = (name: string) =>
   name.replace(/[^A-Za-z0-9_]/g, '_');
 

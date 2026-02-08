@@ -14,25 +14,9 @@ export type ElementInfo = {
   };
 };
 
-export type SelectorRuleFilters = {
-  contains: Record<string, string>;
-  matches: Record<string, string>;
-  keyOnly: string[];
-};
-
-export type SelectorPropertyValues = Record<string, string>;
-
 export type SelectorSavePayload = {
   name: string | null;
-  selector: string;
-  bbox?: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
-  properties: SelectorRuleFilters | SelectorPropertyValues;
-  code?: string;
+  code: string;
 };
 
 export type SelectToolMessage =

@@ -40,8 +40,7 @@
   let errorMessage = $state("");
 
   const transparentDragImage = new Image();
-  transparentDragImage.src =
-    "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+  transparentDragImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
 
   const filterFunctionMap: Record<FilterOperator, string> = {
     contains: "propContains",
@@ -49,30 +48,15 @@
     keyExists: "propExists",
   };
 
-  const buildPropertiesBlock = () => {
-    if (propertyItems.length === 0) {
-      return "";
-    }
-    const lines = propertyItems
-      .map((item) => `    ${JSON.stringify(item.key)}: ${JSON.stringify(item.value)}`)
-      .join(",\n");
-    return `\n${lines}\n  `;
-  };
-
   const buildDefaultCode = () => {
-    const propertiesBlock = buildPropertiesBlock();
     return [
       "const Style_1 = pp.selector({",
       `  ${JSON.stringify("name")}: ${JSON.stringify("Style 1")},`,
-      `  ${JSON.stringify("selector")}: ${JSON.stringify(info.selector)},`,
-      `  ${JSON.stringify("properties")}: {${propertiesBlock}},`,
-      `  ${JSON.stringify("matches")}: (e) => pp.propMatches(e, ${JSON.stringify("selector")})`,
+      `  ${JSON.stringify("matches")}: (e) => pp.propMatches(` +
+        `e, ${JSON.stringify("selector")}, ${JSON.stringify(info.selector)})`,
       "});",
     ].join("\n");
   };
-
-  const buildPropertyValues = () =>
-    Object.fromEntries(propertyItems.map((item) => [item.key, item.value] as const));
 
   const activePropertyKey = $derived.by(() => {
     if (selectedPropertyKey && propertyItems.some((item) => item.key === selectedPropertyKey)) {
@@ -81,10 +65,27 @@
     return propertyItems[0]?.key ?? null;
   });
 
+  const activePropertyValue = $derived.by(() => {
+    const key = activePropertyKey;
+    if (!key) {
+      return null;
+    }
+
+    const item = propertyItems.find((property) => property.key === key);
+    return item?.value ?? null;
+  });
+
   const previewCode = $derived.by(() => {
     const propertyKey = activePropertyKey ?? "selectedPropertyName";
-    const functionName = filterFunctionMap[filterOperator];
-    return `pp.${functionName}(e, ${JSON.stringify(propertyKey)})`;
+    if (filterOperator === "keyExists") {
+      return `pp.${filterFunctionMap[filterOperator]}(e, ${JSON.stringify(propertyKey)})`;
+    }
+
+    const propertyValue = activePropertyValue ?? "selectedPropertyValue";
+    return (
+      `pp.${filterFunctionMap[filterOperator]}(` +
+      `e, ${JSON.stringify(propertyKey)}, ${JSON.stringify(propertyValue)})`
+    );
   });
 
   const setupEditor = () => {
@@ -183,9 +184,6 @@
 
     const payload: SelectorSavePayload = {
       name: null,
-      selector: info.selector,
-      bbox: info.boundingBox,
-      properties: buildPropertyValues(),
       code,
     };
 
@@ -285,9 +283,7 @@
       return;
     }
 
-    const code =
-      event.dataTransfer.getData("application/x-pp-filter") ||
-      event.dataTransfer.getData("text/plain");
+    const code = event.dataTransfer.getData("application/x-pp-filter") || event.dataTransfer.getData("text/plain");
 
     if (!code) {
       return;
@@ -364,10 +360,11 @@
 
 <div
   class="flex flex-col w-full h-full overflow-hidden rounded-lg border border-gray-800 bg-gray-950 text-gray-100 font-sans text-sm shadow-2xl darkreader"
+  style="color-scheme: dark;"
 >
   <!-- Header -->
   <div class="flex items-center h-12 px-4 gap-2.5 bg-gray-900 border-b border-gray-800">
-    <span class="text-base font-normal text-gray-500">Selector editor</span>
+    <span class="text-lead">Selector editor</span>
     <div class="flex-1"></div>
     <button
       type="button"
@@ -419,7 +416,7 @@
       </select>
 
       <div
-        class="w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden"
+        class="w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden cursor-grab"
         draggable="true"
         ondragstart={handlePreviewDragStart}
         role="button"
@@ -436,7 +433,8 @@
           <button
             type="button"
             onclick={() => (selectedPropertyKey = item.key)}
-            class={`flex justify-between items-center text-left rounded-md border border-transparent px-2 py-1 transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
+            class={`flex justify-between items-center text-left rounded-md border border-transparent px-2 py-1 cursor-pointer
+            transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
             aria-pressed={activePropertyKey === item.key}
           >
             <div class="font-mono text-xs text-accent-500 truncate max-w-24">

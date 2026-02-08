@@ -12,19 +12,10 @@ export type ElementEntry = {
   attributes: Record<string, string>;
 };
 
-export type SelectorPropertyFilters = {
-  contains: Record<string, string>;
-  matches: Record<string, string>;
-  keyOnly: string[];
-};
-
-export type SelectorPropertyValues = Record<string, string>;
-
 export type SelectorEntry = {
   name: string;
-  selector: string;
   bbox?: BoundingBox;
-  properties: SelectorPropertyFilters | SelectorPropertyValues;
+  ruleKeys: string[];
 };
 
 export type SandboxEvaluateRequest = {

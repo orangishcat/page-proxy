@@ -322,7 +322,7 @@ export default defineContentScript({
       logger.debug("selector popup save requested", {
         target: describeElementCompact(popupTarget),
         name: payload.name,
-        selector: payload.selector || info.selector,
+        selector: info.selector,
       });
 
       void browser.runtime
