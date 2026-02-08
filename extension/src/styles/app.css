@@ -173,6 +173,63 @@
         padding-right: 3%;
     }
 
+    .cm-editor .cm-comment {
+        color: #93a1a1;
+    }
+
+    .cm-editor .cm-punctuation {
+        color: #999999;
+    }
+
+    .cm-editor .cm-regexp,
+    .cm-editor .cm-variableName,
+    .cm-editor .cm-atom {
+        color: #ee9900;
+    }
+
+    .cm-editor .cm-function {
+        color: #dd4a68;
+    }
+
+    .cm-editor .cm-propertyName,
+    .cm-editor .cm-tagName,
+    .cm-editor .cm-bool,
+    .cm-editor .cm-number,
+    .cm-editor .cm-constant,
+    .cm-editor .cm-deleted {
+        color: #990055;
+    }
+
+    .cm-editor .cm-attributeName,
+    .cm-editor .cm-string,
+    .cm-editor .cm-character,
+    .cm-editor .cm-standard,
+    .cm-editor .cm-inserted {
+        color: #669900;
+    }
+
+    .cm-editor .cm-operator,
+    .cm-editor .cm-url {
+        color: #a67f59;
+    }
+
+    .cm-editor .cm-keyword,
+    .cm-editor .cm-attributeValue,
+    .cm-editor .cm-controlKeyword,
+    .cm-editor .cm-definitionKeyword,
+    .cm-editor .cm-moduleKeyword,
+    .cm-editor .cm-operatorKeyword {
+        color: #0077aa;
+    }
+
+    .cm-editor .cm-strong {
+        font-weight: 700;
+    }
+
+    .cm-editor .cm-emphasis {
+        font-style: italic;
+    }
+
     .text-display {
         @apply text-[3.25rem] font-bold tracking-tight;
     }

@@ -1,58 +1,59 @@
 {
-  "name": "page-proxy-workspace",
-  "private": true,
-  "workspaces": [
-    "web",
-    "extension"
-  ],
-  "scripts": {
-    "postinstall": "cd extension && $HOME/.bun/bin/bun run wxt:prepare"
-  },
-  "engines": {
-    "node": ">=22"
-  },
-  "dependencies": {
-    "@codemirror/autocomplete": "^6.20.0",
-    "@codemirror/commands": "^6.10.0",
-    "@codemirror/highlight": "^0.19.8",
-    "@codemirror/lang-javascript": "^6.2.4",
-    "@codemirror/language": "^6.12.1",
-    "@codemirror/lint": "^6.9.2",
-    "@codemirror/state": "^6.5.3",
-    "@codemirror/view": "^6.39.8",
-    "@endo/lockdown": "^1.0.18",
-    "@lezer/highlight": "^1.2.3",
-    "appwrite": "^13.0.0",
-    "axios": "^1.12.2",
-    "bits-ui": "^2.14.4",
-    "eslint-linter-browserify": "^9.39.2",
-    "lucide-svelte": "^0.562.0",
-    "penpal": "^7.0.0"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.2",
-    "@mizchi/lsmcp": "^0.10.0",
-    "@playwright/test": "^1.57.0",
-    "@sveltejs/adapter-node": "^5.4.0",
-    "@sveltejs/kit": "^2.42.0",
-    "@sveltejs/vite-plugin-svelte": "^6",
-    "@tailwindcss/postcss": "4.1.18",
-    "@types/chrome": "^0.1.32",
-    "@typescript-eslint/eslint-plugin": "^8.52.0",
-    "@typescript-eslint/parser": "^8.52.0",
-    "@typescript/native-preview": "^7.0.0-dev.20251226.1",
-    "@wxt-dev/module-svelte": "^2.0.3",
-    "eslint": "^9.39.2",
-    "eslint-plugin-svelte": "^3.14.0",
-    "globals": "^17.0.0",
-    "postcss": "^8.5.6",
-    "svelte": "^5.38.10",
-    "svelte-check": "^4.2.6",
-    "svelte-eslint-parser": "^1.4.1",
-    "tailwindcss": "4.1.18",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.52.0",
-    "vite": "^6",
-    "wxt": "^0.20.13"
-  }
+    "name": "page-proxy-workspace",
+    "private": true,
+    "workspaces": [
+        "web",
+        "extension"
+    ],
+    "scripts": {
+        "postinstall": "cd extension && $HOME/.bun/bin/bun run prepare"
+    },
+    "engines": {
+        "node": ">=22"
+    },
+    "dependencies": {
+        "@codemirror/autocomplete": "^6.20.0",
+        "@codemirror/commands": "^6.10.0",
+        "@codemirror/highlight": "^0.19.8",
+        "@codemirror/history": "^0.19.2",
+        "@codemirror/lang-javascript": "^6.2.4",
+        "@codemirror/language": "^6.12.1",
+        "@codemirror/lint": "^6.9.2",
+        "@codemirror/state": "^6.5.3",
+        "@codemirror/view": "^6.39.8",
+        "@endo/lockdown": "^1.0.18",
+        "@lezer/highlight": "^1.2.3",
+        "appwrite": "^13.0.0",
+        "axios": "^1.12.2",
+        "bits-ui": "^2.14.4",
+        "eslint-linter-browserify": "^9.39.2",
+        "lucide-svelte": "^0.562.0",
+        "penpal": "^7.0.0"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.39.2",
+        "@mizchi/lsmcp": "^0.10.0",
+        "@playwright/test": "^1.57.0",
+        "@sveltejs/adapter-node": "^5.4.0",
+        "@sveltejs/kit": "^2.42.0",
+        "@sveltejs/vite-plugin-svelte": "^6",
+        "@tailwindcss/postcss": "4.1.18",
+        "@types/chrome": "^0.1.32",
+        "@typescript-eslint/eslint-plugin": "^8.52.0",
+        "@typescript-eslint/parser": "^8.52.0",
+        "@typescript/native-preview": "^7.0.0-dev.20251226.1",
+        "@wxt-dev/module-svelte": "^2.0.3",
+        "eslint": "^9.39.2",
+        "eslint-plugin-svelte": "^3.14.0",
+        "globals": "^17.0.0",
+        "postcss": "^8.5.6",
+        "svelte": "^5.38.10",
+        "svelte-check": "^4.2.6",
+        "svelte-eslint-parser": "^1.4.1",
+        "tailwindcss": "4.1.18",
+        "typescript": "^5.9.3",
+        "typescript-eslint": "^8.52.0",
+        "vite": "^6",
+        "wxt": "^0.20.13"
+    }
 }

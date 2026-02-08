@@ -2,6 +2,7 @@ import {EditorState, type Extension} from '@codemirror/state';
 import {EditorView} from '@codemirror/view';
 import {javascript} from '@codemirror/lang-javascript';
 import {HighlightStyle, syntaxHighlighting} from '@codemirror/language';
+import {classHighlighter} from '@lezer/highlight';
 import {tags as t} from '@lezer/highlight';
 
 export const codeEditorTheme = EditorView.theme({
@@ -55,6 +56,7 @@ export const buildCodeEditorExtensions = (): Extension[] => [
   javascript({typescript: false}),
   codeEditorTheme,
   syntaxHighlighting(codeEditorHighlightStyle, {fallback: true}),
+  syntaxHighlighting(classHighlighter),
   EditorView.lineWrapping
 ];
 
