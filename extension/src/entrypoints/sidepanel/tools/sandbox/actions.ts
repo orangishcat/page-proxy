@@ -15,14 +15,14 @@ import {
 import {isRestrictedUrl} from '@/lib/utils/url-utils';
 
 const emptyResult: SandboxResult = {elements: [], selectors: [], errors: []};
-const emptyRunResult: ScriptRunResult = {errors: []};
+const emptyRunResult: ScriptRunResult = {errors: [], logs: []};
 
 const toResult = (message: string): SandboxResult => ({
   elements: [],
   selectors: [],
   errors: [message]
 });
-const toRunResult = (message: string): ScriptRunResult => ({errors: [message]});
+const toRunResult = (message: string): ScriptRunResult => ({errors: [message], logs: []});
 
 const buildRequestId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -100,7 +100,8 @@ export const requestScriptRun = async (code: string): Promise<ScriptRunResult> =
       return response;
     })
     .then((response) => ({
-      errors: response.error ? [response.error] : []
+      errors: response.error ? [response.error] : [],
+      logs: response.logs ?? []
     }))
     .catch(() => toRunResult('Unable to connect to the active tab.'));
 };

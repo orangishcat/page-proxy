@@ -11,11 +11,13 @@
   import { ExternalLink, Play } from "lucide-svelte";
 
   import { buildCodeEditorExtensions } from "@/lib/code-editor";
+  import type { ScriptRunLogEntry } from "@/lib/script-runner";
   import { pageModificationFunctions } from "@/lib/page-modification";
   import { pqSelectorReference } from "@/lib/pp/function-references";
   import Button from "@/lib/components/Button.svelte";
   import { parseScriptMetadata } from "@/lib/utils/script-metadata";
   import { isRestrictedUrl } from "@/lib/utils/url-utils";
+  import ConsoleNotifications, { type ConsoleNotification } from "./code-editor/ConsoleNotifications.svelte";
   import { requestSandboxEvaluation, requestScriptRun } from "./sandbox/actions";
   import { elementEntries, scriptMetadata, setEditorApi, selectorEntries } from "./code-editor/state";
   import type { ScriptMetadataState } from "./code-editor/state";
@@ -63,6 +65,7 @@
   let sandboxSyncTimer: number | null = null;
   let pendingSandboxContent: string | null = null;
   let isRunning = $state(false);
+  let runNotifications = $state<ConsoleNotification[]>([]);
   let activeTabId = $state<number | null>(null);
   let activeTabUrl = $state<string | null>(null);
   let activeWebsiteGlob = $state<string | null>(null);
@@ -173,6 +176,28 @@
   let lastSandboxError = $state<string | null>(null);
   let lastRunError = $state<string | null>(null);
   let sandboxRequestId = $state(0);
+
+  const buildNotificationId = () =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  const addRunNotifications = (logs: ScriptRunLogEntry[]) => {
+    if (logs.length === 0) {
+      return;
+    }
+
+    const additions = logs.map((log) => ({
+      id: buildNotificationId(),
+      log,
+    }));
+
+    runNotifications = [...runNotifications, ...additions].slice(-20);
+  };
+
+  const dismissRunNotification = (id: string) => {
+    runNotifications = runNotifications.filter((notification) => notification.id !== id);
+  };
 
   const getDefinitionBlock = (content: string) => {
     const lines = content.split("\n");
@@ -289,6 +314,7 @@
     void requestScriptRun(formattedScript)
       .then((result) => {
         updateRunError(result.errors);
+        addRunNotifications(result.logs);
       })
       .finally(() => {
         isRunning = false;
@@ -539,6 +565,7 @@
   class="relative h-[63.44%] w-full bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
   aria-label="Code editor panel"
 >
+  <ConsoleNotifications notifications={runNotifications} onDismiss={dismissRunNotification} />
   <div class="h-8 w-full bg-[#393a34] flex items-center justify-between px-4">
     <div>
       <span class="text-body">{scriptMetadataValue.title}</span>

@@ -7,6 +7,11 @@
   import { history, historyKeymap, indentWithTab, isolateHistory } from "@codemirror/commands";
 
   import { buildCodeEditorExtensions } from "@/lib/code-editor";
+  import {
+    buildPreviewCode,
+    isSpecialPropertyKey,
+    type FilterOperator,
+  } from "./preview-code";
 
   type PropertyItem = {
     key: string;
@@ -15,9 +20,6 @@
     rawValue: string | ElementInfo["boundingBox"];
     primary: boolean;
   };
-
-  type FilterOperator = "contains" | "matches" | "keyExists";
-  type SpecialPropertyKey = "tag" | "selector" | "bbox" | "innerText";
 
   type Props = {
     info: ElementInfo;
@@ -44,15 +46,6 @@
 
   const transparentDragImage = new Image();
   transparentDragImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
-
-  const filterFunctionMap: Record<FilterOperator, string> = {
-    contains: "propContains",
-    matches: "propMatches",
-    keyExists: "propExists",
-  };
-  const specialPropertyKeys = new Set<SpecialPropertyKey>(["tag", "selector", "bbox", "innerText"]);
-  const isSpecialPropertyKey = (key: string | null): key is SpecialPropertyKey =>
-    Boolean(key && specialPropertyKeys.has(key as SpecialPropertyKey));
 
   const buildDefaultCode = () => {
     return [
@@ -89,48 +82,8 @@
 
   const isActiveSpecialProperty = $derived.by(() => isSpecialPropertyKey(activePropertyKey));
 
-  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
-
-  const buildInnerTextRegexLiteral = (value: string) => {
-    const normalizedValue = value.replace(/\r\n?/g, "\n");
-    const hasNewline = normalizedValue.includes("\n");
-    const escapedValue = escapeRegExp(normalizedValue).replace(/\n/g, "\\n");
-    return `/${escapedValue}/${hasNewline ? "m" : ""}`;
-  };
-
-  const buildSpecialPreviewCode = (item: PropertyItem) => {
-    if (item.key === "tag") {
-      return `pq.tagMatches(e, ${JSON.stringify(item.value)})`;
-    }
-    if (item.key === "selector") {
-      return `pq.selectorMatches(e, ${JSON.stringify(item.value)})`;
-    }
-    if (item.key === "innerText") {
-      return `pq.innerTextMatches(e, ${buildInnerTextRegexLiteral(item.value)})`;
-    }
-    if (item.key === "bbox" && typeof item.rawValue !== "string") {
-      return `pq.bboxMatches(e, ${JSON.stringify(item.rawValue)})`;
-    }
-
-    return `pq.propMatches(e, ${JSON.stringify(item.key)}, ${JSON.stringify(item.value)})`;
-  };
-
   const previewCode = $derived.by(() => {
-    const item = activePropertyItem;
-    if (item && isSpecialPropertyKey(item.key)) {
-      return buildSpecialPreviewCode(item);
-    }
-
-    const propertyKey = item?.key ?? "selectedPropertyName";
-    if (filterOperator === "keyExists") {
-      return `pq.${filterFunctionMap[filterOperator]}(e, ${JSON.stringify(propertyKey)})`;
-    }
-
-    const propertyValue = item?.value ?? "selectedPropertyValue";
-    return (
-      `pq.${filterFunctionMap[filterOperator]}(` +
-      `e, ${JSON.stringify(propertyKey)}, ${JSON.stringify(propertyValue)})`
-    );
+    return buildPreviewCode(activePropertyItem, filterOperator);
   });
 
   const setupEditor = () => {
@@ -500,9 +453,6 @@
       <div class="text-xs uppercase tracking-wide text-gray-500">Property filters</div>
       {#if !isActiveSpecialProperty}
         <div class="flex flex-col gap-1">
-          <div class="text-xs text-gray-500">
-            Current filter: <span class="font-mono text-accent-500">pq.{filterFunctionMap[filterOperator]}</span>
-          </div>
           <select
             value={filterOperator}
             onchange={(e) => (filterOperator = e.currentTarget.value as FilterOperator)}
