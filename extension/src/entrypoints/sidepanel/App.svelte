@@ -193,16 +193,18 @@
   onMount(() => {
     const cleanup = attachSelectionListener();
 
-    const handleRuntimeMessage = (message: unknown) => {
+    const handleRuntimeMessage = (message: unknown, _sender: unknown, sendResponse: (response?: unknown) => void) => {
       if (isSelectorSaveMessage(message)) {
-        return saveSelectorDefinition(message.payload);
+        sendResponse(saveSelectorDefinition(message.payload));
+        return true;
       }
 
       if (!isSidepanelShortcutMessage(message)) {
-        return;
+        return false;
       }
 
       handleShortcut(message.payload.tool);
+      return false;
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
