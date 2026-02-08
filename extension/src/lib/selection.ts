@@ -45,6 +45,7 @@ export type SelectToolMessage =
     }
   | {
       type: 'selector:open';
+      payload: ElementInfo | null;
     }
   | {
       type: 'selector:save';

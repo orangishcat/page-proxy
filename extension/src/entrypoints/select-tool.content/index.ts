@@ -333,14 +333,59 @@ export default defineContentScript({
 
     const noSelectClass = "pp-no-select-tool";
 
-    const openSelectorPopup = async () => {
-      if (!selectedTarget?.isConnected || !selectionEnabled) return;
+    const resolvePopupTarget = (requestedInfo: ElementInfo | null) => {
+      if (selectedTarget?.isConnected) {
+        return selectedTarget;
+      }
+
+      if (requestedInfo?.id) {
+        const byId = document.getElementById(requestedInfo.id);
+        if (byId?.isConnected) {
+          selectedTarget = byId;
+          return byId;
+        }
+      }
+
+      if (requestedInfo?.selector) {
+        const bySelector = document.querySelector(requestedInfo.selector);
+        if (bySelector?.isConnected) {
+          selectedTarget = bySelector;
+          return bySelector;
+        }
+      }
+
+      const selectedElement = document.querySelector(`.${selectedClass}`);
+      if (selectedElement?.isConnected) {
+        selectedTarget = selectedElement;
+        return selectedElement;
+      }
+
+      return null;
+    };
+
+    const openSelectorPopup = async (requestedInfo: ElementInfo | null) => {
+      const target = resolvePopupTarget(requestedInfo);
+      if (!target) {
+        postMessage({ type: "select:selected", payload: null });
+        logger.debug("selector popup open skipped", {
+          reason: "no-target",
+          selectionEnabled,
+        });
+        return;
+      }
+
       ensureSelectionStyles();
       clearSelectorPopup();
 
-      const info = getElementInfo(selectedTarget);
+      if (!target.classList.contains(selectedClass)) {
+        clearSelected();
+        target.classList.add(selectedClass);
+      }
+
+      selectedTarget = target;
+      const info = getElementInfo(target);
       const propertyItems = buildPropertyList(info);
-      popupTarget = selectedTarget;
+      popupTarget = target;
 
       shadowUi = await createShadowRootUi(ctx, {
         name: "pp-selector-popup",
@@ -366,7 +411,7 @@ export default defineContentScript({
       shadowUi.mount();
       shadowUi.shadowHost.classList.add(noSelectClass);
       logger.debug("selector popup opened", {
-        target: describeElementCompact(selectedTarget),
+        target: describeElementCompact(target),
         selector: info.selector,
       });
     };
@@ -548,7 +593,7 @@ export default defineContentScript({
     browser.runtime.onMessage.addListener((message: SelectToolMessage) => {
       logger.debug("select tool message received", { type: message.type });
       if (message.type === "selector:open") {
-        void openSelectorPopup();
+        void openSelectorPopup(message.payload);
         return;
       }
       if (message.type === "select:parent") {
@@ -573,6 +618,7 @@ export default defineContentScript({
         }
         detachListeners();
         postMessage({ type: "select:hover", payload: null });
+        postMessage({ type: "select:selected", payload: null });
         logger.debug("selection disabled");
       }
     });

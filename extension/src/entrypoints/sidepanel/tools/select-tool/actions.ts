@@ -1,7 +1,8 @@
 import {browser} from 'wxt/browser';
+import {get} from 'svelte/store';
 import type {SelectToolMessage} from '@/lib/selection';
 import {setErrorMessage} from '../tool-errors';
-import {setSelection} from './state';
+import {selectedInfo, setSelection} from './state';
 
 const isRestrictedUrl = (url: string | undefined) => {
   if (!url) {
@@ -119,6 +120,7 @@ export const sendSelectParent = () => {
 
 export const sendSelectorPopup = () => {
   setErrorMessage(null);
+  const selection = get(selectedInfo);
 
   void browser.tabs
     .query({active: true, currentWindow: true})
@@ -137,13 +139,15 @@ export const sendSelectorPopup = () => {
 
       return browser.tabs
         .sendMessage(tabId, {
-          type: 'selector:open'
+          type: 'selector:open',
+          payload: selection
         } satisfies SelectToolMessage)
         .catch(() =>
           injectSelectTool(tabId)
             .then(() =>
               browser.tabs.sendMessage(tabId, {
-                type: 'selector:open'
+                type: 'selector:open',
+                payload: selection
               } satisfies SelectToolMessage)
             )
             .catch(() => {

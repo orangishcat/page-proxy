@@ -1,12 +1,19 @@
 {
     "name": "page-proxy-workspace",
     "private": true,
-    "workspaces": [
-        "web",
-        "extension"
-    ],
+    "type": "module",
     "scripts": {
-        "postinstall": "cd extension && $HOME/.bun/bin/bun run prepare"
+        "postinstall": "cd extension && wxt prepare",
+        "check": "svelte-check --tsconfig ./web/tsconfig.json && svelte-check --tsconfig ./extension/tsconfig.json",
+        "web:dev": "cd web && vite dev",
+        "web:build": "cd web && vite build",
+        "web:preview": "cd web && vite preview",
+        "web:check": "svelte-check --tsconfig ./web/tsconfig.json",
+        "web:lint": "eslint ./web",
+        "extension:dev": "cd extension && wxt",
+        "extension:build": "cd extension && wxt build",
+        "extension:prepare": "cd extension && wxt prepare",
+        "extension:check": "svelte-check --tsconfig ./extension/tsconfig.json"
     },
     "engines": {
         "node": ">=22"
@@ -14,8 +21,6 @@
     "dependencies": {
         "@codemirror/autocomplete": "^6.20.0",
         "@codemirror/commands": "^6.10.0",
-        "@codemirror/highlight": "^0.19.8",
-        "@codemirror/history": "^0.19.2",
         "@codemirror/lang-javascript": "^6.2.4",
         "@codemirror/language": "^6.12.1",
         "@codemirror/lint": "^6.9.2",

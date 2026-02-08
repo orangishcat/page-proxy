@@ -3,8 +3,7 @@
   import { onDestroy, onMount } from "svelte";
   import { EditorState } from "@codemirror/state";
   import { EditorView, keymap } from "@codemirror/view";
-  import { history, historyKeymap, isolateHistory } from "@codemirror/history";
-  import { indentWithTab } from "@codemirror/commands";
+  import { history, historyKeymap, indentWithTab, isolateHistory } from "@codemirror/commands";
 
   import { buildCodeEditorExtensions } from "@/lib/code-editor";
 
