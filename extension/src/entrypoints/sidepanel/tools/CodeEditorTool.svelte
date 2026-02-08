@@ -28,6 +28,23 @@
     updatedAt: number;
   };
 
+  type ScriptSaveContext = {
+    scriptId: string | null;
+    isProtectedPage: boolean;
+  };
+
+  type PendingScriptSave = {
+    content: string;
+    context: ScriptSaveContext;
+  };
+
+  type StoredTabCodeState = {
+    content: string;
+    scriptId: string | null;
+    updatedAt: number;
+    tabUrl: string | null;
+  };
+
   const defineBlockStart = "// Define elements/selectors";
   const defineBlockEnd = "// End define elements/selectors";
   const ppImportLines = [
@@ -36,6 +53,7 @@
     'import * as pa from "@/lib/pp/pp-api";',
   ];
   const scriptStorageKey = "page-proxy:sidepanel:scripts";
+  const tabCodeStateStorageKey = "page-proxy:sidepanel:tab-code-states";
   const legacyEditorStorageKey = "page-proxy:sidepanel:script";
   const protectedComment =
     "// This page is protected. Either switch to a different page or allow the extension access to this page to run scripts.";
@@ -44,6 +62,7 @@
   let editorView = $state<EditorView | null>(null);
   let editorValue = $state("");
   let saveTimer: number | null = null;
+  let pendingScriptSave: PendingScriptSave | null = null;
   let sandboxSyncTimer: number | null = null;
   let pendingSandboxContent: string | null = null;
   let isRunning = $state(false);
@@ -52,6 +71,7 @@
   let activeTabId = $state<number | null>(null);
   let activeTabUrl = $state<string | null>(null);
   let isProtectedPage = $state(false);
+  let tabCodeStates = $state<Record<string, StoredTabCodeState>>({});
   let isProgrammaticUpdate = false;
   let scriptMetadataValue = $state<ScriptMetadataState>({
     title: "Page Proxy",
@@ -173,6 +193,33 @@
       .filter((entry): entry is StoredScript => entry !== null);
   };
 
+  const normalizeTabCodeStates = (value: unknown) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return {};
+    }
+
+    const states: Record<string, StoredTabCodeState> = {};
+    Object.entries(value as Record<string, unknown>).forEach(([key, entry]) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        return;
+      }
+
+      const data = entry as { content?: unknown; scriptId?: unknown; updatedAt?: unknown; tabUrl?: unknown };
+      if (typeof data.content !== "string") {
+        return;
+      }
+
+      states[key] = {
+        content: data.content,
+        scriptId: typeof data.scriptId === "string" ? data.scriptId : null,
+        updatedAt: typeof data.updatedAt === "number" ? data.updatedAt : Date.now(),
+        tabUrl: typeof data.tabUrl === "string" ? data.tabUrl : null,
+      };
+    });
+
+    return states;
+  };
+
   const findMatchingScript = (url: string) => {
     let bestMatch: StoredScript | null = null;
     let bestScore = -1;
@@ -194,30 +241,81 @@
     return bestMatch;
   };
 
-  const upsertStoredScript = (content: string) => {
-    const sanitized = isProtectedPage ? stripProtectedDisplay(content) : content;
+  const upsertStoredScript = (content: string, context: ScriptSaveContext) => {
+    const sanitized = context.isProtectedPage ? stripProtectedDisplay(content) : content;
     const updatedAt = Date.now();
-    if (!activeScriptId) {
-      const id = createScriptId();
-      activeScriptId = id;
-      storedScripts = [...storedScripts, { id, content: sanitized, updatedAt }];
-      return;
-    }
-    const index = storedScripts.findIndex((entry) => entry.id === activeScriptId);
+    const resolvedScriptId = context.scriptId ?? createScriptId();
+
+    const index = storedScripts.findIndex((entry) => entry.id === resolvedScriptId);
     if (index === -1) {
-      storedScripts = [...storedScripts, { id: activeScriptId, content: sanitized, updatedAt }];
-      return;
+      storedScripts = [...storedScripts, { id: resolvedScriptId, content: sanitized, updatedAt }];
+    } else {
+      storedScripts = storedScripts.map((entry, idx) =>
+        idx === index ? { ...entry, content: sanitized, updatedAt } : entry,
+      );
     }
-    storedScripts = storedScripts.map((entry, idx) =>
-      idx === index ? { ...entry, content: sanitized, updatedAt } : entry,
-    );
+
+    if (activeScriptId === context.scriptId) {
+      activeScriptId = resolvedScriptId;
+    }
+
+    return resolvedScriptId;
   };
 
-  const persistScripts = (content: string) => {
-    upsertStoredScript(content);
+  const persistScripts = (content: string, context: ScriptSaveContext) => {
+    upsertStoredScript(content, context);
     void browser.storage.local.set({ [scriptStorageKey]: storedScripts }).catch(() => {
       setErrorMessage("Unable to save script to extension storage.");
     });
+  };
+
+  const persistTabCodeStates = () => {
+    void browser.storage.local.set({ [tabCodeStateStorageKey]: tabCodeStates }).catch(() => {
+      setErrorMessage("Unable to save tab code state to extension storage.");
+    });
+  };
+
+  const persistCurrentTabCodeState = () => {
+    if (activeTabId === null) {
+      return;
+    }
+
+    const latestContent = pendingScriptSave?.content ?? editorValue;
+    const normalizedContent = ensurePpImports(
+      ensureDefineBlock(isProtectedPage ? stripProtectedDisplay(latestContent) : latestContent),
+    );
+
+    tabCodeStates = {
+      ...tabCodeStates,
+      [String(activeTabId)]: {
+        content: normalizedContent,
+        scriptId: activeScriptId,
+        updatedAt: Date.now(),
+        tabUrl: activeTabUrl,
+      },
+    };
+
+    persistTabCodeStates();
+  };
+
+  const flushPendingScriptSave = () => {
+    if (saveTimer) {
+      window.clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+
+    if (!pendingScriptSave) {
+      return;
+    }
+
+    const pending = pendingScriptSave;
+    pendingScriptSave = null;
+    persistScripts(pending.content, pending.context);
+  };
+
+  const persistCurrentTabStateNow = () => {
+    flushPendingScriptSave();
+    persistCurrentTabCodeState();
   };
 
   const loadScriptsFromStorage = () =>
@@ -244,6 +342,16 @@
       })
       .catch(() => {
         setErrorMessage("Unable to load saved script from extension storage.");
+      });
+
+  const loadTabCodeStatesFromStorage = () =>
+    browser.storage.local
+      .get([tabCodeStateStorageKey])
+      .then((result) => {
+        tabCodeStates = normalizeTabCodeStates(result[tabCodeStateStorageKey]);
+      })
+      .catch(() => {
+        setErrorMessage("Unable to load tab code state from extension storage.");
       });
 
   const ensureDefineBlock = (content: string) => {
@@ -405,12 +513,21 @@
   };
 
   const queueStorageSave = (content: string) => {
+    pendingScriptSave = {
+      content,
+      context: {
+        scriptId: activeScriptId,
+        isProtectedPage,
+      },
+    };
+
     if (saveTimer) {
       window.clearTimeout(saveTimer);
     }
 
     saveTimer = window.setTimeout(() => {
-      persistScripts(content);
+      saveTimer = null;
+      flushPendingScriptSave();
     }, 300);
   };
 
@@ -428,7 +545,16 @@
     updateEditorContent(lines.join("\n"));
   };
 
-  const loadScriptForUrl = (url: string | null) => {
+  const loadScriptForTab = (tabId: number | null, url: string | null) => {
+    const tabSnapshot = tabId === null ? null : tabCodeStates[String(tabId)] ?? null;
+    if (tabSnapshot && tabSnapshot.tabUrl === (url ?? null)) {
+      const baseContent = ensurePpImports(ensureDefineBlock(tabSnapshot.content));
+      activeScriptId = tabSnapshot.scriptId;
+      const displayContent = isProtectedPage ? buildProtectedDisplay(baseContent) : baseContent;
+      updateEditorContent(displayContent, { persist: false, sync: !isProtectedPage });
+      return;
+    }
+
     const normalizedUrl = url?.trim() ?? "";
     const match = normalizedUrl ? findMatchingScript(normalizedUrl) : null;
     const websiteGlob = normalizedUrl ? buildWebsiteGlobForUrl(normalizedUrl) : "";
@@ -439,8 +565,17 @@
   };
 
   const applyActiveTab = (tab: { id?: number; url?: string } | null) => {
-    activeTabId = tab?.id ?? null;
-    activeTabUrl = tab?.url ?? null;
+    const nextTabId = tab?.id ?? null;
+    const nextTabUrl = tab?.url ?? null;
+    const shouldPersistCurrent =
+      activeTabId !== null && (activeTabId !== nextTabId || (activeTabUrl ?? null) !== (nextTabUrl ?? null));
+
+    if (shouldPersistCurrent) {
+      persistCurrentTabStateNow();
+    }
+
+    activeTabId = nextTabId;
+    activeTabUrl = nextTabUrl;
     isProtectedPage = isRestrictedUrl(activeTabUrl ?? undefined);
     if (isProtectedPage) {
       updateSandboxError([]);
@@ -449,10 +584,10 @@
     }
     if (!activeTabUrl) {
       setErrorMessage("No active tab found.");
-      loadScriptForUrl(null);
+      loadScriptForTab(activeTabId, null);
       return;
     }
-    loadScriptForUrl(activeTabUrl);
+    loadScriptForTab(activeTabId, activeTabUrl);
   };
 
   const refreshActiveTab = () => {
@@ -463,7 +598,7 @@
       })
       .catch(() => {
         setErrorMessage("Unable to read the active tab.");
-        loadScriptForUrl(null);
+        loadScriptForTab(null, null);
       });
   };
 
@@ -486,6 +621,17 @@
       return;
     }
     applyActiveTab(tab ?? null);
+  };
+
+  const handlePageHide = () => {
+    persistCurrentTabStateNow();
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState !== "hidden") {
+      return;
+    }
+    persistCurrentTabStateNow();
   };
 
   const setupEditor = () => {
@@ -520,22 +666,32 @@
     editorValue = buildDefaultScript("");
     setupEditor();
     setEditorApi({ insertDefinitions: insertDefinitionLines });
-    void loadScriptsFromStorage().then(() => {
+    void Promise.all([loadScriptsFromStorage(), loadTabCodeStatesFromStorage()]).then(() => {
       refreshActiveTab();
     });
     browser.tabs.onActivated.addListener(handleTabActivated);
     browser.tabs.onUpdated.addListener(handleTabUpdated);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("beforeunload", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
+      persistCurrentTabStateNow();
       setEditorApi(null);
       browser.tabs.onActivated.removeListener(handleTabActivated);
       browser.tabs.onUpdated.removeListener(handleTabUpdated);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("beforeunload", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   });
 
   onDestroy(() => {
+    persistCurrentTabStateNow();
+
     if (saveTimer) {
       window.clearTimeout(saveTimer);
+      saveTimer = null;
     }
 
     if (sandboxSyncTimer) {

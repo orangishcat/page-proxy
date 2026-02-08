@@ -20,6 +20,13 @@
 
   type ToolId = "select" | "new-element" | "selectors" | "help" | "share" | "none";
   type ToolbarControlId = SidepanelShortcutId;
+  type StoredTabToolState = {
+    activeTool: ToolId;
+    updatedAt: number;
+    tabUrl: string | null;
+  };
+
+  const tabToolStateStorageKey = "page-proxy:sidepanel:tab-tool-states";
 
   const toolLabels: Record<ToolId, string> = {
     select: "Select",
@@ -35,6 +42,9 @@
   let lastHoveredTool = $state<ToolbarControlId | null>(null);
   let isToolbarHovered = $state(false);
   let errorMessageValue = $state<string | null>(null);
+  let activeTabId = $state<number | null>(null);
+  let activeTabUrl = $state<string | null>(null);
+  let tabToolStates = $state<Record<string, StoredTabToolState>>({});
 
   const unsubscribeErrorMessage = errorMessage.subscribe((value) => {
     errorMessageValue = value;
@@ -63,6 +73,133 @@
     if (wasSelectTool !== isSelectTool) {
       sendSelectionToggle(isSelectTool);
     }
+    if (activeTabId !== null) {
+      persistToolStateForTab(activeTabId, activeTool, activeTabUrl);
+    }
+  };
+
+  const normalizeTabToolStates = (value: unknown) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return {};
+    }
+
+    const result: Record<string, StoredTabToolState> = {};
+    Object.entries(value as Record<string, unknown>).forEach(([key, entry]) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        return;
+      }
+
+      const data = entry as { activeTool?: unknown; updatedAt?: unknown; tabUrl?: unknown };
+      if (!Object.keys(toolLabels).includes(String(data.activeTool))) {
+        return;
+      }
+
+      result[key] = {
+        activeTool: data.activeTool as ToolId,
+        updatedAt: typeof data.updatedAt === "number" ? data.updatedAt : Date.now(),
+        tabUrl: typeof data.tabUrl === "string" ? data.tabUrl : null,
+      };
+    });
+
+    return result;
+  };
+
+  const persistTabToolStates = () => {
+    void browser.storage.local.set({ [tabToolStateStorageKey]: tabToolStates }).catch(() => {
+      setErrorMessage("Unable to save tool state to extension storage.");
+    });
+  };
+
+  const persistToolStateForTab = (tabId: number, tool: ToolId, tabUrl: string | null) => {
+    const key = String(tabId);
+    const existing = tabToolStates[key];
+    if (existing && existing.activeTool === tool && (existing.tabUrl ?? null) === (tabUrl ?? null)) {
+      return;
+    }
+
+    tabToolStates = {
+      ...tabToolStates,
+      [key]: {
+        activeTool: tool,
+        updatedAt: Date.now(),
+        tabUrl,
+      },
+    };
+    persistTabToolStates();
+  };
+
+  const persistCurrentToolStateNow = () => {
+    if (activeTabId === null) {
+      return;
+    }
+    persistToolStateForTab(activeTabId, activeTool, activeTabUrl);
+  };
+
+  const applyActiveTab = (tab: { id?: number; url?: string } | null) => {
+    const nextTabId = tab?.id ?? null;
+    const nextTabUrl = tab?.url ?? null;
+    const shouldPersistCurrent =
+      activeTabId !== null && (activeTabId !== nextTabId || (activeTabUrl ?? null) !== (nextTabUrl ?? null));
+
+    if (shouldPersistCurrent) {
+      persistCurrentToolStateNow();
+    }
+
+    activeTabId = nextTabId;
+    activeTabUrl = nextTabUrl;
+
+    if (activeTabId === null) {
+      setActiveTool("none");
+      return;
+    }
+
+    const stored = tabToolStates[String(activeTabId)];
+    if (stored && (stored.tabUrl ?? null) === (activeTabUrl ?? null)) {
+      setActiveTool(stored.activeTool);
+      return;
+    }
+
+    setActiveTool("none");
+  };
+
+  const refreshActiveTab = () => {
+    void browser.tabs
+      .query({ active: true, currentWindow: true })
+      .then((tabs) => {
+        applyActiveTab(tabs[0] ?? null);
+      })
+      .catch(() => {
+        setErrorMessage("Unable to read the active tab.");
+      });
+  };
+
+  const handleTabActivated = (activeInfo: { tabId: number }) => {
+    void browser.tabs
+      .get(activeInfo.tabId)
+      .then((tab) => {
+        applyActiveTab(tab ?? null);
+      })
+      .catch(() => {
+        setErrorMessage("Unable to read the active tab.");
+      });
+  };
+
+  const handleTabUpdated = (tabId: number, changeInfo: { url?: string }, tab: { id?: number; url?: string }) => {
+    if (activeTabId !== tabId || !changeInfo.url) {
+      return;
+    }
+    applyActiveTab(tab ?? null);
+  };
+
+  const handlePageHide = () => {
+    persistCurrentToolStateNow();
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState !== "hidden") {
+      return;
+    }
+    persistCurrentToolStateNow();
   };
 
   const activateSelectTool = () => {
@@ -221,16 +358,39 @@
     };
 
     window.addEventListener("keydown", onKeyDown, { capture: true });
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("beforeunload", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     browser.runtime.onMessage.addListener(handleRuntimeMessage);
+    browser.tabs.onActivated.addListener(handleTabActivated);
+    browser.tabs.onUpdated.addListener(handleTabUpdated);
+
+    void browser.storage.local
+      .get([tabToolStateStorageKey])
+      .then((result) => {
+        tabToolStates = normalizeTabToolStates(result[tabToolStateStorageKey]);
+        refreshActiveTab();
+      })
+      .catch(() => {
+        setErrorMessage("Unable to load tool state from extension storage.");
+        refreshActiveTab();
+      });
 
     return () => {
+      persistCurrentToolStateNow();
       cleanup();
       window.removeEventListener("keydown", onKeyDown, { capture: true });
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("beforeunload", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       browser.runtime.onMessage.removeListener(handleRuntimeMessage);
+      browser.tabs.onActivated.removeListener(handleTabActivated);
+      browser.tabs.onUpdated.removeListener(handleTabUpdated);
     };
   });
 
   onDestroy(() => {
+    persistCurrentToolStateNow();
     sendSelectionToggle(false);
     unsubscribeErrorMessage();
   });
