@@ -173,21 +173,28 @@
         padding-right: 3%;
     }
 
-    .cm-editor .cm-comment {
+    .cm-editor .cm-comment,
+    .cm-editor .tok-comment {
         color: #93a1a1;
     }
 
-    .cm-editor .cm-punctuation {
+    .cm-editor .cm-punctuation,
+    .cm-editor .tok-punctuation {
         color: #999999;
     }
 
     .cm-editor .cm-regexp,
     .cm-editor .cm-variableName,
-    .cm-editor .cm-atom {
+    .cm-editor .cm-atom,
+    .cm-editor .tok-string2,
+    .cm-editor .tok-variableName,
+    .cm-editor .tok-variableName2,
+    .cm-editor .tok-atom {
         color: #ee9900;
     }
 
-    .cm-editor .cm-function {
+    .cm-editor .cm-function,
+    .cm-editor .tok-function {
         color: #dd4a68;
     }
 
@@ -196,7 +203,13 @@
     .cm-editor .cm-bool,
     .cm-editor .cm-number,
     .cm-editor .cm-constant,
-    .cm-editor .cm-deleted {
+    .cm-editor .cm-deleted,
+    .cm-editor .tok-propertyName,
+    .cm-editor .tok-tagName,
+    .cm-editor .tok-bool,
+    .cm-editor .tok-number,
+    .cm-editor .tok-constant,
+    .cm-editor .tok-deleted {
         color: #990055;
     }
 
@@ -204,12 +217,19 @@
     .cm-editor .cm-string,
     .cm-editor .cm-character,
     .cm-editor .cm-standard,
-    .cm-editor .cm-inserted {
+    .cm-editor .cm-inserted,
+    .cm-editor .tok-attributeName,
+    .cm-editor .tok-string,
+    .cm-editor .tok-character,
+    .cm-editor .tok-standard,
+    .cm-editor .tok-inserted {
         color: #669900;
     }
 
     .cm-editor .cm-operator,
-    .cm-editor .cm-url {
+    .cm-editor .cm-url,
+    .cm-editor .tok-operator,
+    .cm-editor .tok-url {
         color: #a67f59;
     }
 
@@ -218,15 +238,23 @@
     .cm-editor .cm-controlKeyword,
     .cm-editor .cm-definitionKeyword,
     .cm-editor .cm-moduleKeyword,
-    .cm-editor .cm-operatorKeyword {
+    .cm-editor .cm-operatorKeyword,
+    .cm-editor .tok-keyword,
+    .cm-editor .tok-attributeValue,
+    .cm-editor .tok-controlKeyword,
+    .cm-editor .tok-definitionKeyword,
+    .cm-editor .tok-moduleKeyword,
+    .cm-editor .tok-operatorKeyword {
         color: #0077aa;
     }
 
-    .cm-editor .cm-strong {
+    .cm-editor .cm-strong,
+    .cm-editor .tok-strong {
         font-weight: 700;
     }
 
-    .cm-editor .cm-emphasis {
+    .cm-editor .cm-emphasis,
+    .cm-editor .tok-emphasis {
         font-style: italic;
     }
 
