@@ -282,6 +282,7 @@
     if (!editorView || !event.dataTransfer) {
       return;
     }
+    const currentEditor = editorView;
 
     const code = event.dataTransfer.getData("application/x-pp-filter") || event.dataTransfer.getData("text/plain");
 
@@ -298,14 +299,34 @@
       return;
     }
 
-    editorView.dispatch({
-      changes: { from: insertPos, to: insertPos, insert: code },
-      selection: { anchor: insertPos + code.length },
+    const shouldPrefixAnd = () => {
+      const doc = currentEditor.state.doc.toString();
+      let index = insertPos - 1;
+
+      while (index >= 0 && /\s/.test(doc[index])) {
+        index -= 1;
+      }
+
+      if (index < 0) {
+        return false;
+      }
+
+      const previous = doc[index];
+      const secondPrevious = index > 0 ? doc[index - 1] : "";
+      const isLogicalAnd = secondPrevious === "&" && previous === "&";
+      const isLogicalOr = secondPrevious === "|" && previous === "|";
+      return !isLogicalAnd && !isLogicalOr;
+    };
+
+    const insertText = shouldPrefixAnd() ? ` && ${code}` : code;
+    currentEditor.dispatch({
+      changes: { from: insertPos, to: insertPos, insert: insertText },
+      selection: { anchor: insertPos + insertText.length },
       userEvent: "input",
       annotations: isolateHistory.of("full"),
       scrollIntoView: true,
     });
-    editorView.focus();
+    currentEditor.focus();
   };
 
   const handleEditorDragLeave = (event: DragEvent) => {
