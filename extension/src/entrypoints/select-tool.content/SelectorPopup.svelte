@@ -58,8 +58,8 @@
     return [
       `const Style_1 = ${pqSelectorReference}({`,
       `  ${JSON.stringify("name")}: ${JSON.stringify("Style 1")},`,
-      `  ${JSON.stringify("matches")}: (e) => pq.selectorMatches(` +
-        `e, ${JSON.stringify(info.selector)})`,
+      `  ${JSON.stringify("matches")}: (e) =>`,
+      `    pq.selectorMatches(e, ${JSON.stringify(info.selector)})`,
       "});",
     ].join("\n");
   };
@@ -89,9 +89,14 @@
 
   const isActiveSpecialProperty = $derived.by(() => isSpecialPropertyKey(activePropertyKey));
 
-  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
 
-  const buildInnerTextRegexLiteral = (value: string) => `/${escapeRegExp(value)}/`;
+  const buildInnerTextRegexLiteral = (value: string) => {
+    const normalizedValue = value.replace(/\r\n?/g, "\n");
+    const hasNewline = normalizedValue.includes("\n");
+    const escapedValue = escapeRegExp(normalizedValue).replace(/\n/g, "\\n");
+    return `/${escapedValue}/${hasNewline ? "m" : ""}`;
+  };
 
   const buildSpecialPreviewCode = (item: PropertyItem) => {
     if (item.key === "tag") {
@@ -186,6 +191,8 @@
           ".cm-content": {
             padding: "0.25rem 0.5rem",
             minHeight: "100%",
+            pointerEvents: "none",
+            userSelect: "none",
           },
           ".cm-line": {
             whiteSpace: "pre",
@@ -248,6 +255,13 @@
     event.dataTransfer.setData("text/plain", code);
     event.dataTransfer.effectAllowed = "copy";
     event.dataTransfer.setDragImage(transparentDragImage, 0, 0);
+  };
+
+  const focusPreviewEditor = () => {
+    if (!previewView) {
+      return;
+    }
+    previewView.focus();
   };
 
   const findNearestWordBreak = (text: string, offset: number) => {
@@ -367,7 +381,15 @@
       return !isLogicalAnd && !isLogicalOr;
     };
 
-    const insertText = shouldPrefixAnd() ? ` && ${code}` : code;
+    const getMatchesIndent = () => {
+      const doc = currentEditor.state.doc.toString();
+      const matchLine = doc.match(/^(\s*)["']matches["']\s*:/m);
+      return matchLine?.[1] ?? "";
+    };
+
+    const getExpressionIndent = () => `${getMatchesIndent()}  `;
+
+    const insertText = shouldPrefixAnd() ? `\n${getExpressionIndent()}&& ${code}` : code;
     currentEditor.dispatch({
       changes: { from: insertPos, to: insertPos, insert: insertText },
       selection: { anchor: insertPos + insertText.length },
@@ -497,6 +519,13 @@
         class="w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden"
         draggable="true"
         ondragstart={handlePreviewDragStart}
+        onclick={focusPreviewEditor}
+        onkeydown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            focusPreviewEditor();
+          }
+        }}
         role="button"
         tabindex="0"
         aria-label="Edit or drag the filter snippet into the editor to insert it."

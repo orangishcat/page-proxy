@@ -29,6 +29,7 @@
     buildDefaultScript,
     buildProtectedDisplay,
     ensureDefineBlock,
+    ensureWebsiteMetadata,
     ensureScriptImports,
     isDefaultToolState,
     normalizeContentForStorage,
@@ -123,6 +124,7 @@
     if (!websiteGlob) {
       return;
     }
+    const contentWithWebsite = ensureWebsiteMetadata(normalizedContent, websiteGlob);
 
     if (activeWebsiteGlob && activeWebsiteGlob !== websiteGlob) {
       void removeStoredToolState(activeWebsiteGlob).catch(() => {
@@ -133,7 +135,7 @@
     const state: StoredToolState = {
       activeTool: get(activeToolState),
       codeEditor: {
-        content: normalizedContent,
+        content: contentWithWebsite,
       },
       websiteGlob,
       updatedAt: Date.now(),
@@ -363,7 +365,10 @@
         ensureDefineBlock(resolvedState.state.codeEditor.content, scriptFormatConfig),
         scriptFormatConfig,
       );
-      const displayContent = isProtectedPage ? buildProtectedDisplay(baseContent, scriptFormatConfig) : baseContent;
+      const contentWithWebsite = ensureWebsiteMetadata(baseContent, resolvedState.websiteGlob);
+      const displayContent = isProtectedPage
+        ? buildProtectedDisplay(contentWithWebsite, scriptFormatConfig)
+        : contentWithWebsite;
       updateEditorContent(displayContent, { persist: false, sync: !isProtectedPage });
       isLoadingStoredState = false;
     });

@@ -80,6 +80,55 @@ export const normalizeContentForStorage = (content: string, isProtectedPage: boo
   return ensureScriptImports(ensureDefineBlock(rawContent, config), config);
 };
 
+export const ensureWebsiteMetadata = (content: string, websiteGlob: string) => {
+  const normalizedWebsite = websiteGlob.trim();
+  if (!normalizedWebsite) {
+    return content;
+  }
+
+  const lines = content.split("\n");
+  const startIndex = lines.findIndex((line) => /^\/\/\s*==\s*Page\s*Proxy\s*==\s*$/.test(line.trim()));
+  if (startIndex === -1) {
+    return content;
+  }
+
+  const endIndex = lines.findIndex(
+    (line, index) => index > startIndex && /^\/\/\s*==\s*\/\s*Page\s*Proxy\s*==\s*$/.test(line.trim()),
+  );
+  if (endIndex === -1) {
+    return content;
+  }
+
+  const websiteLinePattern = /^\/\/\s*@website(?:\s*:?\s*(.*))?$/;
+  const titleLinePattern = /^\/\/\s*@title(?:\s*:?\s*(.*))?$/;
+  const websiteLine = `// @website ${normalizedWebsite}`;
+
+  for (let i = startIndex + 1; i < endIndex; i += 1) {
+    const trimmed = lines[i].trim();
+    const match = trimmed.match(websiteLinePattern);
+    if (!match) {
+      continue;
+    }
+    const currentWebsite = match[1]?.trim() ?? "";
+    if (currentWebsite.length > 0) {
+      return content;
+    }
+    lines[i] = websiteLine;
+    return lines.join("\n");
+  }
+
+  let insertIndex = startIndex + 1;
+  for (let i = startIndex + 1; i < endIndex; i += 1) {
+    if (titleLinePattern.test(lines[i].trim())) {
+      insertIndex = i + 1;
+      break;
+    }
+  }
+
+  lines.splice(insertIndex, 0, websiteLine);
+  return lines.join("\n");
+};
+
 export const resolveWebsiteGlob = (content: string, activeTabUrl: string | null, activeWebsiteGlob: string | null) => {
   const metadata = parseScriptMetadata(content);
   const fromMetadata = metadata?.website.trim() ?? "";
