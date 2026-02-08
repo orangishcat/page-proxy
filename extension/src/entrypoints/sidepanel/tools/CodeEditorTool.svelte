@@ -564,8 +564,9 @@
       {/if}
     </div>
     <div class="flex items-center gap-3">
+      <ExternalLink class="w-6 h-6 text-[#a8a8a8]" />
       <Button
-        class="!px-3 !py-1 text-xs"
+        class="px-3! py-1! text-xs"
         variant="secondary"
         aria-label="Run script"
         onclick={runScript}
@@ -573,7 +574,6 @@
       >
         <Play class="h-4 w-4" />
       </Button>
-      <ExternalLink class="w-6 h-6 text-[#a8a8a8]" />
     </div>
   </div>
   <div class="h-full w-full overflow-auto" bind:this={editorHost}></div>
