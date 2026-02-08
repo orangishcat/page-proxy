@@ -193,17 +193,30 @@ const readMatchFunction = (
 
 const extractRuleKeysFromMatches = (matches: (element: Element) => boolean) => {
   const source = Function.prototype.toString.call(matches);
-  const regex = /(?:(?:pp|pq|pa)\.)?prop(?:Matches|Contains|Exists)\s*\(\s*[^,]+,\s*(['"`])([^'"`]+)\1/g;
   const keys = new Set<string>();
-  let match = regex.exec(source);
+  const propRegex = /(?:(?:pp|pq|pa)\.)?prop(?:Matches|Contains|Exists)\s*\(\s*[^,]+,\s*(['"`])([^'"`]+)\1/g;
+  let match = propRegex.exec(source);
 
   while (match) {
     const key = match[2]?.trim();
     if (key) {
       keys.add(key);
     }
-    match = regex.exec(source);
+    match = propRegex.exec(source);
   }
+
+  const specialRules: Array<{ key: string; pattern: RegExp }> = [
+    { key: "tag", pattern: /(?:(?:pp|pq|pa)\.)?tagMatches\s*\(/ },
+    { key: "selector", pattern: /(?:(?:pp|pq|pa)\.)?selectorMatches\s*\(/ },
+    { key: "innerText", pattern: /(?:(?:pp|pq|pa)\.)?innerTextMatches\s*\(/ },
+    { key: "bbox", pattern: /(?:(?:pp|pq|pa)\.)?bboxMatches\s*\(/ },
+  ];
+
+  specialRules.forEach((rule) => {
+    if (rule.pattern.test(source)) {
+      keys.add(rule.key);
+    }
+  });
 
   return Array.from(keys);
 };

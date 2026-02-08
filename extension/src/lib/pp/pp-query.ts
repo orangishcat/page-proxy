@@ -179,9 +179,75 @@ const matchesSelector = (element: Element, selector: string) => {
   return element.matches(selector);
 };
 
+const isBoundingBox = (
+  value: unknown
+): value is ElementSize & {x: number; y: number} =>
+  Boolean(
+    value &&
+      typeof value === 'object' &&
+      Number.isFinite((value as {x?: unknown}).x) &&
+      Number.isFinite((value as {y?: unknown}).y) &&
+      Number.isFinite((value as {width?: unknown}).width) &&
+      Number.isFinite((value as {height?: unknown}).height)
+  );
+
+const normalizeTag = (value: string) => value.trim().toLowerCase();
+
+export const tagMatches = (element: Element, tag: string) => {
+  const expectedTag = normalizeTag(tag);
+  if (!expectedTag) {
+    return false;
+  }
+
+  return element.tagName.toLowerCase() === expectedTag;
+};
+
+export const selectorMatches = (element: Element, selector: string) =>
+  matchesSelector(element, selector);
+
+export const innerTextMatches = (element: Element, matcher: RegExp | string) => {
+  if (!(element instanceof HTMLElement)) {
+    return false;
+  }
+
+  const text = element.innerText.trim();
+  if (!text) {
+    return false;
+  }
+
+  if (matcher instanceof RegExp) {
+    const normalizedFlags = matcher.flags.replace('g', '');
+    const normalizedMatcher = new RegExp(matcher.source, normalizedFlags);
+    return normalizedMatcher.test(text);
+  }
+
+  return matcher.length > 0 && text.includes(matcher);
+};
+
+export const bboxMatches = (
+  element: Element,
+  expectedBox: ElementSize & {x: number; y: number},
+  tolerance = 0
+) => {
+  if (!isBoundingBox(expectedBox) || !Number.isFinite(tolerance) || tolerance < 0) {
+    return false;
+  }
+
+  const currentBox = getBoundingBox(element);
+  return (
+    Math.abs(currentBox.x - expectedBox.x) <= tolerance &&
+    Math.abs(currentBox.y - expectedBox.y) <= tolerance &&
+    Math.abs(currentBox.width - expectedBox.width) <= tolerance &&
+    Math.abs(currentBox.height - expectedBox.height) <= tolerance
+  );
+};
+
 export const propMatches = (element: Element, key: string, value: string) => {
   if (key === 'selector') {
-    return matchesSelector(element, value);
+    return selectorMatches(element, value);
+  }
+  if (key === 'tag') {
+    return tagMatches(element, value);
   }
   const propertyValue = getElementPropertyValue(element, key);
   return propertyValue === value;
@@ -189,7 +255,7 @@ export const propMatches = (element: Element, key: string, value: string) => {
 
 export const propContains = (element: Element, key: string, value: string) => {
   if (key === 'selector') {
-    return matchesSelector(element, value);
+    return selectorMatches(element, value);
   }
   const propertyValue = getElementPropertyValue(element, key);
   return Boolean(propertyValue && propertyValue.includes(value));

@@ -14,8 +14,21 @@ export const codeEditorTheme = EditorView.theme({
     lineHeight: '1.5',
     textShadow: 'none'
   },
+  '.cm-scroller': {
+    overflowX: 'auto',
+    overflowY: 'auto'
+  },
   '.cm-content': {
-    caretColor: '#5c6e74'
+    caretColor: '#5c6e74',
+    width: 'fit-content',
+    minWidth: '100%',
+    maxWidth: '120ch',
+    whiteSpace: 'pre',
+    wordBreak: 'normal',
+    overflowWrap: 'normal'
+  },
+  '.cm-line': {
+    whiteSpace: 'pre'
   },
   '.cm-selectionBackground, ::selection': {
     backgroundColor: '#b3d4fc'
@@ -56,8 +69,7 @@ export const buildCodeEditorExtensions = (): Extension[] => [
   javascript({typescript: false}),
   codeEditorTheme,
   syntaxHighlighting(codeEditorHighlightStyle, {fallback: true}),
-  syntaxHighlighting(classHighlighter),
-  EditorView.lineWrapping
+  syntaxHighlighting(classHighlighter)
 ];
 
 export const createCodeEditorView = (

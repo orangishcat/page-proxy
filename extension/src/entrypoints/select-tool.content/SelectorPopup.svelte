@@ -17,6 +17,7 @@
   };
 
   type FilterOperator = "contains" | "matches" | "keyExists";
+  type SpecialPropertyKey = "tag" | "selector" | "bbox" | "innerText";
 
   type Props = {
     info: ElementInfo;
@@ -35,6 +36,7 @@
 
   let previewHost = $state<HTMLDivElement | null>(null);
   let previewView = $state<EditorView | null>(null);
+  let previewValue = $state("");
 
   let filterOperator = $state<FilterOperator>("matches");
   let selectedPropertyKey = $state<string | null>(null);
@@ -48,13 +50,16 @@
     matches: "propMatches",
     keyExists: "propExists",
   };
+  const specialPropertyKeys = new Set<SpecialPropertyKey>(["tag", "selector", "bbox", "innerText"]);
+  const isSpecialPropertyKey = (key: string | null): key is SpecialPropertyKey =>
+    Boolean(key && specialPropertyKeys.has(key as SpecialPropertyKey));
 
   const buildDefaultCode = () => {
     return [
       `const Style_1 = ${pqSelectorReference}({`,
       `  ${JSON.stringify("name")}: ${JSON.stringify("Style 1")},`,
-      `  ${JSON.stringify("matches")}: (e) => pq.propMatches(` +
-        `e, ${JSON.stringify("selector")}, ${JSON.stringify(info.selector)})`,
+      `  ${JSON.stringify("matches")}: (e) => pq.selectorMatches(` +
+        `e, ${JSON.stringify(info.selector)})`,
       "});",
     ].join("\n");
   };
@@ -66,23 +71,57 @@
     return propertyItems[0]?.key ?? null;
   });
 
-  const activePropertyValue = $derived.by(() => {
+  const activePropertyItem = $derived.by(() => {
     const key = activePropertyKey;
     if (!key) {
       return null;
     }
-
-    const item = propertyItems.find((property) => property.key === key);
-    return item?.value ?? null;
+    return propertyItems.find((property) => property.key === key) ?? null;
   });
 
+  const specialPropertyItems = $derived.by(() =>
+    propertyItems.filter((item) => isSpecialPropertyKey(item.key)),
+  );
+
+  const nonSpecialPropertyItems = $derived.by(() =>
+    propertyItems.filter((item) => !isSpecialPropertyKey(item.key)),
+  );
+
+  const isActiveSpecialProperty = $derived.by(() => isSpecialPropertyKey(activePropertyKey));
+
+  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  const buildInnerTextRegexLiteral = (value: string) => `/${escapeRegExp(value)}/`;
+
+  const buildSpecialPreviewCode = (item: PropertyItem) => {
+    if (item.key === "tag") {
+      return `pq.tagMatches(e, ${JSON.stringify(item.value)})`;
+    }
+    if (item.key === "selector") {
+      return `pq.selectorMatches(e, ${JSON.stringify(item.value)})`;
+    }
+    if (item.key === "innerText") {
+      return `pq.innerTextMatches(e, ${buildInnerTextRegexLiteral(item.value)})`;
+    }
+    if (item.key === "bbox" && typeof item.rawValue !== "string") {
+      return `pq.bboxMatches(e, ${JSON.stringify(item.rawValue)})`;
+    }
+
+    return `pq.propMatches(e, ${JSON.stringify(item.key)}, ${JSON.stringify(item.value)})`;
+  };
+
   const previewCode = $derived.by(() => {
-    const propertyKey = activePropertyKey ?? "selectedPropertyName";
+    const item = activePropertyItem;
+    if (item && isSpecialPropertyKey(item.key)) {
+      return buildSpecialPreviewCode(item);
+    }
+
+    const propertyKey = item?.key ?? "selectedPropertyName";
     if (filterOperator === "keyExists") {
       return `pq.${filterFunctionMap[filterOperator]}(e, ${JSON.stringify(propertyKey)})`;
     }
 
-    const propertyValue = activePropertyValue ?? "selectedPropertyValue";
+    const propertyValue = item?.value ?? "selectedPropertyValue";
     return (
       `pq.${filterFunctionMap[filterOperator]}(` +
       `e, ${JSON.stringify(propertyKey)}, ${JSON.stringify(propertyValue)})`
@@ -140,21 +179,23 @@
       doc: previewCode,
       extensions: [
         ...buildCodeEditorExtensions(),
-        EditorView.editable.of(false),
         EditorView.theme({
           "&": { backgroundColor: "transparent" },
           ".cm-gutters": { display: "none" },
-          ".cm-scroller": { overflowX: "auto", overflowY: "hidden" },
+          ".cm-scroller": { overflowX: "auto", overflowY: "auto" },
           ".cm-content": {
             padding: "0.25rem 0.5rem",
-            whiteSpace: "pre",
-            wordBreak: "normal",
-            overflowWrap: "normal",
-            pointerEvents: "none",
-            userSelect: "none",
+            minHeight: "100%",
           },
-          "&.cm-lineWrapping .cm-content": { whiteSpace: "pre" },
-          ".cm-cursor": { display: "none" },
+          ".cm-line": {
+            whiteSpace: "pre",
+          },
+        }),
+        EditorView.updateListener.of((update) => {
+          if (!update.docChanged) {
+            return;
+          }
+          previewValue = update.state.doc.toString();
         }),
       ],
     });
@@ -163,6 +204,7 @@
       state,
       parent: previewHost,
     });
+    previewValue = previewCode;
 
     previewView.dom.setAttribute("draggable", "true");
     previewView.dom.addEventListener("dragstart", handlePreviewDragStart, { capture: true });
@@ -201,7 +243,7 @@
     if (!event.dataTransfer) {
       return;
     }
-    const code = previewCode;
+    const code = previewView?.state.doc.toString() ?? previewValue ?? previewCode;
     event.dataTransfer.setData("application/x-pp-filter", code);
     event.dataTransfer.setData("text/plain", code);
     event.dataTransfer.effectAllowed = "copy";
@@ -383,6 +425,7 @@
     previewView.dispatch({
       changes: { from: 0, to: previewView.state.doc.length, insert: previewCode },
     });
+    previewValue = previewCode;
   });
 </script>
 
@@ -431,56 +474,92 @@
     </div>
 
     <!-- Properties panel -->
-    <div class="flex flex-col w-64 max-w-64 min-w-0 border-l border-gray-800 bg-black/20 overflow-y-auto p-3 gap-3">
+    <div class="flex flex-col w-64 max-w-64 min-w-0 border-l border-gray-800 bg-black/20 p-3 gap-3">
       <div class="text-xs uppercase tracking-wide text-gray-500">Property filters</div>
-      <select
-        value={filterOperator}
-        onchange={(e) => (filterOperator = e.currentTarget.value as FilterOperator)}
-        class="text-sm text-white bg-white/10 border border-white/15 py-1.5 px-2 rounded cursor-pointer"
-      >
-        <option value="contains">contains</option>
-        <option value="matches">matches</option>
-        <option value="keyExists">keyExists</option>
-      </select>
+      {#if !isActiveSpecialProperty}
+        <div class="flex flex-col gap-1">
+          <div class="text-xs text-gray-500">
+            Current filter: <span class="font-mono text-accent-500">pq.{filterFunctionMap[filterOperator]}</span>
+          </div>
+          <select
+            value={filterOperator}
+            onchange={(e) => (filterOperator = e.currentTarget.value as FilterOperator)}
+            class="text-sm text-white bg-white/10 border border-white/15 py-1.5 px-2 rounded cursor-pointer"
+          >
+            <option value="contains">contains</option>
+            <option value="matches">matches</option>
+            <option value="keyExists">keyExists</option>
+          </select>
+        </div>
+      {/if}
 
       <div
-        class="w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden cursor-grab"
+        class="w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden"
         draggable="true"
         ondragstart={handlePreviewDragStart}
         role="button"
         tabindex="0"
-        aria-label="Drag the filter snippet into the editor to insert it."
-        title="Drag into the editor to insert."
+        aria-label="Edit or drag the filter snippet into the editor to insert it."
+        title="Edit this snippet or drag it into the editor."
       >
-        <div class="h-10 w-full" bind:this={previewHost}></div>
+        <div class="h-16 w-full" bind:this={previewHost}></div>
       </div>
 
       <div class="text-xs uppercase tracking-wide text-gray-500">Properties</div>
-      <div class="flex flex-col gap-2">
-        {#each propertyItems as item (item.key)}
-          <button
-            type="button"
-            onclick={() => (selectedPropertyKey = item.key)}
-            class={`flex justify-between items-center text-left rounded-md border border-transparent px-2 py-1 cursor-pointer
-            transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
-            aria-pressed={activePropertyKey === item.key}
-          >
-            <div class="font-mono text-xs text-accent-500 truncate max-w-24">
-              {item.key}
-            </div>
-            <div
-              class="font-mono text-xs text-secondary-500 truncate text-right"
-              class:underline={item.value.length > 18}
-              class:cursor-help={item.value.length > 18}
-              title={item.value.length > 18 ? item.value : undefined}
+      <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1">
+        <div class="flex flex-col gap-2">
+          {#each specialPropertyItems as item (item.key)}
+            <button
+              type="button"
+              onclick={() => (selectedPropertyKey = item.key)}
+              class={`flex justify-between items-center text-left rounded-md border border-transparent px-2 py-1 cursor-pointer
+              transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
+              aria-pressed={activePropertyKey === item.key}
             >
-              {item.value.length > 18 ? `${item.value.length} chars` : truncate(item.value, 30)}
-            </div>
-          </button>
-        {/each}
-        {#if propertyItems.length === 0}
-          <div class="col-span-full text-xs text-gray-500 text-center p-4">No properties available.</div>
-        {/if}
+              <div class="font-mono text-xs text-accent-500 truncate max-w-24">
+                {item.key}
+              </div>
+              <div
+                class="font-mono text-xs text-secondary-500 truncate text-right"
+                class:underline={item.value.length > 18}
+                class:cursor-help={item.value.length > 18}
+                title={item.value.length > 18 ? item.value : undefined}
+              >
+                {item.value.length > 18 ? `${item.value.length} chars` : truncate(item.value, 30)}
+              </div>
+            </button>
+          {/each}
+
+          {#if specialPropertyItems.length > 0 && nonSpecialPropertyItems.length > 0}
+            <hr class="border-gray-800" />
+          {/if}
+
+          {#each nonSpecialPropertyItems as item (item.key)}
+            <button
+              type="button"
+              onclick={() => (selectedPropertyKey = item.key)}
+              class={`flex justify-between items-center text-left rounded-md border border-transparent px-2 py-1 cursor-pointer
+              transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
+              aria-pressed={activePropertyKey === item.key}
+            >
+              <div class="font-mono text-xs text-accent-500 truncate max-w-24">
+                {item.key}
+              </div>
+              <div
+                class="font-mono text-xs text-secondary-500 truncate text-right"
+                class:underline={item.value.length > 18}
+                class:cursor-help={item.value.length > 18}
+                title={item.value.length > 18 ? item.value : undefined}
+              >
+                {item.value.length > 18 ? `${item.value.length} chars` : truncate(item.value, 30)}
+              </div>
+            </button>
+          {/each}
+
+          {#if propertyItems.length === 0}
+            <div class="col-span-full text-xs text-gray-500 text-center p-4">No properties available.</div>
+          {/if}
+        </div>
       </div>
     </div>
   </div>
