@@ -10,7 +10,7 @@ export type ElementDefinition = {
   attributes?: Record<string, string>;
 };
 
-export type ElementLookupError = "empty-selectors" | "invalid-size" | "invalid-selectors" | "not-found";
+export type ElementLookupError = "empty-selectors" | "invalid-size" | "not-found";
 
 export type ElementLookupResult = {
   element: Element | null;
@@ -24,19 +24,6 @@ const normalizeSelectors = (selectors: string | string[]) =>
     .map((selector) => selector.trim())
     .filter((selector) => selector.length > 0);
 
-const selectorSupportAvailable =
-  typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("selector(*)");
-
-const isValidSelector = (selector: string) => {
-  if (!selector) {
-    return false;
-  }
-  if (!selectorSupportAvailable) {
-    return true;
-  }
-  return CSS.supports(`selector(${selector})`);
-};
-
 const resolveElement = (definition: ElementDefinition): ElementLookupResult => {
   const selectorList = normalizeSelectors(definition.selector);
   if (selectorList.length === 0) {
@@ -46,12 +33,7 @@ const resolveElement = (definition: ElementDefinition): ElementLookupResult => {
     return { element: null, error: "invalid-size" };
   }
 
-  const validSelectors = selectorList.filter(isValidSelector);
-  if (validSelectors.length === 0) {
-    return { element: null, error: "invalid-selectors" };
-  }
-
-  const candidates = validSelectors.flatMap((selector) => Array.from(document.querySelectorAll(selector)));
+  const candidates = selectorList.flatMap((selector) => Array.from(document.querySelectorAll(selector)));
   if (candidates.length === 0) {
     return { element: null, error: "not-found" };
   }
@@ -147,23 +129,7 @@ const hasElementProperty = (element: Element, key: string) => {
   }
 };
 
-const isValidMatchSelector = (selector: string) => {
-  if (!selector) {
-    return false;
-  }
-
-  if (typeof CSS === "undefined" || typeof CSS.supports !== "function") {
-    return false;
-  }
-
-  return CSS.supports(`selector(${selector})`);
-};
-
 const matchesSelector = (element: Element, selector: string) => {
-  if (!isValidMatchSelector(selector)) {
-    return false;
-  }
-
   return element.matches(selector);
 };
 
@@ -240,8 +206,7 @@ export const selector = (definition: SelectorDefinition) => ({
   apply: () => null,
   query: () => {
     const normalizedBaseSelector = definition.baseSelector?.trim() ?? "";
-    const baseSelector =
-      normalizedBaseSelector.length > 0 && isValidSelector(normalizedBaseSelector) ? normalizedBaseSelector : "*";
+    const baseSelector = normalizedBaseSelector.length > 0 ? normalizedBaseSelector : "*";
     const elements = Array.from(document.querySelectorAll(baseSelector));
     if (elements.length === 0) {
       return [];
