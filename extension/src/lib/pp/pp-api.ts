@@ -262,4 +262,5 @@ export const pageModificationFunctions = [
   "pq.selectorMatches",
   "pq.innerTextMatches",
   "pq.bboxMatches",
+  "pq.traverseParents",
 ];

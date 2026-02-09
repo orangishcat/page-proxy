@@ -62,6 +62,10 @@ export type SelectorDefinition = {
   bbox?: ElementSize & { x: number; y: number };
 };
 
+export type TraverseParentsOptions = {
+  postMap?: (element: HTMLElement) => unknown;
+};
+
 const selectionClassesToIgnore = new Set(["pp-hover", "pp-selected"]);
 
 const filterSelectionClasses = (value: string | null) => {
@@ -206,6 +210,24 @@ export const propContains = (element: Element, key: string, value: string) => {
 };
 
 export const propExists = (element: Element, key: string) => hasElementProperty(element, key);
+
+export const traverseParents = (
+  el: Element,
+  matcher: (element: HTMLElement) => boolean,
+  options: TraverseParentsOptions = {},
+) => {
+  const postMap = options.postMap ?? ((element: HTMLElement) => element);
+  let current = el.parentElement;
+
+  while (current) {
+    if (current instanceof HTMLElement && matcher(current)) {
+      return postMap(current);
+    }
+    current = current.parentElement;
+  }
+
+  return null;
+};
 
 export const selector = (definition: SelectorDefinition) => {
   const matchesElement = (el: Element) => {
