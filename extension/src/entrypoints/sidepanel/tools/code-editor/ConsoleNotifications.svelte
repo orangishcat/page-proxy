@@ -15,12 +15,12 @@
   let { notifications, onDismiss }: Props = $props();
 
   const levelClassMap: Record<ScriptRunLogLevel, string> = {
-    log: "border-[#6f725f] bg-[#2a2b24] text-[#e8eadf]",
-    info: "border-[#4c6681] bg-[#1f2a34] text-[#d9ecff]",
-    warn: "border-[#8a6a2b] bg-[#302814] text-[#ffe8b6]",
-    error: "border-[#8b3f44] bg-[#321d20] text-[#ffd8d8]",
-    debug: "border-[#5e587d] bg-[#252338] text-[#e1ddff]",
-    notification: "border-[#4a7c63] bg-[#1f3128] text-[#d7ffea]",
+    log: "border-[#5d6168] bg-[#25272b] text-[#e6e8ec]",
+    info: "border-[#5f6570] bg-[#252930] text-[#dfe3ea]",
+    warn: "border-[#6f6756] bg-[#2f2b24] text-[#ece6d6]",
+    error: "border-[#7a6063] bg-[#33272a] text-[#f3dee0]",
+    debug: "border-[#5f5f6b] bg-[#292933] text-[#e2e2eb]",
+    notification: "border-[#61656b] bg-[#272a2f] text-[#e5e7ea]",
   };
 
   const formatTimestamp = (timestamp: number) => new Date(timestamp).toLocaleTimeString();

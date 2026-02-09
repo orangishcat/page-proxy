@@ -51,8 +51,8 @@
     return [
       `const Style_1 = ${pqSelectorReference}({`,
       `  ${JSON.stringify("name")}: ${JSON.stringify("Style 1")},`,
-      `  ${JSON.stringify("matches")}: (e) =>`,
-      `    pq.selectorMatches(e, ${JSON.stringify(info.selector)})`,
+      `  ${JSON.stringify("baseSelector")}: ${JSON.stringify(info.selector)},`,
+      `  ${JSON.stringify("matches")}: e => true,`,
       "});",
     ].join("\n");
   };
@@ -188,6 +188,7 @@
     const payload: SelectorSavePayload = {
       name: null,
       code,
+      baseSelector: info.selector,
     };
 
     const result = await onSave(payload);
@@ -317,6 +318,16 @@
 
     const shouldPrefixAnd = () => {
       const doc = currentEditor.state.doc.toString();
+      let nextIndex = insertPos;
+
+      while (nextIndex < doc.length && /\s/.test(doc[nextIndex])) {
+        nextIndex += 1;
+      }
+
+      if (doc[nextIndex] === "=" && doc[nextIndex + 1] === ">") {
+        return false;
+      }
+
       let index = insertPos - 1;
 
       while (index >= 0 && /\s/.test(doc[index])) {

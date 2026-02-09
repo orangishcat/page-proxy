@@ -17,6 +17,7 @@ export type ElementInfo = {
 export type SelectorSavePayload = {
   name: string | null;
   code: string;
+  baseSelector?: string;
 };
 
 export type SelectorSaveResult =

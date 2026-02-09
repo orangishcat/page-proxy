@@ -60,6 +60,23 @@ const readNumber = (value: Record<string, unknown>, key: string) => {
   return typeof data === "number" && Number.isFinite(data) ? data : null;
 };
 
+const readOptionalString = (
+  value: Record<string, unknown>,
+  key: string,
+  errors: string[],
+  label: string,
+) => {
+  const data = readDataProperty(value, key);
+  if (data === undefined || data === null) {
+    return null;
+  }
+  if (typeof data !== "string") {
+    errors.push(`${label} must be a string when provided.`);
+    return null;
+  }
+  return data;
+};
+
 const parseBoundingBox = (value: unknown, errors: string[], label: string, required: boolean): BoundingBox | null => {
   if (value === undefined || value === null) {
     if (required) {
@@ -224,7 +241,7 @@ const extractRuleKeysFromMatches = (matches: (element: Element) => boolean) => {
 const createSelectorEntry = (
   value: unknown,
   errors: string[],
-): { entry: SelectorEntry; matches: (element: Element) => boolean } | null => {
+): { entry: SelectorEntry; matches: (element: Element) => boolean; baseSelector?: string } | null => {
   if (!isRecord(value)) {
     errors.push("pq.selector expects an object definition.");
     return null;
@@ -232,6 +249,7 @@ const createSelectorEntry = (
 
   const name = readString(value, "name")?.trim() || "Selector";
   const bbox = parseBoundingBox(readDataProperty(value, "bbox"), errors, "pq.selector", false);
+  const baseSelector = readOptionalString(value, "baseSelector", errors, "pq.selector baseSelector")?.trim() || undefined;
   const matches = readMatchFunction(value, errors);
   if (!matches) {
     return null;
@@ -244,6 +262,7 @@ const createSelectorEntry = (
       ruleKeys: extractRuleKeysFromMatches(matches),
     },
     matches,
+    baseSelector,
   };
 };
 
@@ -293,6 +312,7 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
         pq
           .selector({
             name: entry.name,
+            baseSelector: result.baseSelector,
             bbox: entry.bbox,
             matches,
           })
