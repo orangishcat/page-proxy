@@ -3,7 +3,10 @@ import {defineBackground} from 'wxt/utils/define-background';
 import {browser} from 'wxt/browser';
 import {matchWebsiteGlob} from '@/lib/utils/website-glob';
 import {isRestrictedUrl} from '@/lib/utils/url-utils';
-import {type ScriptRunRequest} from '@/lib/script-runner';
+import {
+  isScriptRunResponse,
+  type ScriptRunRequest
+} from '@/lib/script-runner';
 
 type ToolId = 'select' | 'new-element' | 'selectors' | 'help' | 'share' | 'none';
 
@@ -17,6 +20,7 @@ type StoredToolState = {
 };
 
 const storageKeyPrefix = 'pageproxy:';
+const badgeBackgroundColor = '#f59e0b';
 
 const isToolId = (value: unknown): value is ToolId =>
   value === 'select' ||
@@ -93,13 +97,11 @@ const listStoredToolStates = async () => {
   return states;
 };
 
-const findStoredToolStateForUrl = async (url: string) => {
+const findStoredToolStatesForUrl = async (url: string) => {
   const states = await listStoredToolStates();
-  const matches = states
+  return states
     .filter((entry) => matchWebsiteGlob(entry.websiteGlob, url))
     .sort((left, right) => right.websiteGlob.length - left.websiteGlob.length);
-
-  return matches[0] ?? null;
 };
 
 const buildRequestId = () =>
@@ -107,25 +109,50 @@ const buildRequestId = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-const runMatchingScriptForTab = async (tabId: number, url?: string) => {
-  if (isRestrictedUrl(url)) {
+const buildRunRequest = (code: string): ScriptRunRequest => ({
+  type: 'script:run',
+  requestId: buildRequestId(),
+  code
+});
+
+const runScriptInTab = async (tabId: number, code: string) => {
+  const response = await browser.tabs.sendMessage(tabId, buildRunRequest(code));
+  if (!isScriptRunResponse(response)) {
+    return false;
+  }
+  return response.error === null;
+};
+
+const setTabBadge = async (tabId: number, count: number) => {
+  if (count <= 0) {
+    await browser.action.setBadgeText({tabId, text: ''});
     return;
+  }
+
+  await browser.action.setBadgeBackgroundColor({tabId, color: badgeBackgroundColor});
+  await browser.action.setBadgeText({tabId, text: count > 99 ? '99+' : String(count)});
+};
+
+const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
+  if (isRestrictedUrl(url)) {
+    return 0;
   }
 
   const tabUrl = url ?? '';
-  const matched = await findStoredToolStateForUrl(tabUrl);
-  const code = matched?.state.codeEditor.content.trim() ?? '';
-  if (!code) {
-    return;
+  const matchedStates = await findStoredToolStatesForUrl(tabUrl);
+  const scripts = matchedStates
+    .map((entry) => entry.state.codeEditor.content.trim())
+    .filter((code) => code.length > 0);
+  if (scripts.length === 0) {
+    return 0;
   }
 
-  const request: ScriptRunRequest = {
-    type: 'script:run',
-    requestId: buildRequestId(),
-    code
-  };
-
-  await browser.tabs.sendMessage(tabId, request);
+  const runResults = await Promise.all(
+    scripts.map((code) =>
+      runScriptInTab(tabId, code).catch(() => false)
+    )
+  );
+  return runResults.filter(Boolean).length;
 };
 
 export default defineBackground(() => {
@@ -152,6 +179,7 @@ export default defineBackground(() => {
   browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.status === 'loading') {
       lastAutoRunUrlByTabId.delete(tabId);
+      void setTabBadge(tabId, 0);
       return;
     }
 
@@ -169,9 +197,12 @@ export default defineBackground(() => {
     }
 
     lastAutoRunUrlByTabId.set(tabId, tab.url);
-    void runMatchingScriptForTab(tabId, tab.url).catch(() => {
-      lastAutoRunUrlByTabId.delete(tabId);
-    });
+    void runMatchingScriptsForTab(tabId, tab.url)
+      .then((count) => setTabBadge(tabId, count))
+      .catch(() => {
+        lastAutoRunUrlByTabId.delete(tabId);
+        return setTabBadge(tabId, 0);
+      });
   });
 
   browser.tabs.onRemoved.addListener((tabId) => {
