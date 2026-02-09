@@ -122,6 +122,13 @@ const ensurePageNotificationStyles = () => {
   opacity: 0.78;
 }
 
+.${pageNotificationClass} .pp-page-notification__element {
+  color: #91c4ff;
+  text-decoration: underline;
+  text-underline-offset: 0.125rem;
+  cursor: pointer;
+}
+
 @media (prefers-color-scheme: light) {
   .${pageNotificationClass} {
     background: rgba(246, 247, 248, 0.98);
@@ -165,14 +172,43 @@ const showPageNotification = (values: unknown[]) => {
   notification.className = pageNotificationClass;
   notification.setAttribute("role", "status");
 
-  const body = buildNotificationBody(values);
+  const { body, cleanup } = buildNotificationBody(values);
 
   const close = document.createElement("button");
   close.type = "button";
   close.setAttribute("aria-label", "Dismiss notification");
   close.textContent = "×";
+  let removeTimer: number | null = null;
+  let removed = false;
+
+  const hasOpenViewer = () => Boolean(body.querySelector("details[open]"));
+
+  const scheduleRemove = (delay: number) => {
+    if (removeTimer !== null) {
+      window.clearTimeout(removeTimer);
+    }
+    removeTimer = window.setTimeout(() => {
+      if (removed) {
+        return;
+      }
+      if (hasOpenViewer()) {
+        scheduleRemove(1000);
+        return;
+      }
+      remove();
+    }, delay);
+  };
 
   const remove = () => {
+    if (removed) {
+      return;
+    }
+    removed = true;
+    if (removeTimer !== null) {
+      window.clearTimeout(removeTimer);
+      removeTimer = null;
+    }
+    cleanup();
     notification.classList.remove("pp-page-notification--visible");
     window.setTimeout(() => {
       notification.remove();
@@ -193,7 +229,7 @@ const showPageNotification = (values: unknown[]) => {
     notification.classList.add("pp-page-notification--visible");
   });
 
-  window.setTimeout(remove, 4200);
+  scheduleRemove(4200);
 };
 
 export const notification = (...values: unknown[]) => {

@@ -8,6 +8,8 @@ const notificationDetailsClass = "pp-page-notification__details";
 const notificationSummaryClass = "pp-page-notification__summary";
 const notificationNestedClass = "pp-page-notification__nested";
 const notificationTruncatedClass = "pp-page-notification__truncated";
+const notificationElementClass = "pp-page-notification__element";
+const notificationHoverClass = "pp-hover";
 
 const createSpan = (text: string, className?: string) => {
   const element = document.createElement("span");
@@ -19,6 +21,47 @@ const createSpan = (text: string, className?: string) => {
 };
 
 const toPropertyName = (key: string | symbol) => (typeof key === "symbol" ? key.toString() : key);
+
+const isElementValue = (value: unknown): value is Element =>
+  typeof Element !== "undefined" && value instanceof Element;
+
+const describeElement = (element: Element) => {
+  const id = element.id ? `#${element.id}` : "";
+  const classes = Array.from(element.classList)
+    .filter((token) => token.length > 0)
+    .slice(0, 2)
+    .join(".");
+  const classSuffix = classes ? `.${classes}` : "";
+  return `<${element.tagName.toLowerCase()}${id}${classSuffix}>`;
+};
+
+type ViewerContext = {
+  cleanupCallbacks: Array<() => void>;
+  hoveredElements: Set<Element>;
+};
+
+const bindElementHover = (node: HTMLElement, element: Element, context: ViewerContext) => {
+  const addHover = () => {
+    if (!element.isConnected) {
+      return;
+    }
+    element.classList.add(notificationHoverClass);
+    context.hoveredElements.add(element);
+  };
+
+  const removeHover = () => {
+    element.classList.remove(notificationHoverClass);
+    context.hoveredElements.delete(element);
+  };
+
+  node.addEventListener("mouseenter", addHover);
+  node.addEventListener("mouseleave", removeHover);
+  context.cleanupCallbacks.push(() => {
+    node.removeEventListener("mouseenter", addHover);
+    node.removeEventListener("mouseleave", removeHover);
+    removeHover();
+  });
+};
 
 const getSummaryLabel = (value: unknown) => {
   if (Array.isArray(value)) {
@@ -65,12 +108,23 @@ const isExpandable = (value: unknown, seen: WeakSet<object>, depth: number) => {
 
 const createValueNode = (
   value: unknown,
+  context: ViewerContext,
   seen: WeakSet<object>,
   depth: number,
   propertyName?: string,
 ): HTMLElement => {
   const row = document.createElement("div");
   row.className = notificationValueClass;
+
+  if (isElementValue(value)) {
+    if (propertyName) {
+      row.appendChild(createSpan(`${propertyName}: `, notificationKeyClass));
+    }
+    const elementValue = createSpan(describeElement(value), notificationElementClass);
+    bindElementHover(elementValue, value, context);
+    row.appendChild(elementValue);
+    return row;
+  }
 
   if (!isExpandable(value, seen, depth)) {
     if (propertyName) {
@@ -99,16 +153,16 @@ const createValueNode = (
   if (Array.isArray(value)) {
     const list = value.slice(0, maxViewerEntries);
     list.forEach((item, index) => {
-      nested.appendChild(createValueNode(item, seen, depth + 1, String(index)));
+      nested.appendChild(createValueNode(item, context, seen, depth + 1, String(index)));
     });
     if (value.length > maxViewerEntries) {
       nested.appendChild(createSpan("...more items", notificationTruncatedClass));
     }
   } else if (value instanceof Error) {
-    nested.appendChild(createValueNode(value.name, seen, depth + 1, "name"));
-    nested.appendChild(createValueNode(value.message, seen, depth + 1, "message"));
+    nested.appendChild(createValueNode(value.name, context, seen, depth + 1, "name"));
+    nested.appendChild(createValueNode(value.message, context, seen, depth + 1, "message"));
     if (value.stack) {
-      nested.appendChild(createValueNode(value.stack, seen, depth + 1, "stack"));
+      nested.appendChild(createValueNode(value.stack, context, seen, depth + 1, "stack"));
     }
   } else {
     const keys = Reflect.ownKeys(objectValue).slice(0, maxViewerEntries);
@@ -116,17 +170,17 @@ const createValueNode = (
       const descriptor = Object.getOwnPropertyDescriptor(objectValue, key);
       const entryName = toPropertyName(key);
       if (!descriptor) {
-        nested.appendChild(createValueNode(undefined, seen, depth + 1, entryName));
+        nested.appendChild(createValueNode(undefined, context, seen, depth + 1, entryName));
         return;
       }
       if ("value" in descriptor) {
-        nested.appendChild(createValueNode(descriptor.value, seen, depth + 1, entryName));
+        nested.appendChild(createValueNode(descriptor.value, context, seen, depth + 1, entryName));
         return;
       }
       const parts: string[] = [];
       if (descriptor.get) parts.push("Getter");
       if (descriptor.set) parts.push("Setter");
-      nested.appendChild(createValueNode(`[${parts.join("/")}]`, seen, depth + 1, entryName));
+      nested.appendChild(createValueNode(`[${parts.join("/")}]`, context, seen, depth + 1, entryName));
     });
     if (Reflect.ownKeys(objectValue).length > maxViewerEntries) {
       nested.appendChild(createSpan("...more properties", notificationTruncatedClass));
@@ -141,16 +195,34 @@ const createValueNode = (
 export const buildNotificationBody = (values: unknown[]) => {
   const body = document.createElement("div");
   body.className = notificationBodyClass;
+  const context: ViewerContext = {
+    cleanupCallbacks: [],
+    hoveredElements: new Set<Element>(),
+  };
 
   if (values.length === 0) {
-    body.appendChild(createValueNode("Notification", new WeakSet<object>(), 0));
-    return body;
+    body.appendChild(createValueNode("Notification", context, new WeakSet<object>(), 0));
+    return {
+      body,
+      cleanup: () => {
+        context.cleanupCallbacks.forEach((callback) => callback());
+        context.hoveredElements.forEach((element) => element.classList.remove(notificationHoverClass));
+        context.hoveredElements.clear();
+      },
+    };
   }
 
   const needsArgLabels = values.length > 1;
   values.forEach((value, index) => {
     const label = needsArgLabels ? `arg${index}` : undefined;
-    body.appendChild(createValueNode(value, new WeakSet<object>(), 0, label));
+    body.appendChild(createValueNode(value, context, new WeakSet<object>(), 0, label));
   });
-  return body;
+  return {
+    body,
+    cleanup: () => {
+      context.cleanupCallbacks.forEach((callback) => callback());
+      context.hoveredElements.forEach((element) => element.classList.remove(notificationHoverClass));
+      context.hoveredElements.clear();
+    },
+  };
 };
