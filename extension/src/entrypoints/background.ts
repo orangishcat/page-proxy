@@ -4,6 +4,7 @@ import { browser } from "wxt/browser";
 import { matchWebsiteGlob } from "@/lib/utils/website-glob";
 import { isRestrictedUrl } from "@/lib/utils/url-utils";
 import { isScriptRunResponse, type ScriptRunRequest } from "@/lib/script-runner";
+import { createTabBadgeUpdater } from "@/lib/background/tab-badge";
 import log from "loglevel";
 
 type ToolId = "select" | "new-element" | "selectors" | "help" | "share" | "none";
@@ -18,7 +19,6 @@ type StoredToolState = {
 };
 
 const storageKeyPrefix = "pageproxy:";
-const badgeBackgroundColor = "#f59e0b";
 const defaultScriptImportLines = [
   'import * as pq from "@/lib/pp/pp-query";',
   'import * as ps from "@/lib/pp/pp-style";',
@@ -193,16 +193,6 @@ const runScriptInTab = async (tabId: number, code: string) => {
   return response.error === null;
 };
 
-const setTabBadge = async (tabId: number, count: number) => {
-  if (count <= 0) {
-    await browser.action.setBadgeText({ tabId, text: "" });
-    return;
-  }
-
-  await browser.action.setBadgeBackgroundColor({ tabId, color: badgeBackgroundColor });
-  await browser.action.setBadgeText({ tabId, text: count > 99 ? "99+" : String(count) });
-};
-
 const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
   if (isRestrictedUrl(url)) {
     return 0;
@@ -241,59 +231,19 @@ export default defineBackground(() => {
     });
   }
 
-  const lastAutoRunUrlByTabId = new Map<number, string>();
-  const runCountByTabId = new Map<number, number>();
-
-  const resolveBadgeCountForTab = async (tabId: number, url?: string) => {
-    if (!url || isRestrictedUrl(url)) {
-      return 0;
-    }
-
-    const lastUrl = lastAutoRunUrlByTabId.get(tabId);
-    if (lastUrl === url) {
-      return runCountByTabId.get(tabId) ?? 0;
-    }
-
-    return countMatchingScriptsForUrl(url);
-  };
-
-  const refreshBadgeForTab = async (tabId: number, url?: string) => {
-    const count = await resolveBadgeCountForTab(tabId, url);
-    await setTabBadge(tabId, count);
-  };
-
-  const refreshBadgeForActivatedTab = async (tabId: number) => {
-    const tab = await browser.tabs.get(tabId);
-    await refreshBadgeForTab(tabId, tab.url);
-  };
+  const badgeUpdater = createTabBadgeUpdater(countMatchingScriptsForUrl);
 
   browser.tabs.onActivated.addListener(({ tabId }) => {
-    void refreshBadgeForActivatedTab(tabId).catch(() => setTabBadge(tabId, 0));
+    void badgeUpdater.refreshBadgeForActivatedTab(tabId).catch(() => badgeUpdater.applyAutoRunFailure(tabId));
   });
 
   browser.windows.onFocusChanged.addListener((windowId) => {
-    if (windowId === browser.windows.WINDOW_ID_NONE) {
-      return;
-    }
-
-    void browser.tabs
-      .query({ active: true, windowId })
-      .then((tabs) => {
-        const activeTab = tabs[0];
-        if (!activeTab?.id) {
-          return;
-        }
-
-        return refreshBadgeForTab(activeTab.id, activeTab.url);
-      })
-      .catch(() => {});
+    void badgeUpdater.refreshBadgeForWindowFocus(windowId).catch(() => {});
   });
 
   browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.status === "loading") {
-      lastAutoRunUrlByTabId.delete(tabId);
-      runCountByTabId.delete(tabId);
-      void setTabBadge(tabId, 0);
+      void badgeUpdater.handleTabLoading(tabId);
       return;
     }
 
@@ -304,27 +254,19 @@ export default defineBackground(() => {
     if (!tab?.url) {
       return;
     }
+    const tabUrl = tab.url;
 
-    const lastUrl = lastAutoRunUrlByTabId.get(tabId);
-    if (lastUrl === tab.url) {
+    if (badgeUpdater.hasAutoRunUrl(tabId, tabUrl)) {
       return;
     }
 
-    lastAutoRunUrlByTabId.set(tabId, tab.url);
-    void runMatchingScriptsForTab(tabId, tab.url)
-      .then((count) => {
-        runCountByTabId.set(tabId, count);
-        return setTabBadge(tabId, count);
-      })
-      .catch(() => {
-        lastAutoRunUrlByTabId.delete(tabId);
-        runCountByTabId.delete(tabId);
-        return setTabBadge(tabId, 0);
-      });
+    badgeUpdater.markAutoRunStarted(tabId, tabUrl);
+    void runMatchingScriptsForTab(tabId, tabUrl)
+      .then((count) => badgeUpdater.applyAutoRunResult(tabId, tabUrl, count))
+      .catch(() => badgeUpdater.applyAutoRunFailure(tabId));
   });
 
   browser.tabs.onRemoved.addListener((tabId) => {
-    lastAutoRunUrlByTabId.delete(tabId);
-    runCountByTabId.delete(tabId);
+    badgeUpdater.handleTabRemoved(tabId);
   });
 });
