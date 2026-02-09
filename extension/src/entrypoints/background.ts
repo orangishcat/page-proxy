@@ -186,7 +186,7 @@ const buildRunRequest = (code: string): ScriptRunRequest => ({
 });
 
 const runScriptInTab = async (tabId: number, code: string) => {
-  const response = await browser.tabs.sendMessage(tabId, buildRunRequest(code));
+  const response: unknown = await browser.tabs.sendMessage(tabId, buildRunRequest(code));
   if (!isScriptRunResponse(response)) {
     return false;
   }

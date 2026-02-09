@@ -9,11 +9,12 @@
         "web:build": "cd web && vite build",
         "web:preview": "cd web && vite preview",
         "web:check": "svelte-check --tsconfig ./web/tsconfig.json",
-        "web:lint": "eslint ./web",
+        "web:lint": "cd web && eslint .",
         "extension:dev": "cd extension && wxt",
         "extension:build": "cd extension && wxt build",
         "extension:prepare": "cd extension && wxt prepare",
-        "extension:check": "svelte-check --tsconfig ./extension/tsconfig.json"
+        "extension:check": "svelte-check --tsconfig ./extension/tsconfig.json",
+        "extension:lint": "cd extension && eslint ."
     },
     "engines": {
         "node": ">=22"

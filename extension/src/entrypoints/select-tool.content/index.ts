@@ -214,7 +214,7 @@ export default defineContentScript({
   matches: ["<all_urls>"],
   cssInjectionMode: "ui",
 
-  async main(ctx) {
+  main(ctx) {
     let selectionEnabled = false;
     let hoverTarget: Element | null = null;
     let selectedTarget: Element | null = null;
@@ -267,7 +267,7 @@ export default defineContentScript({
 
     const clearSelectorPopup = () => {
       if (popupApp) {
-        unmount(popupApp);
+        void unmount(popupApp);
         popupApp = null;
       }
       if (shadowUi) {
@@ -329,7 +329,7 @@ export default defineContentScript({
         selector: info.selector,
       });
 
-      const response = await browser.runtime
+      const response: unknown = await browser.runtime
         .sendMessage({ type: "selector:save", payload } satisfies SelectToolMessage)
         .catch((error: unknown) => {
           logger.error("Failed to save selector", { error });

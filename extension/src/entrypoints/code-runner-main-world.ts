@@ -85,28 +85,28 @@ const serializeScriptRunValue = (
     return {kind: 'undefined'};
   }
 
-  const valueType = typeof value;
-  if (valueType === 'string') {
-    return {kind: 'string', value: value as string};
+  if (typeof value === 'string') {
+    return {kind: 'string', value};
   }
-  if (valueType === 'number') {
-    return {kind: 'number', value: value as number};
+  if (typeof value === 'number') {
+    return {kind: 'number', value};
   }
-  if (valueType === 'boolean') {
-    return {kind: 'boolean', value: value as boolean};
+  if (typeof value === 'boolean') {
+    return {kind: 'boolean', value};
   }
-  if (valueType === 'bigint') {
-    return {kind: 'bigint', value: String(value)};
+  if (typeof value === 'bigint') {
+    return {kind: 'bigint', value: value.toString()};
   }
-  if (valueType === 'symbol') {
-    return {kind: 'symbol', value: value.toString()};
+  if (typeof value === 'symbol') {
+    const description = value.description;
+    return {kind: 'symbol', value: description === undefined ? 'Symbol()' : `Symbol(${description})`};
   }
-  if (valueType === 'function') {
+  if (typeof value === 'function') {
     return {kind: 'function', name: (value as {name?: string}).name || '(anonymous)'};
   }
 
   if (!(value instanceof Object)) {
-    return {kind: 'string', value: String(value)};
+    return {kind: 'string', value: ''};
   }
 
   if (seen.has(value)) {

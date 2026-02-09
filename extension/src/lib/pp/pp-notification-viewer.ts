@@ -93,7 +93,7 @@ const formatInline = (value: unknown, seen: WeakSet<object>, depth: number): str
   if (value instanceof Date) return `Date(${value.toISOString()})`;
   if (value instanceof RegExp) return value.toString();
   if (value instanceof Error) return `${value.name}: ${value.message}`;
-  if (!value || typeof value !== "object") return String(value);
+  if (!value || typeof value !== "object") return "";
   if (seen.has(value)) return "[Circular]";
   if (depth >= maxViewerDepth) return getSummaryLabel(value);
   return getSummaryLabel(value);

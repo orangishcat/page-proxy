@@ -28,7 +28,7 @@ export const readSidePanelOpenTabs = async (): Promise<SidePanelOpenTabs> => {
       logger.debug('readSidePanelOpenTabs', {openTabs});
       return openTabs;
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       logger.error('readSidePanelOpenTabs failed', error);
       throw error;
     });
@@ -40,7 +40,7 @@ export const writeSidePanelOpenTabs = async (openTabs: SidePanelOpenTabs) =>
     .then(() => {
       logger.debug('writeSidePanelOpenTabs', {openTabs});
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       logger.error('writeSidePanelOpenTabs failed', {openTabs, error});
       throw error;
     });

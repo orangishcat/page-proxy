@@ -63,7 +63,6 @@
   let activeTabUrl = $state<string | null>(null);
   let activeWebsiteGlob = $state<string | null>(null);
   let isProtectedPage = $state(false);
-  let isLoadingStoredState = false;
   let isProgrammaticUpdate = false;
   let scriptMetadataValue = $state<ScriptMetadataState>({
     title: "Page Proxy",
@@ -353,18 +352,15 @@
     const normalizedUrl = url?.trim() ?? "";
     if (!normalizedUrl) {
       activeWebsiteGlob = null;
-      isLoadingStoredState = true;
       activeToolState.set("none");
       const baseContent = buildDefaultScript("", scriptFormatConfig);
       const displayContent = isProtectedPage ? buildProtectedDisplay(baseContent, scriptFormatConfig) : baseContent;
       updateEditorContent(displayContent, { persist: false, sync: !isProtectedPage });
-      isLoadingStoredState = false;
       return Promise.resolve();
     }
 
     const resolvedState = await resolveStoredToolStateForUrl(normalizedUrl, scriptFormatConfig);
     activeWebsiteGlob = resolvedState.websiteGlob;
-    isLoadingStoredState = true;
     activeToolState.set(resolvedState.state.activeTool);
     const baseContent_1 = ensureScriptImports(
       ensureDefineBlock(resolvedState.state.codeEditor.content, scriptFormatConfig),
@@ -374,7 +370,6 @@
       ? buildProtectedDisplay(contentWithWebsite, scriptFormatConfig)
       : contentWithWebsite;
     updateEditorContent(displayContent_1, { persist: false, sync: !isProtectedPage });
-    isLoadingStoredState = false;
   };
 
   const applyActiveTab = (tab: { id?: number; url?: string } | null) => {
@@ -391,11 +386,9 @@
       selectorEntries.set([]);
 
       activeWebsiteGlob = null;
-      isLoadingStoredState = true;
       activeToolState.set("none");
       const protectedContent = buildProtectedDisplay(buildDefaultScript("", scriptFormatConfig), scriptFormatConfig);
       updateEditorContent(protectedContent, { persist: false, sync: false });
-      isLoadingStoredState = false;
       return;
     }
 
