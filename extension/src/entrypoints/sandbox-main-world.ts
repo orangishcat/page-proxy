@@ -13,6 +13,7 @@ import {
 import * as pq from "@/lib/pp/pp-query";
 import * as ps from "@/lib/pp/pp-style";
 import * as pa from "@/lib/pp/pp-api";
+import * as pv from "@/lib/pp/pp-event";
 
 type CompartmentConstructor = new (endowments?: Record<string, unknown>) => {
   evaluate: (code: string) => unknown;
@@ -173,24 +174,24 @@ const getHarden = () => {
 
 const createElementEntry = (value: unknown, errors: string[]): ElementEntry | null => {
   if (!isRecord(value)) {
-    errors.push("pa.element expects an object definition.");
+    errors.push("pq.element expects an object definition.");
     return null;
   }
 
   const selector = readString(value, "selector");
   if (!selector) {
-    errors.push("pa.element requires a string selector.");
+    errors.push("pq.element requires a string selector.");
     return null;
   }
 
   const name = readString(value, "name")?.trim() || "Element";
-  const bbox = parseBoundingBox(readDataProperty(value, "bbox"), errors, "pa.element", true);
+  const bbox = parseBoundingBox(readDataProperty(value, "bbox"), errors, "pq.element", true);
 
   if (!bbox) {
     return null;
   }
 
-  const attributes = sanitizeStringMap(readDataProperty(value, "attributes"), errors, "pa.element attribute");
+  const attributes = sanitizeStringMap(readDataProperty(value, "attributes"), errors, "pq.element attribute");
 
   return { name, selector, bbox, attributes };
 };
@@ -306,17 +307,16 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
     }
     const { entry, matches } = result;
     selectors.push(entry);
+    const resolvedSelector = pq.selector({
+      name: entry.name,
+      baseSelector: result.baseSelector,
+      bbox: entry.bbox,
+      matches,
+    });
     return harden({
       definition: entry,
-      query: () =>
-        pq
-          .selector({
-            name: entry.name,
-            baseSelector: result.baseSelector,
-            bbox: entry.bbox,
-            matches,
-          })
-          .query(),
+      matches: (el: Element) => resolvedSelector.matches(el),
+      query: () => resolvedSelector.query(),
     });
   };
 
@@ -352,9 +352,6 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
 
   const sandboxApi = harden({
     ...pa.createApi(),
-    element: registerElement,
-    selector: registerSelector,
-    applyStyle,
   });
 
   const queryApi = harden({
@@ -368,10 +365,15 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
     applyStyle,
   });
 
+  const eventApi = harden({
+    ...pv,
+  });
+
   const compartment = new CompartmentCtor({
     pa: sandboxApi,
     pq: queryApi,
     ps: styleApi,
+    pv: eventApi,
     pp: sandboxApi,
   });
   harden(compartment.globalThis);

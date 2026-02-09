@@ -204,6 +204,14 @@ export const propExists = (element: Element, key: string) => hasElementProperty(
 export const selector = (definition: SelectorDefinition) => ({
   definition,
   apply: () => null,
+  matches: (el: Element) => {
+    const normalizedBaseSelector = definition.baseSelector?.trim() ?? "";
+    const baseSelector = normalizedBaseSelector.length > 0 ? normalizedBaseSelector : "*";
+    if (baseSelector !== "*" && !el.matches(baseSelector)) {
+      return false;
+    }
+    return Boolean(definition.matches(el));
+  },
   query: () => {
     const normalizedBaseSelector = definition.baseSelector?.trim() ?? "";
     const baseSelector = normalizedBaseSelector.length > 0 ? normalizedBaseSelector : "*";

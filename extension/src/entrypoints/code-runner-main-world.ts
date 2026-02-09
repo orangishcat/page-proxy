@@ -10,11 +10,13 @@ import {
 import * as pq from '@/lib/pp/pp-query';
 import * as ps from '@/lib/pp/pp-style';
 import * as pa from '@/lib/pp/pp-api';
+import * as pv from '@/lib/pp/pp-event';
 
 type PpModuleBindings = {
   pq: typeof pq;
   ps: typeof ps;
   pa: typeof pa;
+  pv: typeof pv;
 };
 
 type WindowWithPpModules = typeof window & {
@@ -27,7 +29,8 @@ const ensurePpModules = (): PpModuleBindings => {
     target.__pageProxyPpModules__ = {
       pq,
       ps,
-      pa
+      pa,
+      pv
     };
   }
 
@@ -48,6 +51,9 @@ const stripPpImportText = (code: string) =>
       if (trimmed === 'import * as pa from "@/lib/pp/pp-api";') {
         return false;
       }
+      if (trimmed === 'import * as pv from "@/lib/pp/pp-event";') {
+        return false;
+      }
       if (trimmed === 'const pp = pa.pp;') {
         return false;
       }
@@ -56,7 +62,7 @@ const stripPpImportText = (code: string) =>
     .join('\n');
 
 const wrapExecutableCode = (code: string) =>
-  `((pq, ps, pa) => {\n${code}\n})(globalThis.pq, globalThis.ps, globalThis.pa);`;
+  `((pq, ps, pa, pv) => {\n${code}\n})(globalThis.pq, globalThis.ps, globalThis.pa, globalThis.pv);`;
 
 const maxLogDepth = 5;
 const maxLogEntries = 50;
@@ -316,6 +322,7 @@ export default defineUnlistedScript(() => {
     (globalThis as Record<string, unknown>).pq = modules.pq;
     (globalThis as Record<string, unknown>).ps = modules.ps;
     (globalThis as Record<string, unknown>).pa = modules.pa.createApi();
+    (globalThis as Record<string, unknown>).pv = modules.pv;
     (globalThis as Record<string, unknown>)[modules.pa.notificationSinkGlobalKey] = sink;
     const executableCode = wrapExecutableCode(stripPpImportText(code));
     injectBlobScript(

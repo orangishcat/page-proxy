@@ -45,6 +45,7 @@
     'import * as pq from "@/lib/pp/pp-query";',
     'import * as ps from "@/lib/pp/pp-style";',
     'import * as pa from "@/lib/pp/pp-api";',
+    'import * as pv from "@/lib/pp/pp-event";',
   ];
   const protectedComment =
     "// This page is protected. Either switch to a different page or allow the extension access to this page to run scripts.";
@@ -80,7 +81,7 @@
   });
   let unsubscribeActiveToolState = () => {};
 
-  const baseSuggestions = ["pa.element", pqSelectorReference, ...pageModificationFunctions];
+  const baseSuggestions = ["pq.element", pqSelectorReference, ...pageModificationFunctions];
 
   const updateScriptMetadata = (content: string) => {
     const metadata = parseScriptMetadata(content);
@@ -102,7 +103,7 @@
   const buildSuggestions = () =>
     Array.from(new Set(baseSuggestions)).map((label) => ({
       label,
-      type: /^(pa|pq|ps)\./.test(label) ? "function" : "property",
+      type: /^(pa|pq|ps|pv)\./.test(label) ? "function" : "property",
     }));
 
   const suggestionSource: CompletionSource = (context) => {

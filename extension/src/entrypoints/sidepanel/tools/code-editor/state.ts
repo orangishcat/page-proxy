@@ -48,7 +48,7 @@ export const formatElementCode = (entry: ElementEntry, variableName: string) => 
     attributes: entry.attributes
   };
 
-  return `const ${variableName} = pa.element(${JSON.stringify(payload, null, 2)});`;
+  return `const ${variableName} = pq.element(${JSON.stringify(payload, null, 2)});`;
 };
 
 export const sanitizeVariableName = (name: string) =>
