@@ -349,7 +349,7 @@
     updateEditorContent(lines.join("\n"));
   };
 
-  const loadStateForUrl = (url: string | null) => {
+  const loadStateForUrl = async (url: string | null) => {
     const normalizedUrl = url?.trim() ?? "";
     if (!normalizedUrl) {
       activeWebsiteGlob = null;
@@ -362,22 +362,19 @@
       return Promise.resolve();
     }
 
-    return resolveStoredToolStateForUrl(normalizedUrl, scriptFormatConfig).then((resolvedState) => {
-      activeWebsiteGlob = resolvedState.websiteGlob;
-
-      isLoadingStoredState = true;
-      activeToolState.set(resolvedState.state.activeTool);
-      const baseContent = ensureScriptImports(
-        ensureDefineBlock(resolvedState.state.codeEditor.content, scriptFormatConfig),
-        scriptFormatConfig,
-      );
-      const contentWithWebsite = ensureWebsiteMetadata(baseContent, resolvedState.websiteGlob);
-      const displayContent = isProtectedPage
-        ? buildProtectedDisplay(contentWithWebsite, scriptFormatConfig)
-        : contentWithWebsite;
-      updateEditorContent(displayContent, { persist: false, sync: !isProtectedPage });
-      isLoadingStoredState = false;
-    });
+    const resolvedState = await resolveStoredToolStateForUrl(normalizedUrl, scriptFormatConfig);
+    activeWebsiteGlob = resolvedState.websiteGlob;
+    isLoadingStoredState = true;
+    activeToolState.set(resolvedState.state.activeTool);
+    const baseContent_1 = ensureScriptImports(
+      ensureDefineBlock(resolvedState.state.codeEditor.content, scriptFormatConfig),
+      scriptFormatConfig);
+    const contentWithWebsite = ensureWebsiteMetadata(baseContent_1, resolvedState.websiteGlob);
+    const displayContent_1 = isProtectedPage
+      ? buildProtectedDisplay(contentWithWebsite, scriptFormatConfig)
+      : contentWithWebsite;
+    updateEditorContent(displayContent_1, { persist: false, sync: !isProtectedPage });
+    isLoadingStoredState = false;
   };
 
   const applyActiveTab = (tab: { id?: number; url?: string } | null) => {

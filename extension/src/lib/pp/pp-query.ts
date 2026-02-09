@@ -158,12 +158,15 @@ export const tagMatches = (element: Element, tag: string) => {
 
 export const selectorMatches = (element: Element, selector: string) => matchesSelector(element, selector);
 
-export const innerTextMatches = (element: Element, matcher: RegExp | string) => {
-  if (!(element instanceof HTMLElement)) {
-    return false;
-  }
+const getOwnText = (element: Element) =>
+  Array.from(element.childNodes)
+    .filter((node): node is Text => node.nodeType === Node.TEXT_NODE)
+    .map((node) => node.textContent ?? "")
+    .join("")
+    .trim();
 
-  const text = element.innerText.trim();
+export const innerTextMatches = (element: Element, matcher: RegExp | string) => {
+  const text = getOwnText(element);
   if (!text) {
     return false;
   }
