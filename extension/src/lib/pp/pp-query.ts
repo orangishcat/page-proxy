@@ -1,3 +1,5 @@
+import { onElementCreated, type OnElementCreatedHandler } from "./pp-event";
+
 export type ElementSize = {
   width: number;
   height: number;
@@ -201,25 +203,50 @@ export const propContains = (element: Element, key: string, value: string) => {
 
 export const propExists = (element: Element, key: string) => hasElementProperty(element, key);
 
-export const selector = (definition: SelectorDefinition) => ({
-  definition,
-  apply: () => null,
-  matches: (el: Element) => {
+export const selector = (definition: SelectorDefinition) => {
+  const matchesElement = (el: Element) => {
     const normalizedBaseSelector = definition.baseSelector?.trim() ?? "";
     const baseSelector = normalizedBaseSelector.length > 0 ? normalizedBaseSelector : "*";
     if (baseSelector !== "*" && !el.matches(baseSelector)) {
       return false;
     }
     return Boolean(definition.matches(el));
-  },
-  query: () => {
-    const normalizedBaseSelector = definition.baseSelector?.trim() ?? "";
-    const baseSelector = normalizedBaseSelector.length > 0 ? normalizedBaseSelector : "*";
-    const elements = Array.from(document.querySelectorAll(baseSelector));
-    if (elements.length === 0) {
-      return [];
-    }
+  };
 
-    return elements.filter((candidate) => Boolean(definition.matches(candidate)));
-  },
-});
+  return {
+    definition,
+    apply: () => null,
+    matches: (el: Element) => matchesElement(el),
+    onElementMatches: (
+      func: OnElementCreatedHandler,
+      targetNode: Node = document.body ?? document.documentElement,
+      observerOptions: MutationObserverInit = { childList: true, subtree: true },
+    ) =>
+      onElementCreated((el) => {
+        if (matchesElement(el)) {
+          func(el);
+        }
+      }, targetNode, observerOptions),
+    query: () => {
+      const normalizedBaseSelector = definition.baseSelector?.trim() ?? "";
+      const baseSelector = normalizedBaseSelector.length > 0 ? normalizedBaseSelector : "*";
+      const elements = document.querySelectorAll(baseSelector);
+      for (const candidate of elements) {
+        if (matchesElement(candidate)) {
+          return candidate;
+        }
+      }
+      return null;
+    },
+    queryAll: () => {
+      const normalizedBaseSelector = definition.baseSelector?.trim() ?? "";
+      const baseSelector = normalizedBaseSelector.length > 0 ? normalizedBaseSelector : "*";
+      const elements = Array.from(document.querySelectorAll(baseSelector));
+      if (elements.length === 0) {
+        return [];
+      }
+
+      return elements.filter((candidate) => matchesElement(candidate));
+    },
+  };
+};

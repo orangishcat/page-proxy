@@ -171,6 +171,15 @@
     persistToolState(content);
   };
 
+  const saveNow = (content: string) => {
+    if (saveTimer) {
+      window.clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+    pendingAutosaveContent = null;
+    persistToolState(content);
+  };
+
   let lastSandboxError = $state<string | null>(null);
   let lastRunError = $state<string | null>(null);
   let sandboxRequestId = $state(0);
@@ -286,6 +295,7 @@
     }
 
     isRunning = true;
+    saveNow(editorValue);
     const formattedScript = formatIndentation(editorValue);
     void requestScriptRun(formattedScript)
       .then((result) => {
@@ -327,7 +337,7 @@
     saveTimer = window.setTimeout(() => {
       saveTimer = null;
       autoSave();
-    }, 300);
+    }, 3000);
   };
 
   const insertDefinitionLines = (linesToInsert: string[]) => {
@@ -378,12 +388,6 @@
   const applyActiveTab = (tab: { id?: number; url?: string } | null) => {
     const nextTabId = tab?.id ?? null;
     const nextTabUrl = tab?.url ?? null;
-    const shouldPersistCurrent =
-      activeTabId !== null && (activeTabId !== nextTabId || (activeTabUrl ?? null) !== (nextTabUrl ?? null));
-
-    if (shouldPersistCurrent) {
-      autoSave();
-    }
 
     activeTabId = nextTabId;
     activeTabUrl = nextTabUrl;
@@ -447,17 +451,6 @@
     applyActiveTab(tab ?? null);
   };
 
-  const handlePageHide = () => {
-    autoSave();
-  };
-
-  const handleVisibilityChange = () => {
-    if (document.visibilityState !== "hidden") {
-      return;
-    }
-    autoSave();
-  };
-
   const setupEditor = () => {
     if (!editorHost || editorView) {
       return;
@@ -490,33 +483,18 @@
     editorValue = buildDefaultScript("", scriptFormatConfig);
     setupEditor();
     setEditorApi({ insertDefinitions: insertDefinitionLines });
-    unsubscribeActiveToolState = activeToolState.subscribe(() => {
-      if (isLoadingStoredState) {
-        return;
-      }
-      saveToStorage(editorValue);
-    });
     refreshActiveTab();
     browser.tabs.onActivated.addListener(handleTabActivated);
     browser.tabs.onUpdated.addListener(handleTabUpdated);
-    window.addEventListener("pagehide", handlePageHide);
-    window.addEventListener("beforeunload", handlePageHide);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      autoSave();
       setEditorApi(null);
       browser.tabs.onActivated.removeListener(handleTabActivated);
       browser.tabs.onUpdated.removeListener(handleTabUpdated);
-      window.removeEventListener("pagehide", handlePageHide);
-      window.removeEventListener("beforeunload", handlePageHide);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   });
 
   onDestroy(() => {
-    autoSave();
-
     if (saveTimer) {
       window.clearTimeout(saveTimer);
       saveTimer = null;

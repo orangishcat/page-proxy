@@ -316,7 +316,13 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
     return harden({
       definition: entry,
       matches: (el: Element) => resolvedSelector.matches(el),
+      onElementMatches: (
+        func: (element: Element) => void,
+        targetNode?: Node,
+        observerOptions?: MutationObserverInit,
+      ) => resolvedSelector.onElementMatches(func, targetNode, observerOptions),
       query: () => resolvedSelector.query(),
+      queryAll: () => resolvedSelector.queryAll(),
     });
   };
 
