@@ -51,5 +51,6 @@ export const onElementCreated = (
 ) => {
   const observer = new ElementCreatedObserver(func, targetNode);
   observer.observe(targetNode, observerOptions);
+  observer.runOnTargetNode();
   return observer;
 };
