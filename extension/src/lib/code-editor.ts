@@ -67,6 +67,9 @@ export const codeEditorHighlightStyle = HighlightStyle.define([
 
 export const buildCodeEditorExtensions = (): Extension[] => [
   javascript({typescript: false}),
+  EditorView.editorAttributes.of({
+    class: 'scrollbar-stable'
+  }),
   codeEditorTheme,
   syntaxHighlighting(codeEditorHighlightStyle, {fallback: true}),
   syntaxHighlighting(classHighlighter)

@@ -19,12 +19,7 @@
   import { requestSandboxEvaluation, requestScriptRun } from "./sandbox/actions";
   import { elementEntries, scriptMetadata, setEditorApi, selectorEntries } from "./code-editor/state";
   import type { ScriptMetadataState } from "./code-editor/state";
-  import {
-    activeToolState,
-    removeStoredToolState,
-    saveStoredToolState,
-    type StoredToolState,
-  } from "./state-storage";
+  import { activeToolState, removeStoredToolState, saveStoredToolState, type StoredToolState } from "./state-storage";
   import {
     buildDefaultScript,
     buildProtectedDisplay,
@@ -515,7 +510,7 @@
 </script>
 
 <section
-  class="relative h-[63.44%] w-full bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+  class="relative h-[63.44%] w-full bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)] flex flex-col"
   aria-label="Code editor panel"
 >
   <div class="h-8 w-full bg-[#393a34] flex items-center justify-between px-4">
