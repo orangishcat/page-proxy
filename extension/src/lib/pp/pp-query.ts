@@ -1,4 +1,4 @@
-import { onElementCreated, type OnElementCreatedHandler } from "./pp-event";
+import { onElementCreated } from "./pp-event";
 
 export type ElementSize = {
   width: number;
@@ -58,6 +58,7 @@ export type SelectorDefinition = {
   name: string;
   baseSelector?: string;
   matches: (element: Element) => boolean;
+  postMap?: (element: HTMLElement) => unknown;
   bbox?: ElementSize & { x: number; y: number };
 };
 
@@ -216,18 +217,25 @@ export const selector = (definition: SelectorDefinition) => {
     return Boolean(definition.matches(el));
   };
 
+  const mapMatchingElement = (el: Element) => {
+    if (!definition.postMap) {
+      return el;
+    }
+    return definition.postMap(el as HTMLElement);
+  };
+
   return {
     definition,
     apply: () => null,
     matches: (el: Element) => matchesElement(el),
     onElementMatches: (
-      func: OnElementCreatedHandler,
+      func: (value: unknown) => void,
       targetNode: Node = document.body ?? document.documentElement,
       observerOptions: MutationObserverInit = { childList: true, subtree: true },
     ) =>
       onElementCreated((el) => {
         if (matchesElement(el)) {
-          func(el);
+          func(mapMatchingElement(el));
         }
       }, targetNode, observerOptions),
     query: () => {
@@ -236,7 +244,7 @@ export const selector = (definition: SelectorDefinition) => {
       const elements = document.querySelectorAll(baseSelector);
       for (const candidate of elements) {
         if (matchesElement(candidate)) {
-          return candidate;
+          return mapMatchingElement(candidate);
         }
       }
       return null;
@@ -249,7 +257,7 @@ export const selector = (definition: SelectorDefinition) => {
         return [];
       }
 
-      return elements.filter((candidate) => matchesElement(candidate));
+      return elements.filter((candidate) => matchesElement(candidate)).map((candidate) => mapMatchingElement(candidate));
     },
   };
 };

@@ -7,11 +7,7 @@
   import { history, historyKeymap, indentWithTab, isolateHistory } from "@codemirror/commands";
 
   import { buildCodeEditorExtensions } from "@/lib/code-editor";
-  import {
-    buildPreviewCode,
-    isSpecialPropertyKey,
-    type FilterOperator,
-  } from "./preview-code";
+  import { buildPreviewCode, isSpecialPropertyKey, type FilterOperator } from "./preview-code";
 
   type PropertyItem = {
     key: string;
@@ -72,13 +68,9 @@
     return propertyItems.find((property) => property.key === key) ?? null;
   });
 
-  const specialPropertyItems = $derived.by(() =>
-    propertyItems.filter((item) => isSpecialPropertyKey(item.key)),
-  );
+  const specialPropertyItems = $derived.by(() => propertyItems.filter((item) => isSpecialPropertyKey(item.key)));
 
-  const nonSpecialPropertyItems = $derived.by(() =>
-    propertyItems.filter((item) => !isSpecialPropertyKey(item.key)),
-  );
+  const nonSpecialPropertyItems = $derived.by(() => propertyItems.filter((item) => !isSpecialPropertyKey(item.key)));
 
   const isActiveSpecialProperty = $derived.by(() => isSpecialPropertyKey(activePropertyKey));
 
@@ -117,7 +109,7 @@
     editorView.dom.style.position = "relative";
     dragCaret = document.createElement("div");
     dragCaret.style.position = "absolute";
-    dragCaret.style.width = "0.0625rem";
+    dragCaret.style.width = "1px";
     dragCaret.style.background = "rgb(224 201 135)";
     dragCaret.style.opacity = "0";
     dragCaret.style.pointerEvents = "none";
@@ -142,7 +134,7 @@
           ".cm-gutters": { display: "none" },
           ".cm-scroller": { overflowX: "auto", overflowY: "auto" },
           ".cm-content": {
-            padding: "0.25rem 0.5rem",
+            padding: "4px 8px",
             minHeight: "100%",
             pointerEvents: "none",
             userSelect: "none",
@@ -416,7 +408,7 @@
 </script>
 
 <div
-  class="flex flex-col w-full h-full overflow-hidden rounded-lg border border-gray-800 bg-gray-950 text-gray-100 font-sans text-sm shadow-2xl darkreader"
+  class="flex flex-col w-full h-full overflow-hidden rounded-lg border border-gray-800 bg-gray-950 text-gray-100 font-sans text-sm shadow-2xl pp-content-ui-root"
   style="color-scheme: dark;"
 >
   <!-- Header -->

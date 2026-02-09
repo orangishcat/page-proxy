@@ -209,6 +209,23 @@ const readMatchFunction = (
   return matchValue as (element: Element) => boolean;
 };
 
+const readPostMapFunction = (
+  value: Record<string, unknown>,
+  errors: string[],
+): ((element: HTMLElement) => unknown) | undefined => {
+  const postMapValue = readDataProperty(value, "postMap");
+  if (postMapValue === undefined || postMapValue === null) {
+    return undefined;
+  }
+
+  if (typeof postMapValue !== "function") {
+    errors.push("pq.selector postMap must be a function when provided.");
+    return undefined;
+  }
+
+  return postMapValue as (element: HTMLElement) => unknown;
+};
+
 const extractRuleKeysFromMatches = (matches: (element: Element) => boolean) => {
   const source = Function.prototype.toString.call(matches);
   const keys = new Set<string>();
@@ -242,7 +259,12 @@ const extractRuleKeysFromMatches = (matches: (element: Element) => boolean) => {
 const createSelectorEntry = (
   value: unknown,
   errors: string[],
-): { entry: SelectorEntry; matches: (element: Element) => boolean; baseSelector?: string } | null => {
+): {
+  entry: SelectorEntry;
+  matches: (element: Element) => boolean;
+  postMap?: (element: HTMLElement) => unknown;
+  baseSelector?: string;
+} | null => {
   if (!isRecord(value)) {
     errors.push("pq.selector expects an object definition.");
     return null;
@@ -252,6 +274,7 @@ const createSelectorEntry = (
   const bbox = parseBoundingBox(readDataProperty(value, "bbox"), errors, "pq.selector", false);
   const baseSelector = readOptionalString(value, "baseSelector", errors, "pq.selector baseSelector")?.trim() || undefined;
   const matches = readMatchFunction(value, errors);
+  const postMap = readPostMapFunction(value, errors);
   if (!matches) {
     return null;
   }
@@ -263,6 +286,7 @@ const createSelectorEntry = (
       ruleKeys: extractRuleKeysFromMatches(matches),
     },
     matches,
+    postMap,
     baseSelector,
   };
 };
@@ -305,19 +329,20 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
     if (!result) {
       return harden({});
     }
-    const { entry, matches } = result;
+    const { entry, matches, postMap } = result;
     selectors.push(entry);
     const resolvedSelector = pq.selector({
       name: entry.name,
       baseSelector: result.baseSelector,
       bbox: entry.bbox,
       matches,
+      postMap,
     });
     return harden({
       definition: entry,
       matches: (el: Element) => resolvedSelector.matches(el),
       onElementMatches: (
-        func: (element: Element) => void,
+        func: (value: unknown) => void,
         targetNode?: Node,
         observerOptions?: MutationObserverInit,
       ) => resolvedSelector.onElementMatches(func, targetNode, observerOptions),

@@ -8,11 +8,29 @@
 @layer utilities {
     .scrollbar-stable {
         scrollbar-gutter: stable;
-        box-sizing: border-box;
+    }
+
+    .pp-content-ui-root {
+        font-size: 16px;
+        --spacing: 0.25em;
+        --text-xs: 0.75em;
+        --text-sm: 0.875em;
+        --text-base: 1em;
+        --text-lg: 1.25em;
+        --radius-sm: 0.25em;
+        --radius-md: 0.375em;
+        --radius-lg: 0.5em;
+        --radius-xl: 0.75em;
+        --radius-2xl: 1em;
+        --radius-3xl: 1.5em;
     }
 }
 
 @layer base {
+    :host {
+        font-size: 16px;
+    }
+
     body {
         @apply bg-gray-50 text-gray-900 font-sans dark:bg-gray-950 dark:text-gray-100;
     }
@@ -31,11 +49,11 @@
 
 @layer components {
     .text-display {
-        @apply text-[3.25rem] font-bold tracking-tight;
+        @apply text-[3.25em] font-bold tracking-tight;
     }
 
     .text-heading {
-        @apply text-[2rem] font-bold tracking-tight;
+        @apply text-[2em] font-bold tracking-tight;
     }
 
     .text-lead {
@@ -98,7 +116,7 @@
 
     .cm-cursor,
     .cm-cursor-primary {
-        border-left: 0.125em solid currentColor !important;
+        border-left: 2px solid currentColor !important;
         opacity: 1 !important;
     }
 
@@ -266,7 +284,7 @@
     }
 
     .text-display {
-        @apply text-[3.25rem] font-bold tracking-tight;
+        @apply text-[3.25em] font-bold tracking-tight;
     }
 
     .text-heading {

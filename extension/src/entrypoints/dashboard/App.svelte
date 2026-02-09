@@ -1,61 +1,61 @@
-<svelte:head>
-  <title>Dashboard</title>
-</svelte:head>
-
 <script lang="ts">
-  import {Bell, Moon, Sun, User} from 'lucide-svelte';
-  import {onMount} from 'svelte';
-  import logoUrl from '../../assets/logo.png';
+  import { Bell, Moon, Sun, User } from "lucide-svelte";
+  import { onMount } from "svelte";
+  import logoUrl from "../../assets/logo.png";
 
   type FileEntry = {
     id: string;
     name: string;
-    source: 'appwrite' | 'local';
+    source: "appwrite" | "local";
   };
 
   let files = $state<FileEntry[]>([]);
-  let status = $state<'idle' | 'loading' | 'error'>('idle');
+  let status = $state<"idle" | "loading" | "error">("idle");
   let errorMessage = $state<string | null>(null);
   let isDarkMode = $state(true);
 
   const navItemClasses =
-    'text-nav rounded-full px-4 py-1.5 opacity-60 transition-all duration-150 hover:opacity-100 hover:underline underline-offset-4 active:opacity-80';
+    "text-nav rounded-full px-4 py-1.5 opacity-60 transition-all duration-150 hover:opacity-100 hover:underline underline-offset-4 active:opacity-80";
   const iconButtonClasses =
-    'grid place-items-center rounded-full border border-gray-200 bg-gray-100 p-2 text-gray-700 shadow-md transition hover:bg-gray-200 active:bg-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 dark:active:bg-gray-600';
+    "grid place-items-center rounded-full border border-gray-200 bg-gray-100 p-2 text-gray-700 shadow-md transition hover:bg-gray-200 active:bg-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 dark:active:bg-gray-600";
 
-  const applyTheme = (theme: 'light' | 'dark') => {
+  const applyTheme = (theme: "light" | "dark") => {
     const root = document.documentElement;
     const body = document.body;
 
-    if (theme === 'dark') {
-      root.classList.add('dark');
-      body.classList.add('dark');
+    if (theme === "dark") {
+      root.classList.add("dark");
+      body.classList.add("dark");
       isDarkMode = true;
-      localStorage.setItem('theme', 'dark');
+      localStorage.setItem("theme", "dark");
       return;
     }
 
-    root.classList.remove('dark');
-    body.classList.remove('dark');
+    root.classList.remove("dark");
+    body.classList.remove("dark");
     isDarkMode = false;
-    localStorage.setItem('theme', 'light');
+    localStorage.setItem("theme", "light");
   };
 
   const toggleTheme = () => {
-    applyTheme(isDarkMode ? 'light' : 'dark');
+    applyTheme(isDarkMode ? "light" : "dark");
   };
 
   onMount(() => {
-    const storedTheme = localStorage.getItem('theme');
-    if (storedTheme === 'light' || storedTheme === 'dark') {
+    const storedTheme = localStorage.getItem("theme");
+    if (storedTheme === "light" || storedTheme === "dark") {
       applyTheme(storedTheme);
       return;
     }
 
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    applyTheme(prefersDark ? 'dark' : 'light');
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    applyTheme(prefersDark ? "dark" : "light");
   });
 </script>
+
+<svelte:head>
+  <title>Dashboard</title>
+</svelte:head>
 
 <main class="min-h-screen text-gray-100">
   <div class="relative mx-auto flex w-full flex-col items-center justify-center gap-14 px-32 pb-20 pt-6">
@@ -74,12 +74,7 @@
       </div>
 
       <div class="flex flex-1 justify-self-end gap-6">
-        <button
-          class={iconButtonClasses}
-          type="button"
-          aria-label="Toggle theme"
-          onclick={toggleTheme}
-        >
+        <button class={iconButtonClasses} type="button" aria-label="Toggle theme" onclick={toggleTheme}>
           {#if isDarkMode}
             <Sun class="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
           {:else}
@@ -95,9 +90,9 @@
       </div>
     </nav>
 
-    <section class="relative grid min-h-[18rem] w-full max-w-7xl gap-6 pb-6 md:grid-cols-3 lg:grid-cols-4">
-      {#if status === 'loading'}
-        <div class="col-span-full flex min-h-[18rem] items-center justify-center text-lead text-gray-300">
+    <section class="relative grid min-h-72 w-full max-w-7xl gap-6 pb-6 md:grid-cols-3 lg:grid-cols-4">
+      {#if status === "loading"}
+        <div class="col-span-full flex min-h-72 items-center justify-center text-lead text-gray-300">
           Loading files...
         </div>
       {:else if files.length === 0}
@@ -119,7 +114,7 @@
               <div class="flex min-w-0 flex-1 flex-col gap-1 text-left">
                 <strong class="text-title truncate">{file.name}</strong>
                 <span class="text-body truncate">
-                  {file.source === 'appwrite' ? 'Appwrite' : 'Local file'}
+                  {file.source === "appwrite" ? "Appwrite" : "Local file"}
                 </span>
               </div>
             </div>
@@ -128,7 +123,7 @@
       {/if}
     </section>
 
-    {#if status === 'error' && errorMessage}
+    {#if status === "error" && errorMessage}
       <p class="text-body text-red-200">{errorMessage}</p>
     {/if}
   </div>

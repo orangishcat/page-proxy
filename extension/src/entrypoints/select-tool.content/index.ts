@@ -14,26 +14,28 @@ logger.setLevel("debug", false);
 
 const hoverClass = "pp-hover";
 const selectedClass = "pp-selected";
+const contentUiRootClass = "pp-content-ui-root";
 const styleId = "page-proxy-selection-styles";
 const selectorLabelId = "page-proxy-selector-label";
 const filteredSelectionClasses = new Set([hoverClass, selectedClass]);
+const uiBaseFontSizePx = 16;
 
 const selectionStyles = `
-.pp-hover { outline: 0.125rem solid #86d24b !important; outline-offset: -0.0625rem !important; }
-.pp-selected { outline: 0.125rem solid #bb9348 !important; outline-offset: -0.0625rem !important; }
+.pp-hover { outline: 2px solid #86d24b !important; outline-offset: -1px !important; }
+.pp-selected { outline: 2px solid #bb9348 !important; outline-offset: -1px !important; }
 .pp-selected-label {
   position: fixed;
   z-index: 2147483646;
   background: #282824;
   color: #f2f0ea;
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-  font-size: 0.6875rem;
+  font-size: 11px;
   font-weight: 500;
   line-height: 1.4;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
+  padding: 4px 8px;
+  border-radius: 4px;
   border: 1px solid #3F403A;
-  box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.25);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
   pointer-events: none;
   white-space: nowrap;
   overflow: hidden;
@@ -432,6 +434,7 @@ export default defineContentScript({
 
       shadowUi.mount();
       shadowUi.shadowHost.classList.add(noSelectClass);
+      shadowUi.shadowHost.classList.add(contentUiRootClass);
       logger.debug("selector popup opened", {
         target: describeElementCompact(target),
         selector: info.selector,
@@ -471,8 +474,7 @@ export default defineContentScript({
         }
         const label = ensureSelectorLabel();
         label.textContent = truncate(describeElement(currentTarget));
-        const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-        const offset = 0.5 * rootFontSize;
+        const offset = uiBaseFontSizePx * 0.5;
         const maxWidth = Math.max(0, window.innerWidth - offset * 2);
         label.style.maxWidth = `${maxWidth}px`;
         label.style.top = "0px";

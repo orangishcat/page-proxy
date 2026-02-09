@@ -9,7 +9,7 @@ export const codeEditorTheme = EditorView.theme({
   '&': {
     color: '#5c6e74',
     backgroundColor: '#282824',
-    fontSize: '0.8125rem',
+    fontSize: '13px',
     fontFamily: "JetBrains Mono, Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace",
     lineHeight: '1.5',
     textShadow: 'none'
