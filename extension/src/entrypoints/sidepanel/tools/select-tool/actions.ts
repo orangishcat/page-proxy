@@ -2,7 +2,7 @@ import {browser} from 'wxt/browser';
 import {get} from 'svelte/store';
 import type {SelectToolMessage} from '@/lib/selection';
 import {setErrorMessage} from '../tool-errors';
-import {selectedInfo, setSelection} from './state';
+import {selectedInfo, setSelection, setSelectModeEnabled} from './state';
 
 const isRestrictedUrl = (url: string | undefined) => {
   if (!url) {
@@ -30,6 +30,7 @@ const injectSelectTool = (tabId: number) =>
 export const sendSelectionToggle = (enabled: boolean) => {
   const shouldReportError = enabled;
   setErrorMessage(null);
+  setSelectModeEnabled(enabled);
 
   void browser.tabs
     .query({active: true, currentWindow: true})
@@ -37,6 +38,7 @@ export const sendSelectionToggle = (enabled: boolean) => {
       const activeTab = tabs[0];
       const tabId = activeTab?.id;
       if (tabId === undefined) {
+        setSelectModeEnabled(false);
         if (shouldReportError) {
           setErrorMessage('No active tab found.');
         }
@@ -44,6 +46,7 @@ export const sendSelectionToggle = (enabled: boolean) => {
       }
 
       if (shouldReportError && isRestrictedUrl(activeTab?.url)) {
+        setSelectModeEnabled(false);
         setErrorMessage('Selection is unavailable on this page.');
         return;
       }
@@ -66,11 +69,13 @@ export const sendSelectionToggle = (enabled: boolean) => {
               } satisfies SelectToolMessage)
             )
             .catch(() => {
+              setSelectModeEnabled(false);
               setErrorMessage('Unable to connect to the active tab.');
             });
         });
     })
     .catch(() => {
+      setSelectModeEnabled(false);
       if (!shouldReportError) {
         return;
       }
@@ -162,6 +167,11 @@ export const sendSelectorPopup = () => {
 
 export const attachSelectionListener = () => {
   const listener = (message: SelectToolMessage) => {
+    if (message.type === 'select:mode') {
+      setSelectModeEnabled(message.enabled);
+      return;
+    }
+
     if (message.type === 'select:hover') {
       return;
     }

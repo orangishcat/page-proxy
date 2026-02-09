@@ -111,7 +111,12 @@ const buildPropertyList = (info: ElementInfo | null): PropertyItem[] => {
 export const selectedInfo = writable<ElementInfo | null>(null);
 export const propertyItems = derived(selectedInfo, (info) => buildPropertyList(info));
 export const hasSelection = derived(selectedInfo, (info) => Boolean(info));
+export const selectModeEnabled = writable(false);
 
 export const setSelection = (info: ElementInfo | null) => {
   selectedInfo.set(info);
+};
+
+export const setSelectModeEnabled = (enabled: boolean) => {
+  selectModeEnabled.set(enabled);
 };

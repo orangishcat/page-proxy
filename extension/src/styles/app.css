@@ -215,7 +215,7 @@
     .cm-editor .tok-variableName,
     .cm-editor .tok-variableName2,
     .cm-editor .tok-atom {
-        color: #ee9900;
+        color: #efe2d4;
     }
 
     .cm-editor .cm-function,
@@ -235,7 +235,7 @@
     .cm-editor .tok-number,
     .cm-editor .tok-constant,
     .cm-editor .tok-deleted {
-        color: #990055;
+        color: #ee9900;
     }
 
     .cm-editor .cm-attributeName,
@@ -270,7 +270,7 @@
     .cm-editor .tok-definitionKeyword,
     .cm-editor .tok-moduleKeyword,
     .cm-editor .tok-operatorKeyword {
-        color: #0077aa;
+        color: #ff8f3f;
     }
 
     .cm-editor .cm-strong,

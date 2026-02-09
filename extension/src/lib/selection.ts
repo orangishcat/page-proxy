@@ -35,6 +35,10 @@ export type SelectToolMessage =
       enabled: boolean;
     }
   | {
+      type: 'select:mode';
+      enabled: boolean;
+    }
+  | {
       type: 'select:parent';
     }
   | {

@@ -118,12 +118,18 @@
     scheduleUpdate();
     window.addEventListener("scroll", scheduleUpdate, { capture: true });
     window.addEventListener("resize", scheduleUpdate);
+    containerEl?.addEventListener("keydown", stopKeyPropagation);
+    containerEl?.addEventListener("keyup", stopKeyPropagation);
+    containerEl?.addEventListener("keypress", stopKeyPropagation);
   });
 
   onDestroy(() => {
     if (frameId !== null) cancelAnimationFrame(frameId);
     window.removeEventListener("scroll", scheduleUpdate, { capture: true });
     window.removeEventListener("resize", scheduleUpdate);
+    containerEl?.removeEventListener("keydown", stopKeyPropagation);
+    containerEl?.removeEventListener("keyup", stopKeyPropagation);
+    containerEl?.removeEventListener("keypress", stopKeyPropagation);
   });
 
   $effect(() => {
@@ -137,6 +143,10 @@
     right: "left-0 -translate-x-1/2 -translate-y-1/2 border-r-0 border-t-0",
     center: "hidden",
   });
+
+  const stopKeyPropagation = (event: KeyboardEvent) => {
+    event.stopPropagation();
+  };
 </script>
 
 <div

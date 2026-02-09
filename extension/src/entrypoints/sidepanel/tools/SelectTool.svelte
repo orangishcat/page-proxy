@@ -3,13 +3,17 @@
   import Button from "@/lib/components/Button.svelte";
   import type { PropertyItem } from "./select-tool/state";
   import { sendSelectParent, sendSelectorPopup } from "./select-tool/actions";
-  import { hasSelection, propertyItems } from "./select-tool/state";
+  import { hasSelection, propertyItems, selectModeEnabled } from "./select-tool/state";
   import { ArrowUpIcon } from "lucide-svelte";
   let hasSelectionValue = $state(false);
+  let selectModeEnabledValue = $state(false);
   let propertyItemsValue = $state<PropertyItem[]>([]);
 
   const unsubscribeHasSelection = hasSelection.subscribe((value) => {
     hasSelectionValue = value;
+  });
+  const unsubscribeSelectModeEnabled = selectModeEnabled.subscribe((value) => {
+    selectModeEnabledValue = value;
   });
   const unsubscribePropertyItems = propertyItems.subscribe((value) => {
     propertyItemsValue = value;
@@ -17,6 +21,7 @@
 
   onDestroy(() => {
     unsubscribeHasSelection();
+    unsubscribeSelectModeEnabled();
     unsubscribePropertyItems();
   });
 </script>
@@ -32,7 +37,10 @@
       </div>
     {:else}
       <div class="text-caption text-gray-500 dark:text-gray-400 flex h-full justify-center place-items-center">
-        Select an element to preview
+        <div class="flex flex-col items-center gap-2">
+          <span>Select an element to preview</span>
+          <span>{selectModeEnabledValue ? "(Esc to cancel)" : "(⇧+1 to re-enable)"}</span>
+        </div>
       </div>
     {/if}
   </div>

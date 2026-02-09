@@ -516,6 +516,22 @@ export default defineContentScript({
       event.stopImmediatePropagation();
     };
 
+    const setSelectionEnabled = (enabled: boolean) => {
+      if (enabled === selectionEnabled) return;
+      selectionEnabled = enabled;
+      postMessage({ type: "select:mode", enabled: selectionEnabled });
+      if (selectionEnabled) {
+        ensureSelectionStyles();
+        attachListeners();
+        logger.debug("selection enabled");
+        return;
+      }
+      detachListeners();
+      postMessage({ type: "select:hover", payload: null });
+      postMessage({ type: "select:selected", payload: null });
+      logger.debug("selection disabled");
+    };
+
     const onPointerMove = (event: PointerEvent) => {
       if (!selectionEnabled) return;
       if (isExcludedFromSelection(event.target)) {
@@ -559,11 +575,15 @@ export default defineContentScript({
     };
 
     const onShortcutKeyDown = (event: KeyboardEvent) => {
-      if (isEditableTarget(event.target) || isEditableTarget(document.activeElement)) return;
-      if (event.key === "Escape" && shadowUi) {
-        clearSelectorPopup();
+      if (event.key === "Escape" && selectionEnabled) {
+        event.preventDefault();
+        setSelectionEnabled(false);
         return;
       }
+
+      if (isExcludedFromSelection(event.target) || isExcludedFromSelection(document.activeElement)) return;
+      if (isEditableTarget(event.target) || isEditableTarget(document.activeElement)) return;
+
       const tool = getShortcutTool(event);
       if (!tool) return;
       sendRuntimeMessage({
@@ -632,18 +652,7 @@ export default defineContentScript({
         return;
       }
       if (message.type === "select:toggle") {
-        if (message.enabled === selectionEnabled) return;
-        selectionEnabled = message.enabled;
-        if (selectionEnabled) {
-          ensureSelectionStyles();
-          attachListeners();
-          logger.debug("selection enabled");
-          return;
-        }
-        detachListeners();
-        postMessage({ type: "select:hover", payload: null });
-        postMessage({ type: "select:selected", payload: null });
-        logger.debug("selection disabled");
+        setSelectionEnabled(message.enabled);
       }
     });
 
