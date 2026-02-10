@@ -260,10 +260,10 @@
 </script>
 
 <main class="flex h-full w-full overflow-hidden bg-[#222121] text-white">
-  <div class="relative h-full w-full min-w-full">
-    <div class="flex h-full w-full flex-col">
+  <div class="h-full w-full min-h-0 min-w-full">
+    <div class="flex h-full w-full min-h-0 flex-col">
       <section
-        class="relative flex flex-col h-[36.56%] w-full bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+        class="relative flex h-[36.56%] w-full shrink-0 flex-col bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
         aria-label="Tool panel"
       >
         <div
@@ -395,12 +395,12 @@
       </section>
 
       <CodeEditorTool />
-    </div>
 
-    {#if errorMessageValue}
-      <div class="absolute bottom-0 left-0 w-full bg-[#3b1d1d] px-[4%] py-[2%] text-caption text-[#f5b1b1]">
-        {errorMessageValue}
-      </div>
-    {/if}
+      {#if errorMessageValue}
+        <div class="w-full shrink-0 bg-[#3b1d1d] px-[4%] py-[2%] text-caption text-[#f5b1b1]">
+          {errorMessageValue}
+        </div>
+      {/if}
+    </div>
   </div>
 </main>

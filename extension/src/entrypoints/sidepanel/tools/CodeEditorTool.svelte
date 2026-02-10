@@ -483,7 +483,7 @@
 </script>
 
 <section
-  class="relative h-[63.44%] w-full bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)] flex flex-col"
+  class="relative flex min-h-0 w-full flex-1 flex-col bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
   aria-label="Code editor panel"
 >
   <div class="h-8 w-full bg-[#393a34] flex items-center justify-between px-4">
@@ -507,5 +507,5 @@
       </Button>
     </div>
   </div>
-  <div class="h-full w-full overflow-auto" bind:this={editorHost}></div>
+  <div class="h-full min-h-0 w-full overflow-auto" bind:this={editorHost}></div>
 </section>
