@@ -56,6 +56,7 @@
   let activeWebsiteGlob = $state<string | null>(null);
   let isProtectedPage = $state(false);
   let isProgrammaticUpdate = false;
+  let canPersistEditorChanges = false;
   let scriptMetadataValue = $state<ScriptMetadataState>({
     title: "Page Proxy",
     website: "",
@@ -336,6 +337,7 @@
   };
 
   const applyActiveTab = (tab: { id?: number; url?: string } | null) => {
+    canPersistEditorChanges = false;
     const nextTabId = tab?.id ?? null;
     const nextTabUrl = tab?.url ?? null;
 
@@ -352,29 +354,54 @@
       activeToolState.set("none");
       const protectedContent = buildProtectedDisplay(buildDefaultScript("", scriptFormatConfig), scriptFormatConfig);
       updateEditorContent(protectedContent, { persist: false, sync: false });
+      canPersistEditorChanges = true;
       return;
     }
 
     if (!activeTabUrl) {
       setErrorMessage("No active tab found.");
-      void loadStateForUrl(null);
+      void loadStateForUrl(null).finally(() => {
+        canPersistEditorChanges = true;
+      });
       return;
     }
 
-    void loadStateForUrl(activeTabUrl).catch(() => {
-      setErrorMessage("Unable to load saved script state.");
-    });
+    void loadStateForUrl(activeTabUrl)
+      .catch(() => {
+        setErrorMessage("Unable to load saved script state.");
+      })
+      .finally(() => {
+        canPersistEditorChanges = true;
+      });
+  };
+
+  const resolveActiveTab = async () => {
+    const currentWindowTabs = await browser.tabs.query({ active: true, currentWindow: true });
+    const currentWindowTab = currentWindowTabs[0] ?? null;
+    if (currentWindowTab?.id !== undefined) {
+      return currentWindowTab;
+    }
+
+    const lastFocusedWindowTabs = await browser.tabs.query({ active: true, lastFocusedWindow: true });
+    const lastFocusedWindowTab = lastFocusedWindowTabs[0] ?? null;
+    if (lastFocusedWindowTab?.id !== undefined) {
+      return lastFocusedWindowTab;
+    }
+
+    const activeTabs = await browser.tabs.query({ active: true });
+    return activeTabs[0] ?? null;
   };
 
   const refreshActiveTab = () => {
-    void browser.tabs
-      .query({ active: true, currentWindow: true })
-      .then((tabs) => {
-        applyActiveTab(tabs[0] ?? null);
+    void resolveActiveTab()
+      .then((tab) => {
+        applyActiveTab(tab);
       })
       .catch(() => {
         setErrorMessage("Unable to read the active tab.");
-        void loadStateForUrl(null);
+        void loadStateForUrl(null).finally(() => {
+          canPersistEditorChanges = true;
+        });
       });
   };
 
@@ -405,19 +432,22 @@
     }
 
     editorHandle = createMonacoEditor(editorHost, editorValue, {
-      modelUri: "inmemory://page-proxy/sidepanel-script.js",
+      modelUri: "file:///page-proxy/sidepanel-script.js",
       onChange: (nextValue) => {
         editorValue = nextValue;
         updateScriptMetadata(editorValue);
         if (!isProgrammaticUpdate) {
           syncDefinitions(editorValue);
-          saveToStorage(editorValue);
+          if (canPersistEditorChanges) {
+            saveToStorage(editorValue);
+          }
         }
       },
     });
   };
 
   onMount(() => {
+    canPersistEditorChanges = false;
     editorValue = buildDefaultScript("", scriptFormatConfig);
     setupEditor();
     setEditorApi({ insertDefinitions: insertDefinitionLines });

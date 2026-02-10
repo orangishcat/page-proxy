@@ -1,14 +1,13 @@
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js';
+import * as monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 import {
   ModuleKind,
   ModuleResolutionKind,
   ScriptTarget,
-  javascriptDefaults
-} from 'monaco-editor/esm/vs/language/typescript/monaco.contribution.js';
-import 'monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution.js';
-import { setupJavaScript } from 'monaco-editor/esm/vs/language/typescript/tsMode.js';
-import 'monaco-editor/min/vs/editor/editor.main.css';
-import ppModuleDeclarations from '@/types/pp-monaco-extra-lib.txt?raw';
+  javascriptDefaults,
+} from "monaco-editor/esm/vs/language/typescript/monaco.contribution.js";
+import "monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution.js";
+import "monaco-editor/min/vs/editor/editor.main.css";
+import ppModuleDeclarations from "@/types/pp-monaco-extra-lib.txt?raw";
 
 const ppGlobalDeclarations = `
 import * as pqModule from "@/lib/pp/pp-query";
@@ -44,9 +43,9 @@ type MonacoGlobal = typeof globalThis & {
 
 export type CreateMonacoEditorOptions = {
   readOnly?: boolean;
-  lineNumbers?: 'on' | 'off';
+  lineNumbers?: "on" | "off";
   minimap?: boolean;
-  wordWrap?: 'off' | 'on';
+  wordWrap?: "off" | "on";
   modelUri?: string;
   className?: string;
   padding?: { top: number; bottom: number };
@@ -57,8 +56,17 @@ export type CreateMonacoEditorOptions = {
 let monacoInitialized = false;
 let monacoThemeDefined = false;
 let ppTypesRegistered = false;
-let jsLanguageConfigured = false;
+let jsLanguageServiceConfigured = false;
 let modelCounter = 0;
+const editorLintOwner = "page-proxy-eslint";
+type SimpleLintIssue = {
+  message: string;
+  ruleId: string;
+  startLineNumber: number;
+  startColumn: number;
+  endLineNumber: number;
+  endColumn: number;
+};
 
 const ensureMonacoEnvironment = () => {
   const envGlobal = globalThis as MonacoGlobal;
@@ -68,16 +76,16 @@ const ensureMonacoEnvironment = () => {
 
   envGlobal.MonacoEnvironment = {
     getWorker(_: string, label: string) {
-      if (label === 'typescript' || label === 'javascript') {
-        return new Worker(new URL('monaco-editor/esm/vs/language/typescript/ts.worker.js', import.meta.url), {
-          type: 'module'
+      if (label === "typescript" || label === "javascript") {
+        return new Worker(new URL("monaco-editor/esm/vs/language/typescript/ts.worker.js", import.meta.url), {
+          type: "module",
         });
       }
 
-      return new Worker(new URL('monaco-editor/esm/vs/editor/editor.worker.js', import.meta.url), {
-        type: 'module'
+      return new Worker(new URL("monaco-editor/esm/vs/editor/editor.worker.js", import.meta.url), {
+        type: "module",
       });
-    }
+    },
   };
 };
 
@@ -86,43 +94,43 @@ const defineTheme = () => {
     return;
   }
 
-  monaco.editor.defineTheme('page-proxy-dark', {
-    base: 'vs-dark',
+  monaco.editor.defineTheme("page-proxy-dark", {
+    base: "vs-dark",
     inherit: true,
     rules: [
-      { token: 'comment', foreground: '93a1a1' },
-      { token: 'delimiter', foreground: '999999' },
-      { token: 'number', foreground: 'ee9900' },
-      { token: 'string', foreground: '669900' },
-      { token: 'keyword', foreground: 'ff8f3f' },
-      { token: 'operator', foreground: 'a67f59' },
-      { token: 'type.identifier', foreground: 'dd4a68' },
-      { token: 'identifier', foreground: 'efe2d4' },
-      { token: 'delimiter.bracket', foreground: '999999' }
+      { token: "comment", foreground: "93a1a1" },
+      { token: "delimiter", foreground: "999999" },
+      { token: "number", foreground: "ee9900" },
+      { token: "string", foreground: "669900" },
+      { token: "keyword", foreground: "ff8f3f" },
+      { token: "operator", foreground: "a67f59" },
+      { token: "type.identifier", foreground: "dd4a68" },
+      { token: "identifier", foreground: "efe2d4" },
+      { token: "delimiter.bracket", foreground: "999999" },
     ],
     colors: {
-      'editor.background': '#282824',
-      'editor.foreground': '#5c6e74',
-      'editorLineNumber.foreground': '#5c6e74',
-      'editorLineNumber.activeForeground': '#e7e8ea',
-      'editorCursor.foreground': '#e7e8ea',
-      'editor.selectionBackground': '#b3d4fc55',
-      'editor.inactiveSelectionBackground': '#b3d4fc33',
-      'editorLineHighlightBackground': '#00000000',
-      'editorGutter.background': '#282824',
-      'editorSuggestWidget.background': '#222121',
-      'editorSuggestWidget.border': '#3f403a',
-      'editorSuggestWidget.foreground': '#f2f3f2',
-      'editorHoverWidget.background': '#222121',
-      'editorHoverWidget.border': '#3f403a'
-    }
+      "editor.background": "#282824",
+      "editor.foreground": "#5c6e74",
+      "editorLineNumber.foreground": "#5c6e74",
+      "editorLineNumber.activeForeground": "#e7e8ea",
+      "editorCursor.foreground": "#e7e8ea",
+      "editor.selectionBackground": "#b3d4fc55",
+      "editor.inactiveSelectionBackground": "#b3d4fc33",
+      editorLineHighlightBackground: "#00000000",
+      "editorGutter.background": "#282824",
+      "editorSuggestWidget.background": "#222121",
+      "editorSuggestWidget.border": "#3f403a",
+      "editorSuggestWidget.foreground": "#f2f3f2",
+      "editorHoverWidget.background": "#222121",
+      "editorHoverWidget.border": "#3f403a",
+    },
   });
 
   monacoThemeDefined = true;
 };
 
 const configureJavaScriptLanguageService = () => {
-  if (jsLanguageConfigured) {
+  if (jsLanguageServiceConfigured) {
     return;
   }
 
@@ -131,7 +139,7 @@ const configureJavaScriptLanguageService = () => {
   defaults.setEagerModelSync(true);
   defaults.setDiagnosticsOptions({
     noSemanticValidation: true,
-    noSyntaxValidation: false
+    noSyntaxValidation: false,
   });
   defaults.setCompilerOptions({
     target: ScriptTarget.ES2020,
@@ -144,21 +152,152 @@ const configureJavaScriptLanguageService = () => {
     allowSyntheticDefaultImports: true,
     esModuleInterop: true,
     allowNonTsExtensions: true,
-    baseUrl: 'file:///',
+    baseUrl: "file:///",
     paths: {
-      '@/*': ['*']
+      "@/*": ["*"],
     },
-    lib: ['es2022', 'dom', 'dom.iterable']
+    lib: ["es2022", "dom", "dom.iterable"],
   });
 
   if (!ppTypesRegistered) {
-    defaults.addExtraLib(ppModuleDeclarations, 'file:///page-proxy/pp-modules.d.ts');
-    defaults.addExtraLib(ppGlobalDeclarations, 'file:///page-proxy/pp-globals.d.ts');
+    defaults.addExtraLib(ppModuleDeclarations, "file:///page-proxy/pp-modules.d.ts");
+    defaults.addExtraLib(ppGlobalDeclarations, "file:///page-proxy/pp-globals.d.ts");
     ppTypesRegistered = true;
   }
+  jsLanguageServiceConfigured = true;
+};
 
-  setupJavaScript(defaults);
-  jsLanguageConfigured = true;
+const createSimpleLintMarkers = (issues: SimpleLintIssue[]): monaco.editor.IMarkerData[] =>
+  issues.map((issue) => ({
+    severity: monaco.MarkerSeverity.Warning,
+    startLineNumber: issue.startLineNumber,
+    startColumn: issue.startColumn,
+    endLineNumber: issue.endLineNumber,
+    endColumn: issue.endColumn,
+    message: `${issue.message} (${issue.ruleId})`,
+    source: "page-proxy",
+    code: issue.ruleId,
+  }));
+
+const collectEqeqeqIssues = (code: string): SimpleLintIssue[] => {
+  const issues: SimpleLintIssue[] = [];
+  const lines = code.split("\n");
+
+  lines.forEach((line, lineIndex) => {
+    for (let i = 0; i < line.length - 1; i += 1) {
+      if (line[i] === "=" && line[i + 1] === "=") {
+        const prev = i > 0 ? line[i - 1] : "";
+        const next = i + 2 < line.length ? line[i + 2] : "";
+        const isLooseEquals = prev !== "!" && prev !== "=" && prev !== "<" && prev !== ">" && next !== "=";
+        if (!isLooseEquals) {
+          continue;
+        }
+        issues.push({
+          message: "Expected '===' and instead saw '=='.",
+          ruleId: "eqeqeq",
+          startLineNumber: lineIndex + 1,
+          startColumn: i + 1,
+          endLineNumber: lineIndex + 1,
+          endColumn: i + 3,
+        });
+      }
+
+      if (line[i] === "!" && line[i + 1] === "=") {
+        const next = i + 2 < line.length ? line[i + 2] : "";
+        if (next === "=") {
+          continue;
+        }
+        issues.push({
+          message: "Expected '!==' and instead saw '!='.",
+          ruleId: "eqeqeq",
+          startLineNumber: lineIndex + 1,
+          startColumn: i + 1,
+          endLineNumber: lineIndex + 1,
+          endColumn: i + 3,
+        });
+      }
+    }
+  });
+
+  return issues;
+};
+
+const collectUnusedVariableIssues = (code: string): SimpleLintIssue[] => {
+  const issues: SimpleLintIssue[] = [];
+  const declarationRegex = /\b(?:const|let)\s+([A-Za-z_$][A-Za-z0-9_$]*)/g;
+  const lines = code.split("\n");
+  const declarations: Array<{ name: string; line: number; column: number }> = [];
+
+  lines.forEach((line, lineIndex) => {
+    declarationRegex.lastIndex = 0;
+    let match = declarationRegex.exec(line);
+    while (match) {
+      const name = match[1];
+      if (!name.startsWith("_")) {
+        const nameOffset = match.index + match[0].lastIndexOf(name);
+        declarations.push({ name, line: lineIndex + 1, column: nameOffset + 1 });
+      }
+      match = declarationRegex.exec(line);
+    }
+  });
+
+  declarations.forEach((declaration) => {
+    const usageRegex = new RegExp(`\\b${declaration.name}\\b`, "g");
+    let usageCount = 0;
+    let usageMatch = usageRegex.exec(code);
+    while (usageMatch) {
+      usageCount += 1;
+      if (usageCount > 1) {
+        break;
+      }
+      usageMatch = usageRegex.exec(code);
+    }
+
+    if (usageCount <= 1) {
+      issues.push({
+        message: `'${declaration.name}' is assigned a value but never used.`,
+        ruleId: "no-unused-vars",
+        startLineNumber: declaration.line,
+        startColumn: declaration.column,
+        endLineNumber: declaration.line,
+        endColumn: declaration.column + declaration.name.length,
+      });
+    }
+  });
+
+  return issues;
+};
+
+const lintModel = (model: monaco.editor.ITextModel) => {
+  const source = model.getValue();
+  const issues = [...collectEqeqeqIssues(source), ...collectUnusedVariableIssues(source)];
+  monaco.editor.setModelMarkers(model, editorLintOwner, createSimpleLintMarkers(issues));
+};
+
+const createLintDisposable = (model: monaco.editor.ITextModel): monaco.IDisposable => {
+  let lintTimer: number | null = null;
+  const scheduleLint = () => {
+    if (lintTimer !== null) {
+      window.clearTimeout(lintTimer);
+    }
+    lintTimer = window.setTimeout(() => {
+      lintTimer = null;
+      lintModel(model);
+    }, 250);
+  };
+
+  lintModel(model);
+  const changeDisposable = model.onDidChangeContent(scheduleLint);
+
+  return {
+    dispose: () => {
+      if (lintTimer !== null) {
+        window.clearTimeout(lintTimer);
+      }
+      changeDisposable.dispose();
+      monaco.editor.setModelMarkers(model, editorLintOwner, []);
+    },
+  };
 };
 
 export const ensureMonacoEditor = () => {
@@ -169,7 +308,7 @@ export const ensureMonacoEditor = () => {
   ensureMonacoEnvironment();
   defineTheme();
   configureJavaScriptLanguageService();
-  monaco.editor.setTheme('page-proxy-dark');
+  monaco.editor.setTheme("page-proxy-dark");
   monacoInitialized = true;
 };
 
@@ -191,17 +330,17 @@ export const createMonacoEditor = (
 
   const {
     readOnly = false,
-    lineNumbers = 'on',
+    lineNumbers = "on",
     minimap = false,
-    wordWrap = 'off',
+    wordWrap = "off",
     modelUri,
-    className = 'pp-monaco-editor scrollbar-stable',
+    className = "pp-monaco-editor scrollbar-stable",
     padding = { top: 8, bottom: 8 },
     onChange,
-    editorOptions = {}
+    editorOptions = {},
   } = options;
 
-  const model = monaco.editor.createModel(value, 'javascript', createModelUri(modelUri));
+  const model = monaco.editor.createModel(value, "javascript", createModelUri(modelUri));
   const editor = monaco.editor.create(parent, {
     model,
     automaticLayout: true,
@@ -216,27 +355,28 @@ export const createMonacoEditor = (
     mouseWheelZoom: true,
     glyphMargin: false,
     folding: !readOnly,
-    renderWhitespace: 'selection',
+    renderWhitespace: "selection",
     quickSuggestions: {
       other: true,
       comments: false,
-      strings: true
+      strings: true,
     },
     suggestOnTriggerCharacters: true,
-    acceptSuggestionOnEnter: 'on',
-    snippetSuggestions: 'inline',
+    acceptSuggestionOnEnter: "on",
+    snippetSuggestions: "inline",
     parameterHints: { enabled: true },
     inlineSuggest: { enabled: true },
-    'semanticHighlighting.enabled': true,
+    "semanticHighlighting.enabled": true,
     bracketPairColorization: { enabled: true },
     scrollBeyondLastLine: false,
-    lineDecorationsWidth: lineNumbers === 'off' ? 0 : 10,
-    lineNumbersMinChars: lineNumbers === 'off' ? 0 : 3,
+    lineDecorationsWidth: lineNumbers === "off" ? 0 : 10,
+    lineNumbersMinChars: lineNumbers === "off" ? 0 : 3,
     padding,
-    fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+    fontFamily:
+      "JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
     fontSize: 13,
     lineHeight: 20,
-    ...editorOptions
+    ...editorOptions,
   });
   const rootNode = editor.getDomNode();
   if (rootNode instanceof HTMLElement) {
@@ -250,6 +390,9 @@ export const createMonacoEditor = (
   }
 
   const disposables: monaco.IDisposable[] = [];
+  if (!readOnly) {
+    disposables.push(createLintDisposable(model));
+  }
   if (onChange) {
     disposables.push(
       editor.onDidChangeModelContent(() => {
@@ -267,7 +410,7 @@ export const createMonacoEditor = (
       });
       editor.dispose();
       model.dispose();
-    }
+    },
   };
 };
 
@@ -280,6 +423,6 @@ export const updateMonacoEditorValue = (handle: MonacoCodeEditorHandle, value: s
 };
 
 export const getMonacoEditorValue = (handle: MonacoCodeEditorHandle) =>
-  handle.model.isDisposed() ? '' : handle.model.getValue();
+  handle.model.isDisposed() ? "" : handle.model.getValue();
 
 export const MonacoRange = monaco.Range;
