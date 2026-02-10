@@ -1,20 +1,4 @@
-import {fileURLToPath} from 'node:url';
 import {defineConfig} from 'wxt';
-
-const rootNodeModules = fileURLToPath(new URL('../node_modules/', import.meta.url));
-
-const codemirrorAliases = {
-  '@codemirror/autocomplete': `${rootNodeModules}@codemirror/autocomplete`,
-  '@codemirror/commands': `${rootNodeModules}@codemirror/commands`,
-  '@codemirror/lang-javascript': `${rootNodeModules}@codemirror/lang-javascript`,
-  '@codemirror/language': `${rootNodeModules}@codemirror/language`,
-  '@codemirror/lint': `${rootNodeModules}@codemirror/lint`,
-  '@codemirror/state': `${rootNodeModules}@codemirror/state`,
-  '@codemirror/view': `${rootNodeModules}@codemirror/view`,
-  '@lezer/common': `${rootNodeModules}@lezer/common`,
-  '@lezer/highlight': `${rootNodeModules}@lezer/highlight`,
-  '@lezer/lr': `${rootNodeModules}@lezer/lr`
-};
 
 export default defineConfig({
   root: '.',
@@ -22,21 +6,6 @@ export default defineConfig({
   entrypointsDir: 'entrypoints',
   modules: ['@wxt-dev/module-svelte'],
   vite: () => ({
-    resolve: {
-      alias: codemirrorAliases,
-      dedupe: [
-        '@codemirror/autocomplete',
-        '@codemirror/commands',
-        '@codemirror/lang-javascript',
-        '@codemirror/language',
-        '@codemirror/lint',
-        '@codemirror/state',
-        '@codemirror/view',
-        '@lezer/common',
-        '@lezer/highlight',
-        '@lezer/lr'
-      ]
-    },
     esbuild: {
       charset: 'ascii'
     }

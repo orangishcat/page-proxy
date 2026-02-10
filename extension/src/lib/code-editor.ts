@@ -1,92 +1,285 @@
-import {EditorState, type Extension} from '@codemirror/state';
-import {EditorView} from '@codemirror/view';
-import {javascript} from '@codemirror/lang-javascript';
-import {HighlightStyle, syntaxHighlighting} from '@codemirror/language';
-import {classHighlighter} from '@lezer/highlight';
-import {tags as t} from '@lezer/highlight';
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js';
+import {
+  ModuleKind,
+  ModuleResolutionKind,
+  ScriptTarget,
+  javascriptDefaults
+} from 'monaco-editor/esm/vs/language/typescript/monaco.contribution.js';
+import 'monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution.js';
+import { setupJavaScript } from 'monaco-editor/esm/vs/language/typescript/tsMode.js';
+import 'monaco-editor/min/vs/editor/editor.main.css';
+import ppModuleDeclarations from '@/types/pp-monaco-extra-lib.txt?raw';
 
-export const codeEditorTheme = EditorView.theme({
-  '&': {
-    color: '#5c6e74',
-    backgroundColor: '#282824',
-    fontSize: '13px',
-    fontFamily: "JetBrains Mono, Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace",
-    lineHeight: '1.5',
-    textShadow: 'none'
-  },
-  '.cm-scroller': {
-    overflowX: 'auto',
-    overflowY: 'auto'
-  },
-  '.cm-content': {
-    caretColor: '#5c6e74',
-    width: 'fit-content',
-    minWidth: '100%',
-    maxWidth: '120ch',
-    whiteSpace: 'pre',
-    wordBreak: 'normal',
-    overflowWrap: 'normal'
-  },
-  '.cm-line': {
-    whiteSpace: 'pre'
-  },
-  '.cm-selectionBackground, ::selection': {
-    backgroundColor: '#b3d4fc'
-  },
-  '&.cm-focused .cm-selectionBackground': {
-    backgroundColor: '#b3d4fc'
-  },
-  '.cm-cursor': {
-    borderLeftColor: '#5c6e74'
-  },
-  '.cm-gutters': {
-    backgroundColor: '#282824',
-    color: '#5c6e74',
-    border: 'none'
-  }
-});
+const ppGlobalDeclarations = `
+import * as pqModule from "@/lib/pp/pp-query";
+import * as psModule from "@/lib/pp/pp-style";
+import * as paModule from "@/lib/pp/pp-api";
+import * as pvModule from "@/lib/pp/pp-event";
 
-export const codeEditorHighlightStyle = HighlightStyle.define([
-  {tag: t.comment, color: '#93a1a1'},
-  {tag: t.punctuation, color: '#999999'},
-  {
-    tag: [t.propertyName, t.tagName, t.bool, t.number, t.constant(t.name), t.constant(t.variableName), t.deleted],
-    color: '#990055'
-  },
-  {tag: [t.attributeName, t.string, t.character, t.standard(t.name), t.inserted], color: '#669900'},
-  {tag: [t.operator, t.url], color: '#a67f59'},
-  {
-    tag: [t.keyword, t.attributeValue, t.controlKeyword, t.definitionKeyword, t.moduleKeyword, t.operatorKeyword],
-    color: '#0077aa'
-  },
-  {tag: [t.function(t.variableName), t.function(t.propertyName)], color: '#dd4a68'},
-  {tag: [t.regexp, t.variableName, t.atom], color: '#ee9900'},
-  {tag: t.strong, fontWeight: '700'},
-  {tag: t.emphasis, fontStyle: 'italic'}
-]);
+declare global {
+  const pq: typeof pqModule;
+  const ps: typeof psModule;
+  const pa: typeof paModule;
+  const pv: typeof pvModule;
+}
 
-export const buildCodeEditorExtensions = (): Extension[] => [
-  javascript({typescript: false}),
-  EditorView.editorAttributes.of({
-    class: 'scrollbar-stable'
-  }),
-  codeEditorTheme,
-  syntaxHighlighting(codeEditorHighlightStyle, {fallback: true}),
-  syntaxHighlighting(classHighlighter)
-];
+export {};
+`;
 
-export const createCodeEditorView = (
-  parent: HTMLElement,
-  doc: string,
-  extensions: Extension[] = []
-) => {
-  const state = EditorState.create({
-    doc,
-    extensions: [...buildCodeEditorExtensions(), ...extensions]
-  });
+export type MonacoEditor = monaco.editor.IStandaloneCodeEditor;
 
-  return new EditorView({
-    state,
-    parent
-  });
+export type MonacoCodeEditorHandle = {
+  editor: MonacoEditor;
+  model: monaco.editor.ITextModel;
+  dispose: () => void;
 };
+
+type MonacoEnvironment = {
+  getWorker?: (moduleId: string, label: string) => Worker;
+};
+
+type MonacoGlobal = typeof globalThis & {
+  MonacoEnvironment?: MonacoEnvironment;
+};
+
+export type CreateMonacoEditorOptions = {
+  readOnly?: boolean;
+  lineNumbers?: 'on' | 'off';
+  minimap?: boolean;
+  wordWrap?: 'off' | 'on';
+  modelUri?: string;
+  className?: string;
+  padding?: { top: number; bottom: number };
+  onChange?: (value: string) => void;
+  editorOptions?: monaco.editor.IStandaloneEditorConstructionOptions;
+};
+
+let monacoInitialized = false;
+let monacoThemeDefined = false;
+let ppTypesRegistered = false;
+let jsLanguageConfigured = false;
+let modelCounter = 0;
+
+const ensureMonacoEnvironment = () => {
+  const envGlobal = globalThis as MonacoGlobal;
+  if (envGlobal.MonacoEnvironment?.getWorker) {
+    return;
+  }
+
+  envGlobal.MonacoEnvironment = {
+    getWorker(_: string, label: string) {
+      if (label === 'typescript' || label === 'javascript') {
+        return new Worker(new URL('monaco-editor/esm/vs/language/typescript/ts.worker.js', import.meta.url), {
+          type: 'module'
+        });
+      }
+
+      return new Worker(new URL('monaco-editor/esm/vs/editor/editor.worker.js', import.meta.url), {
+        type: 'module'
+      });
+    }
+  };
+};
+
+const defineTheme = () => {
+  if (monacoThemeDefined) {
+    return;
+  }
+
+  monaco.editor.defineTheme('page-proxy-dark', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      { token: 'comment', foreground: '93a1a1' },
+      { token: 'delimiter', foreground: '999999' },
+      { token: 'number', foreground: 'ee9900' },
+      { token: 'string', foreground: '669900' },
+      { token: 'keyword', foreground: 'ff8f3f' },
+      { token: 'operator', foreground: 'a67f59' },
+      { token: 'type.identifier', foreground: 'dd4a68' },
+      { token: 'identifier', foreground: 'efe2d4' },
+      { token: 'delimiter.bracket', foreground: '999999' }
+    ],
+    colors: {
+      'editor.background': '#282824',
+      'editor.foreground': '#5c6e74',
+      'editorLineNumber.foreground': '#5c6e74',
+      'editorLineNumber.activeForeground': '#e7e8ea',
+      'editorCursor.foreground': '#e7e8ea',
+      'editor.selectionBackground': '#b3d4fc55',
+      'editor.inactiveSelectionBackground': '#b3d4fc33',
+      'editorLineHighlightBackground': '#00000000',
+      'editorGutter.background': '#282824',
+      'editorSuggestWidget.background': '#222121',
+      'editorSuggestWidget.border': '#3f403a',
+      'editorSuggestWidget.foreground': '#f2f3f2',
+      'editorHoverWidget.background': '#222121',
+      'editorHoverWidget.border': '#3f403a'
+    }
+  });
+
+  monacoThemeDefined = true;
+};
+
+const configureJavaScriptLanguageService = () => {
+  if (jsLanguageConfigured) {
+    return;
+  }
+
+  const defaults = javascriptDefaults;
+
+  defaults.setEagerModelSync(true);
+  defaults.setDiagnosticsOptions({
+    noSemanticValidation: true,
+    noSyntaxValidation: false
+  });
+  defaults.setCompilerOptions({
+    target: ScriptTarget.ES2020,
+    module: ModuleKind.ESNext,
+    moduleResolution: ModuleResolutionKind.NodeJs,
+    allowJs: true,
+    checkJs: false,
+    strict: true,
+    noEmit: true,
+    allowSyntheticDefaultImports: true,
+    esModuleInterop: true,
+    allowNonTsExtensions: true,
+    baseUrl: 'file:///',
+    paths: {
+      '@/*': ['*']
+    },
+    lib: ['es2022', 'dom', 'dom.iterable']
+  });
+
+  if (!ppTypesRegistered) {
+    defaults.addExtraLib(ppModuleDeclarations, 'file:///page-proxy/pp-modules.d.ts');
+    defaults.addExtraLib(ppGlobalDeclarations, 'file:///page-proxy/pp-globals.d.ts');
+    ppTypesRegistered = true;
+  }
+
+  setupJavaScript(defaults);
+  jsLanguageConfigured = true;
+};
+
+export const ensureMonacoEditor = () => {
+  if (monacoInitialized) {
+    return;
+  }
+
+  ensureMonacoEnvironment();
+  defineTheme();
+  configureJavaScriptLanguageService();
+  monaco.editor.setTheme('page-proxy-dark');
+  monacoInitialized = true;
+};
+
+const createModelUri = (modelUri?: string) => {
+  if (modelUri) {
+    return monaco.Uri.parse(modelUri);
+  }
+
+  modelCounter += 1;
+  return monaco.Uri.parse(`file:///page-proxy/editor-${modelCounter}.js`);
+};
+
+export const createMonacoEditor = (
+  parent: HTMLElement,
+  value: string,
+  options: CreateMonacoEditorOptions = {},
+): MonacoCodeEditorHandle => {
+  ensureMonacoEditor();
+
+  const {
+    readOnly = false,
+    lineNumbers = 'on',
+    minimap = false,
+    wordWrap = 'off',
+    modelUri,
+    className = 'pp-monaco-editor scrollbar-stable',
+    padding = { top: 8, bottom: 8 },
+    onChange,
+    editorOptions = {}
+  } = options;
+
+  const model = monaco.editor.createModel(value, 'javascript', createModelUri(modelUri));
+  const editor = monaco.editor.create(parent, {
+    model,
+    automaticLayout: true,
+    readOnly,
+    lineNumbers,
+    minimap: { enabled: minimap },
+    wordWrap,
+    tabSize: 2,
+    insertSpaces: true,
+    detectIndentation: false,
+    smoothScrolling: true,
+    mouseWheelZoom: true,
+    glyphMargin: false,
+    folding: !readOnly,
+    renderWhitespace: 'selection',
+    quickSuggestions: {
+      other: true,
+      comments: false,
+      strings: true
+    },
+    suggestOnTriggerCharacters: true,
+    acceptSuggestionOnEnter: 'on',
+    snippetSuggestions: 'inline',
+    parameterHints: { enabled: true },
+    inlineSuggest: { enabled: true },
+    'semanticHighlighting.enabled': true,
+    bracketPairColorization: { enabled: true },
+    scrollBeyondLastLine: false,
+    lineDecorationsWidth: lineNumbers === 'off' ? 0 : 10,
+    lineNumbersMinChars: lineNumbers === 'off' ? 0 : 3,
+    padding,
+    fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+    fontSize: 13,
+    lineHeight: 20,
+    ...editorOptions
+  });
+  const rootNode = editor.getDomNode();
+  if (rootNode instanceof HTMLElement) {
+    className
+      .split(/\s+/)
+      .map((token) => token.trim())
+      .filter((token) => token.length > 0)
+      .forEach((token) => {
+        rootNode.classList.add(token);
+      });
+  }
+
+  const disposables: monaco.IDisposable[] = [];
+  if (onChange) {
+    disposables.push(
+      editor.onDidChangeModelContent(() => {
+        onChange(editor.getValue());
+      }),
+    );
+  }
+
+  return {
+    editor,
+    model,
+    dispose: () => {
+      disposables.forEach((disposable) => {
+        disposable.dispose();
+      });
+      editor.dispose();
+      model.dispose();
+    }
+  };
+};
+
+export const updateMonacoEditorValue = (handle: MonacoCodeEditorHandle, value: string) => {
+  if (handle.model.isDisposed()) {
+    return;
+  }
+
+  handle.model.setValue(value);
+};
+
+export const getMonacoEditorValue = (handle: MonacoCodeEditorHandle) =>
+  handle.model.isDisposed() ? '' : handle.model.getValue();
+
+export const MonacoRange = monaco.Range;

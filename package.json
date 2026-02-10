@@ -4,17 +4,18 @@
     "type": "module",
     "scripts": {
         "postinstall": "cd extension && wxt prepare",
-        "check": "svelte-check --tsconfig ./web/tsconfig.json && svelte-check --tsconfig ./extension/tsconfig.json",
+        "check": "svelte-check --tsconfig ./web/tsconfig.json && node ./extension/scripts/generate-pp-monaco-extra-lib.mjs && svelte-check --tsconfig ./extension/tsconfig.json",
+        "extension:generate-monaco-types": "node ./extension/scripts/generate-pp-monaco-extra-lib.mjs",
         "web:dev": "cd web && vite dev",
         "web:build": "cd web && vite build",
         "web:preview": "cd web && vite preview",
         "web:check": "svelte-check --tsconfig ./web/tsconfig.json",
         "web:lint": "cd web && eslint .",
-        "extension:dev": "cd extension && wxt",
-        "extension:build": "cd extension && wxt build",
+        "extension:dev": "node ./extension/scripts/generate-pp-monaco-extra-lib.mjs && cd extension && wxt",
+        "extension:build": "node ./extension/scripts/generate-pp-monaco-extra-lib.mjs && cd extension && wxt build",
         "extension:prepare": "cd extension && wxt prepare",
-        "extension:check": "svelte-check --tsconfig ./extension/tsconfig.json",
-        "extension:lint": "cd extension && eslint ."
+        "extension:check": "node ./extension/scripts/generate-pp-monaco-extra-lib.mjs && svelte-check --tsconfig ./extension/tsconfig.json",
+        "extension:lint": "node ./extension/scripts/generate-pp-monaco-extra-lib.mjs && cd extension && eslint ."
     },
     "engines": {
         "node": ">=22"
@@ -34,6 +35,7 @@
         "bits-ui": "^2.14.4",
         "eslint-linter-browserify": "^9.39.2",
         "lucide-svelte": "^0.562.0",
+        "monaco-editor": "^0.55.1",
         "penpal": "^7.0.0"
     },
     "devDependencies": {

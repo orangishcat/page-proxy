@@ -54,16 +54,16 @@ export const element = (definition: ElementDefinition) => ({
   resolve: () => resolveElement(definition),
 });
 
-export type SelectorDefinition = {
+export type SelectorDefinition<T = HTMLElement> = {
   name: string;
   baseSelector?: string;
   matches: (element: Element) => boolean;
-  postMap?: (element: HTMLElement) => unknown;
+  postMap?: (element: HTMLElement) => T;
   bbox?: ElementSize & { x: number; y: number };
 };
 
-export type TraverseParentsOptions = {
-  postMap?: (element: HTMLElement) => unknown;
+export type TraverseParentsOptions<T = HTMLElement> = {
+  postMap?: (element: HTMLElement) => T;
 };
 
 const selectionClassesToIgnore = new Set(["pp-hover", "pp-selected"]);
@@ -211,12 +211,12 @@ export const propContains = (element: Element, key: string, value: string) => {
 
 export const propExists = (element: Element, key: string) => hasElementProperty(element, key);
 
-export const traverseParents = (
+export const traverseParents = <T = HTMLElement>(
   el: Element,
   matcher: (element: HTMLElement) => boolean,
-  options: TraverseParentsOptions = {},
-) => {
-  const postMap = options.postMap ?? ((element: HTMLElement) => element);
+  options: TraverseParentsOptions<T> = {},
+): T | null => {
+  const postMap: (element: HTMLElement) => T = options.postMap ?? ((element: HTMLElement) => element as T);
   let current = el.parentElement;
 
   while (current) {
@@ -229,7 +229,7 @@ export const traverseParents = (
   return null;
 };
 
-export const selector = (definition: SelectorDefinition) => {
+export const selector = <T = HTMLElement>(definition: SelectorDefinition<T>) => {
   const matchesElement = (el: Element) => {
     const normalizedBaseSelector = definition.baseSelector?.trim() ?? "";
     const baseSelector = normalizedBaseSelector.length > 0 ? normalizedBaseSelector : "*";
@@ -239,9 +239,9 @@ export const selector = (definition: SelectorDefinition) => {
     return Boolean(definition.matches(el));
   };
 
-  const mapMatchingElement = (el: Element) => {
+  const mapMatchingElement = (el: Element): T => {
     if (!definition.postMap) {
-      return el;
+      return el as T;
     }
     return definition.postMap(el as HTMLElement);
   };
@@ -251,7 +251,7 @@ export const selector = (definition: SelectorDefinition) => {
     apply: () => null,
     matches: (el: Element) => matchesElement(el),
     onElementMatches: (
-      func: (value: unknown) => void,
+      func: (value: T) => void,
       targetNode: Node = document.body ?? document.documentElement,
       observerOptions: MutationObserverInit = { childList: true, subtree: true },
     ) =>
@@ -260,7 +260,7 @@ export const selector = (definition: SelectorDefinition) => {
           func(mapMatchingElement(el));
         }
       }, targetNode, observerOptions),
-    query: () => {
+    query: (): T | null => {
       const normalizedBaseSelector = definition.baseSelector?.trim() ?? "";
       const baseSelector = normalizedBaseSelector.length > 0 ? normalizedBaseSelector : "*";
       const elements = document.querySelectorAll(baseSelector);
@@ -271,7 +271,7 @@ export const selector = (definition: SelectorDefinition) => {
       }
       return null;
     },
-    queryAll: () => {
+    queryAll: (): T[] => {
       const normalizedBaseSelector = definition.baseSelector?.trim() ?? "";
       const baseSelector = normalizedBaseSelector.length > 0 ? normalizedBaseSelector : "*";
       const elements = Array.from(document.querySelectorAll(baseSelector));

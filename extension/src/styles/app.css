@@ -92,238 +92,27 @@
         @apply text-xs font-semibold uppercase tracking-widest;
     }
 
-    .cm-editor {
-        @apply h-full w-full text-[100%] leading-[187.5%] text-white;
+    .monaco-editor.pp-monaco-editor {
+        @apply h-full w-full text-[100%] leading-[187.5%];
+    }
+
+    .monaco-editor.pp-monaco-editor .monaco-editor-background,
+    .monaco-editor.pp-monaco-editor .margin {
+        background-color: #282824 !important;
+    }
+
+    .monaco-editor.pp-monaco-editor .view-lines {
         font-family:
             "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
             monospace;
-        background-color: transparent;
     }
 
-    .cm-scroller {
-        font-family: inherit;
-        align-items: stretch;
+    .monaco-editor.pp-monaco-editor .suggest-widget,
+    .monaco-editor.pp-monaco-editor .monaco-hover {
+        @apply border border-gray-700;
     }
 
-    .cm-content {
-        padding: 2.5%;
-        caret-color: currentColor !important;
-    }
-
-    .dark .cm-content {
-        caret-color: #f2f3f2 !important;
-    }
-
-    .cm-cursor,
-    .cm-cursor-primary {
-        border-left: 2px solid currentColor !important;
-        opacity: 1 !important;
-    }
-
-    .cm-focused .cm-cursor,
-    .cm-focused .cm-cursor-primary {
-        border-left-color: currentColor !important;
-    }
-
-    .dark .cm-cursor,
-    .dark .cm-cursor-primary {
-        border-left-color: #f2f3f2 !important;
-    }
-
-    .dark .cm-lintRange-warning {
-        background-image: none;
-        text-decoration: underline wavy #fbbf24;
-        text-decoration-thickness: 0.125em;
-        text-underline-offset: 0.2em;
-    }
-
-    .dark .cm-lintRange-error {
-        background-image: none;
-        text-decoration: underline wavy #f87171;
-        text-decoration-thickness: 0.125em;
-        text-underline-offset: 0.2em;
-    }
-
-    .dark .cm-lintRange-info {
-        background-image: none;
-        text-decoration: underline wavy #9ca3af;
-        text-decoration-thickness: 0.125em;
-        text-underline-offset: 0.2em;
-    }
-
-    .dark .cm-lintRange-hint {
-        background-image: none;
-        text-decoration: underline wavy #a78bfa;
-        text-decoration-thickness: 0.125em;
-        text-underline-offset: 0.2em;
-    }
-
-    .dark .cm-lintPoint-warning {
-        color: #fbbf24;
-    }
-
-    .dark .cm-lintPoint-error {
-        color: #f87171;
-    }
-
-    .dark .cm-lintPoint-info {
-        color: #9ca3af;
-    }
-
-    .dark .cm-lintPoint-hint {
-        color: #a78bfa;
-    }
-
-    .dark .cm-tooltip.cm-tooltip-lint {
-        @apply border border-gray-700 bg-gray-950 text-gray-100;
-    }
-
-    .dark .cm-panel.cm-panel-lint {
-        @apply border-t border-gray-800 bg-gray-950 text-gray-100;
-    }
-
-    .cm-gutters {
-        @apply border-0 text-white;
-        background-color: #282824 !important;
-        align-self: stretch;
-        min-height: 100%;
-    }
-
-    .dark .cm-gutters {
-        background-color: #282824 !important;
-    }
-
-    .cm-lineNumbers .cm-gutterElement {
-        padding-left: 3%;
-        padding-right: 3%;
-    }
-
-    .cm-editor .cm-comment,
-    .cm-editor .tok-comment {
-        color: #93a1a1;
-    }
-
-    .cm-editor .cm-punctuation,
-    .cm-editor .tok-punctuation {
-        color: #999999;
-    }
-
-    .cm-editor .cm-regexp,
-    .cm-editor .cm-variableName,
-    .cm-editor .cm-atom,
-    .cm-editor .tok-string2,
-    .cm-editor .tok-variableName,
-    .cm-editor .tok-variableName2,
-    .cm-editor .tok-atom {
-        color: #efe2d4;
-    }
-
-    .cm-editor .cm-function,
-    .cm-editor .tok-function {
-        color: #dd4a68;
-    }
-
-    .cm-editor .cm-propertyName,
-    .cm-editor .cm-tagName,
-    .cm-editor .cm-bool,
-    .cm-editor .cm-number,
-    .cm-editor .cm-constant,
-    .cm-editor .cm-deleted,
-    .cm-editor .tok-propertyName,
-    .cm-editor .tok-tagName,
-    .cm-editor .tok-bool,
-    .cm-editor .tok-number,
-    .cm-editor .tok-constant,
-    .cm-editor .tok-deleted {
-        color: #ee9900;
-    }
-
-    .cm-editor .cm-attributeName,
-    .cm-editor .cm-string,
-    .cm-editor .cm-character,
-    .cm-editor .cm-standard,
-    .cm-editor .cm-inserted,
-    .cm-editor .tok-attributeName,
-    .cm-editor .tok-string,
-    .cm-editor .tok-character,
-    .cm-editor .tok-standard,
-    .cm-editor .tok-inserted {
-        color: #669900;
-    }
-
-    .cm-editor .cm-operator,
-    .cm-editor .cm-url,
-    .cm-editor .tok-operator,
-    .cm-editor .tok-url {
-        color: #a67f59;
-    }
-
-    .cm-editor .cm-keyword,
-    .cm-editor .cm-attributeValue,
-    .cm-editor .cm-controlKeyword,
-    .cm-editor .cm-definitionKeyword,
-    .cm-editor .cm-moduleKeyword,
-    .cm-editor .cm-operatorKeyword,
-    .cm-editor .tok-keyword,
-    .cm-editor .tok-attributeValue,
-    .cm-editor .tok-controlKeyword,
-    .cm-editor .tok-definitionKeyword,
-    .cm-editor .tok-moduleKeyword,
-    .cm-editor .tok-operatorKeyword {
-        color: #ff8f3f;
-    }
-
-    .cm-editor .cm-strong,
-    .cm-editor .tok-strong {
-        font-weight: 700;
-    }
-
-    .cm-editor .cm-emphasis,
-    .cm-editor .tok-emphasis {
-        font-style: italic;
-    }
-
-    .text-display {
-        @apply text-[3.25em] font-bold tracking-tight;
-    }
-
-    .text-heading {
-        @apply text-[2rem] font-bold tracking-tight;
-    }
-
-    .text-lead {
-        @apply text-base font-medium;
-    }
-
-    .text-title {
-        @apply text-base font-bold;
-    }
-
-    .text-subtitle {
-        @apply text-xs font-medium;
-    }
-
-    .text-body {
-        @apply text-xs font-normal;
-    }
-
-    .text-caption {
-        @apply text-xs font-normal;
-    }
-
-    .text-button {
-        @apply text-xs font-medium;
-    }
-
-    .text-nav {
-        @apply text-xs font-medium;
-    }
-
-    .text-eyebrow {
-        @apply text-xs font-semibold uppercase tracking-widest;
-    }
-
-    .text-label {
-        @apply text-xs font-semibold uppercase tracking-widest;
+    .monaco-editor.pp-monaco-preview .margin {
+        width: 0 !important;
     }
 }

@@ -2,17 +2,9 @@
   import { onDestroy, onMount } from "svelte";
   import { get } from "svelte/store";
   import { browser } from "wxt/browser";
-  import { EditorState } from "@codemirror/state";
-  import { EditorView, keymap } from "@codemirror/view";
-  import { indentWithTab } from "@codemirror/commands";
-  import { javascript } from "@codemirror/lang-javascript";
-  import { autocompletion, type CompletionSource } from "@codemirror/autocomplete";
-  import { indentRange, indentUnit } from "@codemirror/language";
   import { ExternalLink, Play } from "lucide-svelte";
 
-  import { buildCodeEditorExtensions } from "@/lib/code-editor";
-  import { pageModificationFunctions } from "@/lib/page-modification";
-  import { pqSelectorReference } from "@/lib/pp/function-references";
+  import { createMonacoEditor, updateMonacoEditorValue, type MonacoCodeEditorHandle } from "@/lib/code-editor";
   import Button from "@/lib/components/Button.svelte";
   import { parseScriptMetadata } from "@/lib/utils/script-metadata";
   import { isRestrictedUrl } from "@/lib/utils/url-utils";
@@ -52,7 +44,7 @@
   };
 
   let editorHost = $state<HTMLDivElement | null>(null);
-  let editorView = $state<EditorView | null>(null);
+  let editorHandle = $state<MonacoCodeEditorHandle | null>(null);
   let editorValue = $state("");
   let saveTimer: number | null = null;
   let pendingAutosaveContent: string | null = null;
@@ -75,8 +67,6 @@
   });
   let unsubscribeActiveToolState = () => {};
 
-  const baseSuggestions = ["pq.element", pqSelectorReference, ...pageModificationFunctions];
-
   const updateScriptMetadata = (content: string) => {
     const metadata = parseScriptMetadata(content);
     if (!metadata) {
@@ -92,21 +82,6 @@
       website: metadata.website,
       description: metadata.description,
     });
-  };
-
-  const buildSuggestions = () =>
-    Array.from(new Set(baseSuggestions)).map((label) => ({
-      label,
-      type: /^(pa|pq|ps|pv)\./.test(label) ? "function" : "property",
-    }));
-
-  const suggestionSource: CompletionSource = (context) => {
-    const word = context.matchBefore(/[\w$.]+/);
-    if (!word || (word.from === word.to && !context.explicit)) {
-      return null;
-    }
-    const options = buildSuggestions().filter((suggestion) => suggestion.label.startsWith(word.text));
-    return { from: word.from, options };
   };
 
   const persistToolState = (content: string) => {
@@ -204,18 +179,7 @@
     setErrorMessage(message);
   };
 
-  const formatIndentation = (content: string) => {
-    if (!content.trim()) {
-      return content;
-    }
-
-    const state = EditorState.create({
-      doc: content,
-      extensions: [javascript({ typescript: false }), indentUnit.of("  ")],
-    });
-    const changes = indentRange(state, 0, state.doc.length);
-    return changes.empty ? content : changes.apply(state.doc).toString();
-  };
+  const formatIndentation = (content: string) => content;
 
   const syncDefinitionsNow = (content: string) => {
     if (isProtectedPage) {
@@ -308,11 +272,9 @@
       syncDefinitions(content);
     }
 
-    if (editorView) {
+    if (editorHandle) {
       isProgrammaticUpdate = true;
-      editorView.dispatch({
-        changes: { from: 0, to: editorView.state.doc.length, insert: content },
-      });
+      updateMonacoEditorValue(editorHandle, content);
       isProgrammaticUpdate = false;
     }
 
@@ -362,14 +324,15 @@
     const resolvedState = await resolveStoredToolStateForUrl(normalizedUrl, scriptFormatConfig);
     activeWebsiteGlob = resolvedState.websiteGlob;
     activeToolState.set(resolvedState.state.activeTool);
-    const baseContent_1 = ensureScriptImports(
+    const normalizedBaseContent = ensureScriptImports(
       ensureDefineBlock(resolvedState.state.codeEditor.content, scriptFormatConfig),
-      scriptFormatConfig);
-    const contentWithWebsite = ensureWebsiteMetadata(baseContent_1, resolvedState.websiteGlob);
-    const displayContent_1 = isProtectedPage
+      scriptFormatConfig,
+    );
+    const contentWithWebsite = ensureWebsiteMetadata(normalizedBaseContent, resolvedState.websiteGlob);
+    const displayContent = isProtectedPage
       ? buildProtectedDisplay(contentWithWebsite, scriptFormatConfig)
       : contentWithWebsite;
-    updateEditorContent(displayContent_1, { persist: false, sync: !isProtectedPage });
+    updateEditorContent(displayContent, { persist: false, sync: !isProtectedPage });
   };
 
   const applyActiveTab = (tab: { id?: number; url?: string } | null) => {
@@ -437,30 +400,20 @@
   };
 
   const setupEditor = () => {
-    if (!editorHost || editorView) {
+    if (!editorHost || editorHandle) {
       return;
     }
-    const state = EditorState.create({
-      doc: editorValue,
-      extensions: [
-        ...buildCodeEditorExtensions(),
-        keymap.of([indentWithTab]),
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
-            editorValue = update.state.doc.toString();
-            updateScriptMetadata(editorValue);
-            if (!isProgrammaticUpdate) {
-              syncDefinitions(editorValue);
-              saveToStorage(editorValue);
-            }
-          }
-        }),
-        autocompletion({ override: [suggestionSource] }),
-      ],
-    });
-    editorView = new EditorView({
-      state,
-      parent: editorHost,
+
+    editorHandle = createMonacoEditor(editorHost, editorValue, {
+      modelUri: "inmemory://page-proxy/sidepanel-script.js",
+      onChange: (nextValue) => {
+        editorValue = nextValue;
+        updateScriptMetadata(editorValue);
+        if (!isProgrammaticUpdate) {
+          syncDefinitions(editorValue);
+          saveToStorage(editorValue);
+        }
+      },
     });
   };
 
@@ -489,9 +442,9 @@
       window.clearTimeout(sandboxSyncTimer);
     }
 
-    if (editorView) {
-      editorView.destroy();
-      editorView = null;
+    if (editorHandle) {
+      editorHandle.dispose();
+      editorHandle = null;
     }
 
     unsubscribeScriptMetadata();

@@ -2,11 +2,12 @@
   import type { ElementInfo, SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
   import { pqSelectorReference } from "@/lib/pp/function-references";
   import { onDestroy, onMount } from "svelte";
-  import { EditorState } from "@codemirror/state";
-  import { EditorView, keymap } from "@codemirror/view";
-  import { history, historyKeymap, indentWithTab, isolateHistory } from "@codemirror/commands";
-
-  import { buildCodeEditorExtensions } from "@/lib/code-editor";
+  import {
+    createMonacoEditor,
+    MonacoRange,
+    type MonacoCodeEditorHandle,
+    updateMonacoEditorValue,
+  } from "@/lib/code-editor";
   import { buildPreviewCode, isSpecialPropertyKey, type FilterOperator } from "./preview-code";
 
   type PropertyItem = {
@@ -27,13 +28,13 @@
   let { info, propertyItems, onSave, onCancel }: Props = $props();
 
   let editorHost = $state<HTMLDivElement | null>(null);
-  let editorView = $state<EditorView | null>(null);
+  let editorHandle = $state<MonacoCodeEditorHandle | null>(null);
   let editorValue = $state("");
   let dragCaret: HTMLDivElement | null = null;
-  let lastInsertPos: number | null = null;
+  let lastInsertPos: { lineNumber: number; column: number } | null = null;
 
   let previewHost = $state<HTMLDivElement | null>(null);
-  let previewView = $state<EditorView | null>(null);
+  let previewHandle = $state<MonacoCodeEditorHandle | null>(null);
   let previewValue = $state("");
 
   let filterOperator = $state<FilterOperator>("matches");
@@ -79,95 +80,79 @@
   });
 
   const setupEditor = () => {
-    if (!editorHost || editorView) {
+    if (!editorHost || editorHandle) {
       return;
     }
 
     editorValue = buildDefaultCode();
 
-    const state = EditorState.create({
-      doc: editorValue,
-      extensions: [
-        ...buildCodeEditorExtensions(),
-        history(),
-        keymap.of(historyKeymap),
-        keymap.of([indentWithTab]),
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
-            editorValue = update.state.doc.toString();
-            errorMessage = "";
-          }
-        }),
-      ],
+    editorHandle = createMonacoEditor(editorHost, editorValue, {
+      modelUri: "inmemory://page-proxy/selector-popup-editor.js",
+      onChange: (nextValue) => {
+        editorValue = nextValue;
+        errorMessage = "";
+      },
+      editorOptions: {
+        bracketPairColorization: { enabled: true },
+      },
     });
 
-    editorView = new EditorView({
-      state,
-      parent: editorHost,
-    });
-
-    editorView.dom.style.position = "relative";
+    const editorDom = editorHandle.editor.getDomNode();
+    if (!(editorDom instanceof HTMLElement)) {
+      return;
+    }
+    editorDom.style.position = "relative";
     dragCaret = document.createElement("div");
     dragCaret.style.position = "absolute";
-    dragCaret.style.width = "1px";
+    dragCaret.style.width = "0.0625rem";
     dragCaret.style.background = "rgb(224 201 135)";
     dragCaret.style.opacity = "0";
     dragCaret.style.pointerEvents = "none";
-    editorView.dom.appendChild(dragCaret);
+    editorDom.appendChild(dragCaret);
 
-    editorView.dom.addEventListener("dragover", handleEditorDragOver, { capture: true });
-    editorView.dom.addEventListener("drop", handleEditorDrop, { capture: true });
-    editorView.dom.addEventListener("dragleave", handleEditorDragLeave, { capture: true });
+    editorDom.addEventListener("dragover", handleEditorDragOver, { capture: true });
+    editorDom.addEventListener("drop", handleEditorDrop, { capture: true });
+    editorDom.addEventListener("dragleave", handleEditorDragLeave, { capture: true });
   };
 
   const setupPreview = () => {
-    if (!previewHost || previewView) {
+    if (!previewHost || previewHandle) {
       return;
     }
 
-    const state = EditorState.create({
-      doc: previewCode,
-      extensions: [
-        ...buildCodeEditorExtensions(),
-        EditorView.theme({
-          "&": { backgroundColor: "transparent" },
-          ".cm-gutters": { display: "none" },
-          ".cm-scroller": { overflowX: "auto", overflowY: "auto" },
-          ".cm-content": {
-            padding: "4px 8px",
-            minHeight: "100%",
-            pointerEvents: "none",
-            userSelect: "none",
-          },
-          ".cm-line": {
-            whiteSpace: "pre",
-          },
-        }),
-        EditorView.updateListener.of((update) => {
-          if (!update.docChanged) {
-            return;
-          }
-          previewValue = update.state.doc.toString();
-        }),
-      ],
-    });
-
-    previewView = new EditorView({
-      state,
-      parent: previewHost,
+    previewHandle = createMonacoEditor(previewHost, previewCode, {
+      readOnly: true,
+      lineNumbers: "off",
+      modelUri: "inmemory://page-proxy/selector-popup-preview.js",
+      className: "pp-monaco-editor pp-monaco-preview scrollbar-stable",
+      padding: { top: 4, bottom: 4 },
+      editorOptions: {
+        glyphMargin: false,
+        folding: false,
+        lineDecorationsWidth: 0,
+        lineNumbersMinChars: 0,
+        overviewRulerLanes: 0,
+        renderLineHighlight: "none",
+        scrollBeyondLastLine: false,
+        fixedOverflowWidgets: true,
+      },
     });
     previewValue = previewCode;
 
-    previewView.dom.setAttribute("draggable", "true");
-    previewView.dom.addEventListener("dragstart", handlePreviewDragStart, { capture: true });
-    const previewContent = previewView.dom.querySelector(".cm-content");
+    const previewDom = previewHandle.editor.getDomNode();
+    if (!(previewDom instanceof HTMLElement)) {
+      return;
+    }
+    previewDom.setAttribute("draggable", "true");
+    previewDom.addEventListener("dragstart", handlePreviewDragStart, { capture: true });
+    const previewContent = previewDom.querySelector(".view-lines");
     if (previewContent instanceof HTMLElement) {
       previewContent.setAttribute("draggable", "true");
     }
   };
 
   const handleSave = async () => {
-    const code = editorView?.state.doc.toString() ?? editorValue;
+    const code = editorHandle?.editor.getValue() ?? editorValue;
     if (!code.trim()) {
       errorMessage = "Add a selector definition to save.";
       return;
@@ -196,7 +181,7 @@
     if (!event.dataTransfer) {
       return;
     }
-    const code = previewView?.state.doc.toString() ?? previewValue ?? previewCode;
+    const code = previewHandle?.editor.getValue() ?? previewValue ?? previewCode;
     event.dataTransfer.setData("application/x-pp-filter", code);
     event.dataTransfer.setData("text/plain", code);
     event.dataTransfer.effectAllowed = "copy";
@@ -204,10 +189,10 @@
   };
 
   const focusPreviewEditor = () => {
-    if (!previewView) {
+    if (!previewHandle) {
       return;
     }
-    previewView.focus();
+    previewHandle.editor.focus();
   };
 
   const findNearestWordBreak = (text: string, offset: number) => {
@@ -234,32 +219,44 @@
     return best;
   };
 
-  const getInsertPosFromCoords = (coords: { x: number; y: number }) => {
-    if (!editorView) {
+  const getInsertPosFromCoords = (coords: { x: number; y: number }): { lineNumber: number; column: number } | null => {
+    if (!editorHandle) {
       return null;
     }
-    const pos = editorView.posAtCoords(coords);
-    if (pos === null) {
+    const editor = editorHandle.editor;
+    const model = editor.getModel();
+    if (!model) {
       return null;
     }
-    const line = editorView.state.doc.lineAt(pos);
-    const offset = pos - line.from;
-    const insertOffset = findNearestWordBreak(line.text, offset);
-    return line.from + insertOffset;
+
+    const mouseTarget = editor.getTargetAtClientPoint(coords.x, coords.y);
+    const position = mouseTarget?.position ?? editor.getPosition();
+    if (!position) {
+      return null;
+    }
+
+    const lineText = model.getLineContent(position.lineNumber);
+    const offset = position.column - 1;
+    const insertOffset = findNearestWordBreak(lineText, offset);
+    return { lineNumber: position.lineNumber, column: insertOffset + 1 };
   };
 
-  const showDragCaret = (pos: number) => {
-    if (!editorView || !dragCaret) {
+  const showDragCaret = (position: { lineNumber: number; column: number }) => {
+    if (!editorHandle || !dragCaret) {
       return;
     }
-    const coords = editorView.coordsAtPos(pos);
+    const editor = editorHandle.editor;
+    const editorDom = editor.getDomNode();
+    if (!(editorDom instanceof HTMLElement)) {
+      return;
+    }
+    const coords = editor.getScrolledVisiblePosition(position);
     if (!coords) {
       return;
     }
-    const hostRect = editorView.dom.getBoundingClientRect();
-    dragCaret.style.left = `${coords.left - hostRect.left}px`;
-    dragCaret.style.top = `${coords.top - hostRect.top}px`;
-    dragCaret.style.height = `${coords.bottom - coords.top}px`;
+    dragCaret.style.left = `${coords.left}px`;
+    dragCaret.style.top = `${coords.top}px`;
+    dragCaret.style.height = `${coords.height}px`;
     dragCaret.style.opacity = "1";
   };
 
@@ -280,7 +277,12 @@
     event.dataTransfer.dropEffect = "copy";
 
     const insertPos = getInsertPosFromCoords({ x: event.clientX, y: event.clientY });
-    if (insertPos === null || insertPos === lastInsertPos) {
+    if (
+      insertPos === null ||
+      (lastInsertPos !== null &&
+        insertPos.lineNumber === lastInsertPos.lineNumber &&
+        insertPos.column === lastInsertPos.column)
+    ) {
       return;
     }
     lastInsertPos = insertPos;
@@ -288,10 +290,11 @@
   };
 
   const handleEditorDrop = (event: DragEvent) => {
-    if (!editorView || !event.dataTransfer) {
+    if (!editorHandle || !event.dataTransfer) {
       return;
     }
-    const currentEditor = editorView;
+    const currentEditor = editorHandle.editor;
+    const currentModel = editorHandle.model;
 
     const code = event.dataTransfer.getData("application/x-pp-filter") || event.dataTransfer.getData("text/plain");
 
@@ -307,10 +310,11 @@
     if (insertPos === null) {
       return;
     }
+    const insertOffset = currentModel.getOffsetAt(insertPos);
 
     const shouldPrefixAnd = () => {
-      const doc = currentEditor.state.doc.toString();
-      let nextIndex = insertPos;
+      const doc = currentModel.getValue();
+      let nextIndex = insertOffset;
 
       while (nextIndex < doc.length && /\s/.test(doc[nextIndex])) {
         nextIndex += 1;
@@ -320,7 +324,7 @@
         return false;
       }
 
-      let index = insertPos - 1;
+      let index = insertOffset - 1;
 
       while (index >= 0 && /\s/.test(doc[index])) {
         index -= 1;
@@ -338,7 +342,7 @@
     };
 
     const getMatchesIndent = () => {
-      const doc = currentEditor.state.doc.toString();
+      const doc = currentModel.getValue();
       const matchLine = doc.match(/^(\s*)["']matches["']\s*:/m);
       return matchLine?.[1] ?? "";
     };
@@ -346,22 +350,30 @@
     const getExpressionIndent = () => `${getMatchesIndent()}  `;
 
     const insertText = shouldPrefixAnd() ? `\n${getExpressionIndent()}&& ${code}` : code;
-    currentEditor.dispatch({
-      changes: { from: insertPos, to: insertPos, insert: insertText },
-      selection: { anchor: insertPos + insertText.length },
-      userEvent: "input",
-      annotations: isolateHistory.of("full"),
-      scrollIntoView: true,
-    });
+    currentEditor.executeEdits("page-proxy-drop", [
+      {
+        range: new MonacoRange(insertPos.lineNumber, insertPos.column, insertPos.lineNumber, insertPos.column),
+        text: insertText,
+        forceMoveMarkers: true,
+      },
+    ]);
+    const nextPosition = currentModel.getPositionAt(insertOffset + insertText.length);
+    currentEditor.setPosition(nextPosition);
+    currentEditor.revealPositionInCenterIfOutsideViewport(nextPosition);
     currentEditor.focus();
   };
 
   const handleEditorDragLeave = (event: DragEvent) => {
-    if (!editorView || !(event.relatedTarget instanceof Node)) {
+    if (!editorHandle) {
       hideDragCaret();
       return;
     }
-    if (!editorView.dom.contains(event.relatedTarget)) {
+    const editorDom = editorHandle.editor.getDomNode();
+    if (!(editorDom instanceof HTMLElement) || !(event.relatedTarget instanceof Node)) {
+      hideDragCaret();
+      return;
+    }
+    if (!editorDom.contains(event.relatedTarget)) {
       hideDragCaret();
     }
   };
@@ -374,35 +386,39 @@
   });
 
   onDestroy(() => {
-    if (editorView) {
-      editorView.dom.removeEventListener("dragover", handleEditorDragOver, { capture: true });
-      editorView.dom.removeEventListener("drop", handleEditorDrop, { capture: true });
-      editorView.dom.removeEventListener("dragleave", handleEditorDragLeave, { capture: true });
+    if (editorHandle) {
+      const editorDom = editorHandle.editor.getDomNode();
+      if (editorDom instanceof HTMLElement) {
+        editorDom.removeEventListener("dragover", handleEditorDragOver, { capture: true });
+        editorDom.removeEventListener("drop", handleEditorDrop, { capture: true });
+        editorDom.removeEventListener("dragleave", handleEditorDragLeave, { capture: true });
+      }
       if (dragCaret) {
         dragCaret.remove();
         dragCaret = null;
       }
-      editorView.destroy();
-      editorView = null;
+      editorHandle.dispose();
+      editorHandle = null;
     }
-    if (previewView) {
-      previewView.dom.removeEventListener("dragstart", handlePreviewDragStart, { capture: true });
-      previewView.destroy();
-      previewView = null;
+    if (previewHandle) {
+      const previewDom = previewHandle.editor.getDomNode();
+      if (previewDom instanceof HTMLElement) {
+        previewDom.removeEventListener("dragstart", handlePreviewDragStart, { capture: true });
+      }
+      previewHandle.dispose();
+      previewHandle = null;
     }
   });
 
   $effect(() => {
-    if (!previewView) {
+    if (!previewHandle) {
       return;
     }
-    const currentValue = previewView.state.doc.toString();
+    const currentValue = previewHandle.editor.getValue();
     if (previewCode === currentValue) {
       return;
     }
-    previewView.dispatch({
-      changes: { from: 0, to: previewView.state.doc.length, insert: previewCode },
-    });
+    updateMonacoEditorValue(previewHandle, previewCode);
     previewValue = previewCode;
   });
 </script>
