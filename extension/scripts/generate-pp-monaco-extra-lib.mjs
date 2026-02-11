@@ -1,3 +1,6 @@
+// There's probably a better way to do this, but this works for now
+// TODO: pass source files to Monaco directly somehow
+
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdir, writeFile } from "node:fs/promises";

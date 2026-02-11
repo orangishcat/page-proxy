@@ -19,6 +19,7 @@ import {
 const injectedScriptPath = 'sandbox-main-world.js';
 const runScriptPath = 'code-runner-main-world.js';
 const responseTimeoutMs = 10000;
+const injectionTimeoutMs = 3000;
 const logger = log.getLogger('sandbox-runner');
 logger.setLevel('debug', false);
 let injectPromise: Promise<boolean> | null = null;
@@ -31,9 +32,28 @@ const ensureInjected = () => {
     return injectPromise;
   }
 
-  injectPromise = injectScript(injectedScriptPath, {keepInDom: true})
-    .then(() => true)
-    .catch(() => false);
+  logger.debug('Injecting sandbox main-world script');
+  const injectTask = injectScript(injectedScriptPath, {keepInDom: true})
+    .then(() => {
+      logger.debug('Sandbox main-world script injected');
+      return true;
+    })
+    .catch((error: unknown) => {
+      logger.error('Sandbox main-world injection failed', {error});
+      return false;
+    });
+
+  injectPromise = new Promise((resolve) => {
+    const timeoutId = window.setTimeout(() => {
+      logger.warn('Sandbox main-world injection timed out, continuing', {injectionTimeoutMs});
+      resolve(true);
+    }, injectionTimeoutMs);
+
+    void injectTask.then((result) => {
+      window.clearTimeout(timeoutId);
+      resolve(result);
+    });
+  });
 
   return injectPromise;
 };
@@ -43,9 +63,28 @@ const ensureRunInjected = () => {
     return runInjectPromise;
   }
 
-  runInjectPromise = injectScript(runScriptPath, {keepInDom: true})
-    .then(() => true)
-    .catch(() => false);
+  logger.debug('Injecting code-runner main-world script');
+  const injectTask = injectScript(runScriptPath, {keepInDom: true})
+    .then(() => {
+      logger.debug('Code-runner main-world script injected');
+      return true;
+    })
+    .catch((error: unknown) => {
+      logger.error('Code-runner main-world injection failed', {error});
+      return false;
+    });
+
+  runInjectPromise = new Promise((resolve) => {
+    const timeoutId = window.setTimeout(() => {
+      logger.warn('Code-runner main-world injection timed out, continuing', {injectionTimeoutMs});
+      resolve(true);
+    }, injectionTimeoutMs);
+
+    void injectTask.then((result) => {
+      window.clearTimeout(timeoutId);
+      resolve(result);
+    });
+  });
 
   return runInjectPromise;
 };
