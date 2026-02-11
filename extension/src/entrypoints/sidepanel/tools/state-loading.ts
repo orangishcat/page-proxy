@@ -46,11 +46,15 @@ export const ensureDefineBlock = (content: string, config: ScriptFormatConfig) =
   const startIndex = lines.findIndex((line) => line.trim() === config.defineBlockStart);
   const endIndex = lines.findIndex((line) => line.trim() === config.defineBlockEnd);
 
-  if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-    return content;
+  if (startIndex === -1 || endIndex === -1) {
+    throw new Error(`Missing "${config.defineBlockStart}" block.`);
   }
 
-  return [content.trimEnd(), "", config.defineBlockStart, config.defineBlockEnd, ""].join("\n");
+  if (endIndex <= startIndex) {
+    throw new Error(`Invalid "${config.defineBlockStart}" block ordering.`);
+  }
+
+  return content;
 };
 
 export const buildProtectedDisplay = (content: string, config: ScriptFormatConfig) => {
@@ -131,7 +135,7 @@ export const ensureWebsiteMetadata = (content: string, websiteGlob: string) => {
 
 export const resolveWebsiteGlob = (content: string, activeTabUrl: string | null, activeWebsiteGlob: string | null) => {
   const metadata = parseScriptMetadata(content);
-  const fromMetadata = metadata?.website.trim() ?? "";
+  const fromMetadata = metadata.website.trim();
   if (fromMetadata) {
     return fromMetadata;
   }

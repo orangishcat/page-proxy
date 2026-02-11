@@ -115,4 +115,12 @@
     .monaco-editor.pp-monaco-preview .margin {
         width: 0 !important;
     }
+
+    .pp-editor-title-muted {
+        @apply text-gray-400;
+    }
+
+    .pp-editor-title-accent {
+        @apply text-accent-400;
+    }
 }

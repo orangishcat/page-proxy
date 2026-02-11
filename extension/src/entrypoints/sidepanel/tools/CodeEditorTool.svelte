@@ -9,19 +9,17 @@
   import { parseScriptMetadata } from "@/lib/utils/script-metadata";
   import { isRestrictedUrl } from "@/lib/utils/url-utils";
   import { requestSandboxEvaluation, requestScriptRun } from "./sandbox/actions";
+  import { saveState } from "./code-editor/save";
   import { elementEntries, scriptMetadata, setEditorApi, selectorEntries } from "./code-editor/state";
   import type { ScriptMetadataState } from "./code-editor/state";
-  import { activeToolState, removeStoredToolState, saveStoredToolState, type StoredToolState } from "./state-storage";
+  import { activeToolState } from "./state-storage";
   import {
     buildDefaultScript,
     buildProtectedDisplay,
     ensureDefineBlock,
     ensureWebsiteMetadata,
     ensureScriptImports,
-    isDefaultToolState,
-    normalizeContentForStorage,
     resolveStoredToolStateForUrl,
-    resolveWebsiteGlob,
     type ScriptFormatConfig,
   } from "./state-loading";
   import { errorMessage, setErrorMessage } from "./tool-errors";
@@ -69,60 +67,35 @@
   let unsubscribeActiveToolState = () => {};
 
   const updateScriptMetadata = (content: string) => {
-    const metadata = parseScriptMetadata(content);
-    if (!metadata) {
+    try {
+      const metadata = parseScriptMetadata(content);
+      scriptMetadata.set({
+        title: metadata.title || "Page Proxy",
+        website: metadata.website,
+        description: metadata.description,
+      });
+    } catch {
       scriptMetadata.set({
         title: "Page Proxy",
         website: "",
         description: "",
       });
-      return;
     }
-    scriptMetadata.set({
-      title: metadata.title || "Page Proxy",
-      website: metadata.website,
-      description: metadata.description,
-    });
   };
 
   const persistToolState = (content: string) => {
-    if (isProtectedPage) {
-      return;
-    }
-
-    const normalizedContent = normalizeContentForStorage(content, isProtectedPage, scriptFormatConfig);
-    const websiteGlob = resolveWebsiteGlob(normalizedContent, activeTabUrl, activeWebsiteGlob);
-    if (!websiteGlob) {
-      return;
-    }
-    const contentWithWebsite = ensureWebsiteMetadata(normalizedContent, websiteGlob);
-
-    if (activeWebsiteGlob && activeWebsiteGlob !== websiteGlob) {
-      void removeStoredToolState(activeWebsiteGlob).catch(() => {
-        setErrorMessage("Unable to save script state to extension storage.");
-      });
-    }
-
-    const state: StoredToolState = {
+    void saveState({
+      content,
+      isProtectedPage,
+      scriptFormatConfig,
+      activeTabUrl,
+      activeWebsiteGlob,
       activeTool: get(activeToolState),
-      codeEditor: {
-        content: contentWithWebsite,
+      getDefinitionBlock,
+      setActiveWebsiteGlob: (websiteGlob) => {
+        activeWebsiteGlob = websiteGlob;
       },
-      websiteGlob,
-      updatedAt: Date.now(),
-    };
-
-    activeWebsiteGlob = websiteGlob;
-
-    if (isDefaultToolState(state, scriptFormatConfig)) {
-      void removeStoredToolState(websiteGlob).catch(() => {
-        setErrorMessage("Unable to save script state to extension storage.");
-      });
-      return;
-    }
-
-    void saveStoredToolState(state).catch(() => {
-      setErrorMessage("Unable to save script state to extension storage.");
+      setErrorMessage,
     });
   };
 
@@ -159,8 +132,12 @@
     const startIndex = lines.findIndex((line) => line.trim() === defineBlockStart);
     const endIndex = lines.findIndex((line) => line.trim() === defineBlockEnd);
 
-    if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) {
-      return "";
+    if (startIndex === -1 || endIndex === -1) {
+      throw new Error(`Missing "${defineBlockStart}" block.`);
+    }
+
+    if (endIndex <= startIndex) {
+      throw new Error(`Invalid "${defineBlockStart}" block ordering.`);
     }
 
     return lines.slice(startIndex + 1, endIndex).join("\n");
@@ -189,7 +166,16 @@
       selectorEntries.set([]);
       return;
     }
-    const definitionBlock = getDefinitionBlock(content);
+    let definitionBlock = "";
+    try {
+      definitionBlock = getDefinitionBlock(content);
+    } catch (error) {
+      updateSandboxError([error instanceof Error ? error.message : "Invalid selector definition block."]);
+      elementEntries.set([]);
+      selectorEntries.set([]);
+      return;
+    }
+
     const formattedDefinition = formatIndentation(definitionBlock);
     if (!formattedDefinition.trim()) {
       updateSandboxError([]);
@@ -253,6 +239,14 @@
       return;
     }
 
+    try {
+      parseScriptMetadata(editorValue);
+      getDefinitionBlock(editorValue);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Invalid script metadata or selector block.");
+      return;
+    }
+
     isRunning = true;
     saveNow(editorValue);
     const formattedScript = formatIndentation(editorValue);
@@ -298,7 +292,14 @@
   };
 
   const insertDefinitionLines = (linesToInsert: string[]) => {
-    const content = ensureDefineBlock(editorValue, scriptFormatConfig);
+    let content = "";
+    try {
+      content = ensureDefineBlock(editorValue, scriptFormatConfig);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Invalid selector definition block.");
+      return;
+    }
+
     const lines = content.split("\n");
     const endIndex = lines.findIndex((line) => line.trim() === defineBlockEnd);
 
@@ -367,8 +368,8 @@
     }
 
     void loadStateForUrl(activeTabUrl)
-      .catch(() => {
-        setErrorMessage("Unable to load saved script state.");
+      .catch((error) => {
+        setErrorMessage(error instanceof Error ? error.message : "Unable to load saved script state.");
       })
       .finally(() => {
         canPersistEditorChanges = true;

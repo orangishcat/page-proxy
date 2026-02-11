@@ -36,7 +36,8 @@
         "eslint-linter-browserify": "^9.39.2",
         "lucide-svelte": "^0.562.0",
         "monaco-editor": "^0.55.1",
-        "penpal": "^7.0.0"
+        "penpal": "^7.0.0",
+        "picomatch": "^4.0.3"
     },
     "devDependencies": {
         "@eslint/js": "^9.39.2",
@@ -47,6 +48,7 @@
         "@sveltejs/vite-plugin-svelte": "^6",
         "@tailwindcss/postcss": "4.1.18",
         "@types/chrome": "^0.1.32",
+        "@types/picomatch": "^4.0.2",
         "@typescript-eslint/eslint-plugin": "^8.52.0",
         "@typescript-eslint/parser": "^8.52.0",
         "@typescript/native-preview": "^7.0.0-dev.20251226.1",
