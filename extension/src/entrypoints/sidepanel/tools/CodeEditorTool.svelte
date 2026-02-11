@@ -491,12 +491,12 @@
   class="relative flex min-h-0 w-full flex-1 flex-col bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
   aria-label="Code editor panel"
 >
-  <div class="h-8 w-full bg-[#393a34] flex items-center justify-between px-4">
-    <div>
-      <span class="text-body">{scriptMetadataValue.title}</span>
+  <div class="h-10 w-full bg-[#393a34] flex items-center justify-between px-4">
+    <div class="text-body">
+      <span>{scriptMetadataValue.title}</span>
       {#if scriptMetadataValue.website}
-        <span class="pp-editor-title-muted"> @ </span>
-        <span class="pp-editor-title-accent">{scriptMetadataValue.website}</span>
+        <span class="text-gray-600"> @ </span>
+        <span class="text-accent-500">{scriptMetadataValue.website}</span>
       {/if}
     </div>
     <div class="flex items-center gap-3">

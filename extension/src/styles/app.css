@@ -27,8 +27,9 @@
 }
 
 @layer base {
-    :host {
-        font-size: 16px;
+    :host,
+    html {
+        font-size: 16px !important;
     }
 
     body {
@@ -114,13 +115,5 @@
 
     .monaco-editor.pp-monaco-preview .margin {
         width: 0 !important;
-    }
-
-    .pp-editor-title-muted {
-        @apply text-gray-400;
-    }
-
-    .pp-editor-title-accent {
-        @apply text-accent-400;
     }
 }

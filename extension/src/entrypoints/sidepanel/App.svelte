@@ -35,6 +35,9 @@
   let lastHoveredTool = $state<ToolbarControlId | null>(null);
   let isToolbarHovered = $state(false);
   let errorMessageValue = $state<string | null>(null);
+  const isFirefoxBrowser = typeof navigator !== "undefined" && /Firefox/i.test(navigator.userAgent);
+  const firefoxExperimentalBannerDismissKey = "page-proxy:firefox-experimental-banner-dismissed";
+  let showFirefoxExperimentalBanner = $state(false);
 
   const unsubscribeErrorMessage = errorMessage.subscribe((value) => {
     errorMessageValue = value;
@@ -208,6 +211,14 @@
   };
 
   onMount(() => {
+    if (isFirefoxBrowser) {
+      void browser.storage.local.get(firefoxExperimentalBannerDismissKey).then((stored) => {
+        showFirefoxExperimentalBanner = stored[firefoxExperimentalBannerDismissKey] !== true;
+      });
+    } else {
+      showFirefoxExperimentalBanner = false;
+    }
+
     const cleanup = attachSelectionListener();
 
     const handleRuntimeMessage = (message: unknown, _sender: unknown, sendResponse: (response?: unknown) => void) => {
@@ -257,17 +268,38 @@
     "w-8 h-8 !p-0 rounded-lg text-white dark:text-white " +
     (selected ? "bg-accent-500 hover:!opacity-100" : "bg-[#55503E] hover:opacity-55 active:opacity-40");
   const iconSize = "w-5 h-5";
+
+  const dismissFirefoxExperimentalBanner = () => {
+    showFirefoxExperimentalBanner = false;
+    void browser.storage.local.set({
+      [firefoxExperimentalBannerDismissKey]: true,
+    });
+  };
 </script>
 
 <main class="flex h-full w-full overflow-hidden bg-[#222121] text-white">
   <div class="h-full w-full min-h-0 min-w-full">
     <div class="flex h-full w-full min-h-0 flex-col">
+      {#if showFirefoxExperimentalBanner}
+        <div class="w-full shrink-0 bg-[#3d341d] px-[4%] py-[2%] text-caption text-[#f4de9e] flex items-center gap-2">
+          <span class="flex-1">Firefox support is experimental.</span>
+          <button
+            type="button"
+            class="rounded border border-[#8f7a3c] px-2 py-0.5 text-caption text-[#f4de9e] hover:bg-[#5c4f28]"
+            aria-label="Dismiss Firefox experimental notice"
+            onclick={dismissFirefoxExperimentalBanner}
+          >
+            Dismiss
+          </button>
+        </div>
+      {/if}
+
       <section
         class="relative flex h-[36.56%] w-full shrink-0 flex-col bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
         aria-label="Tool panel"
       >
         <div
-          class="flex justify-between h-14 px-3 py-2 bg-[#393a34]"
+          class="flex justify-between h-12 px-3 py-2 bg-[#393a34]"
           role="toolbar"
           aria-label="Tool actions"
           tabindex="0"
