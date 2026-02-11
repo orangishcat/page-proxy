@@ -575,14 +575,16 @@ export default defineContentScript({
     };
 
     const onShortcutKeyDown = (event: KeyboardEvent) => {
+      if (isExcludedFromSelection(event.target) || isExcludedFromSelection(document.activeElement)) return;
+
+      const hasEditableFocus = isEditableTarget(event.target) || isEditableTarget(document.activeElement);
+      if (hasEditableFocus) return;
+
       if (event.key === "Escape" && selectionEnabled) {
         event.preventDefault();
         setSelectionEnabled(false);
         return;
       }
-
-      if (isExcludedFromSelection(event.target) || isExcludedFromSelection(document.activeElement)) return;
-      if (isEditableTarget(event.target) || isEditableTarget(document.activeElement)) return;
 
       const tool = getShortcutTool(event);
       if (!tool) return;

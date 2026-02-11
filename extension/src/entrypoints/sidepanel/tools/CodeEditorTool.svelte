@@ -83,20 +83,24 @@
     }
   };
 
-  const persistToolState = (content: string) => {
-    void saveState({
-      content,
-      isProtectedPage,
-      scriptFormatConfig,
-      activeTabUrl,
-      activeWebsiteGlob,
-      activeTool: get(activeToolState),
-      getDefinitionBlock,
-      setActiveWebsiteGlob: (websiteGlob) => {
-        activeWebsiteGlob = websiteGlob;
-      },
-      setErrorMessage,
-    });
+  const saveToolState = (content: string) => {
+    try {
+      void saveState({
+        content,
+        isProtectedPage,
+        scriptFormatConfig,
+        activeTabUrl,
+        activeWebsiteGlob,
+        activeTool: get(activeToolState),
+        getDefinitionBlock,
+        setActiveWebsiteGlob: (websiteGlob) => {
+          activeWebsiteGlob = websiteGlob;
+        },
+        setErrorMessage,
+      });
+    } catch (e: unknown) {
+      throw new Error(`Saving failed: ${e instanceof Error ? e.message : e}`);
+    }
   };
 
   const autoSave = () => {
@@ -111,7 +115,7 @@
 
     const content = pendingAutosaveContent;
     pendingAutosaveContent = null;
-    persistToolState(content);
+    saveToolState(content);
   };
 
   const saveNow = (content: string) => {
@@ -120,7 +124,7 @@
       saveTimer = null;
     }
     pendingAutosaveContent = null;
-    persistToolState(content);
+    saveToolState(content);
   };
 
   let lastSandboxError = $state<string | null>(null);

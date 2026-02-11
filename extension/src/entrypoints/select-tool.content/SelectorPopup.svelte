@@ -143,12 +143,7 @@
     if (!(previewDom instanceof HTMLElement)) {
       return;
     }
-    previewDom.setAttribute("draggable", "true");
-    previewDom.addEventListener("dragstart", handlePreviewDragStart, { capture: true });
-    const previewContent = previewDom.querySelector(".view-lines");
-    if (previewContent instanceof HTMLElement) {
-      previewContent.setAttribute("draggable", "true");
-    }
+    previewDom.style.pointerEvents = "none";
   };
 
   const handleSave = async () => {
@@ -186,13 +181,6 @@
     event.dataTransfer.setData("text/plain", code);
     event.dataTransfer.effectAllowed = "copy";
     event.dataTransfer.setDragImage(transparentDragImage, 0, 0);
-  };
-
-  const focusPreviewEditor = () => {
-    if (!previewHandle) {
-      return;
-    }
-    previewHandle.editor.focus();
   };
 
   const findNearestWordBreak = (text: string, offset: number) => {
@@ -401,10 +389,6 @@
       editorHandle = null;
     }
     if (previewHandle) {
-      const previewDom = previewHandle.editor.getDomNode();
-      if (previewDom instanceof HTMLElement) {
-        previewDom.removeEventListener("dragstart", handlePreviewDragStart, { capture: true });
-      }
       previewHandle.dispose();
       previewHandle = null;
     }
@@ -488,11 +472,9 @@
         class="w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden"
         draggable="true"
         ondragstart={handlePreviewDragStart}
-        onclick={focusPreviewEditor}
         onkeydown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
-            focusPreviewEditor();
           }
         }}
         role="button"
@@ -500,7 +482,7 @@
         aria-label="Edit or drag the filter snippet into the editor to insert it."
         title="Edit this snippet or drag it into the editor."
       >
-        <div class="h-16 w-full" bind:this={previewHost}></div>
+        <div class="h-16 w-full pl-2 bg-[#282824]" bind:this={previewHost}></div>
       </div>
 
       <div class="text-xs uppercase tracking-wide text-gray-500">Properties</div>
