@@ -34,6 +34,7 @@
         "axios": "^1.12.2",
         "bits-ui": "^2.14.4",
         "eslint-linter-browserify": "^9.39.2",
+        "loglevel": "^1.9.2",
         "lucide-svelte": "^0.562.0",
         "monaco-editor": "^0.55.1",
         "penpal": "^7.0.0",

@@ -5,7 +5,7 @@ on:
     push:
 
 jobs:
-    frontend-checks:
+    website-checks:
         runs-on: ubuntu-latest
 
         steps:
@@ -23,23 +23,23 @@ jobs:
                   bun-version: latest
 
             - name: Install dependencies
-              working-directory: frontend
+              working-directory: web
               run: bun install
 
             - name: Lint
-              working-directory: frontend
+              working-directory: web
               run: bun run lint
 
             - name: Typecheck
-              working-directory: frontend
+              working-directory: web
               run: bun run check
 
             - name: Build
-              working-directory: frontend
+              working-directory: web
               run: bun run build
 
             - name: Page load check
-              working-directory: frontend
+              working-directory: web
               env:
                   PAGE_LOAD_PATHS: "/,/app/dashboard"
               run: bun run page-load-check

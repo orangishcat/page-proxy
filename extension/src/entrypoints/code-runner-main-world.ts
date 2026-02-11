@@ -264,6 +264,8 @@ const injectBlobScript = (
 };
 
 export default defineUnlistedScript(() => {
+  console.debug('[pp code-runner-main-world] initialized', {href: window.location.href});
+
   window.addEventListener('message', (event) => {
     if (event.source !== window) {
       return;
@@ -274,6 +276,7 @@ export default defineUnlistedScript(() => {
     }
 
     const {requestId, code} = event.data;
+    console.debug('[pp code-runner-main-world] request received', {requestId});
     const responded = {value: false};
     const {logs, sink} = createNotificationCapture();
 
@@ -328,6 +331,7 @@ export default defineUnlistedScript(() => {
     injectBlobScript(
       executableCode,
       () => {
+        console.debug('[pp code-runner-main-world] execution completed', {requestId, logs: logs.length});
         respondOnce(
           requestId,
           buildScriptRunResponse(requestId, null, logs),
@@ -336,6 +340,7 @@ export default defineUnlistedScript(() => {
         );
       },
       () => {
+        console.error('[pp code-runner-main-world] script injection failed', {requestId});
         respondOnce(
           requestId,
           buildScriptRunResponse(

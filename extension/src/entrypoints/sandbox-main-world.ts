@@ -439,6 +439,8 @@ const respondOnce = (
 };
 
 export default defineUnlistedScript(() => {
+  console.debug("[pp sandbox-main-world] initialized", {href: window.location.href});
+
   window.addEventListener("message", (event) => {
     if (event.source !== window) {
       return;
@@ -449,6 +451,7 @@ export default defineUnlistedScript(() => {
     }
 
     const { requestId, code } = event.data;
+    console.debug("[pp sandbox-main-world] request received", {requestId});
     const responded = { value: false };
     const errors: string[] = [];
 
@@ -481,6 +484,12 @@ export default defineUnlistedScript(() => {
     window.addEventListener("unhandledrejection", onRejection);
 
     const result = evaluateDefinitionBlock(code);
+    console.debug("[pp sandbox-main-world] evaluation completed", {
+      requestId,
+      elementCount: result.elements.length,
+      selectorCount: result.selectors.length,
+      errorCount: result.errors.length
+    });
     respondOnce(
       requestId,
       {

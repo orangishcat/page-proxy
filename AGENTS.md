@@ -29,6 +29,7 @@
 - Prefer Svelte runes to old Svelte.
 - Use `svelte-autofixer` to lint all code added.
 - Use base tailwind classes instead of defining custom units.
+- Use `loglevel` for logging.
 - Use `em` as the CSS unit in all places (for consistent sizing across webpages).
 - Use components wherever possible.
 - Use classes in `app.css` for typography.
