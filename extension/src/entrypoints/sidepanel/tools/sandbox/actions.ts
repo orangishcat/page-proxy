@@ -12,7 +12,7 @@ import {
   type ScriptRunRequest,
   type ScriptRunResult
 } from '@/lib/script-runner';
-import {isRestrictedUrl} from '@/lib/utils/url-utils';
+import {isRestrictedUrl} from '@/lib/utils/website-glob';
 
 const emptyResult: SandboxResult = {elements: [], selectors: [], errors: []};
 const emptyRunResult: ScriptRunResult = {errors: [], logs: []};

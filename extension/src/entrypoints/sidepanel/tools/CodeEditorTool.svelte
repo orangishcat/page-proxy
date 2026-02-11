@@ -7,7 +7,7 @@
   import { createMonacoEditor, updateMonacoEditorValue, type MonacoCodeEditorHandle } from "@/lib/code-editor";
   import Button from "@/lib/components/Button.svelte";
   import { parseScriptMetadata } from "@/lib/utils/script-metadata";
-  import { isRestrictedUrl } from "@/lib/utils/url-utils";
+  import { isRestrictedUrl } from "@/lib/utils/website-glob";
   import { requestSandboxEvaluation, requestScriptRun } from "./sandbox/actions";
   import { saveState } from "./code-editor/save";
   import { elementEntries, scriptMetadata, setEditorApi, selectorEntries } from "./code-editor/state";

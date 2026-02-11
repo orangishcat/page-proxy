@@ -1,37 +1,38 @@
 import picomatch from "picomatch";
-import {getUrlHostname, getUrlOrigin} from './url-utils';
 
-const hasGlobWildcard = (value: string) => /[*?]/.test(value);
-const hasSchemeHostOnlyPattern = (value: string) => /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/?#]+$/.test(value);
-const globMatchOptions = {bash: true};
+const globMatchOptions = { bash: true };
+const ALLOWED_PROTOCOLS = new Set(["http:", "https:", "ws:", "wss:"]);
+
+const toUrl = (url?: string) => {
+  if (!url) {
+    return null;
+  }
+
+  try {
+    return new URL(url);
+  } catch {
+    return null;
+  }
+};
+
+export const isAllowedUrl = (url?: string) => {
+  const parsedUrl = toUrl(url);
+  if (!parsedUrl) {
+    return false;
+  }
+  return ALLOWED_PROTOCOLS.has(parsedUrl.protocol);
+};
+
+export const isRestrictedUrl = (url?: string) => !isAllowedUrl(url);
 
 export const matchWebsiteGlob = (pattern: string, url: string) => {
-  const normalizedPattern = pattern.trim();
-  const normalizedUrl = url.trim();
-  if (!normalizedPattern || !normalizedUrl) {
-    return false;
-  }
-
-  const hasScheme = normalizedPattern.includes('://');
-
-  if (!hasGlobWildcard(normalizedPattern)) {
-    return normalizedUrl.startsWith(normalizedPattern);
-  }
-
-  const matchTarget = !hasScheme
-    ? getUrlHostname(normalizedUrl)
-    : hasSchemeHostOnlyPattern(normalizedPattern)
-      ? getUrlOrigin(normalizedUrl)
-      : normalizedUrl;
-
-  if (!matchTarget) {
-    return false;
-  }
-
-  return picomatch.isMatch(matchTarget, normalizedPattern, globMatchOptions);
+  return picomatch(pattern.trim(), globMatchOptions)(url.trim());
 };
 
 export const buildWebsiteGlobForUrl = (url: string) => {
-  const origin = getUrlOrigin(url);
-  return origin ? `${origin}/*` : '';
+  const parsedUrl = toUrl(url);
+  if (!parsedUrl || !ALLOWED_PROTOCOLS.has(parsedUrl.protocol)) {
+    return "";
+  }
+  return `${parsedUrl.origin}/*`;
 };

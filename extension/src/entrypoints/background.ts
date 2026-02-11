@@ -1,8 +1,7 @@
 import { defineBackground } from "wxt/utils/define-background";
 
 import { browser } from "wxt/browser";
-import { matchWebsiteGlob } from "@/lib/utils/website-glob";
-import { isRestrictedUrl } from "@/lib/utils/url-utils";
+import { isRestrictedUrl, matchWebsiteGlob } from "@/lib/utils/website-glob";
 import { isScriptRunResponse, type ScriptRunRequest } from "@/lib/script-runner";
 import { createTabBadgeUpdater } from "@/lib/background/tab-badge";
 import log from "loglevel";

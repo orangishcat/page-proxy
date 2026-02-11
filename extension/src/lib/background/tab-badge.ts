@@ -1,6 +1,6 @@
 import { browser } from "wxt/browser";
 
-import { isRestrictedUrl } from "@/lib/utils/url-utils";
+import { isRestrictedUrl } from "@/lib/utils/website-glob";
 
 const badgeBackgroundColor = "#f59e0b";
 
