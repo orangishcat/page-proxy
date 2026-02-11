@@ -1,0 +1,71 @@
+name: Build extension
+
+on:
+    pull_request:
+    push:
+    workflow_dispatch:
+
+jobs:
+    build-extension-packages:
+        runs-on: ubuntu-latest
+        env:
+            EXTENSION_NAME: page-proxy
+            CHROME_CRX_PRIVATE_KEY: ${{ secrets.CHROME_CRX_PRIVATE_KEY }}
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            - name: Install dependencies
+              run: bun install --frozen-lockfile
+
+            - name: Build Chrome and Firefox bundles
+              run: |
+                  cd extension
+                  bun x wxt zip --browser chrome
+                  bun x wxt zip --browser firefox
+
+            - name: Prepare CRX key
+              if: ${{ env.CHROME_CRX_PRIVATE_KEY != '' }}
+              run: |
+                  mkdir -p extension/.output
+                  printf '%s' "$CHROME_CRX_PRIVATE_KEY" > extension/.output/${EXTENSION_NAME}.pem
+
+            - name: Create Chrome CRX
+              if: ${{ env.CHROME_CRX_PRIVATE_KEY != '' }}
+              run: |
+                  ./node_modules/.bin/crx3 \
+                    -p extension/.output/${EXTENSION_NAME}.pem \
+                    -o extension/.output/${EXTENSION_NAME}-chrome.crx \
+                    extension/.output/chrome-mv3
+
+            - name: Create Firefox XPI
+              run: |
+                  for file in extension/.output/extension-*-firefox.zip; do
+                    cp "$file" "extension/.output/${EXTENSION_NAME}-firefox.xpi"
+                  done
+
+            - name: Upload Chrome CRX
+              if: ${{ env.CHROME_CRX_PRIVATE_KEY != '' }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ env.EXTENSION_NAME }}-chrome-crx
+                  path: extension/.output/${{ env.EXTENSION_NAME }}-chrome.crx
+                  if-no-files-found: error
+
+            - name: Upload Firefox XPI
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ env.EXTENSION_NAME }}-firefox-xpi
+                  path: extension/.output/${{ env.EXTENSION_NAME }}-firefox.xpi
+                  if-no-files-found: error
