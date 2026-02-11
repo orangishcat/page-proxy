@@ -11,6 +11,7 @@
   import { requestSandboxEvaluation, requestScriptRun } from "./sandbox/actions";
   import { saveState } from "./code-editor/save";
   import { elementEntries, scriptMetadata, setEditorApi, selectorEntries } from "./code-editor/state";
+  import { getTabUrl, resolveActiveTab, shouldHandleTabUpdate, type ActiveTab } from "./code-editor/tabs";
   import type { ScriptMetadataState } from "./code-editor/state";
   import { activeToolState } from "./state-storage";
   import {
@@ -341,10 +342,10 @@
     updateEditorContent(displayContent, { persist: false, sync: !isProtectedPage });
   };
 
-  const applyActiveTab = (tab: { id?: number; url?: string } | null) => {
+  const applyActiveTab = (tab: ActiveTab | null) => {
     canPersistEditorChanges = false;
     const nextTabId = tab?.id ?? null;
-    const nextTabUrl = tab?.url ?? null;
+    const nextTabUrl = getTabUrl(tab);
 
     activeTabId = nextTabId;
     activeTabUrl = nextTabUrl;
@@ -380,23 +381,6 @@
       });
   };
 
-  const resolveActiveTab = async () => {
-    const currentWindowTabs = await browser.tabs.query({ active: true, currentWindow: true });
-    const currentWindowTab = currentWindowTabs[0] ?? null;
-    if (currentWindowTab?.id !== undefined) {
-      return currentWindowTab;
-    }
-
-    const lastFocusedWindowTabs = await browser.tabs.query({ active: true, lastFocusedWindow: true });
-    const lastFocusedWindowTab = lastFocusedWindowTabs[0] ?? null;
-    if (lastFocusedWindowTab?.id !== undefined) {
-      return lastFocusedWindowTab;
-    }
-
-    const activeTabs = await browser.tabs.query({ active: true });
-    return activeTabs[0] ?? null;
-  };
-
   const refreshActiveTab = () => {
     void resolveActiveTab()
       .then((tab) => {
@@ -421,11 +405,8 @@
       });
   };
 
-  const handleTabUpdated = (tabId: number, changeInfo: { url?: string }, tab: { id?: number; url?: string }) => {
-    if (activeTabId !== tabId) {
-      return;
-    }
-    if (!changeInfo.url) {
+  const handleTabUpdated = (tabId: number, changeInfo: { url?: string; status?: string }, tab: ActiveTab) => {
+    if (!shouldHandleTabUpdate(activeTabId, tabId, changeInfo)) {
       return;
     }
     applyActiveTab(tab ?? null);

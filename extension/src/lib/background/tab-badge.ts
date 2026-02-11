@@ -20,15 +20,41 @@ export type TabBadgeUpdater = {
 export const createTabBadgeUpdater = (countMatchingScriptsForUrl: CountMatchingScriptsForUrl): TabBadgeUpdater => {
   const lastAutoRunUrlByTabId = new Map<number, string>();
   const runCountByTabId = new Map<number, number>();
+  const toolbarAction = (
+    browser as typeof browser & {
+      action?: {
+        setBadgeText?: (details: { tabId: number; text: string }) => Promise<void>;
+        setBadgeBackgroundColor?: (details: { tabId: number; color: string }) => Promise<void>;
+      };
+      browserAction?: {
+        setBadgeText?: (details: { tabId: number; text: string }) => Promise<void>;
+        setBadgeBackgroundColor?: (details: { tabId: number; color: string }) => Promise<void>;
+      };
+    }
+  ).action ??
+    (
+      browser as typeof browser & {
+        browserAction?: {
+          setBadgeText?: (details: { tabId: number; text: string }) => Promise<void>;
+          setBadgeBackgroundColor?: (details: { tabId: number; color: string }) => Promise<void>;
+        };
+      }
+    ).browserAction;
 
   const setTabBadge = async (tabId: number, count: number) => {
-    if (count <= 0) {
-      await browser.action.setBadgeText({ tabId, text: "" });
+    if (!toolbarAction?.setBadgeText) {
       return;
     }
 
-    await browser.action.setBadgeBackgroundColor({ tabId, color: badgeBackgroundColor });
-    await browser.action.setBadgeText({ tabId, text: count > 99 ? "99+" : String(count) });
+    if (count <= 0) {
+      await toolbarAction.setBadgeText({ tabId, text: "" });
+      return;
+    }
+
+    if (toolbarAction.setBadgeBackgroundColor) {
+      await toolbarAction.setBadgeBackgroundColor({ tabId, color: badgeBackgroundColor });
+    }
+    await toolbarAction.setBadgeText({ tabId, text: count > 99 ? "99+" : String(count) });
   };
 
   const resolveBadgeCountForTab = async (tabId: number, url?: string) => {

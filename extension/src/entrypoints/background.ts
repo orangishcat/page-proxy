@@ -185,7 +185,9 @@ const buildRunRequest = (code: string): ScriptRunRequest => ({
 });
 
 const runScriptInTab = async (tabId: number, code: string) => {
-  const response: unknown = await browser.tabs.sendMessage(tabId, buildRunRequest(code));
+  const response: unknown = await browser.tabs.sendMessage(tabId, buildRunRequest(code), {
+    frameId: 0,
+  });
   if (!isScriptRunResponse(response)) {
     return false;
   }
@@ -216,6 +218,30 @@ export default defineBackground(() => {
     void sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   }
 
+  const toolbarAction = (
+    browser as typeof browser & {
+      action?: {
+        onClicked?: {
+          addListener: (listener: () => void) => void;
+        };
+      };
+      browserAction?: {
+        onClicked?: {
+          addListener: (listener: () => void) => void;
+        };
+      };
+    }
+  ).action ??
+    (
+      browser as typeof browser & {
+        browserAction?: {
+          onClicked?: {
+            addListener: (listener: () => void) => void;
+          };
+        };
+      }
+    ).browserAction;
+
   const sidebarAction = (
     browser as typeof browser & {
       sidebarAction?: {
@@ -224,8 +250,8 @@ export default defineBackground(() => {
     }
   ).sidebarAction;
 
-  if (sidebarAction?.open) {
-    browser.action.onClicked.addListener(() => {
+  if (sidebarAction?.open && toolbarAction?.onClicked?.addListener) {
+    toolbarAction.onClicked.addListener(() => {
       void sidebarAction.open();
     });
   }

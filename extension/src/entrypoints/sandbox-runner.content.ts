@@ -17,7 +17,7 @@ import {
 
 const injectedScriptPath = 'sandbox-main-world.js';
 const runScriptPath = 'code-runner-main-world.js';
-const responseTimeoutMs = 2000;
+const responseTimeoutMs = 10000;
 let injectPromise: Promise<boolean> | null = null;
 let runInjectPromise: Promise<boolean> | null = null;
 const pendingResponses = new Map<string, (response: SandboxEvaluateResponse) => void>();

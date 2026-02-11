@@ -23,7 +23,7 @@ const isRestrictedUrl = (url: string | undefined) => {
 
 const injectSelectTool = (tabId: number) =>
   browser.scripting.executeScript({
-    target: {tabId, allFrames: true},
+    target: {tabId},
     files: ['content-scripts/select-tool.js']
   });
 
@@ -55,7 +55,7 @@ export const sendSelectionToggle = (enabled: boolean) => {
         .sendMessage(tabId, {
           type: 'select:toggle',
           enabled
-        } satisfies SelectToolMessage)
+        } satisfies SelectToolMessage, {frameId: 0})
         .catch(() => {
           if (!shouldReportError) {
             return;
@@ -66,7 +66,7 @@ export const sendSelectionToggle = (enabled: boolean) => {
               browser.tabs.sendMessage(tabId, {
                 type: 'select:toggle',
                 enabled
-              } satisfies SelectToolMessage)
+              } satisfies SelectToolMessage, {frameId: 0})
             )
             .catch(() => {
               setSelectModeEnabled(false);
@@ -105,13 +105,13 @@ export const sendSelectParent = () => {
       return browser.tabs
         .sendMessage(tabId, {
           type: 'select:parent'
-        } satisfies SelectToolMessage)
+        } satisfies SelectToolMessage, {frameId: 0})
         .catch(() =>
           injectSelectTool(tabId)
             .then(() =>
               browser.tabs.sendMessage(tabId, {
                 type: 'select:parent'
-              } satisfies SelectToolMessage)
+              } satisfies SelectToolMessage, {frameId: 0})
             )
             .catch(() => {
               setErrorMessage('Unable to connect to the active tab.');
@@ -146,14 +146,14 @@ export const sendSelectorPopup = () => {
         .sendMessage(tabId, {
           type: 'selector:open',
           payload: selection
-        } satisfies SelectToolMessage)
+        } satisfies SelectToolMessage, {frameId: 0})
         .catch(() =>
           injectSelectTool(tabId)
             .then(() =>
               browser.tabs.sendMessage(tabId, {
                 type: 'selector:open',
                 payload: selection
-              } satisfies SelectToolMessage)
+              } satisfies SelectToolMessage, {frameId: 0})
             )
             .catch(() => {
               setErrorMessage('Unable to connect to the active tab.');

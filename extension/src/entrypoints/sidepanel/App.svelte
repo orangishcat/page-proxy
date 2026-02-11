@@ -36,8 +36,7 @@
   let isToolbarHovered = $state(false);
   let errorMessageValue = $state<string | null>(null);
   const isFirefoxBrowser = typeof navigator !== "undefined" && /Firefox/i.test(navigator.userAgent);
-  const firefoxExperimentalBannerDismissKey = "page-proxy:firefox-experimental-banner-dismissed";
-  let showFirefoxExperimentalBanner = $state(false);
+  let showFirefoxExperimentalBanner = $state(isFirefoxBrowser);
 
   const unsubscribeErrorMessage = errorMessage.subscribe((value) => {
     errorMessageValue = value;
@@ -211,14 +210,6 @@
   };
 
   onMount(() => {
-    if (isFirefoxBrowser) {
-      void browser.storage.local.get(firefoxExperimentalBannerDismissKey).then((stored) => {
-        showFirefoxExperimentalBanner = stored[firefoxExperimentalBannerDismissKey] !== true;
-      });
-    } else {
-      showFirefoxExperimentalBanner = false;
-    }
-
     const cleanup = attachSelectionListener();
 
     const handleRuntimeMessage = (message: unknown, _sender: unknown, sendResponse: (response?: unknown) => void) => {
@@ -271,9 +262,6 @@
 
   const dismissFirefoxExperimentalBanner = () => {
     showFirefoxExperimentalBanner = false;
-    void browser.storage.local.set({
-      [firefoxExperimentalBannerDismissKey]: true,
-    });
   };
 </script>
 

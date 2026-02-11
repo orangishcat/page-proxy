@@ -28,7 +28,11 @@ export const saveState = async (options: SaveStateOptions) => {
 
   let normalizedContent: string;
   try {
-    normalizedContent = normalizeContentForStorage(options.content, options.isProtectedPage, options.scriptFormatConfig);
+    normalizedContent = normalizeContentForStorage(
+      options.content,
+      options.isProtectedPage,
+      options.scriptFormatConfig,
+    );
     parseScriptMetadata(normalizedContent);
     options.getDefinitionBlock(normalizedContent);
   } catch (error) {
@@ -49,7 +53,9 @@ export const saveState = async (options: SaveStateOptions) => {
   }
 
   if (options.activeTabUrl && !matchWebsiteGlob(websiteGlob, options.activeTabUrl)) {
-    options.setErrorMessage(`Website glob "${websiteGlob}" does not match the current website.`);
+    options.setErrorMessage(
+      `Website glob "${websiteGlob}" does not match the current website (${options.activeTabUrl}).`,
+    );
     return;
   }
 

@@ -52,7 +52,7 @@ export const requestSandboxEvaluation = async (code: string): Promise<SandboxRes
   };
 
   return browser.tabs
-    .sendMessage(activeTab.id, request)
+    .sendMessage(activeTab.id, request, {frameId: 0})
     .then((response) => {
       if (!isSandboxResponse(response) || response.requestId !== requestId) {
         return buildSandboxErrorResponse(requestId, 'Sandbox returned an invalid response.');
@@ -91,7 +91,7 @@ export const requestScriptRun = async (code: string): Promise<ScriptRunResult> =
   };
 
   return browser.tabs
-    .sendMessage(activeTab.id, request)
+    .sendMessage(activeTab.id, request, {frameId: 0})
     .then((response) => {
       if (!isScriptRunResponse(response) || response.requestId !== requestId) {
         return buildScriptRunResponse(requestId, 'Script returned an invalid response.');
