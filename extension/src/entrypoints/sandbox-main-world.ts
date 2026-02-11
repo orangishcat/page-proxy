@@ -422,6 +422,7 @@ const getTargetOrigin = () => {
 };
 
 const buildErrorResponse = (requestId: string, message: string) => buildSandboxErrorResponse(requestId, message);
+const isWindowSource = (source: MessageEventSource | null) => source === window || source === null;
 
 const respondOnce = (
   requestId: string,
@@ -442,7 +443,7 @@ export default defineUnlistedScript(() => {
   console.debug("[pp sandbox-main-world] initialized", {href: window.location.href});
 
   window.addEventListener("message", (event) => {
-    if (event.source !== window) {
+    if (!isWindowSource(event.source)) {
       return;
     }
 

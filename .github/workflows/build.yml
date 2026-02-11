@@ -6,7 +6,7 @@ on:
     workflow_dispatch:
 
 jobs:
-    build-extension-packages:
+    build-extension:
         runs-on: ubuntu-latest
         env:
             EXTENSION_NAME: page-proxy

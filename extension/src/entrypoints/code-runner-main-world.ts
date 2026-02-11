@@ -223,6 +223,8 @@ const getTargetOrigin = () => {
   return window.location.origin;
 };
 
+const isWindowSource = (source: MessageEventSource | null) => source === window || source === null;
+
 const respondOnce = (
   requestId: string,
   response: ScriptRunResponse,
@@ -267,7 +269,7 @@ export default defineUnlistedScript(() => {
   console.debug('[pp code-runner-main-world] initialized', {href: window.location.href});
 
   window.addEventListener('message', (event) => {
-    if (event.source !== window) {
+    if (!isWindowSource(event.source)) {
       return;
     }
 

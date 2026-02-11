@@ -9,7 +9,7 @@
         "web:dev": "cd web && vite dev",
         "web:build": "cd web && vite build",
         "web:preview": "cd web && vite preview",
-        "web:check": "svelte-check --tsconfig ./web/tsconfig.json",
+        "web:check": "cd web && svelte-check --tsconfig tsconfig.json",
         "web:lint": "cd web && eslint .",
         "extension:dev": "node ./extension/scripts/generate-pp-monaco-extra-lib.mjs && cd extension && wxt --browser firefox",
         "extension:build": "node ./extension/scripts/generate-pp-monaco-extra-lib.mjs && cd extension && wxt build",

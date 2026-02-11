@@ -82,13 +82,15 @@ const getTargetOrigin = () => {
   return window.location.origin;
 };
 
+const isWindowSource = (source: MessageEventSource | null) => source === window || source === null;
+
 export default defineContentScript({
   matches: ['<all_urls>'],
   main() {
     logger.debug('sandbox-runner initialized', {href: window.location.href});
 
     window.addEventListener('message', (event) => {
-      if (event.source !== window) {
+      if (!isWindowSource(event.source)) {
         return;
       }
 
@@ -100,7 +102,7 @@ export default defineContentScript({
     });
 
     window.addEventListener('message', (event) => {
-      if (event.source !== window) {
+      if (!isWindowSource(event.source)) {
         return;
       }
 

@@ -5,7 +5,7 @@ on:
     push:
 
 jobs:
-    website-checks:
+    web-checks:
         runs-on: ubuntu-latest
 
         steps:
