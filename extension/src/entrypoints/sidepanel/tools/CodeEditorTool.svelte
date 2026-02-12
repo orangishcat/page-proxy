@@ -84,6 +84,12 @@
 
   const saveToolState = (content: string) => {
     try {
+      updateSandboxError([])
+      syncDefinitionsNow(content);
+
+      const error = get(errorMessage);
+      if (error) throw new Error(error);
+
       void saveState({
         content,
         isProtectedPage,
@@ -95,9 +101,9 @@
         setActiveWebsiteGlob: (websiteGlob) => {
           activeWebsiteGlob = websiteGlob;
         },
-        setErrorMessage,
       });
       hasUnsavedChanges = false;
+      setErrorMessage(null);
     } catch (e: unknown) {
       throw new Error(`Saving failed: ${e instanceof Error ? e.message : e}`);
     }

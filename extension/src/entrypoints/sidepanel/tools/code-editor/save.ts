@@ -18,7 +18,6 @@ type SaveStateOptions = {
   activeTool: ToolId;
   getDefinitionBlock: (content: string) => string;
   setActiveWebsiteGlob: (websiteGlob: string) => void;
-  setErrorMessage: (message: string | null) => void;
 };
 
 export const saveState = async (options: SaveStateOptions) => {
@@ -36,16 +35,14 @@ export const saveState = async (options: SaveStateOptions) => {
     parseScriptMetadata(normalizedContent);
     options.getDefinitionBlock(normalizedContent);
   } catch (error) {
-    options.setErrorMessage(error instanceof Error ? error.message : "Invalid script metadata or selector block.");
-    return;
+    throw new Error(error instanceof Error ? error.message : "Invalid script metadata or selector block.");
   }
 
   let websiteGlob: string;
   try {
     websiteGlob = resolveWebsiteGlob(normalizedContent, options.activeTabUrl, options.activeWebsiteGlob);
   } catch (error) {
-    options.setErrorMessage(error instanceof Error ? error.message : "Invalid script metadata.");
-    return;
+    throw new Error(error instanceof Error ? error.message : "Invalid script metadata.");
   }
 
   if (!websiteGlob) {
@@ -53,17 +50,14 @@ export const saveState = async (options: SaveStateOptions) => {
   }
 
   if (options.activeTabUrl && !matchWebsiteGlob(websiteGlob, options.activeTabUrl)) {
-    options.setErrorMessage(
-      `Website glob "${websiteGlob}" does not match the current website (${options.activeTabUrl}).`,
-    );
-    return;
+    throw new Error(`Website glob "${websiteGlob}" does not match the current website (${options.activeTabUrl}).`);
   }
 
   const contentWithWebsite = ensureWebsiteMetadata(normalizedContent, websiteGlob);
 
   if (options.activeWebsiteGlob && options.activeWebsiteGlob !== websiteGlob) {
     await removeStoredToolState(options.activeWebsiteGlob).catch(() => {
-      options.setErrorMessage("Unable to save script state to extension storage.");
+      throw new Error("Unable to save script state to extension storage.");
     });
   }
 
@@ -80,20 +74,14 @@ export const saveState = async (options: SaveStateOptions) => {
 
   if (isDefaultToolState(state, options.scriptFormatConfig)) {
     await removeStoredToolState(websiteGlob)
-      .then(() => {
-        options.setErrorMessage(null);
-      })
-      .catch(() => {
-        options.setErrorMessage("Unable to save script state to extension storage.");
+      .catch((e: Error) => {
+        throw new Error(`Unable to save script state to extension storage: ${e.message}`);
       });
     return;
   }
 
   await saveStoredToolState(state)
-    .then(() => {
-      options.setErrorMessage(null);
-    })
-    .catch(() => {
-      options.setErrorMessage("Unable to save script state to extension storage.");
+    .catch((e: Error) => {
+      throw new Error(`Unable to save script state to extension storage: ${e.message}`);
     });
 };

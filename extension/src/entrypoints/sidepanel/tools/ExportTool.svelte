@@ -93,27 +93,16 @@
 </script>
 
 <div class="flex w-full min-h-0 flex-1 flex-col gap-4 px-4 py-4">
-  <div class="rounded-2xl border border-[#4f4a38] bg-[#24231f] p-4">
-    <h2 class="text-subtitle text-gray-100">Export</h2>
-    <p class="mt-1 text-caption text-gray-400">Live script metadata from the editor.</p>
-  </div>
-
   <div class="min-h-0 flex-1 overflow-y-auto space-y-3 pr-1">
-    <div class="rounded-xl border border-[#4f4a38] bg-[#2d2b25] p-3">
-      <p class="text-caption uppercase tracking-wide text-gray-500">Title</p>
-      <p class="mt-1 text-body text-gray-100 break-words">{scriptMetadataValue.title || "Untitled script"}</p>
-    </div>
+    <div class="grid grid-cols-[fit-content(7rem)_minmax(0,1fr)] gap-x-4 gap-y-2 text-body whitespace-pre-line">
+      <span class="min-w-0 text-right truncate text-gray-500">Title</span>
+      <span class="min-w-0 wrap-break-word text-left font-mono">{scriptMetadataValue.title || "Untitled script"}</span>
 
-    <div class="rounded-xl border border-[#4f4a38] bg-[#2d2b25] p-3">
-      <p class="text-caption uppercase tracking-wide text-gray-500">Website glob</p>
-      <p class="mt-1 text-body text-accent-500 break-all">{normalizedWebsiteGlob || "Not set"}</p>
-    </div>
+      <span class="min-w-0 text-right truncate text-gray-500">Website</span>
+      <span class="min-w-0 wrap-break-word text-left font-mono">{normalizedWebsiteGlob || "Not set"}</span>
 
-    <div class="rounded-xl border border-[#4f4a38] bg-[#2d2b25] p-3">
-      <p class="text-caption uppercase tracking-wide text-gray-500">Description</p>
-      <p class="mt-1 text-body text-gray-200 whitespace-pre-wrap break-words">
-        {scriptMetadataValue.description || "No description"}
-      </p>
+      <span class="min-w-0 text-right truncate text-gray-500">Description</span>
+      <span class="min-w-0 wrap-break-word text-left font-mono">{scriptMetadataValue.description || "No description"}</span>
     </div>
   </div>
 
