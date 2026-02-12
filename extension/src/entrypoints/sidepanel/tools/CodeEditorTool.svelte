@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
   import { get } from "svelte/store";
   import { browser } from "wxt/browser";
   import { ExternalLink, Play } from "lucide-svelte";
@@ -61,10 +60,7 @@
     description: "",
   });
 
-  const unsubscribeScriptMetadata = scriptMetadata.subscribe((value) => {
-    scriptMetadataValue = value;
-  });
-  let unsubscribeActiveToolState = () => {};
+  let unsubscribeScriptMetadata = () => {};
 
   const updateScriptMetadata = (content: string) => {
     try {
@@ -431,7 +427,11 @@
     });
   };
 
-  onMount(() => {
+  $effect(() => {
+    unsubscribeScriptMetadata = scriptMetadata.subscribe((value) => {
+      scriptMetadataValue = value;
+    });
+
     canPersistEditorChanges = false;
     editorValue = buildDefaultScript("", scriptFormatConfig);
     setupEditor();
@@ -444,26 +444,23 @@
       setEditorApi(null);
       browser.tabs.onActivated.removeListener(handleTabActivated);
       browser.tabs.onUpdated.removeListener(handleTabUpdated);
+      if (saveTimer) {
+        window.clearTimeout(saveTimer);
+        saveTimer = null;
+      }
+
+      if (sandboxSyncTimer) {
+        window.clearTimeout(sandboxSyncTimer);
+        sandboxSyncTimer = null;
+      }
+
+      if (editorHandle) {
+        editorHandle.dispose();
+        editorHandle = null;
+      }
+
+      unsubscribeScriptMetadata();
     };
-  });
-
-  onDestroy(() => {
-    if (saveTimer) {
-      window.clearTimeout(saveTimer);
-      saveTimer = null;
-    }
-
-    if (sandboxSyncTimer) {
-      window.clearTimeout(sandboxSyncTimer);
-    }
-
-    if (editorHandle) {
-      editorHandle.dispose();
-      editorHandle = null;
-    }
-
-    unsubscribeScriptMetadata();
-    unsubscribeActiveToolState();
   });
 </script>
 

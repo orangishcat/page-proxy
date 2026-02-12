@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
   import { browser } from "wxt/browser";
   import { CircleQuestionMark, MousePointer, Plus, Share } from "lucide-svelte";
 
@@ -38,21 +37,8 @@
   const isFirefoxBrowser = typeof navigator !== "undefined" && /Firefox/i.test(navigator.userAgent);
   let showFirefoxExperimentalBanner = $state(isFirefoxBrowser);
 
-  const unsubscribeErrorMessage = errorMessage.subscribe((value) => {
-    errorMessageValue = value;
-  });
-  const unsubscribeActiveToolState = activeToolState.subscribe((tool) => {
-    if (tool === activeTool) {
-      return;
-    }
-
-    const wasSelectTool = activeTool === "select";
-    activeTool = tool;
-    const isSelectTool = tool === "select";
-    if (wasSelectTool !== isSelectTool) {
-      sendSelectionToggle(isSelectTool);
-    }
-  });
+  let unsubscribeErrorMessage = () => {};
+  let unsubscribeActiveToolState = () => {};
 
   const activeToolLabel = $derived(toolLabels[activeTool]);
   const shortcutLabels: Record<ToolbarControlId, string> = {
@@ -209,7 +195,23 @@
     return (message as { type?: string }).type === "selector:save";
   };
 
-  onMount(() => {
+  $effect(() => {
+    unsubscribeErrorMessage = errorMessage.subscribe((value) => {
+      errorMessageValue = value;
+    });
+    unsubscribeActiveToolState = activeToolState.subscribe((tool) => {
+      if (tool === activeTool) {
+        return;
+      }
+
+      const wasSelectTool = activeTool === "select";
+      activeTool = tool;
+      const isSelectTool = tool === "select";
+      if (wasSelectTool !== isSelectTool) {
+        sendSelectionToggle(isSelectTool);
+      }
+    });
+
     const cleanup = attachSelectionListener();
 
     const handleRuntimeMessage = (message: unknown, _sender: unknown, sendResponse: (response?: unknown) => void) => {
@@ -246,13 +248,10 @@
       cleanup();
       window.removeEventListener("keydown", onKeyDown, { capture: true });
       browser.runtime.onMessage.removeListener(handleRuntimeMessage);
+      sendSelectionToggle(false);
+      unsubscribeErrorMessage();
+      unsubscribeActiveToolState();
     };
-  });
-
-  onDestroy(() => {
-    sendSelectionToggle(false);
-    unsubscribeErrorMessage();
-    unsubscribeActiveToolState();
   });
 
   const toolButtonClasses = (selected: boolean) =>
