@@ -112,6 +112,7 @@ const buildDefaultScript = (websiteGlob: string) => {
     "// @title Page Proxy",
     normalizedWebsite ? `// @website ${normalizedWebsite}` : "// @website",
     "// @description",
+    "// @author",
     "// ==/Page Proxy==",
     "",
     defaultDefineBlockStart,

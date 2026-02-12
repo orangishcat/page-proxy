@@ -1,3 +1,3 @@
-export * from './pp/pp-query';
-export * from './pp/pp-style';
-export * from './pp/pp-event';
+export * from "@page-proxy/pp/pp-query";
+export * from "@page-proxy/pp/pp-style";
+export * from "@page-proxy/pp/pp-event";

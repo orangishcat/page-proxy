@@ -2,9 +2,13 @@ export type ScriptMetadata = {
   title: string;
   website: string;
   description: string;
+  author: string;
+  credits: string;
 };
 
 const requiredMetadataFields = ["title", "website", "description"] as const;
+const optionalMetadataFields = ["author", "credits"] as const;
+const supportedMetadataFields = [...requiredMetadataFields, ...optionalMetadataFields] as const;
 
 const metadataBlockPattern = /\/\/\s*==\s*Page\s*Proxy\s*==([\s\S]*?)\/\/\s*==\s*\/\s*Page\s*Proxy\s*==/gm;
 
@@ -14,12 +18,14 @@ export const parseScriptMetadata = (content: string): ScriptMetadata => {
     throw new Error("Missing Page Proxy metadata block.");
   }
 
-  const parsed: Record<(typeof requiredMetadataFields)[number], string> = {
+  const parsed: Record<(typeof supportedMetadataFields)[number], string> = {
     title: "",
     website: "",
     description: "",
+    author: "",
+    credits: "",
   };
-  const seen = new Set<(typeof requiredMetadataFields)[number]>();
+  const seen = new Set<(typeof supportedMetadataFields)[number]>();
 
   match[0]
     .split("\n")
@@ -38,11 +44,11 @@ export const parseScriptMetadata = (content: string): ScriptMetadata => {
       }
 
       const [, key, value] = metaMatch;
-      if (!requiredMetadataFields.includes(key as (typeof requiredMetadataFields)[number])) {
+      if (!supportedMetadataFields.includes(key as (typeof supportedMetadataFields)[number])) {
         return;
       }
 
-      const typedKey = key as (typeof requiredMetadataFields)[number];
+      const typedKey = key as (typeof supportedMetadataFields)[number];
       if (seen.has(typedKey)) {
         throw new Error(`Duplicate @${typedKey} metadata field.`);
       }
@@ -62,5 +68,7 @@ export const parseScriptMetadata = (content: string): ScriptMetadata => {
     title: parsed.title,
     website: parsed.website,
     description: parsed.description,
+    author: parsed.author,
+    credits: parsed.credits,
   };
 };

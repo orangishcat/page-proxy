@@ -49,18 +49,12 @@ jobs:
             - name: Prepare Pages artifact
               run: |
                   mkdir -p web/pages-artifact
-                  if [ -d web/.svelte-kit/output/client ]; then
-                    cp -R web/.svelte-kit/output/client/. web/pages-artifact/
-                  fi
-                  if [ -d web/.svelte-kit/output/prerendered/pages ]; then
-                    cp -R web/.svelte-kit/output/prerendered/pages/. web/pages-artifact/
-                  fi
-                  if [ -d web/.svelte-kit/output/prerendered/dependencies ]; then
-                    cp -R web/.svelte-kit/output/prerendered/dependencies/. web/pages-artifact/
+                  if [ -d web/build ]; then
+                    cp -R web/build/. web/pages-artifact/
                   fi
                   website_file_count=$(find web/pages-artifact -type f | wc -l)
                   if [ "$website_file_count" -eq 0 ]; then
-                    echo "No website build files found in web/.svelte-kit/output"
+                    echo "No website build files found in web/build"
                     exit 1
                   fi
                   mkdir -p web/pages-artifact/docs

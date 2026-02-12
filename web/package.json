@@ -11,6 +11,7 @@
     "test": "playwright test"
   },
   "dependencies": {
+    "@page-proxy/pp": "workspace:*",
     "@sveltejs/kit": "2.50.1",
     "appwrite": "13.0.2",
     "axios": "1.13.2",
@@ -21,7 +22,7 @@
   "devDependencies": {
     "@eslint/js": "9.39.2",
     "@playwright/test": "1.58.0",
-    "@sveltejs/adapter-node": "5.5.2",
+    "@sveltejs/adapter-static": "3.0.10",
     "@sveltejs/vite-plugin-svelte": "6.2.4",
     "@tailwindcss/postcss": "4.1.18",
     "eslint": "9.39.2",

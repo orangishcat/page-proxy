@@ -1,0 +1,12 @@
+{
+  "name": "@page-proxy/pp",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./pp-query": "./src/pp-query.ts",
+    "./pp-style": "./src/pp-style.ts",
+    "./pp-event": "./src/pp-event.ts",
+    "./function-references": "./src/function-references.ts"
+  }
+}

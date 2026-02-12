@@ -7,9 +7,9 @@ import {
   type ScriptRunLogValue,
   type ScriptRunResponse
 } from '@/lib/script-runner';
-import * as pq from '@/lib/pp/pp-query';
-import * as ps from '@/lib/pp/pp-style';
-import * as pv from '@/lib/pp/pp-event';
+import * as pq from '@page-proxy/pp/pp-query';
+import * as ps from '@page-proxy/pp/pp-style';
+import * as pv from '@page-proxy/pp/pp-event';
 
 type PpModuleBindings = {
   pq: typeof pq;

@@ -1,8 +1,8 @@
-import type { ScriptRunLogLevel } from "../script-runner";
 import { buildNotificationBody } from "./pp-notification-viewer";
 import { buildPageNotificationStyles } from "./pp-event-notification-style";
 
 export type OnElementCreatedHandler = (element: Element) => void;
+export type NotificationLevel = "log" | "info" | "warn" | "error" | "debug" | "notification";
 
 export const notificationSinkGlobalKey = "__pageProxyNotificationSink__";
 
@@ -15,7 +15,7 @@ const pageNotificationStyleId = "__pageProxyNotificationStyle";
 const pageNotificationClass = "pp-page-notification";
 const noSelectToolClass = "pp-no-select-tool";
 
-type NotificationSink = (payload: { level: ScriptRunLogLevel; values: unknown[] }) => void;
+type NotificationSink = (payload: { level: NotificationLevel; values: unknown[] }) => void;
 
 const getNodeCreatedElements = (node: Node): Element[] => {
   if (node instanceof Element) {

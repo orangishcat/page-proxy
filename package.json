@@ -2,7 +2,7 @@
   "name": "page-proxy-workspace",
   "private": true,
   "type": "module",
-  "workspaces": ["web", "extension", "docs-site"],
+  "workspaces": ["web", "extension", "docs-site", "packages/pp"],
   "scripts": {
     "postinstall": "bun run --cwd extension prepare",
     "check": "bun run --cwd web check && bun run --cwd extension check && bun run --cwd docs-site check",

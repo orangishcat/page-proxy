@@ -13,8 +13,8 @@
 
   const exportFormatOptions: ExportFormatOption[] = [
     { value: "pp-script", label: "pp-script", available: true },
-    { value: "tampermonkey", label: "tampermonkey (coming soon)", available: false },
-    { value: "css-only", label: "css only (coming soon)", available: false },
+    { value: "tampermonkey", label: "Tampermonkey (coming soon)", available: false },
+    { value: "css-only", label: "CSS only (coming soon)", available: false },
     { value: "wxt-extension", label: "WXT extension (coming soon)", available: false },
   ];
 
@@ -25,6 +25,8 @@
     title: "Page Proxy",
     website: "",
     description: "",
+    author: "",
+    credits: "",
   });
   let editorContentValue = $state("");
 
@@ -103,15 +105,22 @@
 
       <span class="min-w-0 text-right truncate text-gray-500">Description</span>
       <span class="min-w-0 wrap-break-word text-left font-mono">{scriptMetadataValue.description || "No description"}</span>
+
+      <span class="min-w-0 text-right truncate text-gray-500">Author</span>
+      <span class="min-w-0 wrap-break-word text-left font-mono">{scriptMetadataValue.author || "No author"}</span>
+
+      {#if scriptMetadataValue.credits.trim()}
+        <span class="min-w-0 text-right truncate text-gray-500">Credits</span>
+        <span class="min-w-0 wrap-break-word text-left font-mono">{scriptMetadataValue.credits}</span>
+      {/if}
     </div>
   </div>
 
   <div class="mt-auto space-y-2">
     <div class="flex items-center gap-2">
-      <label class="sr-only" for="export-format">Export format</label>
-      <select
-        id="export-format"
-        class="h-10 flex-1 rounded-xl border border-[#5b5542] bg-[#2a2924] px-3 text-body text-gray-100 outline-none focus:border-accent-500"
+      <label for="export-format" class="text-gray-500">Export format</label>
+      <select id="export-format"
+        class="h-8 flex-1 rounded-xl border border-[#5b5542] bg-[#2a2924] px-3 text-body text-gray-100 outline-none focus:border-accent-500"
         bind:value={selectedFormat}
       >
         {#each exportFormatOptions as formatOption (formatOption.value)}
@@ -119,7 +128,7 @@
         {/each}
       </select>
 
-      <Button class="h-10 px-4!" variant="primary" aria-label="Export script" onclick={handleExport}>Export</Button>
+      <Button class="px-4!" variant="primary" aria-label="Export script" onclick={handleExport}>Export</Button>
     </div>
 
     {#if statusMessage}

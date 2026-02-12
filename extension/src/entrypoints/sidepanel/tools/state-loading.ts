@@ -19,6 +19,7 @@ export const buildDefaultScript = (websiteGlob: string, config: ScriptFormatConf
     "// @title Page Proxy",
     normalizedWebsite ? `// @website ${normalizedWebsite}` : "// @website",
     "// @description",
+    "// @author",
     "// ==/Page Proxy==",
     "",
     config.defineBlockStart,

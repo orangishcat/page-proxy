@@ -10,9 +10,9 @@ import {
   type SandboxResult,
   type SelectorEntry,
 } from "@/lib/sandbox";
-import * as pq from "@/lib/pp/pp-query";
-import * as ps from "@/lib/pp/pp-style";
-import * as pv from "@/lib/pp/pp-event";
+import * as pq from "@page-proxy/pp/pp-query";
+import * as ps from "@page-proxy/pp/pp-style";
+import * as pv from "@page-proxy/pp/pp-event";
 
 type CompartmentConstructor = new (endowments?: Record<string, unknown>) => {
   evaluate: (code: string) => unknown;

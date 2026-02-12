@@ -7,6 +7,8 @@ export type ScriptMetadataState = {
   title: string;
   website: string;
   description: string;
+  author: string;
+  credits: string;
 };
 
 export const elementEntries = writable<ElementEntry[]>([]);
@@ -15,7 +17,9 @@ export const codeEditorContent = writable('');
 export const scriptMetadata = writable<ScriptMetadataState>({
   title: 'Page Proxy',
   website: '',
-  description: ''
+  description: '',
+  author: '',
+  credits: ''
 });
 
 type EditorApi = {

@@ -1,4 +1,4 @@
-import * as pq from "@page-proxy/pp/pp-query";
+import * as pq from "./pp-query";
 
 const buildModuleFunctionReference = (moduleName: string, fn: { name: string }, fallbackName: string) =>
   `${moduleName}.${fn.name || fallbackName}`;

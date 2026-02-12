@@ -8,9 +8,9 @@ let ppTypesRegistered = false;
 let languageServiceConfigured = false;
 
 const ppGlobalDeclarations = `
-import * as pqModule from "@/lib/pp/pp-query";
-import * as psModule from "@/lib/pp/pp-style";
-import * as pvModule from "@/lib/pp/pp-event";
+import * as pqModule from "@page-proxy/pp/pp-query";
+import * as psModule from "@page-proxy/pp/pp-style";
+import * as pvModule from "@page-proxy/pp/pp-event";
 
 declare global {
   const pq: typeof pqModule;

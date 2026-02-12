@@ -61,6 +61,8 @@
     title: "Page Proxy",
     website: "",
     description: "",
+    author: "",
+    credits: "",
   });
 
   let unsubscribeScriptMetadata = () => {};
@@ -72,12 +74,16 @@
         title: metadata.title || "Page Proxy",
         website: metadata.website,
         description: metadata.description,
+        author: metadata.author,
+        credits: metadata.credits,
       });
     } catch {
       scriptMetadata.set({
         title: "Page Proxy",
         website: "",
         description: "",
+        author: "",
+        credits: "",
       });
     }
   };
