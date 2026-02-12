@@ -1,5 +1,18 @@
 export type StyleValues = Record<string, string>;
 
+const psHashAttributeName = 'data-ps-hash';
+
+const hashCssString = (value: string) => {
+  let hash = 0x811c9dc5;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  return (hash >>> 0).toString(16).padStart(8, '0');
+};
+
 export const applyStyle = (elements: Element[], values: StyleValues) => {
   const entries = Object.entries(values);
   if (entries.length === 0) {
@@ -16,4 +29,28 @@ export const applyStyle = (elements: Element[], values: StyleValues) => {
       styledElement.style.setProperty(key, value);
     });
   });
+};
+
+export const injectCSS = (styleText: string) => {
+  if (styleText.trim().length === 0) {
+    return false;
+  }
+
+  const head = document.head;
+  if (!head) {
+    return false;
+  }
+
+  const hash = hashCssString(styleText);
+  const existingStyle = head.querySelector(`style[${psHashAttributeName}="${hash}"]`);
+  if (existingStyle) {
+    return false;
+  }
+
+  const styleElement = document.createElement('style');
+  styleElement.setAttribute(psHashAttributeName, hash);
+  styleElement.textContent = styleText;
+  head.appendChild(styleElement);
+
+  return true;
 };

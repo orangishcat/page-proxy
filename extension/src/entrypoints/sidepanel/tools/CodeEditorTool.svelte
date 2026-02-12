@@ -25,8 +25,8 @@
   } from "./state-loading";
   import { errorMessage, setErrorMessage } from "./tool-errors";
 
-  const defineBlockStart = "// Define elements/selectors";
-  const defineBlockEnd = "// End define elements/selectors";
+  const defineBlockStart = "// ==Selectors==";
+  const defineBlockEnd = "// ==/Selectors==";
   const ppImportLines = [
     'import * as pq from "@/lib/pp/pp-query";',
     'import * as ps from "@/lib/pp/pp-style";',

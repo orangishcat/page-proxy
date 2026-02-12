@@ -60,6 +60,7 @@ declare module "@/lib/pp/pp-query" {
 declare module "@/lib/pp/pp-style" {
   export type StyleValues = Record<string, string>;
   export declare const applyStyle: (elements: Element[], values: StyleValues) => void;
+  export declare const injectCSS: (styleText: string) => boolean;
 }
 declare module "@/lib/pp/pp-event" {
   export type OnElementCreatedHandler = (element: Element) => void;

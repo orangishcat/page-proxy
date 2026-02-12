@@ -205,6 +205,7 @@ export const pageModificationFunctions = [
   "pq.element",
   "pq.selector",
   "ps.applyStyle",
+  "ps.injectCSS",
   "pq.propMatches",
   "pq.propContains",
   "pq.propExists",

@@ -23,8 +23,8 @@ const defaultScriptImportLines = [
   'import * as ps from "@/lib/pp/pp-style";',
   'import * as pv from "@/lib/pp/pp-event";',
 ] as const;
-const defaultDefineBlockStart = "// Define elements/selectors";
-const defaultDefineBlockEnd = "// End define elements/selectors";
+const defaultDefineBlockStart = "// ==Selectors==";
+const defaultDefineBlockEnd = "// ==/Selectors==";
 
 const isToolId = (value: unknown): value is ToolId =>
   value === "select" ||
