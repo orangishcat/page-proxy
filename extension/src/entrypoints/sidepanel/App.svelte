@@ -24,7 +24,7 @@
     select: "Select",
     "new-element": "New element",
     selectors: "Selectors",
-    share: "Share",
+    share: "Export",
     help: "Help",
     none: "",
   };
@@ -375,7 +375,7 @@
             <Button
               class="{toolButtonClasses(activeTool === 'share')} bg-secondary-500"
               variant="outline"
-              aria-label="Share tool"
+              aria-label="Export tool"
               onmouseenter={() => {
                 hoveredTool = "share";
                 lastHoveredTool = "share";

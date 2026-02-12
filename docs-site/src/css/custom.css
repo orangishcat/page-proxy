@@ -55,8 +55,8 @@
     --ifm-table-head-background: var(--pp-gray-200);
     --ifm-table-border-color: var(--pp-gray-300);
     --ifm-alert-border-left-width: 0.2rem;
-    --pp-toc-link-active-color: color-mix(in srgb, var(--pp-hover-accent) 80%, var(--pp-gray-100));
-    --pp-toc-link-active-opacity: 0.92;
+    --pp-sidebar-link-active-color: color-mix(in srgb, var(--pp-hover-accent) 78%, var(--pp-gray-950));
+    --pp-sidebar-link-active-opacity: 0.9;
 }
 
 [data-theme="dark"] {
@@ -83,8 +83,8 @@
     --ifm-toc-link-color-active: var(--pp-gray-100);
     --ifm-table-head-background: var(--pp-gray-850);
     --ifm-table-border-color: var(--pp-gray-700);
-    --pp-toc-link-active-color: color-mix(in srgb, var(--pp-hover-accent) 58%, var(--pp-gray-900));
-    --pp-toc-link-active-opacity: 0.72;
+    --pp-sidebar-link-active-color: color-mix(in srgb, var(--pp-hover-accent) 56%, var(--pp-gray-100));
+    --pp-sidebar-link-active-opacity: 0.74;
 }
 
 html,
@@ -124,6 +124,8 @@ body {
 }
 
 .menu__link--active {
+    color: var(--pp-sidebar-link-active-color);
+    opacity: var(--pp-sidebar-link-active-opacity);
     box-shadow: inset 0.15rem 0 0 var(--ifm-color-primary);
 }
 
@@ -134,7 +136,7 @@ body {
 }
 
 .pagination-nav__link {
-    border: 0.06rem solid var(--ifm-table-border-color);
+    border: 0.06rem solid color-mix(in srgb, var(--pp-sidebar-link-active-color) 52%, var(--ifm-table-border-color));
     border-radius: 0.8rem;
     transition:
         border-color 180ms ease,
@@ -148,9 +150,19 @@ body {
     transform: translateY(-0.04rem);
 }
 
+.pagination-nav__label,
+.pagination-nav__sublabel {
+    color: var(--pp-sidebar-link-active-color);
+    opacity: var(--pp-sidebar-link-active-opacity);
+    transition:
+        color 180ms ease,
+        opacity 180ms ease;
+}
+
 .pagination-nav__link:hover .pagination-nav__label,
 .pagination-nav__link:hover .pagination-nav__sublabel {
     color: var(--pp-hover-accent);
+    opacity: 1;
 }
 
 .theme-doc-markdown {
@@ -212,18 +224,19 @@ div[class*="codeBlockContainer"] {
 }
 
 .table-of-contents__link {
-    transition: color 160ms ease;
-    color: var(--pp-hover-accent);
-    opacity: 0.8;
+    transition:
+        color 160ms ease,
+        opacity 160ms ease;
+    color: var(--ifm-toc-link-color);
 }
 
 .table-of-contents__link:hover {
-    opacity: 1;
+    color: var(--pp-sidebar-link-active-color);
+    opacity: var(--pp-sidebar-link-active-opacity);
 }
 
 .table-of-contents__link--active {
-    color: var(--pp-toc-link-active-color);
-    opacity: var(--pp-toc-link-active-opacity);
+    color: var(--ifm-toc-link-color-active);
 }
 
 .navbar__link {

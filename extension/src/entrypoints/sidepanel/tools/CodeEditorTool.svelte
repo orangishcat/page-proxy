@@ -9,7 +9,7 @@
   import { isRestrictedUrl } from "@/lib/utils/website-glob";
   import { requestSandboxEvaluation, requestScriptRun } from "./sandbox/actions";
   import { saveState } from "./code-editor/save";
-  import { elementEntries, scriptMetadata, setEditorApi, selectorEntries } from "./code-editor/state";
+  import { codeEditorContent, elementEntries, scriptMetadata, setEditorApi, selectorEntries } from "./code-editor/state";
   import { getTabUrl, resolveActiveTab, shouldHandleTabUpdate, type ActiveTab } from "./code-editor/tabs";
   import type { ScriptMetadataState } from "./code-editor/state";
   import { activeToolState } from "./state-storage";
@@ -262,6 +262,7 @@
   const updateEditorContent = (content: string, options: { persist?: boolean; sync?: boolean } = {}) => {
     const { persist = true, sync = true } = options;
     editorValue = content;
+    codeEditorContent.set(content);
     updateScriptMetadata(content);
     if (sync) {
       syncDefinitions(content);
@@ -416,6 +417,7 @@
       modelUri: "file:///page-proxy/sidepanel-script.js",
       onChange: (nextValue) => {
         editorValue = nextValue;
+        codeEditorContent.set(editorValue);
         updateScriptMetadata(editorValue);
         if (!isProgrammaticUpdate) {
           syncDefinitions(editorValue);
@@ -434,6 +436,7 @@
 
     canPersistEditorChanges = false;
     editorValue = buildDefaultScript("", scriptFormatConfig);
+    codeEditorContent.set(editorValue);
     setupEditor();
     setEditorApi({ insertDefinitions: insertDefinitionLines });
     refreshActiveTab();

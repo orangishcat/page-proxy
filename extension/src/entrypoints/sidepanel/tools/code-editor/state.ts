@@ -11,6 +11,7 @@ export type ScriptMetadataState = {
 
 export const elementEntries = writable<ElementEntry[]>([]);
 export const selectorEntries = writable<SelectorEntry[]>([]);
+export const codeEditorContent = writable('');
 export const scriptMetadata = writable<ScriptMetadataState>({
   title: 'Page Proxy',
   website: '',
