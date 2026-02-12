@@ -325,13 +325,6 @@
     saveCurrentScript();
   };
 
-  const getScriptLabel = () => {
-    if (!scriptMetadataValue.website) {
-      return scriptMetadataValue.title;
-    }
-    return `${scriptMetadataValue.title} @ ${scriptMetadataValue.website}`;
-  };
-
   const insertDefinitionLines = (linesToInsert: string[]) => {
     let content = "";
     try {
@@ -522,20 +515,19 @@
   aria-label="Code editor panel"
 >
   <div class="h-10 w-full bg-[#393a34] flex items-center justify-between px-4">
-    <div class="text-body">
+    <div class="text-body flex gap-1">
       <span>{scriptMetadataValue.title}</span>
       {#if scriptMetadataValue.website}
         <span class="text-gray-600"> @ </span>
         <span class="text-accent-500">{scriptMetadataValue.website}</span>
       {/if}
-    </div>
-    <div class="flex items-center gap-3">
       {#if hasUnsavedChanges}
         <div class="flex items-center gap-2 text-xs text-blue-300" title="Unsaved changes">
           <span class="h-2 w-2 rounded-full bg-blue-400"></span>
-          <span class="max-w-[18em] truncate">{getScriptLabel()}</span>
         </div>
       {/if}
+    </div>
+    <div class="flex items-center gap-3">
       <Button
         class="px-3! py-1! text-xs"
         variant="secondary"

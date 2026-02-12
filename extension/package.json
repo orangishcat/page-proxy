@@ -1,0 +1,40 @@
+{
+  "name": "page-proxy-extension",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare": "wxt prepare",
+    "generate-monaco-types": "node ./scripts/generate-pp-monaco-extra-lib.mjs",
+    "dev": "node ./scripts/generate-pp-monaco-extra-lib.mjs && wxt",
+    "build": "node ./scripts/generate-pp-monaco-extra-lib.mjs && wxt build",
+    "check": "node ./scripts/generate-pp-monaco-extra-lib.mjs && svelte-check --tsconfig ./tsconfig.json",
+    "lint": "node ./scripts/generate-pp-monaco-extra-lib.mjs && eslint .",
+    "clean": "wxt clean"
+  },
+  "dependencies": {
+    "@endo/lockdown": "1.0.18",
+    "bits-ui": "2.15.4",
+    "loglevel": "1.9.2",
+    "lucide-svelte": "0.562.0",
+    "monaco-editor": "0.55.1",
+    "picomatch": "4.0.3",
+    "svelte": "5.48.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.2",
+    "@tailwindcss/postcss": "4.1.18",
+    "@types/chrome": "0.1.36",
+    "@types/picomatch": "4.0.2",
+    "@wxt-dev/module-svelte": "2.0.4",
+    "eslint": "9.39.2",
+    "eslint-plugin-svelte": "3.14.0",
+    "globals": "17.1.0",
+    "postcss": "8.5.6",
+    "svelte-check": "4.3.5",
+    "svelte-eslint-parser": "1.4.1",
+    "tailwindcss": "4.1.18",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.53.1",
+    "wxt": "0.20.13"
+  }
+}
