@@ -1,0 +1,14 @@
+{
+    "name": "page-proxy-web",
+    "private": true,
+    "type": "module",
+    "dependencies": {
+        "@sveltejs/kit": "^2.42.0",
+        "appwrite": "^13.0.0",
+        "axios": "^1.12.2",
+        "bits-ui": "^2.14.4",
+        "loglevel": "^1.9.2",
+        "lucide-svelte": "^0.562.0",
+        "svelte": "^5.38.10"
+    }
+}

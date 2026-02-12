@@ -7,9 +7,9 @@
         "check": "svelte-check --tsconfig ./web/tsconfig.json && node ./extension/scripts/generate-pp-monaco-extra-lib.mjs && svelte-check --tsconfig ./extension/tsconfig.json",
         "extension:generate-monaco-types": "node ./extension/scripts/generate-pp-monaco-extra-lib.mjs",
         "web:dev": "cd web && vite dev",
-        "web:build": "cd web && vite build",
+        "web:build": "cd web && svelte-kit sync && vite build",
         "web:preview": "cd web && vite preview",
-        "web:check": "cd web && svelte-check --tsconfig tsconfig.json",
+        "web:check": "cd web && svelte-kit sync && svelte-check --tsconfig tsconfig.json",
         "web:lint": "cd web && eslint .",
         "docs:install": "cd docs-site && bun install",
         "docs:dev": "cd docs-site && bun run start",
@@ -20,10 +20,12 @@
         "extension:build": "node ./extension/scripts/generate-pp-monaco-extra-lib.mjs && cd extension && wxt build",
         "extension:prepare": "cd extension && wxt prepare",
         "extension:check": "node ./extension/scripts/generate-pp-monaco-extra-lib.mjs && svelte-check --tsconfig ./extension/tsconfig.json",
-        "extension:lint": "node ./extension/scripts/generate-pp-monaco-extra-lib.mjs && cd extension && eslint ."
+        "extension:lint": "node ./extension/scripts/generate-pp-monaco-extra-lib.mjs && cd extension && eslint .",
+        "clean": "rm -rf node_modules/.vite && rm -rf node_modules/.cache && cd extension && wxt clean"
     },
     "engines": {
-        "node": ">=22"
+        "node": ">=22",
+        "bun": ">=1.3.3"
     },
     "dependencies": {
         "@codemirror/autocomplete": "^6.20.0",

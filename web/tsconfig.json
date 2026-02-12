@@ -3,7 +3,7 @@
     "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"],
     "exclude": ["**/node_modules/**", "**/.pnpm/**", ".svelte-kit", "dist", "build"],
     "compilerOptions": {
-        "types": ["svelte"],
+        "types": ["svelte", "vite/client"],
         "verbatimModuleSyntax": true,
         "skipLibCheck": true,
     },
