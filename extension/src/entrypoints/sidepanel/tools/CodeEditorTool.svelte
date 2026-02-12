@@ -30,7 +30,6 @@
   const ppImportLines = [
     'import * as pq from "@/lib/pp/pp-query";',
     'import * as ps from "@/lib/pp/pp-style";',
-    'import * as pa from "@/lib/pp/pp-api";',
     'import * as pv from "@/lib/pp/pp-event";',
   ];
   const protectedComment =

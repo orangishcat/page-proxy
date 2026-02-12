@@ -9,11 +9,11 @@
 
 @layer components {
     .text-display {
-        @apply text-6xl font-bold tracking-tight;
+        @apply text-6xl font-bold tracking-wide;
     }
 
     .text-heading {
-        @apply text-4xl font-bold tracking-tight;
+        @apply text-4xl font-bold tracking-normal;
     }
 
     .text-lead {

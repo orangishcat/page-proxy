@@ -1,0 +1,18 @@
+{
+  "name": "page-proxy-docs",
+  "private": true,
+  "scripts": {
+    "start": "node ./node_modules/@docusaurus/core/bin/docusaurus.mjs start",
+    "build": "node ./node_modules/@docusaurus/core/bin/docusaurus.mjs build",
+    "serve": "node ./node_modules/@docusaurus/core/bin/docusaurus.mjs serve",
+    "clear": "node ./node_modules/@docusaurus/core/bin/docusaurus.mjs clear",
+    "version": "node ./node_modules/@docusaurus/core/bin/docusaurus.mjs docs:version"
+  },
+  "dependencies": {
+    "@docusaurus/core": "^3.9.2",
+    "@docusaurus/preset-classic": "^3.9.2",
+    "prism-react-renderer": "^2.4.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}

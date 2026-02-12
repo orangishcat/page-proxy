@@ -9,13 +9,11 @@ import {
 } from '@/lib/script-runner';
 import * as pq from '@/lib/pp/pp-query';
 import * as ps from '@/lib/pp/pp-style';
-import * as pa from '@/lib/pp/pp-api';
 import * as pv from '@/lib/pp/pp-event';
 
 type PpModuleBindings = {
   pq: typeof pq;
   ps: typeof ps;
-  pa: typeof pa;
   pv: typeof pv;
 };
 
@@ -29,7 +27,6 @@ const ensurePpModules = (): PpModuleBindings => {
     target.__pageProxyPpModules__ = {
       pq,
       ps,
-      pa,
       pv
     };
   }
@@ -54,7 +51,7 @@ const stripPpImportText = (code: string) =>
       if (trimmed === 'import * as pv from "@/lib/pp/pp-event";') {
         return false;
       }
-      if (trimmed === 'const pp = pa.pp;') {
+      if (trimmed === 'const pp = pa.pp;' || trimmed === 'const pp = pv.pp;') {
         return false;
       }
       return true;
@@ -62,7 +59,7 @@ const stripPpImportText = (code: string) =>
     .join('\n');
 
 const wrapExecutableCode = (code: string) =>
-  `((pq, ps, pa, pv) => {\n${code}\n})(globalThis.pq, globalThis.ps, globalThis.pa, globalThis.pv);`;
+  `((pq, ps, pv, pa, pp) => {\n${code}\n})(globalThis.pq, globalThis.ps, globalThis.pv, globalThis.pa, globalThis.pp);`;
 
 const maxLogDepth = 5;
 const maxLogEntries = 50;
@@ -281,6 +278,7 @@ export default defineUnlistedScript(() => {
     console.debug('[pp code-runner-main-world] request received', {requestId});
     const responded = {value: false};
     const {logs, sink} = createNotificationCapture();
+    let notificationSinkKey = pv.notificationSinkGlobalKey;
 
     const onError = (errorEvent: ErrorEvent) => {
       respondOnce(
@@ -317,18 +315,21 @@ export default defineUnlistedScript(() => {
     const cleanupListeners = () => {
       window.removeEventListener('error', onError);
       window.removeEventListener('unhandledrejection', onRejection);
-      delete (globalThis as Record<string, unknown>)[pa.notificationSinkGlobalKey];
+      delete (globalThis as Record<string, unknown>)[notificationSinkKey];
     };
 
     window.addEventListener('error', onError);
     window.addEventListener('unhandledrejection', onRejection);
 
     const modules = ensurePpModules();
+    notificationSinkKey = modules.pv.notificationSinkGlobalKey;
+    const pageApi = modules.pv.createApi();
     (globalThis as Record<string, unknown>).pq = modules.pq;
     (globalThis as Record<string, unknown>).ps = modules.ps;
-    (globalThis as Record<string, unknown>).pa = modules.pa.createApi();
     (globalThis as Record<string, unknown>).pv = modules.pv;
-    (globalThis as Record<string, unknown>)[modules.pa.notificationSinkGlobalKey] = sink;
+    (globalThis as Record<string, unknown>).pa = pageApi;
+    (globalThis as Record<string, unknown>).pp = pageApi;
+    (globalThis as Record<string, unknown>)[notificationSinkKey] = sink;
     const executableCode = wrapExecutableCode(stripPpImportText(code));
     injectBlobScript(
       executableCode,

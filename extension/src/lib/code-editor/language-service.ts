@@ -10,14 +10,14 @@ let languageServiceConfigured = false;
 const ppGlobalDeclarations = `
 import * as pqModule from "@/lib/pp/pp-query";
 import * as psModule from "@/lib/pp/pp-style";
-import * as paModule from "@/lib/pp/pp-api";
 import * as pvModule from "@/lib/pp/pp-event";
 
 declare global {
   const pq: typeof pqModule;
   const ps: typeof psModule;
-  const pa: typeof paModule;
   const pv: typeof pvModule;
+  const pa: ReturnType<typeof pvModule.createApi>;
+  const pp: ReturnType<typeof pvModule.createApi>;
 }
 
 export {};

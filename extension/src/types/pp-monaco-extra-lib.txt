@@ -63,6 +63,7 @@ declare module "@/lib/pp/pp-style" {
 }
 declare module "@/lib/pp/pp-event" {
   export type OnElementCreatedHandler = (element: Element) => void;
+  export declare const notificationSinkGlobalKey = "__pageProxyNotificationSink__";
   export declare class ElementCreatedObserver extends MutationObserver {
       private readonly func;
       private readonly targetNode;
@@ -70,9 +71,6 @@ declare module "@/lib/pp/pp-event" {
       runOnTargetNode(): void;
   }
   export declare const onElementCreated: (func: OnElementCreatedHandler, targetNode?: Node, observerOptions?: MutationObserverInit) => ElementCreatedObserver;
-}
-declare module "@/lib/pp/pp-api" {
-  export declare const notificationSinkGlobalKey = "__pageProxyNotificationSink__";
   export declare const notification: (...values: unknown[]) => void;
   export declare const createApi: () => {
       notification: (...values: unknown[]) => void;

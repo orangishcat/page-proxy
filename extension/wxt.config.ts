@@ -1,4 +1,12 @@
 import {defineConfig} from 'wxt';
+import {fileURLToPath} from 'node:url';
+
+const monacoMainCssStubPath = fileURLToPath(
+  new URL('./src/lib/code-editor/empty-monaco-main.css', import.meta.url),
+);
+const monacoCodiconCssStubPath = fileURLToPath(
+  new URL('./src/lib/code-editor/empty-monaco-codicon.css', import.meta.url),
+);
 
 export default defineConfig({
   root: '.',
@@ -6,8 +14,27 @@ export default defineConfig({
   entrypointsDir: 'entrypoints',
   modules: ['@wxt-dev/module-svelte'],
   vite: () => ({
+    resolve: {
+      alias: [
+        {
+          find: 'monaco-editor/min/vs/editor/editor.main.css',
+          replacement: monacoMainCssStubPath,
+        },
+        {
+          find: 'monaco-editor/dev/vs/editor/editor.main.css',
+          replacement: monacoMainCssStubPath,
+        },
+        {
+          find: /^(?:\.\.\/)+base\/browser\/ui\/codicons\/codicon\/codicon\.css$/,
+          replacement: monacoCodiconCssStubPath,
+        },
+      ],
+    },
     esbuild: {
       charset: 'ascii'
+    },
+    build: {
+      assetsInlineLimit: 0
     }
   }),
   manifest: {

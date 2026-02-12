@@ -28,17 +28,26 @@ export const buildDefaultScript = (websiteGlob: string, config: ScriptFormatConf
 };
 
 export const ensureScriptImports = (content: string, config: ScriptFormatConfig) => {
-  const withoutLegacyAlias = content
+  const withoutLegacyAliases = content
     .split("\n")
-    .filter((line) => line.trim() !== "const pp = pa.pp;")
+    .filter((line) => {
+      const trimmed = line.trim();
+      if (trimmed === 'import * as pa from "@/lib/pp/pp-api";') {
+        return false;
+      }
+      if (trimmed === "const pp = pa.pp;" || trimmed === "const pp = pv.pp;") {
+        return false;
+      }
+      return true;
+    })
     .join("\n");
 
-  const hasAllImports = config.ppImportLines.every((line) => withoutLegacyAlias.includes(line));
+  const hasAllImports = config.ppImportLines.every((line) => withoutLegacyAliases.includes(line));
   if (hasAllImports) {
-    return withoutLegacyAlias;
+    return withoutLegacyAliases;
   }
 
-  return [...config.ppImportLines, "", withoutLegacyAlias.trimStart()].join("\n");
+  return [...config.ppImportLines, "", withoutLegacyAliases.trimStart()].join("\n");
 };
 
 export const ensureDefineBlock = (content: string, config: ScriptFormatConfig) => {

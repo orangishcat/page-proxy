@@ -12,7 +12,6 @@ import {
 } from "@/lib/sandbox";
 import * as pq from "@/lib/pp/pp-query";
 import * as ps from "@/lib/pp/pp-style";
-import * as pa from "@/lib/pp/pp-api";
 import * as pv from "@/lib/pp/pp-event";
 
 type CompartmentConstructor = new (endowments?: Record<string, unknown>) => {
@@ -381,8 +380,8 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
     return harden({});
   };
 
-  const sandboxApi = harden({
-    ...pa.createApi(),
+  const pageApi = harden({
+    ...pv.createApi(),
   });
 
   const queryApi = harden({
@@ -401,11 +400,11 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
   });
 
   const compartment = new CompartmentCtor({
-    pa: sandboxApi,
+    pa: pageApi,
     pq: queryApi,
     ps: styleApi,
     pv: eventApi,
-    pp: sandboxApi,
+    pp: pageApi,
   });
   harden(compartment.globalThis);
   compartment.evaluate(`'use strict';\n${code}`);

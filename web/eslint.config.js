@@ -6,11 +6,7 @@ import globals from "globals";
 
 export default [
   {
-    ignores: [
-      "**/.svelte-kit/**",
-      "**/node_modules/**",
-      "**/dist/**"
-    ],
+    ignores: ["**/.svelte-kit/**", "**/node_modules/**", "**/dist/**"],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -24,10 +20,7 @@ export default [
       },
     },
     rules: {
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
-      ],
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
     },
   },
   {
@@ -74,10 +67,7 @@ export default [
     },
     rules: {
       ...svelte.configs.recommended.rules,
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
-      ],
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
     },
   },
 ];

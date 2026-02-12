@@ -21,7 +21,6 @@ const storageKeyPrefix = "pageproxy:";
 const defaultScriptImportLines = [
   'import * as pq from "@/lib/pp/pp-query";',
   'import * as ps from "@/lib/pp/pp-style";',
-  'import * as pa from "@/lib/pp/pp-api";',
   'import * as pv from "@/lib/pp/pp-event";',
 ] as const;
 const defaultDefineBlockStart = "// Define elements/selectors";
@@ -122,17 +121,26 @@ const buildDefaultScript = (websiteGlob: string) => {
 };
 
 const ensureScriptImports = (content: string) => {
-  const withoutLegacyAlias = content
+  const withoutLegacyAliases = content
     .split("\n")
-    .filter((line) => line.trim() !== "const pp = pa.pp;")
+    .filter((line) => {
+      const trimmed = line.trim();
+      if (trimmed === 'import * as pa from "@/lib/pp/pp-api";') {
+        return false;
+      }
+      if (trimmed === "const pp = pa.pp;" || trimmed === "const pp = pv.pp;") {
+        return false;
+      }
+      return true;
+    })
     .join("\n");
 
-  const hasAllImports = defaultScriptImportLines.every((line) => withoutLegacyAlias.includes(line));
+  const hasAllImports = defaultScriptImportLines.every((line) => withoutLegacyAliases.includes(line));
   if (hasAllImports) {
-    return withoutLegacyAlias;
+    return withoutLegacyAliases;
   }
 
-  return [...defaultScriptImportLines, "", withoutLegacyAlias.trimStart()].join("\n");
+  return [...defaultScriptImportLines, "", withoutLegacyAliases.trimStart()].join("\n");
 };
 
 const ensureDefineBlock = (content: string) => {

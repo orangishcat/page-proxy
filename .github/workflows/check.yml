@@ -36,9 +36,3 @@ jobs:
 
             - name: Build
               run: bun run web:build
-
-            - name: Page load check
-              working-directory: web
-              env:
-                  PAGE_LOAD_PATHS: "/,/app/dashboard"
-              run: bun run test

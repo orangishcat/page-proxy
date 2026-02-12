@@ -50,11 +50,11 @@
 
 @layer components {
     .text-display {
-        @apply text-[3.25em] font-bold tracking-tight;
+        @apply text-[3.25em] font-bold tracking-normal;
     }
 
     .text-heading {
-        @apply text-[2em] font-bold tracking-tight;
+        @apply text-[2em] font-bold tracking-normal;
     }
 
     .text-lead {

@@ -45,7 +45,7 @@ module.exports = {
         background: "#1d1e1d",
       },
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui"],
+        sans: ["Open Sans", "ui-sans-serif", "system-ui"],
         mono: ["Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
       },
       keyframes: {

@@ -14,14 +14,12 @@ const sourceFiles = [
   path.join(extensionDir, "src/lib/pp/pp-query.ts"),
   path.join(extensionDir, "src/lib/pp/pp-style.ts"),
   path.join(extensionDir, "src/lib/pp/pp-event.ts"),
-  path.join(extensionDir, "src/lib/pp/pp-api.ts"),
 ];
 
 const sourceModuleSpecs = [
   { sourceFile: "pp-query.d.ts", moduleName: "@/lib/pp/pp-query" },
   { sourceFile: "pp-style.d.ts", moduleName: "@/lib/pp/pp-style" },
   { sourceFile: "pp-event.d.ts", moduleName: "@/lib/pp/pp-event" },
-  { sourceFile: "pp-api.d.ts", moduleName: "@/lib/pp/pp-api" },
 ];
 
 const compilerOptions = {
