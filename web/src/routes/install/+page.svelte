@@ -5,6 +5,9 @@
 
   const releaseLatestUrl = "https://github.com/orangishcat/page-proxy/releases/latest";
   let selectedBrowser = $state<"chrome" | "firefox">("chrome");
+  const tabClasses =
+    "rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 transition data-[state=active]:bg-accent-500/70 " +
+    "data-[state=active]:text-gray-950 data-[state=inactive]:dark:text-gray-400 data-[state=active]:dark:text-gray-100 cursor-pointer";
 
   onMount(() => {
     const userAgent = navigator.userAgent.toLowerCase();
@@ -44,18 +47,8 @@
               class="mt-12 rounded-2xl border border-gray-200 bg-white p-4 text-base dark:border-gray-800 dark:bg-gray-900"
             >
               <Tabs.List class="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1 dark:bg-gray-950">
-                <Tabs.Trigger
-                  value="chrome"
-                  class="rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 transition data-[state=active]:bg-accent-500/70 data-[state=active]:text-gray-950 data-[state=inactive]:dark:text-gray-400 data-[state=active]:dark:text-gray-100"
-                >
-                  Chrome
-                </Tabs.Trigger>
-                <Tabs.Trigger
-                  value="firefox"
-                  class="rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 transition data-[state=active]:bg-accent-500/70 data-[state=active]:text-gray-950 data-[state=inactive]:dark:text-gray-400 data-[state=active]:dark:text-gray-100"
-                >
-                  Firefox
-                </Tabs.Trigger>
+                <Tabs.Trigger value="chrome" class={tabClasses}>Chrome</Tabs.Trigger>
+                <Tabs.Trigger value="firefox" class={tabClasses}>Firefox</Tabs.Trigger>
               </Tabs.List>
 
               <Tabs.Content value="chrome">

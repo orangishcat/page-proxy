@@ -2,7 +2,7 @@
   "name": "page-proxy-docs",
   "private": true,
   "scripts": {
-    "start": "node ./node_modules/@docusaurus/core/bin/docusaurus.mjs start",
+    "start": "node ./node_modules/@docusaurus/core/bin/docusaurus.mjs start --port 3288",
     "build": "node ./node_modules/@docusaurus/core/bin/docusaurus.mjs build",
     "serve": "node ./node_modules/@docusaurus/core/bin/docusaurus.mjs serve",
     "clear": "node ./node_modules/@docusaurus/core/bin/docusaurus.mjs clear",
