@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import Button from "@/lib/components/Button.svelte";
   import { codeEditorContent, scriptMetadata, type ScriptMetadataState } from "./code-editor/state";
 
@@ -35,7 +36,7 @@
 
   const normalizedWebsiteGlob = $derived(scriptMetadataValue.website.trim());
 
-  $effect(() => {
+  onMount(() => {
     const unsubscribeScriptMetadata = scriptMetadata.subscribe((value) => {
       scriptMetadataValue = value;
     });
@@ -110,7 +111,9 @@
 
     <div class="rounded-xl border border-[#4f4a38] bg-[#2d2b25] p-3">
       <p class="text-caption uppercase tracking-wide text-gray-500">Description</p>
-      <p class="mt-1 text-body text-gray-200 whitespace-pre-wrap break-words">{scriptMetadataValue.description || "No description"}</p>
+      <p class="mt-1 text-body text-gray-200 whitespace-pre-wrap break-words">
+        {scriptMetadataValue.description || "No description"}
+      </p>
     </div>
   </div>
 
@@ -123,18 +126,11 @@
         bind:value={selectedFormat}
       >
         {#each exportFormatOptions as formatOption (formatOption.value)}
-          <option value={formatOption.value}>{formatOption.label}</option>
+          <option value={formatOption.value} disabled={!formatOption.available}>{formatOption.label}</option>
         {/each}
       </select>
 
-      <Button
-        class="h-10 px-4!"
-        variant="primary"
-        aria-label="Export script"
-        onclick={handleExport}
-      >
-        Export
-      </Button>
+      <Button class="h-10 px-4!" variant="primary" aria-label="Export script" onclick={handleExport}>Export</Button>
     </div>
 
     {#if statusMessage}

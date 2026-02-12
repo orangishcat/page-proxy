@@ -21,7 +21,6 @@
         "loglevel": "^1.9.2",
         "lucide-svelte": "^0.562.0",
         "monaco-editor": "^0.55.1",
-        "penpal": "^7.0.0",
         "picomatch": "^4.0.3",
       },
       "devDependencies": {
@@ -1006,8 +1005,6 @@
     "pathe": ["pathe@2.0.3", "", {}, "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w=="],
 
     "pbf": ["pbf@4.0.1", "", { "dependencies": { "resolve-protobuf-schema": "^2.1.0" }, "bin": { "pbf": "bin/pbf" } }, "sha512-SuLdBvS42z33m8ejRbInMapQe8n0D3vN/Xd5fmWM3tufNgRQFBpaW2YVJxQZV4iPNqb0vEFvssMEo5w9c6BTIA=="],
-
-    "penpal": ["penpal@7.0.4", "", {}, "sha512-O+M2V83oSaWQRDHghxYsq23TQgjAEzlrwemS0a1md16wZWqgOgmB35u4zluMwyqF6GnF/XT4v0N4QrrRgWAgSQ=="],
 
     "perfect-debounce": ["perfect-debounce@2.1.0", "", {}, "sha512-LjgdTytVFXeUgtHZr9WYViYSM/g8MkcTPYDlPa3cDqMirHjKiSZPYd6DoL7pK8AJQr+uWkQvCjHNdiMqsrJs+g=="],
 

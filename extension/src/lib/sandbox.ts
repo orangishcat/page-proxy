@@ -16,6 +16,7 @@ export type SelectorEntry = {
   name: string;
   bbox?: BoundingBox;
   ruleKeys: string[];
+  rules?: string[];
 };
 
 export type SandboxEvaluateRequest = {

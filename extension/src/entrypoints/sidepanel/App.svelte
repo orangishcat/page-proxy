@@ -1,11 +1,12 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { browser } from "wxt/browser";
   import { CircleQuestionMark, MousePointer, Plus, Share } from "lucide-svelte";
 
   import { get } from "svelte/store";
   import SelectTool from "./tools/SelectTool.svelte";
   import NewElementTool from "./tools/NewElementTool.svelte";
-  import ShareTool from "./tools/ShareTool.svelte";
+  import ExportTool from "./tools/ExportTool.svelte";
   import HelpTool from "./tools/HelpTool.svelte";
   import SelectorsTool from "./tools/SelectorsTool.svelte";
   import CodeEditorTool from "./tools/CodeEditorTool.svelte";
@@ -195,7 +196,7 @@
     return (message as { type?: string }).type === "selector:save";
   };
 
-  $effect(() => {
+  onMount(() => {
     unsubscribeErrorMessage = errorMessage.subscribe((value) => {
       errorMessageValue = value;
     });
@@ -399,7 +400,7 @@
         {:else if activeTool === "help"}
           <HelpTool />
         {:else if activeTool === "share"}
-          <ShareTool />
+          <ExportTool />
         {:else if activeTool === "none"}
           <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4 justify-center place-items-center">
             <p class="text-caption text-gray-500 dark:text-gray-400">Select a tool from the top bar</p>

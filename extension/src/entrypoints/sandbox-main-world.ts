@@ -255,6 +255,25 @@ const extractRuleKeysFromMatches = (matches: (element: Element) => boolean) => {
   return Array.from(keys);
 };
 
+const extractSelectorRules = (baseSelector: string | undefined, matches: (element: Element) => boolean) => {
+  const rules: string[] = [];
+  const normalizedBaseSelector = baseSelector?.trim();
+  if (normalizedBaseSelector && normalizedBaseSelector !== "*") {
+    rules.push("baseSelector: " + normalizedBaseSelector);
+  }
+
+  const source = Function.prototype.toString.call(matches);
+  const pqMethodCallRegex = /(?:\b(?:pq|pp))\.([A-Za-z_$][\w$]*)\s*\(/g;
+  let methodMatch = pqMethodCallRegex.exec(source);
+
+  while (methodMatch) {
+    rules.push("pq." + methodMatch[1] + "()");
+    methodMatch = pqMethodCallRegex.exec(source);
+  }
+
+  return rules;
+};
+
 const createSelectorEntry = (
   value: unknown,
   errors: string[],
@@ -283,6 +302,7 @@ const createSelectorEntry = (
       name,
       bbox: bbox ?? undefined,
       ruleKeys: extractRuleKeysFromMatches(matches),
+      rules: extractSelectorRules(baseSelector, matches),
     },
     matches,
     postMap,

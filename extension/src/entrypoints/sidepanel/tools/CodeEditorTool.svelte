@@ -1,7 +1,8 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { get } from "svelte/store";
   import { browser } from "wxt/browser";
-  import { ExternalLink, Play } from "lucide-svelte";
+  import { Play } from "lucide-svelte";
 
   import { createMonacoEditor, updateMonacoEditorValue, type MonacoCodeEditorHandle } from "@/lib/code-editor";
   import Button from "@/lib/components/Button.svelte";
@@ -54,6 +55,8 @@
   let isProtectedPage = $state(false);
   let isProgrammaticUpdate = false;
   let canPersistEditorChanges = false;
+  let hasUnsavedChanges = $state(false);
+  let editorDomNode: HTMLElement | null = null;
   let scriptMetadataValue = $state<ScriptMetadataState>({
     title: "Page Proxy",
     website: "",
@@ -94,6 +97,7 @@
         },
         setErrorMessage,
       });
+      hasUnsavedChanges = false;
     } catch (e: unknown) {
       throw new Error(`Saving failed: ${e instanceof Error ? e.message : e}`);
     }
@@ -274,12 +278,21 @@
       isProgrammaticUpdate = false;
     }
 
-    if (persist) {
-      saveToStorage(content);
+    if (!persist) {
+      if (saveTimer) {
+        window.clearTimeout(saveTimer);
+        saveTimer = null;
+      }
+      pendingAutosaveContent = null;
+      hasUnsavedChanges = false;
+      return;
     }
+
+    saveToStorage(content);
   };
 
   const saveToStorage = (content: string) => {
+    hasUnsavedChanges = true;
     pendingAutosaveContent = content;
 
     if (saveTimer) {
@@ -290,6 +303,33 @@
       saveTimer = null;
       autoSave();
     }, 3000);
+  };
+
+  const saveCurrentScript = () => {
+    if (!canPersistEditorChanges || isProtectedPage) {
+      return;
+    }
+    saveNow(editorValue);
+  };
+
+  const handleEditorKeydown = (event: KeyboardEvent) => {
+    if (event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey)) {
+      return;
+    }
+
+    if (event.key.toLowerCase() !== "s") {
+      return;
+    }
+
+    event.preventDefault();
+    saveCurrentScript();
+  };
+
+  const getScriptLabel = () => {
+    if (!scriptMetadataValue.website) {
+      return scriptMetadataValue.title;
+    }
+    return `${scriptMetadataValue.title} @ ${scriptMetadataValue.website}`;
   };
 
   const insertDefinitionLines = (linesToInsert: string[]) => {
@@ -427,9 +467,14 @@
         }
       },
     });
+
+    editorDomNode = editorHandle.editor.getDomNode();
+    if (editorDomNode) {
+      editorDomNode.addEventListener("keydown", handleEditorKeydown);
+    }
   };
 
-  $effect(() => {
+  onMount(() => {
     unsubscribeScriptMetadata = scriptMetadata.subscribe((value) => {
       scriptMetadataValue = value;
     });
@@ -462,6 +507,11 @@
         editorHandle = null;
       }
 
+      if (editorDomNode) {
+        editorDomNode.removeEventListener("keydown", handleEditorKeydown);
+        editorDomNode = null;
+      }
+
       unsubscribeScriptMetadata();
     };
   });
@@ -480,7 +530,12 @@
       {/if}
     </div>
     <div class="flex items-center gap-3">
-      <ExternalLink class="w-6 h-6 text-[#a8a8a8]" />
+      {#if hasUnsavedChanges}
+        <div class="flex items-center gap-2 text-xs text-blue-300" title="Unsaved changes">
+          <span class="h-2 w-2 rounded-full bg-blue-400"></span>
+          <span class="max-w-[18em] truncate">{getScriptLabel()}</span>
+        </div>
+      {/if}
       <Button
         class="px-3! py-1! text-xs"
         variant="secondary"
