@@ -1,6 +1,95 @@
-import { themes as prismThemes } from "prism-react-renderer";
 import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
+
+const pageProxyPrismDarkTheme = {
+  plain: {
+    color: "#e7e8ea",
+    backgroundColor: "#282824",
+  },
+  styles: [
+    {
+      types: ["comment", "prolog", "doctype", "cdata"],
+      style: { color: "#93a1a1", fontStyle: "italic" },
+    },
+    {
+      types: ["punctuation", "delimiter", "delimiter.bracket"],
+      style: { color: "#999999" },
+    },
+    {
+      types: ["operator"],
+      style: { color: "#a67f59" },
+    },
+    {
+      types: ["number", "boolean"],
+      style: { color: "#ee9900" },
+    },
+    {
+      types: ["string", "char", "attr-value", "regex"],
+      style: { color: "#669900" },
+    },
+    {
+      types: ["keyword", "atrule"],
+      style: { color: "#ff8f3f" },
+    },
+    {
+      types: ["function", "method", "entity", "entity.name.function", "support.function"],
+      style: { color: "#fcb253" },
+    },
+    {
+      types: ["class-name", "builtin", "type", "type.identifier", "namespace", "tag", "attr-name"],
+      style: { color: "#59c2ff" },
+    },
+    {
+      types: ["variable", "property", "constant", "symbol", "selector"],
+      style: { color: "#efe2d4" },
+    },
+  ],
+};
+
+const pageProxyPrismLightTheme = {
+  plain: {
+    color: "#2b2c2a",
+    backgroundColor: "#f2f3f2",
+  },
+  styles: [
+    {
+      types: ["comment", "prolog", "doctype", "cdata"],
+      style: { color: "#5e635e", fontStyle: "italic" },
+    },
+    {
+      types: ["punctuation", "delimiter", "delimiter.bracket"],
+      style: { color: "#787d78" },
+    },
+    {
+      types: ["operator"],
+      style: { color: "#8b6a49" },
+    },
+    {
+      types: ["number", "boolean"],
+      style: { color: "#c47b00" },
+    },
+    {
+      types: ["string", "char", "attr-value", "regex"],
+      style: { color: "#4a7429" },
+    },
+    {
+      types: ["keyword", "atrule"],
+      style: { color: "#cc7028" },
+    },
+    {
+      types: ["function", "method", "entity", "entity.name.function", "support.function"],
+      style: { color: "#b97723" },
+    },
+    {
+      types: ["class-name", "builtin", "type", "type.identifier", "namespace", "tag", "attr-name"],
+      style: { color: "#2f90c7" },
+    },
+    {
+      types: ["variable", "property", "constant", "symbol", "selector"],
+      style: { color: "#3d403d" },
+    },
+  ],
+};
 
 const config: Config = {
   title: "Page Proxy Docs",
@@ -73,8 +162,8 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
+      theme: pageProxyPrismLightTheme,
+      darkTheme: pageProxyPrismDarkTheme,
     },
   } satisfies Preset.ThemeConfig,
 };

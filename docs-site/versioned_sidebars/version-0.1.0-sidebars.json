@@ -1,6 +1,8 @@
 {
   "docsSidebar": [
     "intro",
+    "auto-metadata",
+    "your-first-script",
     {
       "type": "category",
       "label": "pp Library",
