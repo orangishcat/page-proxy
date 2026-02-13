@@ -37,8 +37,8 @@ jobs:
                   EXTENSION_VERSION="$(grep -oE 'version: "[^"]+"' extension/wxt.config.ts | head -n 1 | sed -E 's/version: "([^"]+)"/\1/')"
                   [ -n "$EXTENSION_VERSION" ]
                   echo "EXTENSION_VERSION=$EXTENSION_VERSION" >> "$GITHUB_ENV"
-                  echo "CHROME_SOURCE_FILE=pp-chrome-source-v${EXTENSION_VERSION}.zip" >> "$GITHUB_ENV"
-                  echo "FIREFOX_SOURCE_FILE=pp-ff-source-v${EXTENSION_VERSION}.zip" >> "$GITHUB_ENV"
+                  echo "CHROME_SOURCE_ARTIFACT=pp-chrome-source-v${EXTENSION_VERSION}" >> "$GITHUB_ENV"
+                  echo "FIREFOX_SOURCE_ARTIFACT=pp-ff-source-v${EXTENSION_VERSION}" >> "$GITHUB_ENV"
                   echo "CHROME_CRX_FILE=pp-chrome-crx-v${EXTENSION_VERSION}.crx" >> "$GITHUB_ENV"
                   echo "FIREFOX_XPI_FILE=pp-ff-xpi-v${EXTENSION_VERSION}.xpi" >> "$GITHUB_ENV"
 
@@ -48,15 +48,14 @@ jobs:
                   bun x wxt zip --browser chrome
                   bun x wxt zip --browser firefox
 
-            - name: Create Chrome and Firefox source ZIPs
+            - name: Resolve Chrome and Firefox source directories
               run: |
                   CHROME_SOURCE_DIR="$(find extension/.output -maxdepth 1 -type d -name 'chrome-*' | head -n 1)"
                   FIREFOX_SOURCE_DIR="$(find extension/.output -maxdepth 1 -type d -name 'firefox-*' | head -n 1)"
                   [ -n "$CHROME_SOURCE_DIR" ]
                   [ -n "$FIREFOX_SOURCE_DIR" ]
-                  cd extension/.output
-                  zip -rq "${CHROME_SOURCE_FILE}" "$(basename "$CHROME_SOURCE_DIR")"
-                  zip -rq "${FIREFOX_SOURCE_FILE}" "$(basename "$FIREFOX_SOURCE_DIR")"
+                  echo "CHROME_SOURCE_DIR=$CHROME_SOURCE_DIR" >> "$GITHUB_ENV"
+                  echo "FIREFOX_SOURCE_DIR=$FIREFOX_SOURCE_DIR" >> "$GITHUB_ENV"
 
             - name: Prepare CRX key
               if: ${{ env.CHROME_CRX_PRIVATE_KEY != '' }}
@@ -85,11 +84,11 @@ jobs:
                   path: extension/.output/${{ env.CHROME_CRX_FILE }}
                   if-no-files-found: error
 
-            - name: Upload Chrome source ZIP
+            - name: Upload Chrome source
               uses: actions/upload-artifact@v4
               with:
-                  name: ${{ env.CHROME_SOURCE_FILE }}
-                  path: extension/.output/${{ env.CHROME_SOURCE_FILE }}
+                  name: ${{ env.CHROME_SOURCE_ARTIFACT }}
+                  path: ${{ env.CHROME_SOURCE_DIR }}
                   if-no-files-found: error
 
             - name: Upload Firefox XPI
@@ -99,9 +98,9 @@ jobs:
                   path: extension/.output/${{ env.FIREFOX_XPI_FILE }}
                   if-no-files-found: error
 
-            - name: Upload Firefox source ZIP
+            - name: Upload Firefox source
               uses: actions/upload-artifact@v4
               with:
-                  name: ${{ env.FIREFOX_SOURCE_FILE }}
-                  path: extension/.output/${{ env.FIREFOX_SOURCE_FILE }}
+                  name: ${{ env.FIREFOX_SOURCE_ARTIFACT }}
+                  path: ${{ env.FIREFOX_SOURCE_DIR }}
                   if-no-files-found: error
