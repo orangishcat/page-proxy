@@ -164,8 +164,7 @@
                 Download <code>pp-chrome-crx-v{version}.crx</code> from
                 <a href={releaseLatestUrl}>GitHub releases</a>.
               </li>
-              <li>Unzip the downloaded artifact.</li>
-              <li>You should end up with <code>pp-chrome-crx-v{version}.crx</code>.</li>
+              <li>You should have the file <code>pp-chrome-crx-v{version}.crx</code>.</li>
               <li>Open <code>chrome://extensions</code>.</li>
               <li>Enable <span class="font-semibold">Developer mode</span>.</li>
               <li>Drag and drop <code>pp-chrome-crx-v{version}.crx</code>.</li>
@@ -188,8 +187,7 @@
                 Download <code>pp-ff-xpi-v{version}.xpi</code> from
                 <a href={releaseLatestUrl}>GitHub releases</a>.
               </li>
-              <li>Unzip the downloaded artifact.</li>
-              <li>You should end up with <code>pp-ff-xpi-v{version}.xpi</code>.</li>
+              <li>You should have the file <code>pp-ff-xpi-v{version}.xpi</code>.</li>
               <li>Open <code>about:addons</code>.</li>
               <li>Select <span class="font-semibold">Install Add-on From File…</span>.</li>
               <li>Choose <code>pp-ff-xpi-v{version}.xpi</code>.</li>
