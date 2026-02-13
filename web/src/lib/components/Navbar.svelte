@@ -80,7 +80,6 @@
       <a class={itemClasses} href={resolve("/")}>Explore</a>
       <!-- Docs are hosted externally in production; keep the typecast to avoid typing errors. -->
       <a class={itemClasses} href={resolve("/docs" as any)}>Docs</a>
-      <a class={itemClasses} href={resolve("/")}>Export</a>
     {:else if variant === "dashboard"}
       <a class="{itemClasses} w-28 text-right" href={resolve("/")}>Explore</a>
       <a class={itemClasses} href={resolve("/")}>Dashboard</a>

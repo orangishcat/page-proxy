@@ -28,6 +28,13 @@ export default [
     ],
   },
 
+  {
+    parserOptions: {
+      projectService: true,
+      tsconfigRootDir: process.cwd(),
+    },
+  },
+
   // JS
   {
     files: ['**/*.{js,cjs,mjs}'],

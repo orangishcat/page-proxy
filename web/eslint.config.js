@@ -8,6 +8,12 @@ export default [
   {
     ignores: ["**/.svelte-kit/**", "**/node_modules/**", "**/dist/**", "**/build/**"],
   },
+  {
+    parserOptions: {
+      projectService: true,
+      tsconfigRootDir: process.cwd(),
+    },
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
