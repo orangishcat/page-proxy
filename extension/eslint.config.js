@@ -28,13 +28,6 @@ export default [
     ],
   },
 
-  {
-    parserOptions: {
-      projectService: true,
-      tsconfigRootDir: process.cwd(),
-    },
-  },
-
   // JS
   {
     files: ['**/*.{js,cjs,mjs}'],
@@ -69,8 +62,7 @@ export default [
       parserOptions: {
         parser: tseslint.parser,
         extraFileExtensions: ['.svelte'],
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
+        tsconfigRootDir: process.cwd(),
       },
       globals: { ...globals.browser },
     },
