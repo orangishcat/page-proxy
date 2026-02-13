@@ -32,11 +32,31 @@ jobs:
             - name: Install CRX3
               run: bun install -g crx3
 
+            - name: Resolve versioned artifact names
+              run: |
+                  EXTENSION_VERSION="$(grep -oE 'version: "[^"]+"' extension/wxt.config.ts | head -n 1 | sed -E 's/version: "([^"]+)"/\1/')"
+                  [ -n "$EXTENSION_VERSION" ]
+                  echo "EXTENSION_VERSION=$EXTENSION_VERSION" >> "$GITHUB_ENV"
+                  echo "CHROME_SOURCE_FILE=pp-chrome-source-v${EXTENSION_VERSION}.zip" >> "$GITHUB_ENV"
+                  echo "FIREFOX_SOURCE_FILE=pp-ff-source-v${EXTENSION_VERSION}.zip" >> "$GITHUB_ENV"
+                  echo "CHROME_CRX_FILE=pp-chrome-crx-v${EXTENSION_VERSION}.crx" >> "$GITHUB_ENV"
+                  echo "FIREFOX_XPI_FILE=pp-ff-xpi-v${EXTENSION_VERSION}.xpi" >> "$GITHUB_ENV"
+
             - name: Build Chrome and Firefox bundles
               run: |
                   cd extension
                   bun x wxt zip --browser chrome
                   bun x wxt zip --browser firefox
+
+            - name: Create Chrome and Firefox source ZIPs
+              run: |
+                  CHROME_SOURCE_DIR="$(find extension/.output -maxdepth 1 -type d -name 'chrome-*' | head -n 1)"
+                  FIREFOX_SOURCE_DIR="$(find extension/.output -maxdepth 1 -type d -name 'firefox-*' | head -n 1)"
+                  [ -n "$CHROME_SOURCE_DIR" ]
+                  [ -n "$FIREFOX_SOURCE_DIR" ]
+                  cd extension/.output
+                  zip -rq "${CHROME_SOURCE_FILE}" "$(basename "$CHROME_SOURCE_DIR")"
+                  zip -rq "${FIREFOX_SOURCE_FILE}" "$(basename "$FIREFOX_SOURCE_DIR")"
 
             - name: Prepare CRX key
               if: ${{ env.CHROME_CRX_PRIVATE_KEY != '' }}
@@ -48,26 +68,40 @@ jobs:
               if: ${{ env.CHROME_CRX_PRIVATE_KEY != '' }}
               run: |
                   crx3 -p extension/.output/${EXTENSION_NAME}.pem \
-                    -o extension/.output/${EXTENSION_NAME}-chrome.crx \
+                    -o extension/.output/${CHROME_CRX_FILE} \
                     extension/.output/chrome-mv3
 
             - name: Create Firefox XPI
               run: |
-                  for file in extension/.output/extension-*-firefox.zip; do
-                    cp "$file" "extension/.output/${EXTENSION_NAME}-firefox.xpi"
+                  for file in extension/.output/*-firefox.zip; do
+                    cp "$file" "extension/.output/${FIREFOX_XPI_FILE}"
                   done
 
             - name: Upload Chrome CRX
               if: ${{ env.CHROME_CRX_PRIVATE_KEY != '' }}
               uses: actions/upload-artifact@v4
               with:
-                  name: ${{ env.EXTENSION_NAME }}-chrome-crx
-                  path: extension/.output/${{ env.EXTENSION_NAME }}-chrome.crx
+                  name: ${{ env.CHROME_CRX_FILE }}
+                  path: extension/.output/${{ env.CHROME_CRX_FILE }}
+                  if-no-files-found: error
+
+            - name: Upload Chrome source ZIP
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ env.CHROME_SOURCE_FILE }}
+                  path: extension/.output/${{ env.CHROME_SOURCE_FILE }}
                   if-no-files-found: error
 
             - name: Upload Firefox XPI
               uses: actions/upload-artifact@v4
               with:
-                  name: ${{ env.EXTENSION_NAME }}-firefox-xpi
-                  path: extension/.output/${{ env.EXTENSION_NAME }}-firefox.xpi
+                  name: ${{ env.FIREFOX_XPI_FILE }}
+                  path: extension/.output/${{ env.FIREFOX_XPI_FILE }}
+                  if-no-files-found: error
+
+            - name: Upload Firefox source ZIP
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ env.FIREFOX_SOURCE_FILE }}
+                  path: extension/.output/${{ env.FIREFOX_SOURCE_FILE }}
                   if-no-files-found: error

@@ -1,14 +1,37 @@
 <script lang="ts">
   import { asset } from "$app/paths";
-  import { Tabs } from "bits-ui";
+  import { DropdownMenu } from "bits-ui";
   import Navbar from "$lib/components/Navbar.svelte";
+  import { ChevronDown, Chromium, Globe } from "lucide-svelte";
   import { onMount } from "svelte";
 
   const releaseLatestUrl = "https://github.com/orangishcat/page-proxy/releases/latest";
   let selectedBrowser = $state<"chrome" | "firefox">("chrome");
-  const tabClasses =
-    "rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 transition data-[state=active]:bg-accent-500/70 " +
-    "data-[state=active]:text-gray-950 data-[state=inactive]:dark:text-gray-400 data-[state=active]:dark:text-gray-100 cursor-pointer";
+  let selectedInstallMethod = $state<"load-unpacked" | "install-from-file">("load-unpacked");
+  let browserDropdownOpen = $state(false);
+  let installMethodDropdownOpen = $state(false);
+
+  const browserLabel = {
+    chrome: "Chrome",
+    firefox: "Firefox",
+  } as const;
+  const installMethodLabel = {
+    "load-unpacked": "Load unpacked",
+    "install-from-file": "Install from file",
+  } as const;
+
+  const triggerClasses =
+    "text-body flex w-full items-center justify-between gap-4 rounded-lg border border-gray-200 bg-gray-100 px-4 py-2 text-left text-gray-700 shadow-lg hover:bg-gray-200 active:bg-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 dark:active:bg-gray-600";
+  const contentClasses =
+    "grid min-w-64 gap-1.5 rounded-lg border border-gray-200 bg-gray-100 p-1 text-gray-700 shadow-xl dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100";
+  const itemClasses =
+    "text-body cursor-pointer rounded-lg px-3 py-2 text-left hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-700 dark:active:bg-gray-600";
+  const olClasses =
+    "mt-3 list-decimal space-y-1 pl-7 text-gray-700 dark:text-gray-300 space-y-3 [&>li]:pl-1"
+
+  // TODO: some sort of serverless endpoint that checks the latest version on Github releases?
+  // Or some Actions workflow that updates the version number in the codebase??
+  const version = "0.1.0"
 
   onMount(() => {
     const userAgent = navigator.userAgent.toLowerCase();
@@ -33,42 +56,146 @@
         <img src={asset("/logo_filled.png")} alt="Page Proxy" class="h-auto w-72" />
       </div>
 
-      <div class="flex w-full flex-col place-items-start justify-center space-y-4 md:col-span-3">
+      <div class="flex w-full flex-col place-items-start justify-center space-y-4 md:col-span-3 h-[60vh]">
         <h1 class="text-display mt-8 mb-8">Install</h1>
-        <ol class="text-2xl space-y-3">
-          <li>
-            <span class="mr-3">1.</span> Download the latest release from
-            <a href={releaseLatestUrl} class="text-accent-600">GitHub</a>.
-          </li>
-          <li><span class="mr-3">2.</span> Extract the <code>zip</code> file.</li>
-          <li>
-            <span class="mr-3">3.</span> Load the extension from a file:
-            <Tabs.Root
-              bind:value={selectedBrowser}
-              class="mt-12 rounded-2xl border border-gray-200 bg-white p-4 text-base dark:border-gray-800 dark:bg-gray-900"
-            >
-              <Tabs.List class="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1 dark:bg-gray-950">
-                <Tabs.Trigger value="chrome" class={tabClasses}>Chrome</Tabs.Trigger>
-                <Tabs.Trigger value="firefox" class={tabClasses}>Firefox</Tabs.Trigger>
-              </Tabs.List>
+        <div class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-4 text-base dark:border-gray-800 dark:bg-gray-900">
+          <div class="grid gap-3 md:grid-cols-2">
+            <DropdownMenu.Root bind:open={browserDropdownOpen}>
+              <DropdownMenu.Trigger class={triggerClasses}>
+                <span class="flex items-center gap-2">
+                  {#if selectedBrowser === "chrome"}
+                    <Chromium class="h-4 w-4" />
+                  {:else}
+                    <Globe class="h-4 w-4" />
+                  {/if}
+                  <span>{browserLabel[selectedBrowser]}</span>
+                </span>
+                <ChevronDown
+                  class={`h-4 w-4 transition-transform duration-150 ${browserDropdownOpen ? "rotate-180" : ""}`}
+                />
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content class={contentClasses} preventScroll={false}>
+                  <DropdownMenu.Item
+                    class={itemClasses}
+                    onclick={() => {
+                      selectedBrowser = "chrome";
+                      browserDropdownOpen = false;
+                    }}
+                  >
+                    <span class="flex items-center gap-2">
+                      <Chromium class="h-4 w-4" />
+                      <span>Chrome</span>
+                    </span>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    class={itemClasses}
+                    onclick={() => {
+                      selectedBrowser = "firefox";
+                      browserDropdownOpen = false;
+                    }}
+                  >
+                    <span class="flex items-center gap-2">
+                      <Globe class="h-4 w-4" />
+                      <span>Firefox</span>
+                    </span>
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
 
-              <Tabs.Content value="chrome">
-                <ol class="mt-3 list-decimal space-y-1 pl-5 text-gray-700 dark:text-gray-300">
-                  <li>Open <code>chrome://extensions</code>.</li>
-                  <li>Enable <span class="font-semibold">Developer mode</span>.</li>
-                  <li>Drag and drop the <code>.crx</code> file.</li>
-                </ol>
-              </Tabs.Content>
-              <Tabs.Content value="firefox">
-                <ol class="mt-3 list-decimal space-y-1 pl-5 text-gray-700 dark:text-gray-300">
-                  <li>Open <code>about:addons</code>.</li>
-                  <li>Select <span class="font-semibold">Install Add-on From File…</span>.</li>
-                  <li>Choose the <code>.xpi</code> file.</li>
-                </ol>
-              </Tabs.Content>
-            </Tabs.Root>
-          </li>
-        </ol>
+            <DropdownMenu.Root bind:open={installMethodDropdownOpen}>
+              <DropdownMenu.Trigger class={triggerClasses}>
+                <span>{installMethodLabel[selectedInstallMethod]}</span>
+                <ChevronDown
+                  class={`h-4 w-4 transition-transform duration-150 ${installMethodDropdownOpen ? "rotate-180" : ""}`}
+                />
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content class={contentClasses} preventScroll={false}>
+                  <DropdownMenu.Item
+                    class={itemClasses}
+                    onclick={() => {
+                      selectedInstallMethod = "load-unpacked";
+                      installMethodDropdownOpen = false;
+                    }}
+                  >
+                    Load unpacked
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    class={itemClasses}
+                    onclick={() => {
+                      selectedInstallMethod = "install-from-file";
+                      installMethodDropdownOpen = false;
+                    }}
+                  >
+                    Install from file
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </div>
+
+          {#if selectedInstallMethod === "install-from-file"}
+            <div
+              class="mt-3 rounded-lg border border-amber-300 bg-amber-100 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
+            >
+              Recommended: use <span class="font-semibold">Load unpacked</span>. Installing from a file may cause
+              unexpected issues.
+            </div>
+          {/if}
+
+          {#if selectedBrowser === "chrome" && selectedInstallMethod === "load-unpacked"}
+            <ol class={olClasses}>
+              <li>
+                Download <code>pp-chrome-source-v{version}.zip</code> from
+                <a href={releaseLatestUrl}>GitHub releases</a>.
+              </li>
+              <li>Unzip <code>pp-chrome-source-v{version}.zip</code>.</li>
+              <li>You should end up with extracted files that include <code>manifest.json</code>.</li>
+              <li>Open <code>chrome://extensions</code>.</li>
+              <li>Enable <span class="font-semibold">Developer mode</span>.</li>
+              <li>Click <span class="font-semibold">Load unpacked</span>.</li>
+              <li>Choose the extracted extension folder.</li>
+            </ol>
+          {:else if selectedBrowser === "chrome" && selectedInstallMethod === "install-from-file"}
+            <ol class={olClasses}>
+              <li>
+                Download <code>pp-chrome-crx-v{version}.crx</code> from
+                <a href={releaseLatestUrl}>GitHub releases</a>.
+              </li>
+              <li>Unzip the downloaded artifact.</li>
+              <li>You should end up with <code>pp-chrome-crx-v{version}.crx</code>.</li>
+              <li>Open <code>chrome://extensions</code>.</li>
+              <li>Enable <span class="font-semibold">Developer mode</span>.</li>
+              <li>Drag and drop <code>pp-chrome-crx-v{version}.crx</code>.</li>
+            </ol>
+          {:else if selectedBrowser === "firefox" && selectedInstallMethod === "load-unpacked"}
+            <ol class={olClasses}>
+              <li>
+                Download <code>pp-ff-source-v{version}.zip</code> from
+                <a href={releaseLatestUrl}>GitHub releases</a>.
+              </li>
+              <li>Unzip <code>pp-ff-source-v{version}.zip</code>.</li>
+              <li>You should end up with extracted files that include <code>manifest.json</code>.</li>
+              <li>Open <code>about:debugging#/runtime/this-firefox</code>.</li>
+              <li>Click <span class="font-semibold">Load Temporary Add-on…</span>.</li>
+              <li>Choose <code>manifest.json</code> from the extracted folder.</li>
+            </ol>
+          {:else}
+            <ol class={olClasses}>
+              <li>
+                Download <code>pp-ff-xpi-v{version}.xpi</code> from
+                <a href={releaseLatestUrl}>GitHub releases</a>.
+              </li>
+              <li>Unzip the downloaded artifact.</li>
+              <li>You should end up with <code>pp-ff-xpi-v{version}.xpi</code>.</li>
+              <li>Open <code>about:addons</code>.</li>
+              <li>Select <span class="font-semibold">Install Add-on From File…</span>.</li>
+              <li>Choose <code>pp-ff-xpi-v{version}.xpi</code>.</li>
+            </ol>
+          {/if}
+        </div>
       </div>
     </section>
   </div>

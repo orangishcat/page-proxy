@@ -17,7 +17,7 @@
   const navClasses =
     "grid w-full max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-8 rounded-2xl bg-gray-200 px-8 py-3 text-gray-950 shadow-lg dark:bg-gray-900 dark:text-gray-100";
   const itemClasses =
-    "text-nav rounded-full px-4 py-1.5 hover:underline underline-offset-4 opacity-60 hover:opacity-100 active:opacity-80 transition-all duration-150 cursor-pointer";
+    "text-nav rounded-full px-4 py-1.5 text-black dark:text-white hover:underline underline-offset-4 opacity-60 hover:opacity-100 active:opacity-80 transition-all duration-150 cursor-pointer";
 
   const iconButtonClasses = "grid place-items-center rounded-full p-0";
 

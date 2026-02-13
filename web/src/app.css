@@ -8,6 +8,10 @@
 }
 
 @layer components {
+    a {
+        @apply text-accent-400 dark:text-accent-500 hover:opacity-75;
+    }
+
     .text-display {
         @apply text-6xl font-bold tracking-wide;
     }
