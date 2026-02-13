@@ -17,13 +17,18 @@
   import type { SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
   import { pqSelectorReference } from "@page-proxy/pp/function-references";
   import { elementEntries, insertDefinitions, sanitizeVariableName, selectorEntries } from "./tools/code-editor/state";
-  import { activeToolState, type ToolId } from "./tools/state-storage";
+  import {
+    activeToolState,
+    readToolPanelHeightSetting,
+    saveToolPanelHeightSetting,
+    type ToolId,
+  } from "./tools/state-storage";
 
   type ToolbarControlId = SidepanelShortcutId;
 
   const toolLabels: Record<ToolId, string> = {
     select: "Select",
-    "new-element": "Create",
+    "create": "Create",
     selectors: "Selectors",
     share: "Export",
     help: "Help",
@@ -37,6 +42,17 @@
   let errorMessageValue = $state<string | null>(null);
   const isFirefoxBrowser = typeof navigator !== "undefined" && /Firefox/i.test(navigator.userAgent);
   let showFirefoxExperimentalBanner = $state(isFirefoxBrowser);
+  let toolPanelHeightPx = $state<number | null>(null);
+  let toolPanelLayout = $state<HTMLDivElement | null>(null);
+  let toolPanelSection = $state<HTMLElement | null>(null);
+  let toolPanelResizeHandle = $state<HTMLDivElement | null>(null);
+  let errorBannerElement = $state<HTMLDivElement | null>(null);
+  let resizePointerId = $state<number | null>(null);
+  let isResizingToolPanel = $state(false);
+
+  const defaultToolPanelHeightRatio = 0.3656;
+  const minToolPanelHeightPx = 160;
+  const minCodeEditorHeightPx = 220;
 
   let unsubscribeErrorMessage = () => {};
   let unsubscribeActiveToolState = () => {};
@@ -44,7 +60,7 @@
   const activeToolLabel = $derived(toolLabels[activeTool]);
   const shortcutLabels: Record<ToolbarControlId, string> = {
     select: "⇧1",
-    "new-element": "⇧2",
+    "create": "⇧2",
     selectors: "⇧3",
     help: "⇧4",
     share: "⇧5",
@@ -56,6 +72,7 @@
   const showHoveredToolLabel = $derived(Boolean(isToolbarHovered && hoverCandidate));
   const toolLabelText = $derived(showHoveredToolLabel ? hoveredToolText : activeToolLabel);
   const isSelectToolActive = $derived(activeTool === "select");
+  const toolPanelStyle = $derived(toolPanelHeightPx === null ? undefined : `height: ${toolPanelHeightPx}px;`);
 
   const setActiveTool = (tool: ToolId) => {
     if (tool === activeTool) {
@@ -109,7 +126,7 @@
       case "Digit1":
         return "select";
       case "Digit2":
-        return "new-element";
+        return "create";
       case "Digit3":
         return "selectors";
       case "Digit4":
@@ -196,7 +213,109 @@
     return (message as { type?: string }).type === "selector:save";
   };
 
+  const getToolPanelMaxHeight = () => {
+    if (!toolPanelLayout || !toolPanelSection) {
+      return minToolPanelHeightPx;
+    }
+
+    const layoutRect = toolPanelLayout.getBoundingClientRect();
+    const sectionRect = toolPanelSection.getBoundingClientRect();
+    const sectionTopOffset = sectionRect.top - layoutRect.top;
+    const errorBannerHeight = errorBannerElement?.offsetHeight ?? 0;
+    const resizeHandleHeight = toolPanelResizeHandle?.offsetHeight ?? 0;
+    const maxHeight =
+      layoutRect.height - sectionTopOffset - errorBannerHeight - resizeHandleHeight - minCodeEditorHeightPx;
+
+    return Math.max(minToolPanelHeightPx, Math.floor(maxHeight));
+  };
+
+  const clampToolPanelHeight = (height: number) => {
+    const normalizedHeight = Number.isFinite(height) ? height : minToolPanelHeightPx;
+    const maxHeight = getToolPanelMaxHeight();
+    return Math.min(maxHeight, Math.max(minToolPanelHeightPx, Math.round(normalizedHeight)));
+  };
+
+  const getDefaultToolPanelHeight = () => {
+    if (!toolPanelLayout) {
+      return minToolPanelHeightPx;
+    }
+
+    return clampToolPanelHeight(toolPanelLayout.getBoundingClientRect().height * defaultToolPanelHeightRatio);
+  };
+
+  const setToolPanelHeightFromClientY = (clientY: number) => {
+    if (!toolPanelSection) {
+      return;
+    }
+
+    const sectionTop = toolPanelSection.getBoundingClientRect().top;
+    toolPanelHeightPx = clampToolPanelHeight(clientY - sectionTop);
+  };
+
+  const startToolPanelResize = (event: PointerEvent) => {
+    if (event.button !== 0 || !toolPanelResizeHandle) {
+      return;
+    }
+
+    event.preventDefault();
+    resizePointerId = event.pointerId;
+    isResizingToolPanel = true;
+    toolPanelResizeHandle.setPointerCapture(event.pointerId);
+    setToolPanelHeightFromClientY(event.clientY);
+  };
+
+  const updateToolPanelResize = (event: PointerEvent) => {
+    if (!isResizingToolPanel || event.pointerId !== resizePointerId) {
+      return;
+    }
+
+    event.preventDefault();
+    setToolPanelHeightFromClientY(event.clientY);
+  };
+
+  const finishToolPanelResize = (event: PointerEvent) => {
+    if (event.pointerId !== resizePointerId || !toolPanelResizeHandle) {
+      return;
+    }
+
+    if (toolPanelResizeHandle.hasPointerCapture(event.pointerId)) {
+      toolPanelResizeHandle.releasePointerCapture(event.pointerId);
+    }
+
+    isResizingToolPanel = false;
+    resizePointerId = null;
+    if (toolPanelHeightPx !== null) {
+      void saveToolPanelHeightSetting(toolPanelHeightPx);
+    }
+  };
+
+  const normalizeToolPanelHeight = () => {
+    if (toolPanelHeightPx === null) {
+      return;
+    }
+
+    const clampedHeight = clampToolPanelHeight(toolPanelHeightPx);
+    if (clampedHeight !== toolPanelHeightPx) {
+      toolPanelHeightPx = clampedHeight;
+    }
+  };
+
+  $effect(() => {
+    showFirefoxExperimentalBanner;
+    errorMessageValue;
+    normalizeToolPanelHeight();
+  });
+
   onMount(() => {
+    toolPanelHeightPx = getDefaultToolPanelHeight();
+    void readToolPanelHeightSetting().then((storedHeight) => {
+      if (storedHeight === null) {
+        return;
+      }
+
+      toolPanelHeightPx = clampToolPanelHeight(storedHeight);
+    });
+
     unsubscribeErrorMessage = errorMessage.subscribe((value) => {
       errorMessageValue = value;
     });
@@ -242,12 +361,18 @@
       handleShortcut(tool);
     };
 
+    const onResize = () => {
+      normalizeToolPanelHeight();
+    };
+
     window.addEventListener("keydown", onKeyDown, { capture: true });
+    window.addEventListener("resize", onResize);
     browser.runtime.onMessage.addListener(handleRuntimeMessage);
 
     return () => {
       cleanup();
       window.removeEventListener("keydown", onKeyDown, { capture: true });
+      window.removeEventListener("resize", onResize);
       browser.runtime.onMessage.removeListener(handleRuntimeMessage);
       sendSelectionToggle(false);
       unsubscribeErrorMessage();
@@ -267,7 +392,7 @@
 
 <main class="flex h-full w-full overflow-hidden bg-[#222121] text-white">
   <div class="h-full w-full min-h-0 min-w-full">
-    <div class="flex h-full w-full min-h-0 flex-col">
+    <div class="flex h-full w-full min-h-0 flex-col" bind:this={toolPanelLayout}>
       {#if showFirefoxExperimentalBanner}
         <div class="w-full shrink-0 bg-[#3d341d] px-[4%] py-[2%] text-caption text-[#f4de9e] flex items-center gap-2">
           <span class="flex-1">Firefox support is experimental.</span>
@@ -283,8 +408,10 @@
       {/if}
 
       <section
-        class="relative flex h-[36.56%] w-full shrink-0 flex-col bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+        class="relative flex w-full shrink-0 flex-col bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
         aria-label="Tool panel"
+        bind:this={toolPanelSection}
+        style={toolPanelStyle}
       >
         <div
           class="flex justify-between h-12 px-3 py-2 bg-[#393a34]"
@@ -319,17 +446,17 @@
               <MousePointer class={iconSize} />
             </Button>
             <Button
-              class={toolButtonClasses(activeTool === "new-element")}
+              class={toolButtonClasses(activeTool === "create")}
               variant="outline"
               aria-label="Create tool"
               onmouseenter={() => {
-                hoveredTool = "new-element";
-                lastHoveredTool = "new-element";
+                hoveredTool = "create";
+                lastHoveredTool = "create";
               }}
               onmouseleave={() => {
                 hoveredTool = null;
               }}
-              onclick={() => setActiveTool("new-element")}
+              onclick={() => setActiveTool("create")}
             >
               <Plus class={iconSize} />
             </Button>
@@ -393,7 +520,7 @@
 
         {#if activeTool === "select"}
           <SelectTool />
-        {:else if activeTool === "new-element"}
+        {:else if activeTool === "create"}
           <NewElementTool />
         {:else if activeTool === "selectors"}
           <SelectorsTool />
@@ -414,10 +541,22 @@
         {/if}
       </section>
 
+      <div
+        class="h-2 w-full shrink-0 cursor-row-resize bg-[#393a34] transition-colors hover:bg-[#4a4b45] active:bg-accent-500/40"
+        role="separator"
+        aria-label="Resize tool panel"
+        aria-orientation="horizontal"
+        bind:this={toolPanelResizeHandle}
+        onpointerdown={startToolPanelResize}
+        onpointermove={updateToolPanelResize}
+        onpointerup={finishToolPanelResize}
+        onpointercancel={finishToolPanelResize}
+      ></div>
+
       <CodeEditorTool />
 
       {#if errorMessageValue}
-        <div class="w-full shrink-0 bg-[#3b1d1d] px-[4%] py-[2%] text-caption text-[#f5b1b1]">
+        <div class="w-full shrink-0 bg-[#3b1d1d] px-[4%] py-[2%] text-caption text-[#f5b1b1]" bind:this={errorBannerElement}>
           {errorMessageValue}
         </div>
       {/if}

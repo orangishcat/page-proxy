@@ -3,7 +3,7 @@ import { browser } from "wxt/browser";
 
 import { matchWebsiteGlob } from "@/lib/utils/website-glob";
 
-export type ToolId = "select" | "new-element" | "selectors" | "help" | "share" | "none";
+export type ToolId = "select" | "create" | "selectors" | "help" | "share" | "none";
 
 export type StoredToolState = {
   activeTool: ToolId;
@@ -15,10 +15,11 @@ export type StoredToolState = {
 };
 
 const storageKeyPrefix = "pageproxy:";
+const toolPanelHeightStorageKey = "sidepanel:toolPanelHeightPx";
 
 const isToolId = (value: unknown): value is ToolId =>
   value === "select" ||
-  value === "new-element" ||
+  value === "create" ||
   value === "selectors" ||
   value === "help" ||
   value === "share" ||
@@ -104,6 +105,38 @@ export const removeStoredToolState = async (websiteGlob: string) => {
   }
 
   await browser.storage.local.remove(toStorageKey(normalized));
+};
+
+const coerceToolPanelHeight = (value: unknown) => {
+  if (typeof value !== "number" || Number.isNaN(value) || !Number.isFinite(value)) {
+    return null;
+  }
+
+  if (value <= 0) {
+    return null;
+  }
+
+  return value;
+};
+
+export const readToolPanelHeightSetting = async () => {
+  return browser.storage.local
+    .get(toolPanelHeightStorageKey)
+    .then((stored) => coerceToolPanelHeight(stored[toolPanelHeightStorageKey]))
+    .catch(() => null);
+};
+
+export const saveToolPanelHeightSetting = async (height: number) => {
+  const normalizedHeight = coerceToolPanelHeight(height);
+  if (normalizedHeight === null) {
+    return;
+  }
+
+  await browser.storage.local
+    .set({
+      [toolPanelHeightStorageKey]: normalizedHeight,
+    })
+    .catch(() => undefined);
 };
 
 export const findStoredToolStateForUrl = async (url: string) => {

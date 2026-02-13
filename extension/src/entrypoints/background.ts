@@ -6,7 +6,7 @@ import { isScriptRunResponse, type ScriptRunRequest } from "@/lib/script-runner"
 import { createTabBadgeUpdater } from "@/lib/background/tab-badge";
 import log from "loglevel";
 
-type ToolId = "select" | "new-element" | "selectors" | "help" | "share" | "none";
+type ToolId = "select" | "create" | "selectors" | "help" | "share" | "none";
 
 type StoredToolState = {
   activeTool: ToolId;
@@ -28,7 +28,7 @@ const defaultDefineBlockEnd = "// ==/Selectors==";
 
 const isToolId = (value: unknown): value is ToolId =>
   value === "select" ||
-  value === "new-element" ||
+  value === "create" ||
   value === "selectors" ||
   value === "help" ||
   value === "share" ||
