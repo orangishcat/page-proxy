@@ -21,15 +21,15 @@ const sourceFiles = [
 const sourceModuleSpecs = [
   {
     sourceFile: "pp-query.d.ts",
-    moduleNames: ["@page-proxy/pp/pp-query", "@/lib/pp/pp-query"],
+    moduleNames: ["@page-proxy/pp/pp-query", "@page-proxy/pp/pp-query"],
   },
   {
     sourceFile: "pp-style.d.ts",
-    moduleNames: ["@page-proxy/pp/pp-style", "@/lib/pp/pp-style"],
+    moduleNames: ["@page-proxy/pp/pp-style", "@page-proxy/pp/pp-style"],
   },
   {
     sourceFile: "pp-event.d.ts",
-    moduleNames: ["@page-proxy/pp/pp-event", "@/lib/pp/pp-event"],
+    moduleNames: ["@page-proxy/pp/pp-event", "@page-proxy/pp/pp-event"],
   },
 ];
 

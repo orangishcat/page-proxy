@@ -15,7 +15,7 @@
   import { errorMessage, setErrorMessage } from "./tools/tool-errors";
   import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
   import type { SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
-  import { pqSelectorReference } from "@/lib/pp/function-references";
+  import { pqSelectorReference } from "@page-proxy/pp/function-references";
   import { elementEntries, insertDefinitions, sanitizeVariableName, selectorEntries } from "./tools/code-editor/state";
   import { activeToolState, type ToolId } from "./tools/state-storage";
 
@@ -23,7 +23,7 @@
 
   const toolLabels: Record<ToolId, string> = {
     select: "Select",
-    "new-element": "New element",
+    "new-element": "Create",
     selectors: "Selectors",
     share: "Export",
     help: "Help",
@@ -321,7 +321,7 @@
             <Button
               class={toolButtonClasses(activeTool === "new-element")}
               variant="outline"
-              aria-label="New element tool"
+              aria-label="Create tool"
               onmouseenter={() => {
                 hoveredTool = "new-element";
                 lastHoveredTool = "new-element";

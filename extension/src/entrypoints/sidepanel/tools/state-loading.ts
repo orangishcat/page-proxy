@@ -33,7 +33,7 @@ export const ensureScriptImports = (content: string, config: ScriptFormatConfig)
     .split("\n")
     .filter((line) => {
       const trimmed = line.trim();
-      if (trimmed === 'import * as pa from "@/lib/pp/pp-api";') {
+      if (trimmed === 'import * as pa from "@page-proxy/pp/pp-api";') {
         return false;
       }
       if (trimmed === "const pp = pa.pp;" || trimmed === "const pp = pv.pp;") {

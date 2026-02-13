@@ -19,9 +19,9 @@ type StoredToolState = {
 
 const storageKeyPrefix = "pageproxy:";
 const defaultScriptImportLines = [
-  'import * as pq from "@/lib/pp/pp-query";',
-  'import * as ps from "@/lib/pp/pp-style";',
-  'import * as pv from "@/lib/pp/pp-event";',
+  'import * as pq from "@page-proxy/pp/pp-query";',
+  'import * as ps from "@page-proxy/pp/pp-style";',
+  'import * as pv from "@page-proxy/pp/pp-event";',
 ] as const;
 const defaultDefineBlockStart = "// ==Selectors==";
 const defaultDefineBlockEnd = "// ==/Selectors==";
@@ -126,7 +126,7 @@ const ensureScriptImports = (content: string) => {
     .split("\n")
     .filter((line) => {
       const trimmed = line.trim();
-      if (trimmed === 'import * as pa from "@/lib/pp/pp-api";') {
+      if (trimmed === 'import * as pa from "@page-proxy/pp/pp-api";') {
         return false;
       }
       if (trimmed === "const pp = pa.pp;" || trimmed === "const pp = pv.pp;") {

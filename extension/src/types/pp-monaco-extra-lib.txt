@@ -57,7 +57,7 @@ declare module "@page-proxy/pp/pp-query" {
       queryAll: () => T[];
   };
 }
-declare module "@/lib/pp/pp-query" {
+declare module "@page-proxy/pp/pp-query" {
   export type ElementSize = {
       width: number;
       height: number;
@@ -118,7 +118,7 @@ declare module "@page-proxy/pp/pp-style" {
   export declare const applyStyle: (elements: Element[], values: StyleValues) => void;
   export declare const injectCSS: (styleText: string) => boolean;
 }
-declare module "@/lib/pp/pp-style" {
+declare module "@page-proxy/pp/pp-style" {
   export type StyleValues = Record<string, string>;
   export declare const applyStyle: (elements: Element[], values: StyleValues) => void;
   export declare const injectCSS: (styleText: string) => boolean;
@@ -143,7 +143,7 @@ declare module "@page-proxy/pp/pp-event" {
   };
   export declare const pageModificationFunctions: string[];
 }
-declare module "@/lib/pp/pp-event" {
+declare module "@page-proxy/pp/pp-event" {
   export type OnElementCreatedHandler = (element: Element) => void;
   export type NotificationLevel = "log" | "info" | "warn" | "error" | "debug" | "notification";
   export declare const notificationSinkGlobalKey = "__pageProxyNotificationSink__";

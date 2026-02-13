@@ -39,16 +39,16 @@ const stripPpImportText = (code: string) =>
     .split('\n')
     .filter((line) => {
       const trimmed = line.trim();
-      if (trimmed === 'import * as pq from "@/lib/pp/pp-query";') {
+      if (trimmed === 'import * as pq from "@page-proxy/pp/pp-query";') {
         return false;
       }
-      if (trimmed === 'import * as ps from "@/lib/pp/pp-style";') {
+      if (trimmed === 'import * as ps from "@page-proxy/pp/pp-style";') {
         return false;
       }
-      if (trimmed === 'import * as pa from "@/lib/pp/pp-api";') {
+      if (trimmed === 'import * as pa from "@page-proxy/pp/pp-api";') {
         return false;
       }
-      if (trimmed === 'import * as pv from "@/lib/pp/pp-event";') {
+      if (trimmed === 'import * as pv from "@page-proxy/pp/pp-event";') {
         return false;
       }
       if (trimmed === 'const pp = pa.pp;' || trimmed === 'const pp = pv.pp;') {

@@ -28,9 +28,9 @@
   const defineBlockStart = "// ==Selectors==";
   const defineBlockEnd = "// ==/Selectors==";
   const ppImportLines = [
-    'import * as pq from "@/lib/pp/pp-query";',
-    'import * as ps from "@/lib/pp/pp-style";',
-    'import * as pv from "@/lib/pp/pp-event";',
+    'import * as pq from "@page-proxy/pp/pp-query";',
+    'import * as ps from "@page-proxy/pp/pp-style";',
+    'import * as pv from "@page-proxy/pp/pp-event";',
   ];
   const protectedComment =
     "// This page is protected. Either switch to a different page or allow the extension access to this page to run scripts.";

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ElementInfo, SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
-  import { pqSelectorReference } from "@/lib/pp/function-references";
+  import { pqSelectorReference } from "@page-proxy/pp/function-references";
   import { onDestroy, onMount } from "svelte";
   import {
     createMonacoEditor,
