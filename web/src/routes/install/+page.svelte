@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { asset } from "$app/paths";
   import { Tabs } from "bits-ui";
   import Navbar from "$lib/components/Navbar.svelte";
   import { onMount } from "svelte";
@@ -29,7 +30,7 @@
 
     <section class="mx-auto grid w-full items-center gap-8 md:grid-cols-5">
       <div class="flex justify-center md:col-span-2">
-        <img src="/logo_filled.png" alt="Page Proxy" class="h-auto w-72" />
+        <img src={asset("/logo_filled.png")} alt="Page Proxy" class="h-auto w-72" />
       </div>
 
       <div class="flex w-full flex-col place-items-start justify-center space-y-4 md:col-span-3">

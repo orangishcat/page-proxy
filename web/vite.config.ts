@@ -1,7 +1,7 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ mode }) => ({
   plugins: [sveltekit()],
-  base: command === 'serve' ? '/' : '/page-proxy/'
+  base: mode === 'development' ? '/' : '/page-proxy/'
 }));

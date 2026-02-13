@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+  import { asset, resolve } from "$app/paths";
   import { Bell, Moon, Sun } from "lucide-svelte";
   import AccountWidget from "$lib/components/AccountWidget.svelte";
   import { createEventDispatcher, onMount } from "svelte";
@@ -11,7 +12,6 @@
   let { variant = "app" } = $props<{ variant?: NavbarVariant }>();
 
   let isDarkMode = $state(true);
-  const homeHref = $derived(variant === "landing" ? "/" : "/app");
   const dispatch = createEventDispatcher<{ newfile: void }>();
 
   const navClasses =
@@ -55,9 +55,15 @@
 </script>
 
 <nav class={navClasses} class:max-w-full={variant === "app"}>
-  <a class="flex items-center gap-1.5 justify-self-start -my-4 -mt-5 ml-4" href={homeHref} aria-label="Page Proxy">
-    <img src="/logo_text.png" alt="" class="h-13" draggable="false" />
-  </a>
+  {#if variant === "landing"}
+    <a class="flex items-center gap-1.5 justify-self-start -my-4 -mt-5 ml-4" href={resolve("/")} aria-label="Page Proxy">
+      <img src={asset("/logo_text.png")} alt="" class="h-13" draggable="false" />
+    </a>
+  {:else}
+    <a class="flex items-center gap-1.5 justify-self-start -my-4 -mt-5 ml-4" href={resolve("/")} aria-label="Page Proxy">
+      <img src={asset("/logo_text.png")} alt="" class="h-13" draggable="false" />
+    </a>
+  {/if}
 
   <div class="flex flex-wrap items-center justify-center gap-2 justify-self-center">
     {#if variant === "app"}
@@ -66,12 +72,12 @@
       <span class={itemClasses}>View</span>
       <span class={itemClasses}>Tools</span>
     {:else if variant === "landing"}
-      <a class={itemClasses} href="/">Tools</a>
-      <a class={itemClasses} href="/">Explore</a>
-      <a class={itemClasses} href="/">Export</a>
+      <a class={itemClasses} href={resolve("/")}>Tools</a>
+      <a class={itemClasses} href={resolve("/")}>Explore</a>
+      <a class={itemClasses} href={resolve("/")}>Export</a>
     {:else if variant === "dashboard"}
-      <a class="{itemClasses} w-28 text-right" href="/">Explore</a>
-      <a class={itemClasses} href="/">Dashboard</a>
+      <a class="{itemClasses} w-28 text-right" href={resolve("/")}>Explore</a>
+      <a class={itemClasses} href={resolve("/")}>Dashboard</a>
       <button class="{itemClasses} w-28 text-left" type="button" onclick={() => dispatch("newfile")}> New </button>
     {/if}
   </div>
@@ -85,7 +91,7 @@
       {/if}
     </Button>
     {#if variant === "landing"}
-      <a href="/install" class="ml-4">
+      <a href={resolve("/install")} class="ml-4">
         <Button type="button" class="px-6">Install</Button>
       </a>
     {:else}

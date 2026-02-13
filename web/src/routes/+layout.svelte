@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { asset } from '$app/paths';
   import '../app.css';
   import {onMount} from 'svelte';
+  let {children} = $props();
 
   const suffix = ' | Page Proxy';
 
@@ -41,7 +43,7 @@
 </script>
 
 <svelte:head>
-  <link rel="icon" href="/icon.png" />
+  <link rel="icon" href={asset('/icon.png')} />
 </svelte:head>
 
-<slot />
+{@render children()}

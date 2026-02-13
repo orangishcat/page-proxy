@@ -1,9 +1,16 @@
 {
     "extends": "./.svelte-kit/tsconfig.json",
-    "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"],
-    "exclude": ["**/node_modules/**", "**/.pnpm/**", ".svelte-kit", "dist", "build"],
+    "include": [
+        ".svelte-kit/ambient.d.ts",
+        ".svelte-kit/non-ambient.d.ts",
+        ".svelte-kit/types/**/$types.d.ts",
+        "src/**/*.ts",
+        "src/**/*.js",
+        "src/**/*.svelte"
+    ],
+    "exclude": ["**/node_modules/**", "**/.pnpm/**", "dist", "build"],
     "compilerOptions": {
-        "types": ["svelte", "vite/client"],
+        "types": ["svelte", "vite/client", "@sveltejs/kit"],
         "verbatimModuleSyntax": true,
         "skipLibCheck": true,
     },
