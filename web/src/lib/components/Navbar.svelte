@@ -3,7 +3,7 @@
 </script>
 
 <script lang="ts">
-  import { asset, resolve } from "$app/paths";
+  import { asset, base, resolve } from "$app/paths";
   import { Bell, Moon, Sun } from "lucide-svelte";
   import AccountWidget from "$lib/components/AccountWidget.svelte";
   import { createEventDispatcher, onMount } from "svelte";
@@ -74,6 +74,7 @@
     {:else if variant === "landing"}
       <a class={itemClasses} href={resolve("/")}>Tools</a>
       <a class={itemClasses} href={resolve("/")}>Explore</a>
+      <a class={itemClasses} href="{base}/docs">Docs</a>
       <a class={itemClasses} href={resolve("/")}>Export</a>
     {:else if variant === "dashboard"}
       <a class="{itemClasses} w-28 text-right" href={resolve("/")}>Explore</a>
