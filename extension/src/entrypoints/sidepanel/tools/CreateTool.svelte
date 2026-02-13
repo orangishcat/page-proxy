@@ -9,7 +9,7 @@
         <li>And lots more!</li>
       </ul>
       You can check on my progress in the
-      <a href="https://www.figma.com/file/1E8P0X0wBphOq6kbXWMhbW/page-proxy--">Figma file</a>.
+      <a href="https://www.figma.com/file/1E8P0X0wBphOq6kbXWMhbW/page-proxy--" target="_blank" rel="noopener noreferrer">Figma file</a>.
     </div>
   </div>
 </div>
