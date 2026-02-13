@@ -29,7 +29,7 @@ jobs:
               run: cd web && bunx svelte-kit sync
 
             - name: Lint
-              run: bun run web:lint extension:lint
+              run: bun run web:lint && bun run extension:lint
 
             - name: Typecheck
-              run: bun run web:check extension:check
+              run: bun run web:check && bun run extension:check
