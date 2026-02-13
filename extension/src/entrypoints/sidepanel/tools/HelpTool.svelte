@@ -46,7 +46,7 @@
       </li>
       <li>Multi-file scripts</li>
       <li>
-        <a href="https://github.com/orangishcat/page-proxy/blob/master/ROADMAP.md" target="_blank" rel="noopener noreferrer">More...</a>
+        <a href="https://github.com/orangishcat/page-proxy/blob/main/ROADMAP.md" target="_blank" rel="noopener noreferrer">More...</a>
       </li>
     </ul>
     <a
