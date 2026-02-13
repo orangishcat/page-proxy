@@ -348,7 +348,7 @@ export default defineUnlistedScript(() => {
           requestId,
           buildScriptRunResponse(
             requestId,
-            'Script execution blocked by the page Content Security Policy.',
+            'Script execution blocked by the page Content Security Policy; try another website.',
             logs
           ),
           cleanupListeners,

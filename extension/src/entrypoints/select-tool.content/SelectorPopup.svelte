@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { ElementInfo, SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
-  import { pqSelectorReference } from "@page-proxy/pp/function-references";
   import { onDestroy, onMount } from "svelte";
   import {
     createMonacoEditor,
@@ -46,7 +45,7 @@
 
   const buildDefaultCode = () => {
     return [
-      `const Style_1 = ${pqSelectorReference}({`,
+      `const Style_1 = pq.selector({`,
       `  ${JSON.stringify("name")}: ${JSON.stringify("Style 1")},`,
       `  ${JSON.stringify("baseSelector")}: ${JSON.stringify(info.selector)},`,
       `  ${JSON.stringify("matches")}: e => true,`,
@@ -152,8 +151,8 @@
       errorMessage = "Add a selector definition to save.";
       return;
     }
-    if (!code.includes(pqSelectorReference)) {
-      errorMessage = `Selector definition must include ${pqSelectorReference}.`;
+    if (!code.includes("pq.selector")) {
+      errorMessage = `Selector definition must include pq.selector.`;
       return;
     }
 

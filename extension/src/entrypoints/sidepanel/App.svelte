@@ -15,7 +15,6 @@
   import { errorMessage, setErrorMessage } from "./tools/tool-errors";
   import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
   import type { SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
-  import { pqSelectorReference } from "@page-proxy/pp/function-references";
   import { elementEntries, insertDefinitions, sanitizeVariableName, selectorEntries } from "./tools/code-editor/state";
   import {
     activeToolState,
@@ -154,7 +153,7 @@
 
   const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const selectorDefinitionPattern = new RegExp(
-    `\\bconst\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*${escapeRegExp(pqSelectorReference)}\\s*\\(`,
+    `\\bconst\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*${escapeRegExp("pq.selector")}\\s*\\(`,
   );
 
   const extractSelectorVariableName = (code: string) => {
@@ -164,8 +163,8 @@
 
   const saveSelectorDefinition = (payload: SelectorSavePayload): SelectorSaveResult => {
     const rawCode = payload.code.trim();
-    if (!rawCode.includes(pqSelectorReference)) {
-      const error = `Selector definition must include ${pqSelectorReference}.`;
+    if (!rawCode.includes("pq.selector")) {
+      const error = `Selector definition must include pq.selector.`;
       setErrorMessage(error);
       return { ok: false, error };
     }
