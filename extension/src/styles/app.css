@@ -116,4 +116,8 @@
     .monaco-editor.pp-monaco-preview .margin {
         width: 0 !important;
     }
+
+    a {
+        @apply text-accent-400 dark:text-accent-500 hover:opacity-75;
+    }
 }

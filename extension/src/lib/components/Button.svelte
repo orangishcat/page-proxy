@@ -28,8 +28,8 @@
     "flex place-items-center justify-center";
 
   const variantClasses = {
-    primary: "border border-primary-600 bg-radial from-primary-600 to-primary-400 px-5 py-2 text-black dark:text-white",
-    secondary: "border border-secondary-500 bg-secondary-500 px-5 py-2 text-black dark:text-white",
+    primary: "border border-primary-600 bg-radial from-primary-600 to-primary-400 px-3 py-1.5 text-black dark:text-white",
+    secondary: "border border-secondary-500 bg-secondary-500 px-3 py-1.5 text-black dark:text-white",
     outline: "p-2 text-gray-500 dark:text-gray-400",
   } satisfies Record<ButtonVariant, string>;
 </script>

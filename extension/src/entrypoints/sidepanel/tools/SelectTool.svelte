@@ -49,13 +49,14 @@
       class={`left-0 h-8 w-8 p-0! rounded-lg text-white dark:text-white bg-[#55503E] hover:opacity-55 active:opacity-40 ${hasSelectionValue ? "absolute" : "hidden"}`}
       variant="outline"
       aria-label="Select parent element"
+      title="Select parent element"
       onclick={sendSelectParent}
       disabled={!hasSelectionValue}
     >
       <ArrowUpIcon class="h-5 w-5" />
     </Button>
     <Button
-      class={`w-40 text-sm ${hasSelectionValue ? "" : "hidden"}`}
+      class={`w-36 text-sm ${hasSelectionValue ? "" : "hidden"}`}
       variant="primary"
       onclick={sendSelectorPopup}
       disabled={!hasSelectionValue}

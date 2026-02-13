@@ -120,7 +120,7 @@
     <div class="flex items-center gap-2">
       <label for="export-format" class="text-gray-500">Export format</label>
       <select id="export-format"
-        class="h-8 flex-1 rounded-xl border border-[#5b5542] bg-[#2a2924] px-3 text-body text-gray-100 outline-none focus:border-accent-500"
+        class="h-8 flex-1 rounded-xl w-32 border border-[#5b5542] bg-[#2a2924] px-3 text-body text-gray-100 outline-none focus:border-accent-500"
         bind:value={selectedFormat}
       >
         {#each exportFormatOptions as formatOption (formatOption.value)}

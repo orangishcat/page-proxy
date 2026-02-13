@@ -5,7 +5,7 @@
 
   import { get } from "svelte/store";
   import SelectTool from "./tools/SelectTool.svelte";
-  import NewElementTool from "./tools/NewElementTool.svelte";
+  import CreateTool from "./tools/CreateTool.svelte";
   import ExportTool from "./tools/ExportTool.svelte";
   import HelpTool from "./tools/HelpTool.svelte";
   import SelectorsTool from "./tools/SelectorsTool.svelte";
@@ -521,7 +521,7 @@
         {#if activeTool === "select"}
           <SelectTool />
         {:else if activeTool === "create"}
-          <NewElementTool />
+          <CreateTool />
         {:else if activeTool === "selectors"}
           <SelectorsTool />
         {:else if activeTool === "help"}
