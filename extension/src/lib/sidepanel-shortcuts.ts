@@ -1,4 +1,4 @@
-export type SidepanelShortcutId = 'select' | 'new-element' | 'selectors' | 'help' | 'share';
+export type SidepanelShortcutId = 'select' | 'create' | 'selectors' | 'help' | 'share';
 
 export type SidepanelShortcutMessage = {
   type: 'sidepanel:shortcut';

@@ -198,7 +198,7 @@ const getShortcutTool = (event: KeyboardEvent): SidepanelShortcutId | null => {
     case "Digit1":
       return "select";
     case "Digit2":
-      return "new-element";
+      return "create";
     case "Digit3":
       return "selectors";
     case "Digit4":
