@@ -3,7 +3,7 @@
 </script>
 
 <script lang="ts">
-  import { asset, base, resolve } from "$app/paths";
+  import { asset, resolve } from "$app/paths";
   import { Bell, Moon, Sun } from "lucide-svelte";
   import AccountWidget from "$lib/components/AccountWidget.svelte";
   import { onMount } from "svelte";
