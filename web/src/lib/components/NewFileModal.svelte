@@ -1,5 +1,4 @@
 <script lang="ts">
-  import {createEventDispatcher} from 'svelte';
   import {Dialog} from 'bits-ui';
   import {isFileTitleValid} from '$lib/data/file-types';
 
@@ -11,11 +10,10 @@
 
   type Props = {
     open?: boolean;
+    onSubmit?: (details: NewFileDetails) => void;
   };
 
-  let {open = $bindable(false)}: Props = $props();
-
-  const dispatch = createEventDispatcher<{submit: NewFileDetails}>();
+  let {open = $bindable(false), onSubmit}: Props = $props();
   let title = $state('');
   let website = $state('');
   let description = $state('');
@@ -73,7 +71,7 @@
     };
 
     resetForm();
-    dispatch('submit', detail);
+    onSubmit?.(detail);
     open = false;
   };
 

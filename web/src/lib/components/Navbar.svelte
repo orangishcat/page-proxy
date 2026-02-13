@@ -6,13 +6,17 @@
   import { asset, base, resolve } from "$app/paths";
   import { Bell, Moon, Sun } from "lucide-svelte";
   import AccountWidget from "$lib/components/AccountWidget.svelte";
-  import { createEventDispatcher, onMount } from "svelte";
+  import { onMount } from "svelte";
   import Button from "$lib/components/Button.svelte";
 
-  let { variant = "app" } = $props<{ variant?: NavbarVariant }>();
+  type Props = {
+    variant?: NavbarVariant;
+    onNewFile?: () => void;
+  };
+
+  let { variant = "app", onNewFile }: Props = $props();
 
   let isDarkMode = $state(true);
-  const dispatch = createEventDispatcher<{ newfile: void }>();
 
   const navClasses =
     "grid w-full max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-8 rounded-2xl bg-gray-200 px-8 py-3 text-gray-950 shadow-lg dark:bg-gray-900 dark:text-gray-100";
@@ -74,12 +78,13 @@
     {:else if variant === "landing"}
       <a class={itemClasses} href={resolve("/")}>Tools</a>
       <a class={itemClasses} href={resolve("/")}>Explore</a>
-      <a class={itemClasses} href="{base}/docs">Docs</a>
+      <!-- Docs are hosted externally in production; keep this resolve-less. -->
+      <a class={itemClasses} href={`${base}/docs`}>Docs</a>
       <a class={itemClasses} href={resolve("/")}>Export</a>
     {:else if variant === "dashboard"}
       <a class="{itemClasses} w-28 text-right" href={resolve("/")}>Explore</a>
       <a class={itemClasses} href={resolve("/")}>Dashboard</a>
-      <button class="{itemClasses} w-28 text-left" type="button" onclick={() => dispatch("newfile")}> New </button>
+      <button class="{itemClasses} w-28 text-left" type="button" onclick={() => onNewFile?.()}> New </button>
     {/if}
   </div>
 

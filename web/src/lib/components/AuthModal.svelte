@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {createEventDispatcher, onMount} from 'svelte';
+  import {onMount} from 'svelte';
   import {Dialog} from 'bits-ui';
   import {isResultError} from '$lib/data/file-types';
   import {signInWithEmail, signUpWithEmail} from '$lib/data/auth';
@@ -13,6 +13,7 @@
 
   type Props = {
     open?: boolean;
+    onSuccess?: (event: AuthSuccessEvent) => void;
   };
 
   type HCaptchaApi = {
@@ -29,9 +30,7 @@
     reset: (widgetId: number) => void;
   };
 
-  let {open = $bindable(false)}: Props = $props();
-
-  const dispatch = createEventDispatcher<{success: AuthSuccessEvent}>();
+  let {open = $bindable(false), onSuccess}: Props = $props();
 
   const captchaSiteKey = import.meta.env.PUBLIC_HCAPTCHA_SITE_KEY as string | undefined;
 
@@ -227,7 +226,7 @@
         return;
       }
 
-      dispatch('success', {mode, email: emailValue()});
+      onSuccess?.({mode, email: emailValue()});
       resetForm();
       open = false;
       return;

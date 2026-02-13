@@ -5,15 +5,19 @@
 <script lang="ts">
   import {Bell, Moon, Sun} from 'lucide-svelte';
   import AccountWidget from './AccountWidget.svelte';
-  import {createEventDispatcher, onMount} from 'svelte';
+  import {onMount} from 'svelte';
   import Button from './Button.svelte';
   import logoUrl from '../../assets/logo.png';
 
-  let {variant = 'app'} = $props<{ variant?: NavbarVariant }>();
+  type Props = {
+    variant?: NavbarVariant;
+    onNewFile?: () => void;
+  };
+
+  let {variant = 'app', onNewFile}: Props = $props();
 
   let isDarkMode = $state(true);
   const homeHref = $derived(variant === 'landing' ? '/' : '/app');
-  const dispatch = createEventDispatcher<{ newfile: void }>();
 
   const navClasses =
     'grid w-full max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-8 rounded-2xl bg-gray-200 px-8 py-3 text-gray-950 shadow-lg dark:bg-gray-900 dark:text-gray-100';
@@ -75,7 +79,7 @@
     {:else}
       <a class="{itemClasses} w-28 text-right" href="/">Explore</a>
       <a class={itemClasses} href="/">Dashboard</a>
-      <button class="{itemClasses} w-28 text-left" type="button" onclick={() => dispatch('newfile')}>
+      <button class="{itemClasses} w-28 text-left" type="button" onclick={() => onNewFile?.()}>
         New
       </button>
     {/if}
