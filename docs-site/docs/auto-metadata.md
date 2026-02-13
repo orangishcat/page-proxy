@@ -22,11 +22,7 @@ import * as pv from "@page-proxy/pp/pp-event";
 // ==/Selectors==
 ```
 
-In docs examples, this full block is sometimes shortened to:
-
-```js
-// Imports, metadata, etc.
-```
+I will often omit the metadata in code examples, but they are required.
 
 ## What each metadata line does
 

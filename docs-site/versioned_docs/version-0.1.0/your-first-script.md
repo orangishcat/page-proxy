@@ -11,6 +11,8 @@ This quick example runs a basic "Hello World" script with Page Proxy.
 ```ts
 import * as pv from "@page-proxy/pp/pp-event";
 
+// Imports, metadata, etc...
+
 pv.notification("Hello World");
 ```
 
