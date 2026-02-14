@@ -82,28 +82,54 @@ jobs:
 
                   mkdir -p release-assets/unpacked release-assets/final
 
-                  # Keep all artifact archives for the release (including source archives).
-                  find artifacts -type f -name "*.zip" -exec cp "{}" release-assets/final/ \;
+                  shopt -s nullglob globstar
 
-                  # Unzip only extension package artifacts (CRX/XPI), not source artifacts.
-                  find artifacts -type f \( -name "*.crx.zip" -o -name "*.xpi.zip" \) -print0 |
-                    while IFS= read -r -d '' archive; do
-                      unzip -q "$archive" -d release-assets/unpacked
-                    done
+                  chrome_crx_archive=(artifacts/**/pp-chrome-crx-*.crx.zip)
+                  chrome_source_zip=(artifacts/**/pp-chrome-source-*.zip)
+                  ff_xpi_archive=(artifacts/**/pp-ff-xpi-*.xpi.zip)
+                  ff_source_zip=(artifacts/**/pp-ff-source-*.zip)
 
-                  find release-assets/unpacked -type f \( -name "*.xpi" -o -name "*.crx" \) \
-                    -exec cp "{}" release-assets/final/ \;
+                  if [ "${#chrome_crx_archive[@]}" -ne 1 ]; then
+                    echo "Expected exactly 1 archive matching pp-chrome-crx-*.crx.zip, found: ${#chrome_crx_archive[@]}"
+                    exit 1
+                  fi
+                  if [ "${#chrome_source_zip[@]}" -ne 1 ]; then
+                    echo "Expected exactly 1 archive matching pp-chrome-source-*.zip, found: ${#chrome_source_zip[@]}"
+                    exit 1
+                  fi
+                  if [ "${#ff_xpi_archive[@]}" -ne 1 ]; then
+                    echo "Expected exactly 1 archive matching pp-ff-xpi-*.xpi.zip, found: ${#ff_xpi_archive[@]}"
+                    exit 1
+                  fi
+                  if [ "${#ff_source_zip[@]}" -ne 1 ]; then
+                    echo "Expected exactly 1 archive matching pp-ff-source-*.zip, found: ${#ff_source_zip[@]}"
+                    exit 1
+                  fi
+
+                  cp "${chrome_source_zip[0]}" release-assets/final/
+                  cp "${ff_source_zip[0]}" release-assets/final/
+
+                  unzip -q "${chrome_crx_archive[0]}" -d release-assets/unpacked
+                  unzip -q "${ff_xpi_archive[0]}" -d release-assets/unpacked
+
+                  chrome_crx_file=(release-assets/unpacked/**/pp-chrome-crx-*.crx)
+                  ff_xpi_file=(release-assets/unpacked/**/pp-ff-xpi-*.xpi)
+
+                  if [ "${#chrome_crx_file[@]}" -ne 1 ]; then
+                    echo "Expected exactly 1 extracted file matching pp-chrome-crx-*.crx, found: ${#chrome_crx_file[@]}"
+                    exit 1
+                  fi
+                  if [ "${#ff_xpi_file[@]}" -ne 1 ]; then
+                    echo "Expected exactly 1 extracted file matching pp-ff-xpi-*.xpi, found: ${#ff_xpi_file[@]}"
+                    exit 1
+                  fi
+
+                  cp "${chrome_crx_file[0]}" release-assets/final/
+                  cp "${ff_xpi_file[0]}" release-assets/final/
 
                   total_asset_count="$(find release-assets/final -maxdepth 1 -type f | wc -l | tr -d '[:space:]')"
                   if [ "$total_asset_count" -ne 4 ]; then
                     echo "Expected exactly 4 release assets, found: $total_asset_count"
-                    find release-assets/final -maxdepth 1 -type f -print
-                    exit 1
-                  fi
-
-                  extension_asset_count="$(find release-assets/final -maxdepth 1 -type f \( -name "*.xpi" -o -name "*.crx" \) | wc -l | tr -d '[:space:]')"
-                  if [ "$extension_asset_count" -ne 2 ]; then
-                    echo "Expected exactly 2 extracted†¥ extension assets (.crx and .xpi), found: $extension_asset_count"
                     find release-assets/final -maxdepth 1 -type f -print
                     exit 1
                   fi
