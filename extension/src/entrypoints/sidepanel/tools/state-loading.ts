@@ -1,34 +1,14 @@
 import { parseScriptMetadata } from "@/lib/utils/script-metadata";
 import { buildWebsiteGlobForUrl } from "@/lib/utils/website-glob";
+import { buildDefaultScript, type DefaultScriptConfig } from "@/lib/default-script";
 
 import { findStoredToolStateForUrl, type StoredToolState } from "./state-storage";
 
-export type ScriptFormatConfig = {
-  ppImportLines: string[];
-  defineBlockStart: string;
-  defineBlockEnd: string;
+export type ScriptFormatConfig = DefaultScriptConfig & {
   protectedComment: string;
 };
 
-export const buildDefaultScript = (websiteGlob: string, config: ScriptFormatConfig) => {
-  const normalizedWebsite = websiteGlob.trim();
-  return [
-    ...config.ppImportLines,
-    "",
-    "// ==Page Proxy==",
-    "// @title Page Proxy",
-    normalizedWebsite ? `// @website ${normalizedWebsite}` : "// @website",
-    "// @description",
-    "// @author",
-    "// ==/Page Proxy==",
-    "",
-    config.defineBlockStart,
-    config.defineBlockEnd,
-    "",
-    'pv.notification("Hello world!");',
-    "",
-  ].join("\n");
-};
+export { buildDefaultScript };
 
 export const ensureScriptImports = (content: string, config: ScriptFormatConfig) => {
   const withoutLegacyAliases = content

@@ -4,6 +4,7 @@ import { browser } from "wxt/browser";
 import { isRestrictedUrl, matchWebsiteGlob } from "@/lib/utils/website-glob";
 import { isScriptRunResponse, type ScriptRunRequest } from "@/lib/script-runner";
 import { createTabBadgeUpdater } from "@/lib/background/tab-badge";
+import { buildDefaultScript } from "@/lib/default-script";
 import log from "loglevel";
 
 type ToolId = "select" | "create" | "selectors" | "help" | "share" | "none";
@@ -25,6 +26,11 @@ const defaultScriptImportLines = [
 ] as const;
 const defaultDefineBlockStart = "// ==Selectors==";
 const defaultDefineBlockEnd = "// ==/Selectors==";
+const defaultScriptConfig = {
+  ppImportLines: defaultScriptImportLines,
+  defineBlockStart: defaultDefineBlockStart,
+  defineBlockEnd: defaultDefineBlockEnd,
+} as const;
 
 const isToolId = (value: unknown): value is ToolId =>
   value === "select" ||
@@ -103,25 +109,6 @@ const findStoredToolStatesForUrl = async (url: string) => {
     .sort((left, right) => right.websiteGlob.length - left.websiteGlob.length);
 };
 
-const buildDefaultScript = (websiteGlob: string) => {
-  const normalizedWebsite = websiteGlob.trim();
-  return [
-    ...defaultScriptImportLines,
-    "",
-    "// ==Page Proxy==",
-    "// @title Page Proxy",
-    normalizedWebsite ? `// @website ${normalizedWebsite}` : "// @website",
-    "// @description",
-    "// @author",
-    "// ==/Page Proxy==",
-    "",
-    defaultDefineBlockStart,
-    defaultDefineBlockEnd,
-    'pv.notification("Hello world!");',
-    "",
-  ].join("\n");
-};
-
 const ensureScriptImports = (content: string) => {
   const withoutLegacyAliases = content
     .split("\n")
@@ -160,7 +147,7 @@ const ensureDefineBlock = (content: string) => {
 const normalizeContentForStorage = (content: string) => ensureScriptImports(ensureDefineBlock(content));
 
 const isDefaultScriptState = (state: StoredToolState) => {
-  const defaultContent = normalizeContentForStorage(buildDefaultScript(state.websiteGlob));
+  const defaultContent = normalizeContentForStorage(buildDefaultScript(state.websiteGlob, defaultScriptConfig));
   log.debug(`Default content: ${defaultContent}, code editor content: ${state.codeEditor.content}`);
   return state.codeEditor.content === defaultContent;
 };
