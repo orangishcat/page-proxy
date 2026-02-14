@@ -2,6 +2,16 @@ name: Draft release from artifacts
 
 on:
     workflow_dispatch:
+        inputs:
+            version_bump:
+                description: Version bump for release tag
+                required: true
+                default: patch
+                type: choice
+                options:
+                    - patch
+                    - minor
+                    - major
 
 permissions:
     contents: write
@@ -98,6 +108,7 @@ jobs:
               uses: mathieudutour/github-tag-action@v6.2
               with:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
+                  default_bump: ${{ inputs.version_bump }}
 
             - name: Create draft release
               uses: softprops/action-gh-release@v2
