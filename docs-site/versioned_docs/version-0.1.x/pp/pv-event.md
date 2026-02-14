@@ -2,7 +2,7 @@
 title: pv (Event API)
 ---
 
-# pv module (v0.1.0)
+# pv module (v0.1.x)
 
 ## DOM creation observer
 

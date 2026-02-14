@@ -2,7 +2,7 @@
 title: pp Library Overview
 ---
 
-# pp Library Overview (v0.1.0)
+# pp Library Overview (v0.1.x)
 
 `pp` scripting is grouped into:
 
@@ -36,4 +36,4 @@ premiumCardSelector.onElementMatches((card) => {
 pv.notification("Styled premium cards", { count: existingCards.length });
 ```
 
-Use this version for scripts targeting `v0.1.0` runtime behavior.
+Use this version for scripts targeting `v0.1.x` runtime behavior.

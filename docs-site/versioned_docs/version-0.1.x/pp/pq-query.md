@@ -2,7 +2,7 @@
 title: pq (Query API)
 ---
 
-# pq module (v0.1.0)
+# pq module (v0.1.x)
 
 ## Core builders
 

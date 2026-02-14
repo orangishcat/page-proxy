@@ -2,7 +2,7 @@
 title: ps (Style API)
 ---
 
-# ps module (v0.1.0)
+# ps module (v0.1.x)
 
 `applyStyle(elements, values)` applies CSS style properties on each target element.
 
