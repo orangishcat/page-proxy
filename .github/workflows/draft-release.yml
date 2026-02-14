@@ -4,7 +4,7 @@ on:
     workflow_dispatch:
         inputs:
             version_tag:
-                description: Release version tag (no leading v)
+                description: Release version tag (must start with v)
                 required: true
                 type: string
 
@@ -76,11 +76,14 @@ jobs:
                   path: artifacts
                   skip_unpack: true
 
-            - name: Unzip and select assets
+            - name: Collect assets and extract extension packages
               run: |
                   set -euo pipefail
 
                   mkdir -p release-assets/unpacked release-assets/final
+
+                  # Keep all artifact archives for the release (including source archives).
+                  find artifacts -type f -name "*.zip" -exec cp "{}" release-assets/final/ \;
 
                   # Unzip only extension package artifacts (CRX/XPI), not source artifacts.
                   find artifacts -type f \( -name "*.crx.zip" -o -name "*.xpi.zip" \) -print0 |
@@ -91,9 +94,16 @@ jobs:
                   find release-assets/unpacked -type f \( -name "*.xpi" -o -name "*.crx" \) \
                     -exec cp "{}" release-assets/final/ \;
 
-                  asset_count="$(find release-assets/final -type f | wc -l | tr -d '[:space:]')"
-                  if [ "$asset_count" -ne 2 ]; then
-                    echo "Expected exactly 2 release assets (.crx and .xpi), found: $asset_count"
+                  total_asset_count="$(find release-assets/final -maxdepth 1 -type f | wc -l | tr -d '[:space:]')"
+                  if [ "$total_asset_count" -ne 4 ]; then
+                    echo "Expected exactly 4 release assets, found: $total_asset_count"
+                    find release-assets/final -maxdepth 1 -type f -print
+                    exit 1
+                  fi
+
+                  extension_asset_count="$(find release-assets/final -maxdepth 1 -type f \( -name "*.xpi" -o -name "*.crx" \) | wc -l | tr -d '[:space:]')"
+                  if [ "$extension_asset_count" -ne 2 ]; then
+                    echo "Expected exactly 2 extracted†¥ extension assets (.crx and .xpi), found: $extension_asset_count"
                     find release-assets/final -maxdepth 1 -type f -print
                     exit 1
                   fi
@@ -103,11 +113,12 @@ jobs:
                   set -euo pipefail
                   case "${{ inputs.version_tag }}" in
                     v*)
-                      echo "version_tag must not include a leading 'v'."
+                      ;;
+                    *)
+                      echo "version_tag must include a leading 'v' (for example: v1.2.3)."
                       exit 1
                       ;;
                   esac
-
             - name: Create draft release
               uses: softprops/action-gh-release@v2
               with:
