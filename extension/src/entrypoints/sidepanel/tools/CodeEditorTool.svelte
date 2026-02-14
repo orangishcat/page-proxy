@@ -23,7 +23,7 @@
     resolveStoredToolStateForUrl,
     type ScriptFormatConfig,
   } from "./state-loading";
-  import { errorMessage, setErrorMessage } from "./tool-errors";
+  import { errorMessage, setErrorMessage, setSuccessMessage } from "./tool-errors";
 
   const defineBlockStart = "// ==Selectors==";
   const defineBlockEnd = "// ==/Selectors==";
@@ -237,11 +237,13 @@
         setErrorMessage(null);
       }
       lastRunError = null;
+      setSuccessMessage("Script execution succeeded");
       return;
     }
 
     const message = errors[0];
     lastRunError = message;
+    setSuccessMessage(null);
     setErrorMessage(message);
   };
 
@@ -249,6 +251,8 @@
     if (isRunning) {
       return;
     }
+
+    setSuccessMessage(null);
 
     if (!editorValue.trim()) {
       setErrorMessage("Script is empty.");

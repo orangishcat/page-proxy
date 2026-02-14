@@ -12,7 +12,7 @@
   import CodeEditorTool from "./tools/CodeEditorTool.svelte";
   import Button from "@/lib/components/Button.svelte";
   import { attachSelectionListener, sendSelectionToggle } from "./tools/select-tool/actions";
-  import { errorMessage, setErrorMessage } from "./tools/tool-errors";
+  import { errorMessage, setErrorMessage, successMessage } from "./tools/tool-errors";
   import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
   import type { SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
   import { elementEntries, insertDefinitions, sanitizeVariableName, selectorEntries } from "./tools/code-editor/state";
@@ -39,6 +39,7 @@
   let lastHoveredTool = $state<ToolbarControlId | null>(null);
   let isToolbarHovered = $state(false);
   let errorMessageValue = $state<string | null>(null);
+  let successMessageValue = $state<string | null>(null);
   const isFirefoxBrowser = typeof navigator !== "undefined" && /Firefox/i.test(navigator.userAgent);
   let showFirefoxExperimentalBanner = $state(isFirefoxBrowser);
   let toolPanelHeightPx = $state<number | null>(null);
@@ -53,6 +54,7 @@
   const maxToolPanelHeightPx = 600;
 
   let unsubscribeErrorMessage = () => {};
+  let unsubscribeSuccessMessage = () => {};
   let unsubscribeActiveToolState = () => {};
 
   const activeToolLabel = $derived(toolLabels[activeTool]);
@@ -272,6 +274,9 @@
     unsubscribeErrorMessage = errorMessage.subscribe((value) => {
       errorMessageValue = value;
     });
+    unsubscribeSuccessMessage = successMessage.subscribe((value) => {
+      successMessageValue = value;
+    });
     unsubscribeActiveToolState = activeToolState.subscribe((tool) => {
       if (tool === activeTool) {
         return;
@@ -323,6 +328,7 @@
       browser.runtime.onMessage.removeListener(handleRuntimeMessage);
       sendSelectionToggle(false);
       unsubscribeErrorMessage();
+      unsubscribeSuccessMessage();
       unsubscribeActiveToolState();
     };
   });
@@ -502,9 +508,14 @@
 
       <CodeEditorTool />
 
-      {#if errorMessageValue}
-        <div class="w-full shrink-0 bg-[#3b1d1d] px-[4%] py-[2%] text-caption text-[#f5b1b1]" bind:this={errorBannerElement}>
-          {errorMessageValue}
+      {#if errorMessageValue || successMessageValue}
+        <div
+          class={`w-full shrink-0 px-[4%] py-[2%] text-caption ${
+            successMessageValue ? "bg-[#1f3a22] text-[#b8f3bf]" : "bg-[#3b1d1d] text-[#f5b1b1]"
+          }`}
+          bind:this={errorBannerElement}
+        >
+          {successMessageValue ?? errorMessageValue}
         </div>
       {/if}
     </div>

@@ -117,6 +117,7 @@ const buildDefaultScript = (websiteGlob: string) => {
     "",
     defaultDefineBlockStart,
     defaultDefineBlockEnd,
+    'pv.notification("Hello world!");',
     "",
   ].join("\n");
 };

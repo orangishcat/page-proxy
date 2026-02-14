@@ -25,6 +25,8 @@ export const buildDefaultScript = (websiteGlob: string, config: ScriptFormatConf
     config.defineBlockStart,
     config.defineBlockEnd,
     "",
+    'pv.notification("Hello world!");',
+    "",
   ].join("\n");
 };
 
