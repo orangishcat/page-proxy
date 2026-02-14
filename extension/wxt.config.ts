@@ -38,7 +38,7 @@ export default defineConfig({
   }),
   manifest: {
     name: "Page Proxy",
-    version: "0.1.0",
+    version: "0.1.1",
     description: "Proxy and restyle pages with an extension-based UI.",
     action: {
       default_title: "Page Proxy",

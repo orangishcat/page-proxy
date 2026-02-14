@@ -3,7 +3,7 @@
   <div class="rounded-2xl border border-[#4f4a38] bg-[#24231f] p-4 space-y-2">
     <h2 class="text-title text-gray-100">
       Page Proxy Docs
-      <span class="text-subtitle">v0.1.0</span>
+      <span class="text-subtitle">v0.1.1</span>
     </h2>
     <p>First release! Features are limited.</p>
     <a
