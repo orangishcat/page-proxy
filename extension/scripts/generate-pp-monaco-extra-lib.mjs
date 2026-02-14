@@ -13,6 +13,7 @@ const ppPackageSrcDir = path.join(workspaceDir, "packages/pp/src");
 const outputFile = path.join(extensionDir, "src/types/pp-monaco-extra-lib.txt");
 const outDir = path.join(extensionDir, ".tmp/pp-monaco-types");
 const sourceFiles = [
+  path.join(ppPackageSrcDir, "raw-imports.d.ts"),
   path.join(ppPackageSrcDir, "pp-query.ts"),
   path.join(ppPackageSrcDir, "pp-style.ts"),
   path.join(ppPackageSrcDir, "pp-event.ts"),

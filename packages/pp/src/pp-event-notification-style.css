@@ -1,5 +1,4 @@
-export const buildPageNotificationStyles = (hostId: string, notificationClass: string) => `
-#${hostId} {
+#__pageProxyNotificationHost {
   position: fixed;
   top: 1rem;
   right: 1rem;
@@ -11,7 +10,7 @@ export const buildPageNotificationStyles = (hostId: string, notificationClass: s
   pointer-events: none;
 }
 
-.${notificationClass} {
+.pp-page-notification {
   pointer-events: auto;
   display: flex;
   align-items: flex-start;
@@ -31,12 +30,12 @@ export const buildPageNotificationStyles = (hostId: string, notificationClass: s
   word-break: break-word;
 }
 
-.${notificationClass}.pp-page-notification--visible {
+.pp-page-notification.pp-page-notification--visible {
   opacity: 1;
   transform: translateY(0);
 }
 
-.${notificationClass} button {
+.pp-page-notification button {
   border: none;
   background: transparent;
   color: inherit;
@@ -47,11 +46,11 @@ export const buildPageNotificationStyles = (hostId: string, notificationClass: s
   cursor: pointer;
 }
 
-.${notificationClass} button:hover {
+.pp-page-notification button:hover {
   opacity: 1;
 }
 
-.${notificationClass} .pp-page-notification__body {
+.pp-page-notification .pp-page-notification__body {
   display: flex;
   flex-direction: column;
   gap: 0.1875rem;
@@ -60,25 +59,25 @@ export const buildPageNotificationStyles = (hostId: string, notificationClass: s
   overflow: auto;
 }
 
-.${notificationClass} .pp-page-notification__value {
+.pp-page-notification .pp-page-notification__value {
   min-width: 0;
   white-space: pre-wrap;
 }
 
-.${notificationClass} .pp-page-notification__key {
+.pp-page-notification .pp-page-notification__key {
   color: #aeb4bd;
 }
 
-.${notificationClass} .pp-page-notification__details {
+.pp-page-notification .pp-page-notification__details {
   margin: 0;
 }
 
-.${notificationClass} .pp-page-notification__summary {
+.pp-page-notification .pp-page-notification__summary {
   cursor: pointer;
   list-style-position: inside;
 }
 
-.${notificationClass} .pp-page-notification__nested {
+.pp-page-notification .pp-page-notification__nested {
   margin-left: 0.75rem;
   border-left: 0.0625rem solid rgba(255, 255, 255, 0.16);
   padding-left: 0.5rem;
@@ -88,11 +87,11 @@ export const buildPageNotificationStyles = (hostId: string, notificationClass: s
   gap: 0.125rem;
 }
 
-.${notificationClass} .pp-page-notification__truncated {
+.pp-page-notification .pp-page-notification__truncated {
   opacity: 0.78;
 }
 
-.${notificationClass} .pp-page-notification__element {
+.pp-page-notification .pp-page-notification__element {
   color: #91c4ff;
   text-decoration: underline;
   text-underline-offset: 0.125rem;
@@ -100,11 +99,10 @@ export const buildPageNotificationStyles = (hostId: string, notificationClass: s
 }
 
 @media (prefers-color-scheme: light) {
-  .${notificationClass} {
+  .pp-page-notification {
     background: rgba(246, 247, 248, 0.98);
     border-color: #d2d6da;
     color: #1d232a;
     box-shadow: 0 0.625rem 1.875rem rgba(18, 24, 32, 0.14);
   }
 }
-`;

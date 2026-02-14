@@ -1,5 +1,6 @@
 import { buildNotificationBody } from "./pp-notification-viewer";
-import { buildPageNotificationStyles } from "./pp-event-notification-style";
+import pageNotificationStyles from "./pp-event-notification-style.css?raw";
+import * as pq from "./pp-style";
 
 export type OnElementCreatedHandler = (element: Element) => void;
 export type NotificationLevel = "log" | "info" | "warn" | "error" | "debug" | "notification";
@@ -11,7 +12,6 @@ const defaultCreateObserverOptions: MutationObserverInit = {
   subtree: true,
 };
 const pageNotificationHostId = "__pageProxyNotificationHost";
-const pageNotificationStyleId = "__pageProxyNotificationStyle";
 const pageNotificationClass = "pp-page-notification";
 const noSelectToolClass = "pp-no-select-tool";
 
@@ -43,14 +43,7 @@ const ensurePageNotificationStyles = () => {
     return;
   }
 
-  if (document.getElementById(pageNotificationStyleId)) {
-    return;
-  }
-
-  const style = document.createElement("style");
-  style.id = pageNotificationStyleId;
-  style.textContent = buildPageNotificationStyles(pageNotificationHostId, pageNotificationClass);
-  (document.head ?? document.documentElement).appendChild(style);
+  pq.injectCSS(pageNotificationStyles);
 };
 
 const ensurePageNotificationHost = () => {
