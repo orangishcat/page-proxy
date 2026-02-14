@@ -2,11 +2,6 @@ name: Draft Release From Build Artifacts
 
 on:
     workflow_dispatch:
-        inputs:
-            build_run_id:
-                description: Build workflow run ID to pull artifacts from
-                required: true
-                type: string
 
 permissions:
     contents: write
@@ -21,10 +16,57 @@ jobs:
               with:
                   fetch-depth: 0
 
+            - name: Resolve build workflow run ID for latest commit
+              id: resolve_build_run
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const { owner, repo } = context.repo;
+
+                      const repoInfo = await github.rest.repos.get({ owner, repo });
+                      const defaultBranch = repoInfo.data.default_branch;
+
+                      const latestCommit = await github.rest.repos.listCommits({
+                        owner,
+                        repo,
+                        sha: defaultBranch,
+                        per_page: 1
+                      });
+
+                      const latestSha = latestCommit.data[0]?.sha;
+                      if (!latestSha) {
+                        core.setFailed(`Could not resolve latest commit SHA for branch ${defaultBranch}.`);
+                        return;
+                      }
+
+                      const runs = await github.rest.actions.listWorkflowRuns({
+                        owner,
+                        repo,
+                        workflow_id: "build.yml",
+                        branch: defaultBranch,
+                        per_page: 50
+                      });
+
+                      const matchingRun = runs.data.workflow_runs.find((run) =>
+                        run.head_sha === latestSha &&
+                        run.status === "completed" &&
+                        run.conclusion === "success"
+                      );
+
+                      if (!matchingRun) {
+                        core.setFailed(
+                          `No successful completed build.yml run found for latest commit ${latestSha} on ${defaultBranch}.`
+                        );
+                        return;
+                      }
+
+                      core.setOutput("build_run_id", String(matchingRun.id));
+                      core.info(`Using build workflow run ID ${matchingRun.id} for commit ${latestSha}.`);
+
             - name: Download artifacts from selected build workflow run
               uses: dawidd6/action-download-artifact@v6
               with:
-                  run_id: ${{ inputs.build_run_id }}
+                  run_id: ${{ steps.resolve_build_run.outputs.build_run_id }}
                   workflow: build.yml
                   path: artifacts
                   skip_unpack: true
