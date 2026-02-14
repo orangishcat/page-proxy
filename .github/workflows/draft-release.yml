@@ -1,4 +1,4 @@
-name: Draft Release From Build Artifacts
+name: Draft release from artifacts
 
 on:
     workflow_dispatch:
