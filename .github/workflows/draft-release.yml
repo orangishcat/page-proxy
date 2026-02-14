@@ -1,0 +1,67 @@
+name: Draft Release From Build Artifacts
+
+on:
+    workflow_dispatch:
+        inputs:
+            build_run_id:
+                description: Build workflow run ID to pull artifacts from
+                required: true
+                type: string
+
+permissions:
+    contents: write
+    actions: read
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Download artifacts from selected build workflow run
+              uses: dawidd6/action-download-artifact@v6
+              with:
+                  run_id: ${{ inputs.build_run_id }}
+                  workflow: build.yml
+                  path: artifacts
+                  skip_unpack: true
+
+            - name: Unzip and select assets
+              run: |
+                  set -euo pipefail
+
+                  mkdir -p release-assets/unpacked release-assets/final
+
+                  # Unzip only extension package artifacts (CRX/XPI), not source artifacts.
+                  find artifacts -type f \( -name "*.crx.zip" -o -name "*.xpi.zip" \) -print0 |
+                    while IFS= read -r -d '' archive; do
+                      unzip -q "$archive" -d release-assets/unpacked
+                    done
+
+                  find release-assets/unpacked -type f \( -name "*.xpi" -o -name "*.crx" \) \
+                    -exec cp "{}" release-assets/final/ \;
+
+                  asset_count="$(find release-assets/final -type f | wc -l | tr -d '[:space:]')"
+                  if [ "$asset_count" -ne 2 ]; then
+                    echo "Expected exactly 2 release assets (.crx and .xpi), found: $asset_count"
+                    find release-assets/final -maxdepth 1 -type f -print
+                    exit 1
+                  fi
+
+            - name: Calculate next version tag
+              id: tag
+              uses: mathieudutour/github-tag-action@v6.2
+              with:
+                  github_token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Create draft release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ steps.tag.outputs.new_tag }}
+                  name: ${{ steps.tag.outputs.new_tag }}
+                  draft: true
+                  files: |
+                      release-assets/final/*

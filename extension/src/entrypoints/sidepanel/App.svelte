@@ -49,9 +49,8 @@
   let resizePointerId = $state<number | null>(null);
   let isResizingToolPanel = $state(false);
 
-  const defaultToolPanelHeightRatio = 0.3656;
-  const minToolPanelHeightPx = 160;
-  const minCodeEditorHeightPx = 220;
+  const minToolPanelHeightPx = 300;
+  const maxToolPanelHeightPx = 600;
 
   let unsubscribeErrorMessage = () => {};
   let unsubscribeActiveToolState = () => {};
@@ -71,7 +70,10 @@
   const showHoveredToolLabel = $derived(Boolean(isToolbarHovered && hoverCandidate));
   const toolLabelText = $derived(showHoveredToolLabel ? hoveredToolText : activeToolLabel);
   const isSelectToolActive = $derived(activeTool === "select");
-  const toolPanelStyle = $derived(toolPanelHeightPx === null ? undefined : `height: ${toolPanelHeightPx}px;`);
+  const toolPanelStyle = $derived(
+    toolPanelHeightPx === null ? undefined :
+    `height: ${toolPanelHeightPx}px; min-height: ${minToolPanelHeightPx}px; max-height: ${maxToolPanelHeightPx}px;`
+  );
 
   const setActiveTool = (tool: ToolId) => {
     if (tool === activeTool) {
@@ -212,43 +214,12 @@
     return (message as { type?: string }).type === "selector:save";
   };
 
-  const getToolPanelMaxHeight = () => {
-    if (!toolPanelLayout || !toolPanelSection) {
-      return minToolPanelHeightPx;
-    }
-
-    const layoutRect = toolPanelLayout.getBoundingClientRect();
-    const sectionRect = toolPanelSection.getBoundingClientRect();
-    const sectionTopOffset = sectionRect.top - layoutRect.top;
-    const errorBannerHeight = errorBannerElement?.offsetHeight ?? 0;
-    const resizeHandleHeight = toolPanelResizeHandle?.offsetHeight ?? 0;
-    const maxHeight =
-      layoutRect.height - sectionTopOffset - errorBannerHeight - resizeHandleHeight - minCodeEditorHeightPx;
-
-    return Math.max(minToolPanelHeightPx, Math.floor(maxHeight));
-  };
-
-  const clampToolPanelHeight = (height: number) => {
-    const normalizedHeight = Number.isFinite(height) ? height : minToolPanelHeightPx;
-    const maxHeight = getToolPanelMaxHeight();
-    return Math.min(maxHeight, Math.max(minToolPanelHeightPx, Math.round(normalizedHeight)));
-  };
-
-  const getDefaultToolPanelHeight = () => {
-    if (!toolPanelLayout) {
-      return minToolPanelHeightPx;
-    }
-
-    return clampToolPanelHeight(toolPanelLayout.getBoundingClientRect().height * defaultToolPanelHeightRatio);
-  };
-
   const setToolPanelHeightFromClientY = (clientY: number) => {
     if (!toolPanelSection) {
       return;
     }
 
-    const sectionTop = toolPanelSection.getBoundingClientRect().top;
-    toolPanelHeightPx = clampToolPanelHeight(clientY - sectionTop);
+    toolPanelHeightPx = clientY;
   };
 
   const startToolPanelResize = (event: PointerEvent) => {
@@ -288,31 +259,14 @@
     }
   };
 
-  const normalizeToolPanelHeight = () => {
-    if (toolPanelHeightPx === null) {
-      return;
-    }
-
-    const clampedHeight = clampToolPanelHeight(toolPanelHeightPx);
-    if (clampedHeight !== toolPanelHeightPx) {
-      toolPanelHeightPx = clampedHeight;
-    }
-  };
-
-  $effect(() => {
-    showFirefoxExperimentalBanner;
-    errorMessageValue;
-    normalizeToolPanelHeight();
-  });
-
   onMount(() => {
-    toolPanelHeightPx = getDefaultToolPanelHeight();
+    toolPanelHeightPx = minToolPanelHeightPx;
     void readToolPanelHeightSetting().then((storedHeight) => {
       if (storedHeight === null) {
         return;
       }
 
-      toolPanelHeightPx = clampToolPanelHeight(storedHeight);
+      toolPanelHeightPx = storedHeight;
     });
 
     unsubscribeErrorMessage = errorMessage.subscribe((value) => {
@@ -360,18 +314,12 @@
       handleShortcut(tool);
     };
 
-    const onResize = () => {
-      normalizeToolPanelHeight();
-    };
-
     window.addEventListener("keydown", onKeyDown, { capture: true });
-    window.addEventListener("resize", onResize);
     browser.runtime.onMessage.addListener(handleRuntimeMessage);
 
     return () => {
       cleanup();
       window.removeEventListener("keydown", onKeyDown, { capture: true });
-      window.removeEventListener("resize", onResize);
       browser.runtime.onMessage.removeListener(handleRuntimeMessage);
       sendSelectionToggle(false);
       unsubscribeErrorMessage();
@@ -407,7 +355,7 @@
       {/if}
 
       <section
-        class="relative flex w-full shrink-0 flex-col bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+        class="relative flex w-full shrink-0 flex-col bg-[#282824]"
         aria-label="Tool panel"
         bind:this={toolPanelSection}
         style={toolPanelStyle}
@@ -541,7 +489,7 @@
       </section>
 
       <div
-        class="h-2 w-full shrink-0 cursor-row-resize bg-[#393a34] transition-colors hover:bg-[#4a4b45] active:bg-accent-500/40"
+        class="h-2 w-full shrink-0 cursor-row-resize bg-[#282824] transition-colors hover:bg-[#4a4b45] active:bg-accent-500/40"
         role="separator"
         aria-label="Resize tool panel"
         aria-orientation="horizontal"

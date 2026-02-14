@@ -7,6 +7,7 @@
     type MonacoCodeEditorHandle,
     updateMonacoEditorValue,
   } from "@/lib/code-editor";
+  import { GripVertical } from "lucide-svelte";
   import { buildPreviewCode, isSpecialPropertyKey, type FilterOperator } from "./preview-code";
 
   type PropertyItem = {
@@ -120,7 +121,6 @@
     }
 
     previewHandle = createMonacoEditor(previewHost, previewCode, {
-      readOnly: true,
       lineNumbers: "off",
       modelUri: "inmemory://page-proxy/selector-popup-preview.js",
       className: "pp-monaco-editor pp-monaco-preview scrollbar-stable",
@@ -137,12 +137,6 @@
       },
     });
     previewValue = previewCode;
-
-    const previewDom = previewHandle.editor.getDomNode();
-    if (!(previewDom instanceof HTMLElement)) {
-      return;
-    }
-    previewDom.style.pointerEvents = "none";
   };
 
   const handleSave = async () => {
@@ -467,22 +461,26 @@
         </div>
       {/if}
 
-      <div
-        class="w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden"
-        draggable="true"
-        ondragstart={handlePreviewDragStart}
-        onkeydown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-          }
-        }}
-        role="button"
-        tabindex="0"
-        aria-label="Edit or drag the filter snippet into the editor to insert it."
-        title="Edit this snippet or drag it into the editor."
-      >
-        <div class="h-16 w-full pl-2 bg-[#282824]" bind:this={previewHost}></div>
+      <div class="w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden">
+        <div class="flex h-12 w-full bg-[#282824]">
+          <div class="h-full min-w-0 flex-1 pl-2" bind:this={previewHost}></div>
+          <div class="flex h-full w-8 shrink-0 items-center justify-center border-l border-gray-700/80">
+            <div
+              class="flex h-full w-full cursor-grab items-center justify-center text-[#e0c987] hover:bg-white/5 active:cursor-grabbing"
+              draggable="true"
+              ondragstart={handlePreviewDragStart}
+              role="button"
+              tabindex="0"
+              aria-label="Drag the filter snippet into the editor to insert it."
+              title="Drag this snippet into the editor."
+            >
+              <GripVertical class="h-4 w-4" />
+            </div>
+          </div>
+        </div>
       </div>
+
+      <p class="text-gray-400 text-xs -mt-2">Edit me or use the grip to drag me into the editor!</p>
 
       <div class="text-xs uppercase tracking-wide text-gray-500">Properties</div>
       <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1">

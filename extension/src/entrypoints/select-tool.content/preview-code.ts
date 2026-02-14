@@ -40,7 +40,14 @@ const buildSpecialPreviewCode = (item: PreviewPropertyItem) => {
     return `pq.innerTextMatches(e, ${buildInnerTextRegexLiteral(item.value)})`;
   }
   if (item.key === "bbox" && typeof item.rawValue !== "string") {
-    return `pq.bboxMatches(e, ${JSON.stringify(item.rawValue)})`;
+    const roundedBox = {
+      x: Math.round(item.rawValue.x),
+      y: Math.round(item.rawValue.y),
+      width: Math.round(item.rawValue.width),
+      height: Math.round(item.rawValue.height),
+    };
+
+    return `pq.bboxMatches(e, ${JSON.stringify(roundedBox)}, 75)`;
   }
 
   return `pq.propMatches(e, ${JSON.stringify(item.key)}, ${JSON.stringify(item.value)})`;

@@ -185,17 +185,22 @@ export const innerTextMatches = (element: Element, matcher: RegExp | string) => 
   return matcher.length > 0 && text.includes(matcher);
 };
 
-export const bboxMatches = (element: Element, expectedBox: ElementSize & { x: number; y: number }, tolerance = 0) => {
+export const bboxMatches = (element: Element, expectedBox: ElementSize & { x: number; y: number }, tolerance = 75) => {
   if (!isBoundingBox(expectedBox) || !Number.isFinite(tolerance) || tolerance < 0) {
     return false;
   }
 
   const currentBox = getBoundingBox(element);
+  const expectedRight = expectedBox.x + expectedBox.width;
+  const expectedBottom = expectedBox.y + expectedBox.height;
+  const currentRight = currentBox.x + currentBox.width;
+  const currentBottom = currentBox.y + currentBox.height;
+
   return (
     Math.abs(currentBox.x - expectedBox.x) <= tolerance &&
     Math.abs(currentBox.y - expectedBox.y) <= tolerance &&
-    Math.abs(currentBox.width - expectedBox.width) <= tolerance &&
-    Math.abs(currentBox.height - expectedBox.height) <= tolerance
+    Math.abs(currentRight - expectedRight) <= tolerance &&
+    Math.abs(currentBottom - expectedBottom) <= tolerance
   );
 };
 
