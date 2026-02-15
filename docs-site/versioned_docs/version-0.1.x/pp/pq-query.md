@@ -16,13 +16,13 @@ Builds reusable selector logic.
 
 `definition` parameters:
 
-- `name`  
+- `name`
   Metadata label exposed on `selector.definition`.
-- `baseSelector` (optional)  
+- `baseSelector` (optional)
   Optional CSS prefilter. Trimmed; blank values fall back to `"*"`.
-- `matches(element)`  
+- `matches(element)`
   Required predicate that decides whether an element matches.
-- `postMap(element)` (optional)  
+- `postMap(element)` (optional)
   Optional transform for matched elements returned from `query`, `queryAll`, and `onElementMatches`.
 
 ```js
@@ -39,19 +39,11 @@ const observer = premiumCards.onElementMatches((el) => {
 });
 ```
 
-Available methods:
-
-- `definition`
-- `matches(el)`
-- `query()`
-- `queryAll()`
-- `onElementMatches(func, targetNode, observerOptions)` (`targetNode` and `observerOptions` are optional)
-
-### Method details
+### Available methods:
 
 #### `definition`
 
-Exposes the same object passed into `pq.selector(definition)`.  
+Exposes the same object passed into `pq.selector(definition)`.
 Useful for reading selector metadata/configuration at runtime.
 
 ```js
@@ -118,16 +110,6 @@ observer.disconnect();
 ## Match helpers
 
 Supported helpers:
-
-- `tagMatches`
-- `selectorMatches`
-- `innerTextMatches`
-- `bboxMatches`
-- `propMatches`
-- `propContains`
-- `propExists`
-
-Helper details:
 
 - `tagMatches`: exact tag equality after `trim().toLowerCase()`
 - `selectorMatches`: native `Element.matches` wrapper
