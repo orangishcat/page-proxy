@@ -11,8 +11,10 @@ Restyle and reskin webpages with a powerful set of developer tools.
 Page Proxy is a browser extension that allows you to proxy any website and apply custom CSS and JavaScript to it,
 with a JS API and UI-based tools that assist with UI/UX design.
 
-## Troubleshooting
-- There's a help button (<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWNpcmNsZS1xdWVzdGlvbi1tYXJrLWljb24gbHVjaWRlLWNpcmNsZS1xdWVzdGlvbi1tYXJrIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIvPjxwYXRoIGQ9Ik05LjA5IDlhMyAzIDAgMCAxIDUuODMgMWMwIDItMyAzLTMgMyIvPjxwYXRoIGQ9Ik0xMiAxN2guMDEiLz48L3N2Zz4=">) in the extension.
+## Usage instructions
+- [Installation](https://orangishcat.github.io/page-proxy/install)
+- [Documentation](https://orangishcat.github.io/page-proxy/docs)
+- There's a help button in the extension which contains known issues and usage tips.
 
 ## Supported browsers
 
