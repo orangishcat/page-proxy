@@ -19,7 +19,7 @@ with a JS API and UI-based tools that assist with UI/UX design.
 ## Supported browsers
 
 - Tested on Chrome, Brave, Firefox
-- **Edge doesn't work, please do not use Edge**
+- **Edge may not work, please do not use Edge**
 - Use other Chromium or Firefox-based browsers at your own risk
 
 ## Features
