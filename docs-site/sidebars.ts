@@ -3,8 +3,9 @@ import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 const sidebars: SidebarsConfig = {
   docsSidebar: [
     'intro',
-    'auto-metadata',
+    'extension-usage',
     'your-first-script',
+    'auto-metadata',
     {
       type: 'category',
       label: 'pp Library',

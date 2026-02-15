@@ -1,0 +1,256 @@
+---
+title: Extension usage
+---
+
+# Extension usage
+
+This page covers the Page Proxy extension workflow: sidepanel tools, code editor behavior, and selector popup flow.
+
+## Sidepanel layout and shortcuts
+
+The sidepanel has:
+
+- A code editor panel at the top.
+- A tool panel at the bottom.
+- A left toolbar for switching tools.
+
+Toolbar shortcuts:
+
+- `Shift + 1`: Select
+- `Shift + 2`: Create
+- `Shift + 3`: Selectors
+- `Shift + 4`: Help
+- `Shift + 5`: Export
+
+<div className="row">
+
+<div className="col col--6">
+
+### Screenshot
+
+Sidepanel overview with editor panel, toolbar, and tool panel.
+
+</div>
+
+<div className="col col--6">
+
+<img src="/img/editor_usage/sidepanel.png" alt="Page Proxy sidepanel overview" />
+
+</div>
+
+</div>
+
+## Code editor
+
+The editor is the main script source of truth for the active tab.
+
+What it does:
+
+- Keeps `pq`, `ps`, and `pv` imports in your script.
+- Uses a selector definition block:
+  - `// ==Selectors==`
+  - `// ==/Selectors==`
+- Parses script metadata and selector definitions as you edit.
+- Autosaves after a short delay when content changes.
+- Supports manual save with `Ctrl+S` / `Cmd+S`.
+- Runs your script with the Run button (play icon).
+- Stores state per website/tab context.
+
+On protected pages (for example browser internal pages), editing and execution are disabled and a protected-page message is shown.
+
+<div className="row">
+
+<div className="col col--6">
+
+### Screenshot
+
+Code editor panel with metadata bar and Run button.
+
+</div>
+
+<div className="col col--6">
+
+<img src="/img/editor_usage/code_editor.png" alt="Page Proxy code editor tool" />
+
+</div>
+
+</div>
+
+## Select tool
+
+Use Select to inspect elements on the current page.
+
+Flow:
+
+1. Activate Select (`Shift + 1`).
+2. Click an element on the page.
+3. Review captured properties in the Select panel.
+4. Use the parent button to move one level up in the DOM.
+5. Click **Save selector** to open the selector popup.
+
+<div className="row">
+
+<div className="col col--6">
+
+### Screenshot
+
+Select tool property preview and selector save entry point.
+
+</div>
+
+<div className="col col--6">
+
+<img src="/img/editor_usage/select_tool.png" alt="Page Proxy Select tool" />
+
+</div>
+
+</div>
+
+## Create tool
+
+Create is currently marked as coming soon.
+
+Planned direction in the UI:
+
+- Generate reusable components.
+- Build script settings UI and other script-driven UI pieces.
+
+<div className="row">
+
+<div className="col col--6">
+
+### Screenshot
+
+Create workflow area in the sidepanel (currently marked coming soon).
+
+</div>
+
+<div className="col col--6">
+
+<img src="/img/editor_usage/sidepanel.png" alt="Page Proxy Create tool area" />
+
+</div>
+
+</div>
+
+## Selectors tool
+
+Selectors shows selector entries parsed from your selector block in the editor.
+
+For each selector, the tool displays:
+
+- Selector name.
+- Rule count.
+- Parsed rules and helper usage extracted from the selector `matches` function.
+
+Use this to confirm selectors were saved correctly and to quickly audit selector logic.
+
+<div className="row">
+
+<div className="col col--6">
+
+### Screenshot
+
+Selectors tool with parsed selector entries and rules.
+
+</div>
+
+<div className="col col--6">
+
+<img src="/img/editor_usage/selectors_tool.png" alt="Page Proxy Selectors tool" />
+
+</div>
+
+</div>
+
+## Help tool
+
+Help contains quick project references:
+
+- Documentation link.
+- Known issues list.
+- Planned features and roadmap links.
+
+Use it as the first stop when behavior seems unexpected.
+
+<div className="row">
+
+<div className="col col--6">
+
+### Screenshot
+
+Help tool with docs link, issues, and roadmap references.
+
+</div>
+
+<div className="col col--6">
+
+<img src="/img/editor_usage/help_tool.png" alt="Page Proxy Help tool" />
+
+</div>
+
+</div>
+
+## Export tool
+
+Export packages your current script from the editor.
+
+Current behavior:
+
+- `pp-script` export is available now.
+- Other formats are visible but marked coming soon.
+- Exported filename is derived from script title metadata.
+
+<div className="row">
+
+<div className="col col--6">
+
+### Screenshot
+
+Export tool with format selector and export action.
+
+</div>
+
+<div className="col col--6">
+
+<img src="/img/editor_usage/export_tool.png" alt="Page Proxy Export tool" />
+
+</div>
+
+</div>
+
+## Selector popup
+
+The selector popup opens from **Select -> Save selector**.
+
+What you do in the popup:
+
+1. Edit the generated `pq.selector(...)` code in the popup editor.
+2. Use the live preview snippet for the active property/filter.
+3. Drag the preview grip into the selector code editor to insert filter fragments.
+4. Save the selector.
+
+What happens on save:
+
+- The sidepanel validates the snippet contains `pq.selector`.
+- It requires a `const` assignment.
+- It checks variable-name collisions.
+- If valid, it inserts the selector into the editor selector block.
+
+<div className="row">
+
+<div className="col col--6">
+
+### Screenshot
+
+Selector popup editor with drag-and-drop preview snippets.
+
+</div>
+
+<div className="col col--6">
+
+<img src="/img/editor_usage/selector_popup.png" alt="Page Proxy selector popup" />
+
+</div>
+
+</div>
