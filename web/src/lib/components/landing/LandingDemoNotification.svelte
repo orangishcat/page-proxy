@@ -25,19 +25,17 @@
   </div>
 
   <section class="relative h-full flex-1 overflow-hidden bg-gray-900">
-    <div class="absolute left-1/2 top-6 z-10 w-64 -translate-x-1/2 rounded-xl border border-gray-800 bg-gray-800 px-5 py-4">
-      <p class="font-mono text-xs leading-5 text-gray-100">&quot;// TODO Finish the rest of the landing page later&quot;</p>
+    <div class="absolute left-16.5 top-55.5 h-23 w-23 rounded-full border-2 border-gray-500 bg-gray-600"></div>
+    <div class="absolute left-52.5 top-54.5 h-27 w-11 rounded border-2 border-gray-500 bg-gray-600"></div>
+    <div class="absolute left-87.5 top-57.5 h-18 w-24 bg-gray-500 [clip-path:polygon(50%_0%,0%_100%,100%_100%)]">
+      <div class="absolute inset-px bg-gray-600 [clip-path:polygon(50%_0%,0%_100%,100%_100%)]"></div>
     </div>
+    <div class="absolute left-49.5 top-29.25 h-20 w-20 rounded border-2 border-gray-500 bg-gray-600"></div>
 
-    <div class="absolute left-16 top-26 grid w-60 gap-3.5">
-      <div class="h-10 rounded-lg border border-gray-700 bg-gray-800"></div>
-      <div class="h-10 rounded-lg border border-gray-700 bg-gray-800"></div>
-      <div class="h-10 rounded-lg border border-gray-700 bg-gray-800"></div>
-    </div>
+    <div class="absolute bottom-12.5 left-53.5 h-35 w-48 border-2 border-gray-500 bg-gray-600"></div>
+    <div class="absolute bottom-12.5 left-63.75 h-21 w-28 rounded-t-full border-2 border-gray-500 bg-gray-900"></div>
 
-    <div class="absolute bottom-16 left-20 h-28 w-40 rounded-xl border border-gray-600 bg-gray-800"></div>
-    <div class="absolute bottom-24.75 left-68.5 h-20 w-20 rounded-full border border-gray-600 bg-gray-800"></div>
-    <div class="absolute bottom-13.25 left-87.25 h-22 w-35 rounded-xl border border-gray-600 bg-gray-800 [clip-path:polygon(0%_100%,100%_100%,67%_0%)]"></div>
+    <div class="absolute left-86.75 top-32.25 h-16 w-32 rounded-t-full border-2 border-gray-500 bg-gray-600"></div>
   </section>
 
   <aside class="flex h-full w-2/5 min-w-85 flex-col border-l border-gray-800 bg-gray-950">

@@ -27,7 +27,7 @@
 
     <div class="semicircle-top-right target-focus absolute left-86.75 top-32.25 h-16 w-32 rounded-t-full border-2 border-gray-500 bg-gray-600 transition-colors duration-150 hover:border-accent-400"></div>
 
-    <div class="cursor-selector absolute left-0 top-0 z-20 rounded-full border border-gray-100 bg-gray-950 p-1 shadow-[0_5px_13px_rgba(0,0,0,0.5)]">
+    <div class="cursor-selector absolute left-0 top-0 z-20 p-1">
       <Navigation class="h-6 w-6 -scale-x-100 fill-gray-950 text-gray-100" strokeWidth={2.1} />
     </div>
   </section>
@@ -89,44 +89,51 @@
       transform: translate(624px, 336px) scale(1);
     }
 
-    12% {
+    6% {
       opacity: 1;
     }
 
-    52% {
+    34% {
       opacity: 1;
-      transform: translate(362px, 140px) scale(1);
+      transform: translate(382px, 160px) scale(1);
     }
 
-    58% {
+    38% {
       opacity: 1;
-      transform: translate(362px, 140px) scale(0.88);
+      transform: translate(382px, 160px) scale(0.88);
     }
 
-    64% {
+    42% {
       opacity: 1;
-      transform: translate(362px, 140px) scale(1);
+      transform: translate(382px, 160px) scale(1);
     }
 
-    90% {
+    46% {
       opacity: 1;
-      transform: translate(362px, 140px) scale(1);
+      transform: translate(382px, 160px) scale(1);
     }
 
+    50%,
+    83.33% {
+      opacity: 1;
+      transform: translate(382px, 160px) scale(1);
+    }
+
+    90%,
     100% {
       opacity: 0;
-      transform: translate(362px, 140px) scale(1);
+      transform: translate(382px, 160px) scale(1);
     }
   }
 
   @keyframes target-selected {
     0%,
-    54% {
+    35% {
       border-color: #787d78;
       box-shadow: 0 0 0 0 rgba(187, 147, 72, 0);
     }
 
-    62%,
+    40%,
     100% {
       border-color: #bb9348;
       box-shadow: 0 0 0 4px rgba(187, 147, 72, 0.3);
@@ -135,12 +142,12 @@
 
   @keyframes empty-state-fade {
     0%,
-    54% {
+    35% {
       opacity: 1;
       transform: translateY(0);
     }
 
-    62%,
+    40%,
     100% {
       opacity: 0;
       transform: translateY(-4px);
@@ -149,12 +156,12 @@
 
   @keyframes properties-fade {
     0%,
-    56% {
+    36% {
       opacity: 0;
       transform: translateY(6px);
     }
 
-    64%,
+    42%,
     100% {
       opacity: 1;
       transform: translateY(0);

@@ -19,7 +19,7 @@
 
   <div class="mx-auto flex w-full max-w-6xl flex-col space-y-80 px-6 pb-56 pt-40 sm:px-10 lg:px-16">
     <section>
-      <div class="mx-auto flex flex-col items-center gap-4 text-center">
+      <div class="mx-auto flex flex-col items-center gap-4 text-center space-y-2">
         <h1 class="text-display text-[#20211f] dark:text-white">
           Customization at your <span class="text-accent-500">fingertips.</span>
         </h1>
@@ -27,10 +27,11 @@
           A set of developer tools to manipulate <em class="italic text-[#5e635e] dark:text-[#b1b4ad]">any</em> webpage to your will.
         </p>
 
-        <div class="mt-3 flex items-center gap-5">
+        <div class="mt-2 flex items-center gap-5">
           <a href={resolve("/install")}>
             <Button
               variant="primary"
+              class="w-32"
             >
               Install
             </Button>
@@ -38,6 +39,7 @@
           <a href={githubUrl} target="_blank" rel="noopener noreferrer">
             <Button
               variant="outline"
+              class="rounded-lg border border-gray-700 px-5 py-2.5 text-white dark:text-white"
             >
               View on GitHub
             </Button>
@@ -46,12 +48,11 @@
       </div>
     </section>
 
-    <section class="flex flex-col items-center">
-      <h2 class="text-center text-gray-900 dark:text-white">
-        <span class="text-title">Quick, robust tooling.</span>
-        <br />
-        <span class="text-subtitle text-[#5e635e] dark:text-[#c1c6c1]">All your important tools in one place.</span>
+    <section class="flex flex-col items-center" id="tools">
+      <h2 class="text-center text-4xl font-bold text-gray-900 dark:text-white">
+        Quick, robust tooling.
       </h2>
+      <p class="text-subtitle text-[#5e635e] dark:text-[#c1c6c1] mt-4">All your important tools in one place.</p>
 
       <div class="mt-9 w-full">
         <LandingDemoSelect />
@@ -59,16 +60,19 @@
     </section>
 
     <section class="flex flex-col items-center">
-      <h2 class="text-center text-gray-900 dark:text-white">
-        <span class="text-title">Always in the toolbar, ready when you are.</span>
-        <br />
-        <span class="text-subtitle text-[#5e635e] dark:text-[#c1c6c1]">Perfect for lazy people like me.</span>
+      <h2 class="text-center text-3xl font-bold text-gray-900 dark:text-white">
+        Always in the toolbar, ready when you are.
       </h2>
+      <p class="text-subtitle text-[#5e635e] dark:text-[#c1c6c1] mt-4">One click to access.</p>
 
       <div class="mt-11 w-full">
         <LandingDemoNotification />
       </div>
     </section>
+
+    <div id="explore" class="-mt-80">
+      <!-- TODO: Make something cool first so I can put stuff in this section-->
+    </div>
 
     <section class="flex flex-col items-center space-y-6">
       <img src={asset("/logo_filled.png")} alt="Page Proxy logo" class="h-50 w-50" draggable="false" />
