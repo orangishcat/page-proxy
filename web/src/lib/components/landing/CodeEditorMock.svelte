@@ -77,11 +77,9 @@
         { text: "pq", tone: "type" },
         { text: ".", tone: "plain" },
         { text: "selector", tone: "function" },
-        { text: "({ ", tone: "plain" },
-        { text: 'name', tone: "string" },
-        { text: ": ", tone: "plain" },
-        { text: '"CTA card"', tone: "string" },
-        { text: " });", tone: "plain" },
+        { text: "(", tone: "plain" },
+        { text: '".cta-card"', tone: "string" },
+        { text: ");", tone: "plain" },
       ],
     },
     { id: "line-14", tokens: [{ text: "// ==/Selectors==", tone: "comment" }] },
@@ -93,9 +91,7 @@
         { text: ".", tone: "plain" },
         { text: "notification", tone: "function" },
         { text: "(", tone: "plain" },
-        { text: '"Hello world!"', tone: "string" },
-        { text: ", ", tone: "plain" },
-        { text: "4", tone: "number" },
+        { text: '"// TODO Finish the rest of the landing page later"', tone: "string" },
         { text: ");", tone: "plain" },
       ],
     },
@@ -112,20 +108,20 @@
   } satisfies Record<TokenTone, string>;
 </script>
 
-<section class="relative flex min-h-0 w-full flex-1 flex-col bg-[#282824] shadow-[0_0.25em_0.25em_rgba(0,0,0,0.25)]" aria-label="Code editor panel">
-  <div class="flex h-[2.75em] w-full items-center justify-between bg-[#393a34] px-[1em]">
-    <div class="flex items-center gap-[0.4em] text-[0.75em] text-[#e7e8ea]">
+<section class="relative flex min-h-0 w-full flex-1 flex-col bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)]" aria-label="Code editor panel">
+  <div class="flex h-11 w-full items-center justify-between bg-[#393a34] px-4">
+    <div class="flex items-center gap-1.5 text-xs text-[#e7e8ea]">
       <span>Demo mod</span>
       <span class="text-[#5e635e]">@</span>
       <span class="text-accent-500">{websiteText}</span>
     </div>
-    <div class="h-[0.45em] w-[0.45em] rounded-full bg-[#6da7ff]"></div>
+    <div class="h-2 w-2 rounded-full bg-[#6da7ff]"></div>
   </div>
 
   <div class="relative min-h-0 flex-1 overflow-hidden">
-    <div class="h-full overflow-auto px-[0.65em] pb-[0.6em] pt-[0.55em] font-mono text-[0.69em] leading-[1.9em] text-[#efe2d4]">
+    <div class="h-full overflow-auto px-2.5 pb-2.5 pt-2 font-mono text-[11px] leading-5 text-[#efe2d4]">
       {#each codeLines as line (line.id)}
-        <div class="min-h-[1.9em] whitespace-pre">
+        <div class="min-h-5 whitespace-pre">
           {#if line.tokens.length === 0}
             <span class="text-transparent">.</span>
           {:else}
@@ -138,15 +134,15 @@
     </div>
 
     {#if showNotification}
-      <div class="pointer-events-none absolute right-[0.5em] top-[0.6em] z-20 flex w-[92%] max-w-[18em] flex-col gap-[0.5em]">
+      <div class="pointer-events-none absolute right-2 top-2.5 z-20 flex w-[92%] max-w-72 flex-col gap-2">
         <div class="pointer-events-auto rounded-md border border-[#61656b] bg-[#272a2f] px-2 py-2 text-xs text-[#e5e7ea] shadow-lg">
           <div class="mb-1 flex items-center justify-between gap-2">
             <div class="font-semibold uppercase tracking-wide">notification</div>
             <div class="flex items-center gap-2">
-              <span class="text-[0.625rem] opacity-80">10:42:13 PM</span>
+              <span class="text-[10px] opacity-80">10:42:13 PM</span>
               <button
                 type="button"
-                class="rounded px-1 text-[0.625rem] opacity-80 hover:bg-white/10 hover:opacity-100"
+                class="rounded px-1 text-[10px] opacity-80 hover:bg-white/10 hover:opacity-100"
                 aria-label="Dismiss console notification"
               >
                 ×
@@ -154,7 +150,7 @@
             </div>
           </div>
 
-          <div class="font-mono text-[0.6875rem] leading-5 text-[#e5e7ea]">{notificationMessage}</div>
+          <div class="font-mono text-[11px] leading-5 text-[#e5e7ea]">{notificationMessage}</div>
         </div>
       </div>
     {/if}
