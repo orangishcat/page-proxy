@@ -18,8 +18,8 @@ import {
 
 const injectedScriptPath = 'sandbox-main-world.js';
 const runScriptPath = 'code-runner-main-world.js';
-const responseTimeoutMs = 10000;
-const injectionTimeoutMs = 3000;
+const responseTimeoutMs = 2000;
+const injectionTimeoutMs = 2000;
 const logger = log.getLogger('sandbox-runner');
 logger.setLevel('debug', false);
 let injectPromise: Promise<boolean> | null = null;

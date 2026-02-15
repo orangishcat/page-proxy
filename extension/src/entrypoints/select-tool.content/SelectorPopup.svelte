@@ -480,7 +480,7 @@
         </div>
       </div>
 
-      <p class="text-gray-400 text-xs -mt-2">Edit me or use the grip to drag me into the editor!</p>
+      <p class="text-gray-400 text-xs -mt-2">Edit me or use the grip to drag me into the code editor on the left!</p>
 
       <div class="text-xs uppercase tracking-wide text-gray-500">Properties</div>
       <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1">

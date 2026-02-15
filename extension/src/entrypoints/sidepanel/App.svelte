@@ -11,6 +11,7 @@
   import SelectorsTool from "./tools/SelectorsTool.svelte";
   import CodeEditorTool from "./tools/CodeEditorTool.svelte";
   import Button from "@/lib/components/Button.svelte";
+  import { detectBrowserSupport } from "@/lib/utils/browser-support";
   import { attachSelectionListener, sendSelectionToggle } from "./tools/select-tool/actions";
   import { errorMessage, setErrorMessage, successMessage } from "./tools/tool-errors";
   import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
@@ -40,8 +41,8 @@
   let isToolbarHovered = $state(false);
   let errorMessageValue = $state<string | null>(null);
   let successMessageValue = $state<string | null>(null);
-  const isFirefoxBrowser = typeof navigator !== "undefined" && /Firefox/i.test(navigator.userAgent);
-  let showFirefoxExperimentalBanner = $state(isFirefoxBrowser);
+  let showUnsupportedBrowserBanner = $state(false);
+  let showFirefoxExperimentalBanner = $state(false);
   let toolPanelHeightPx = $state<number | null>(null);
   let toolPanelLayout = $state<HTMLDivElement | null>(null);
   let toolPanelSection = $state<HTMLElement | null>(null);
@@ -262,6 +263,11 @@
   };
 
   onMount(() => {
+    void detectBrowserSupport().then(({ browser: supportedBrowser, supported }) => {
+      showUnsupportedBrowserBanner = !supported;
+      showFirefoxExperimentalBanner = supportedBrowser === "firefox";
+    });
+
     toolPanelHeightPx = minToolPanelHeightPx;
     void readToolPanelHeightSetting().then((storedHeight) => {
       if (storedHeight === null) {
@@ -346,8 +352,14 @@
 <main class="flex h-full w-full overflow-hidden bg-[#222121] text-white">
   <div class="h-full w-full min-h-0 min-w-full">
     <div class="flex h-full w-full min-h-0 flex-col" bind:this={toolPanelLayout}>
+      {#if showUnsupportedBrowserBanner}
+        <div class="w-full max-w-none shrink-0 bg-red-700 px-4 py-2 text-caption text-red-100">
+          Your browser is not supported. Please use Chrome, Brave, or Firefox to avoid unexpected issues.
+        </div>
+      {/if}
+
       {#if showFirefoxExperimentalBanner}
-        <div class="w-full shrink-0 bg-[#3d341d] px-[4%] py-[2%] text-caption text-[#f4de9e] flex items-center gap-2">
+        <div class="flex w-full max-w-none shrink-0 items-center gap-2 bg-[#3d341d] px-4 py-2 text-caption text-[#f4de9e]">
           <span class="flex-1">Firefox support is experimental.</span>
           <button
             type="button"
@@ -357,6 +369,25 @@
           >
             Dismiss
           </button>
+        </div>
+      {/if}
+
+      {#if !showUnsupportedBrowserBanner}
+        <div class="w-full max-w-none shrink-0 bg-[#1e2f46] px-4 py-2 text-caption text-[#d4e9ff]">
+          <span class="flex w-full flex-wrap items-center gap-1">
+            <span>Something not working? Check the Help tool</span>
+            <CircleQuestionMark class="h-4 w-4" aria-hidden="true" />
+            <span>for troubleshooting or</span>
+            <a
+              href="https://github.com/orangishcat/page-proxy"
+              target="_blank"
+              rel="noreferrer"
+              class="font-semibold text-[#d4e9ff] underline underline-offset-2 hover:opacity-80"
+            >
+              report a bug
+            </a>
+            <span>.</span>
+          </span>
         </div>
       {/if}
 
@@ -510,7 +541,7 @@
 
       {#if errorMessageValue || successMessageValue}
         <div
-          class={`w-full shrink-0 px-[4%] py-[2%] text-caption ${
+          class={`w-full shrink-0 px-4 py-2 text-caption ${
             successMessageValue ? "bg-[#1f3a22] text-[#b8f3bf]" : "bg-[#3b1d1d] text-[#f5b1b1]"
           }`}
           bind:this={errorBannerElement}
