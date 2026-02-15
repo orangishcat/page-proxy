@@ -6,33 +6,11 @@ declare module "@page-proxy/pp/pp-query" {
       width: number;
       height: number;
   };
-  export type ElementDefinition = {
-      name?: string;
-      selector: string;
-      bbox: ElementSize & {
-          x: number;
-          y: number;
-      };
-      attributes?: Record<string, string>;
-  };
-  export type ElementLookupError = "empty-selectors" | "invalid-size" | "not-found";
-  export type ElementLookupResult = {
-      element: Element | null;
-      error: ElementLookupError | null;
-  };
-  export declare const element: (definition: ElementDefinition) => {
-      definition: ElementDefinition;
-      resolve: () => ElementLookupResult;
-  };
   export type SelectorDefinition<T = HTMLElement> = {
       name: string;
       baseSelector?: string;
       matches: (element: Element) => boolean;
       postMap?: (element: HTMLElement) => T;
-      bbox?: ElementSize & {
-          x: number;
-          y: number;
-      };
   };
   export type TraverseParentsOptions<T = HTMLElement> = {
       postMap?: (element: HTMLElement) => T;
@@ -50,7 +28,6 @@ declare module "@page-proxy/pp/pp-query" {
   export declare const traverseParents: <T = HTMLElement>(el: Element, matcher: (element: HTMLElement) => boolean, options?: TraverseParentsOptions<T>) => T | null;
   export declare const selector: <T = HTMLElement>(definition: SelectorDefinition<T>) => {
       definition: SelectorDefinition<T>;
-      apply: () => null;
       matches: (el: Element) => boolean;
       onElementMatches: (func: (value: T) => void, targetNode?: Node, observerOptions?: MutationObserverInit) => import("@page-proxy/pp/pp-event").ElementCreatedObserver;
       query: () => T | null;
@@ -62,33 +39,11 @@ declare module "@page-proxy/pp/pp-query" {
       width: number;
       height: number;
   };
-  export type ElementDefinition = {
-      name?: string;
-      selector: string;
-      bbox: ElementSize & {
-          x: number;
-          y: number;
-      };
-      attributes?: Record<string, string>;
-  };
-  export type ElementLookupError = "empty-selectors" | "invalid-size" | "not-found";
-  export type ElementLookupResult = {
-      element: Element | null;
-      error: ElementLookupError | null;
-  };
-  export declare const element: (definition: ElementDefinition) => {
-      definition: ElementDefinition;
-      resolve: () => ElementLookupResult;
-  };
   export type SelectorDefinition<T = HTMLElement> = {
       name: string;
       baseSelector?: string;
       matches: (element: Element) => boolean;
       postMap?: (element: HTMLElement) => T;
-      bbox?: ElementSize & {
-          x: number;
-          y: number;
-      };
   };
   export type TraverseParentsOptions<T = HTMLElement> = {
       postMap?: (element: HTMLElement) => T;
@@ -106,7 +61,6 @@ declare module "@page-proxy/pp/pp-query" {
   export declare const traverseParents: <T = HTMLElement>(el: Element, matcher: (element: HTMLElement) => boolean, options?: TraverseParentsOptions<T>) => T | null;
   export declare const selector: <T = HTMLElement>(definition: SelectorDefinition<T>) => {
       definition: SelectorDefinition<T>;
-      apply: () => null;
       matches: (el: Element) => boolean;
       onElementMatches: (func: (value: T) => void, targetNode?: Node, observerOptions?: MutationObserverInit) => import("@page-proxy/pp/pp-event").ElementCreatedObserver;
       query: () => T | null;

@@ -13,7 +13,7 @@
   import Button from "@/lib/components/Button.svelte";
   import { detectBrowserSupport } from "@/lib/utils/browser-support";
   import { attachSelectionListener, sendSelectionToggle } from "./tools/select-tool/actions";
-  import { errorMessage, setErrorMessage, successMessage } from "./tools/tool-errors";
+  import { errorMessage, setErrorMessage, setSuccessMessage, successMessage } from "./tools/tool-errors";
   import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
   import type { SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
   import { elementEntries, insertDefinitions, sanitizeVariableName, selectorEntries } from "./tools/code-editor/state";
@@ -43,6 +43,7 @@
   let successMessageValue = $state<string | null>(null);
   let showUnsupportedBrowserBanner = $state(false);
   let showFirefoxExperimentalBanner = $state(false);
+  let showHelpBanner = $state(true);
   let toolPanelHeightPx = $state<number | null>(null);
   let toolPanelLayout = $state<HTMLDivElement | null>(null);
   let toolPanelSection = $state<HTMLElement | null>(null);
@@ -347,14 +348,35 @@
   const dismissFirefoxExperimentalBanner = () => {
     showFirefoxExperimentalBanner = false;
   };
+
+  const dismissUnsupportedBrowserBanner = () => {
+    showUnsupportedBrowserBanner = false;
+  };
+
+  const dismissHelpBanner = () => {
+    showHelpBanner = false;
+  };
+
+  const dismissStatusBanner = () => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+  };
 </script>
 
 <main class="flex h-full w-full overflow-hidden bg-[#222121] text-white">
   <div class="h-full w-full min-h-0 min-w-full">
     <div class="flex h-full w-full min-h-0 flex-col" bind:this={toolPanelLayout}>
       {#if showUnsupportedBrowserBanner}
-        <div class="w-full max-w-none shrink-0 bg-red-700 px-4 py-2 text-caption text-red-100">
-          Your browser is not supported. Please use Chrome, Brave, or Firefox to avoid unexpected issues.
+        <div class="flex w-full max-w-none shrink-0 items-center gap-2 bg-red-700 px-4 py-2 text-caption text-red-100">
+          <span class="flex-1">Your browser is not supported. Please use Chrome, Brave, or Firefox to avoid unexpected issues.</span>
+          <button
+            type="button"
+            class="rounded border border-red-200 px-2 py-0.5 text-caption text-red-100 hover:bg-red-800"
+            aria-label="Dismiss unsupported browser notice"
+            onclick={dismissUnsupportedBrowserBanner}
+          >
+            Dismiss
+          </button>
         </div>
       {/if}
 
@@ -372,9 +394,9 @@
         </div>
       {/if}
 
-      {#if !showUnsupportedBrowserBanner}
-        <div class="w-full max-w-none shrink-0 bg-[#1e2f46] px-4 py-2 text-caption text-[#d4e9ff]">
-          <span class="flex w-full flex-wrap items-center gap-1">
+      {#if !showUnsupportedBrowserBanner && showHelpBanner}
+        <div class="flex w-full max-w-none shrink-0 items-center gap-2 bg-[#1e2f46] px-4 py-2 text-caption text-[#d4e9ff]">
+          <span class="flex w-full flex-1 flex-wrap items-center gap-1">
             <span>Something not working? Check the Help tool</span>
             <CircleQuestionMark class="h-4 w-4" aria-hidden="true" />
             <span>for troubleshooting or</span>
@@ -388,6 +410,14 @@
             </a>
             <span>.</span>
           </span>
+          <button
+            type="button"
+            class="rounded border border-[#4c6f98] px-2 py-0.5 text-caption text-[#d4e9ff] hover:bg-[#27405f]"
+            aria-label="Dismiss help notice"
+            onclick={dismissHelpBanner}
+          >
+            Dismiss
+          </button>
         </div>
       {/if}
 
@@ -546,7 +576,17 @@
           }`}
           bind:this={errorBannerElement}
         >
-          {successMessageValue ?? errorMessageValue}
+          <div class="flex items-center gap-2">
+            <span class="flex-1">{successMessageValue ?? errorMessageValue}</span>
+            <button
+              type="button"
+              class="rounded border border-current px-2 py-0.5 text-caption hover:bg-black/10"
+              aria-label="Dismiss status message"
+              onclick={dismissStatusBanner}
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       {/if}
     </div>

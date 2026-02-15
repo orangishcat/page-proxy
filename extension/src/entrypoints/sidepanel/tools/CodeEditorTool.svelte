@@ -111,7 +111,7 @@
       hasUnsavedChanges = false;
       setErrorMessage(null);
     } catch (e: unknown) {
-      throw new Error(`Saving failed: ${e instanceof Error ? e.message : e}`);
+      setErrorMessage(`Saving failed: ${e instanceof Error ? e.message : e}`);
     }
   };
 

@@ -3,7 +3,7 @@
   <div class="rounded-2xl border border-[#4f4a38] bg-[#24231f] p-4 space-y-2">
     <h2 class="text-title text-gray-100">
       Page Proxy Docs
-      <span class="text-subtitle">v0.1.1</span>
+      <span class="text-subtitle">v0.1.x</span>
     </h2>
     <p>First release! Features are limited.</p>
     <a
@@ -20,7 +20,9 @@
       Known Issues
     </h2>
     <ul class="list-disc pl-4 space-y-1.5">
-      <li>A site with a strict Content Security Policy (CSP) will block script execution</li>
+      <li>A site with a strict Content Security Policy (CSP) will block script execution (e.g. github.com, mozilla.org)</li>
+      <li>Select tool doesn't work through iframes</li>
+      <li>Code autocomplete may not work on Chrome</li>
       <li>Loading the extension from a file often doesn't work</li>
     </ul>
     <a

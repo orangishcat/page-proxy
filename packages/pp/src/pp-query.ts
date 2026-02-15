@@ -5,61 +5,11 @@ export type ElementSize = {
   height: number;
 };
 
-export type ElementDefinition = {
-  name?: string;
-  selector: string;
-  bbox: ElementSize & { x: number; y: number };
-  attributes?: Record<string, string>;
-};
-
-export type ElementLookupError = "empty-selectors" | "invalid-size" | "not-found";
-
-export type ElementLookupResult = {
-  element: Element | null;
-  error: ElementLookupError | null;
-};
-
-const isPositiveFinite = (value: number) => Number.isFinite(value) && value > 0;
-
-const normalizeSelectors = (selectors: string | string[]) =>
-  (Array.isArray(selectors) ? selectors : [selectors])
-    .map((selector) => selector.trim())
-    .filter((selector) => selector.length > 0);
-
-const resolveElement = (definition: ElementDefinition): ElementLookupResult => {
-  const selectorList = normalizeSelectors(definition.selector);
-  if (selectorList.length === 0) {
-    return { element: null, error: "empty-selectors" };
-  }
-  if (!isPositiveFinite(definition.bbox.width) || !isPositiveFinite(definition.bbox.height)) {
-    return { element: null, error: "invalid-size" };
-  }
-
-  const candidates = selectorList.flatMap((selector) => Array.from(document.querySelectorAll(selector)));
-  if (candidates.length === 0) {
-    return { element: null, error: "not-found" };
-  }
-
-  const target =
-    candidates.find((element) => {
-      const rect = element.getBoundingClientRect();
-      return rect.width >= definition.bbox.width && rect.height >= definition.bbox.height;
-    }) ?? candidates[0];
-
-  return { element: target, error: null };
-};
-
-export const element = (definition: ElementDefinition) => ({
-  definition,
-  resolve: () => resolveElement(definition),
-});
-
 export type SelectorDefinition<T = HTMLElement> = {
   name: string;
   baseSelector?: string;
   matches: (element: Element) => boolean;
   postMap?: (element: HTMLElement) => T;
-  bbox?: ElementSize & { x: number; y: number };
 };
 
 export type TraverseParentsOptions<T = HTMLElement> = {
@@ -253,7 +203,6 @@ export const selector = <T = HTMLElement>(definition: SelectorDefinition<T>) => 
 
   return {
     definition,
-    apply: () => null,
     matches: (el: Element) => matchesElement(el),
     onElementMatches: (
       func: (value: T) => void,

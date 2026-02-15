@@ -407,6 +407,13 @@
   <!-- Header -->
   <div class="flex items-center h-12 px-4 gap-2.5 bg-gray-900 border-b border-gray-800">
     <span class="text-lead">Selector editor</span>
+    <a
+      href="https://orangishcat.github.io/page-proxy/docs/pp/pq-query#pqselectordefinition"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="text-caption text-accent-400 hover:text-accent-300 hover:underline"
+      >Selector documentation</a
+    >
     <div class="flex-1"></div>
     <button
       type="button"

@@ -4,8 +4,6 @@ import { defineUnlistedScript } from "wxt/utils/define-unlisted-script";
 import {
   buildSandboxErrorResponse,
   isSandboxRequest,
-  type BoundingBox,
-  type ElementEntry,
   type SandboxEvaluateResponse,
   type SandboxResult,
   type SelectorEntry,
@@ -55,11 +53,6 @@ const readString = (value: Record<string, unknown>, key: string) => {
   return typeof data === "string" ? data : null;
 };
 
-const readNumber = (value: Record<string, unknown>, key: string) => {
-  const data = readDataProperty(value, key);
-  return typeof data === "number" && Number.isFinite(data) ? data : null;
-};
-
 const readOptionalString = (
   value: Record<string, unknown>,
   key: string,
@@ -75,54 +68,6 @@ const readOptionalString = (
     return null;
   }
   return data;
-};
-
-const parseBoundingBox = (value: unknown, errors: string[], label: string, required: boolean): BoundingBox | null => {
-  if (value === undefined || value === null) {
-    if (required) {
-      errors.push(`${label} must include a bbox with x, y, width, and height.`);
-    }
-    return null;
-  }
-
-  if (!isRecord(value)) {
-    errors.push(`${label} bbox must be an object with x, y, width, and height.`);
-    return null;
-  }
-
-  const x = readNumber(value, "x");
-  const y = readNumber(value, "y");
-  const width = readNumber(value, "width");
-  const height = readNumber(value, "height");
-
-  if (x === null || y === null || width === null || height === null) {
-    errors.push(`${label} bbox must include numeric x, y, width, and height.`);
-    return null;
-  }
-
-  return { x, y, width, height };
-};
-
-const sanitizeStringMap = (value: unknown, errors: string[], label: string): Record<string, string> => {
-  if (!isRecord(value)) {
-    return {};
-  }
-
-  const result = Object.create(null) as Record<string, string>;
-  Object.keys(value).forEach((key) => {
-    const entry = Object.getOwnPropertyDescriptor(value, key);
-    if (!entry || !("value" in entry)) {
-      errors.push(`${label} "${key}" must be a data property.`);
-      return;
-    }
-    if (typeof entry.value !== "string") {
-      errors.push(`${label} "${key}" must be a string.`);
-      return;
-    }
-    result[key] = entry.value;
-  });
-
-  return result;
 };
 
 const ensureLockdown = (errors: string[]) => {
@@ -169,30 +114,6 @@ const getHarden = () => {
   ).harden;
 
   return typeof harden === "function" ? harden : null;
-};
-
-const createElementEntry = (value: unknown, errors: string[]): ElementEntry | null => {
-  if (!isRecord(value)) {
-    errors.push("pq.element expects an object definition.");
-    return null;
-  }
-
-  const selector = readString(value, "selector");
-  if (!selector) {
-    errors.push("pq.element requires a string selector.");
-    return null;
-  }
-
-  const name = readString(value, "name")?.trim() || "Element";
-  const bbox = parseBoundingBox(readDataProperty(value, "bbox"), errors, "pq.element", true);
-
-  if (!bbox) {
-    return null;
-  }
-
-  const attributes = sanitizeStringMap(readDataProperty(value, "attributes"), errors, "pq.element attribute");
-
-  return { name, selector, bbox, attributes };
 };
 
 const readMatchFunction = (
@@ -289,7 +210,6 @@ const createSelectorEntry = (
   }
 
   const name = readString(value, "name")?.trim() || "Selector";
-  const bbox = parseBoundingBox(readDataProperty(value, "bbox"), errors, "pq.selector", false);
   const baseSelector = readOptionalString(value, "baseSelector", errors, "pq.selector baseSelector")?.trim() || undefined;
   const matches = readMatchFunction(value, errors);
   const postMap = readPostMapFunction(value, errors);
@@ -300,7 +220,6 @@ const createSelectorEntry = (
   return {
     entry: {
       name,
-      bbox: bbox ?? undefined,
       ruleKeys: extractRuleKeysFromMatches(matches),
       rules: extractSelectorRules(baseSelector, matches),
     },
@@ -312,7 +231,7 @@ const createSelectorEntry = (
 
 const evaluateDefinitionBlock = (code: string): SandboxResult => {
   const errors: string[] = [];
-  const elements: ElementEntry[] = [];
+  const elements: SandboxResult["elements"] = [];
   const selectors: SelectorEntry[] = [];
 
   if (!code.trim()) {
@@ -335,14 +254,6 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
     return { elements, selectors, errors };
   }
 
-  const registerElement = (definition: unknown) => {
-    const entry = createElementEntry(definition, errors);
-    if (entry) {
-      elements.push(entry);
-    }
-    return entry ? harden({ definition: entry }) : harden({});
-  };
-
   const registerSelector = (definition: unknown) => {
     const result = createSelectorEntry(definition, errors);
     if (!result) {
@@ -353,7 +264,6 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
     const resolvedSelector = pq.selector({
       name: entry.name,
       baseSelector: result.baseSelector,
-      bbox: entry.bbox,
       matches,
       postMap,
     });
@@ -406,7 +316,6 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
 
   const queryApi = harden({
     ...pq,
-    element: registerElement,
     selector: registerSelector,
   });
 

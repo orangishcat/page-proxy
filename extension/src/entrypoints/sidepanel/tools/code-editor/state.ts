@@ -1,7 +1,7 @@
 import {get, writable} from 'svelte/store';
-import type {BoundingBox, ElementEntry, SelectorEntry} from '@/lib/sandbox';
+import type {ElementEntry, SelectorEntry} from '@/lib/sandbox';
 
-export type {BoundingBox, ElementEntry, SelectorEntry};
+export type {ElementEntry, SelectorEntry};
 
 export type ScriptMetadataState = {
   title: string;
@@ -42,21 +42,5 @@ export const insertDefinitions = (lines: string[]) => {
   return true;
 };
 
-const formatBoundingBoxCompact = (box: BoundingBox) =>
-  `${box.x.toFixed(2)}, ${box.y.toFixed(2)}, ${box.width.toFixed(2)}, ${box.height.toFixed(2)}`;
-
-export const formatElementCode = (entry: ElementEntry, variableName: string) => {
-  const payload = {
-    name: entry.name,
-    selector: entry.selector,
-    bbox: entry.bbox,
-    attributes: entry.attributes
-  };
-
-  return `const ${variableName} = pq.element(${JSON.stringify(payload, null, 2)});`;
-};
-
 export const sanitizeVariableName = (name: string) =>
   name.replace(/[^A-Za-z0-9_]/g, '_');
-
-export const getFormattedBoundingBox = formatBoundingBoxCompact;

@@ -1,31 +1,36 @@
 {
-  "name": "page-proxy-workspace",
-  "private": true,
-  "type": "module",
-  "workspaces": ["web", "extension", "docs-site", "packages/pp"],
-  "scripts": {
-    "postinstall": "bun run --cwd extension prepare",
-    "check": "bun run --cwd web check && bun run --cwd extension check && bun run --cwd docs-site check",
-    "web:dev": "bun run --cwd web dev",
-    "web:build": "bun run --cwd web build",
-    "web:preview": "bun run --cwd web preview",
-    "web:check": "bun run --cwd web check",
-    "web:lint": "bun run --cwd web lint",
-    "web:test": "bun run --cwd web test",
-    "docs:dev": "bun run --cwd docs-site dev",
-    "docs:build": "bun run --cwd docs-site build",
-    "docs:preview": "bun run --cwd docs-site preview",
-    "docs:check": "bun run --cwd docs-site check",
-    "extension:generate-monaco-types": "bun run --cwd extension generate-monaco-types",
-    "extension:dev": "bun run --cwd extension dev",
-    "extension:build": "bun run --cwd extension build",
-    "extension:prepare": "bun run --cwd extension prepare",
-    "extension:check": "bun run --cwd extension check",
-    "extension:lint": "bun run --cwd extension lint",
-    "clean": "bun run --cwd extension clean"
-  },
-  "engines": {
-    "node": ">=22",
-    "bun": ">=1.3.3"
-  }
+    "name": "page-proxy-workspace",
+    "private": true,
+    "type": "module",
+    "workspaces": [
+        "web",
+        "extension",
+        "docs-site",
+        "packages/pp"
+    ],
+    "scripts": {
+        "postinstall": "bun run --cwd extension prepare",
+        "check": "bun run --cwd web check && bun run --cwd extension check && bun run --cwd docs-site check",
+        "web:dev": "bun run --cwd web dev",
+        "web:build": "bun run --cwd web build",
+        "web:preview": "bun run --cwd web preview",
+        "web:check": "bun run --cwd web check",
+        "web:lint": "bun run --cwd web lint",
+        "web:test": "bun run --cwd web test",
+        "docs:dev": "bun run --cwd docs-site dev",
+        "docs:build": "bun run --cwd docs-site build",
+        "docs:preview": "bun run --cwd docs-site preview",
+        "docs:check": "bun run --cwd docs-site check",
+        "extension:generate-monaco-types": "bun run --cwd extension generate-monaco-types",
+        "extension:dev": "bun run --cwd extension dev",
+        "extension:build": "bun run --cwd extension build",
+        "extension:prepare": "bun run --cwd extension prepare",
+        "extension:check": "bun run --cwd extension check",
+        "extension:lint": "bun run --cwd extension lint",
+        "clean": "bun run --cwd extension clean && rm -rf node_modules/.vite"
+    },
+    "engines": {
+        "node": ">=22",
+        "bun": ">=1.3.3"
+    }
 }

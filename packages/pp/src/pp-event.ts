@@ -195,7 +195,6 @@ export const pp = createApi();
 export const pageModificationFunctions = [
   "pv.notification",
   "pv.onElementCreated",
-  "pq.element",
   "pq.selector",
   "ps.applyStyle",
   "ps.injectCSS",

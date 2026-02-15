@@ -7,8 +7,6 @@ slug: /
 
 This version documents the `pp` library APIs available in **v0.1.x**.
 
-New APIs are planned for **v0.2.x**.
-
 ```ts
 import * as pq from "@page-proxy/pp/pp-query";
 import * as ps from "@page-proxy/pp/pp-style";

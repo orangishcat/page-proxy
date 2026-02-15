@@ -212,7 +212,7 @@ export default defineContentScript({
             pendingRunResponses.delete(message.requestId);
             logger.warn('Script run timed out', {requestId: message.requestId, responseTimeoutMs});
             resolve(
-              buildScriptRunResponse(message.requestId, 'Script execution timed out.')
+              buildScriptRunResponse(message.requestId, 'Script execution timed out (probably due to CSP, try another website).')
             );
           }, responseTimeoutMs);
 
