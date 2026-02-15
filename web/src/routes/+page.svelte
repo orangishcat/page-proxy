@@ -23,7 +23,7 @@
         <h1 class="text-display text-[#20211f] dark:text-white">
           Customization at your <span class="text-accent-500">fingertips.</span>
         </h1>
-        <p class="text-lead text-[#5e635e] dark:text-[#a8a8a8]">
+        <p class="text-2xl text-[#5e635e] dark:text-[#a8a8a8]">
           A set of developer tools to manipulate <em class="italic text-[#5e635e] dark:text-[#b1b4ad]">any</em> webpage to your will.
         </p>
 
@@ -60,7 +60,7 @@
 
     <section class="flex flex-col items-center">
       <h2 class="text-center text-gray-900 dark:text-white">
-        <span class="text-title">In the toolbar, ready when you are.</span>
+        <span class="text-title">Always in the toolbar, ready when you are.</span>
         <br />
         <span class="text-subtitle text-[#5e635e] dark:text-[#c1c6c1]">Perfect for lazy people like me.</span>
       </h2>
@@ -70,11 +70,11 @@
       </div>
     </section>
 
-    <section class="flex flex-col items-center">
-      <img src={asset("/logo_filled.png")} alt="Page Proxy logo" class="h-50 w-05" draggable="false" />
+    <section class="flex flex-col items-center space-y-6">
+      <img src={asset("/logo_filled.png")} alt="Page Proxy logo" class="h-50 w-50" draggable="false" />
       <h3 class="text-heading mt-4 text-center text-[#20211f] dark:text-white">Want to try it out?</h3>
 
-      <div class="mt-10 flex items-center gap-5">
+      <div class="flex items-center gap-5">
         <a href={resolve("/install")}>
           <Button
             variant="primary"

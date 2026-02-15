@@ -2,6 +2,14 @@
 @config "../tailwind.config.cjs";
 
 @layer base {
+    html {
+        color-scheme: light;
+    }
+
+    html.dark {
+        color-scheme: dark;
+    }
+
     body {
         @apply bg-gray-50 text-gray-900 font-sans dark:bg-gray-950 dark:text-gray-100;
     }

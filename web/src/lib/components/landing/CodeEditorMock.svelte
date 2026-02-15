@@ -119,7 +119,7 @@
   </div>
 
   <div class="relative min-h-0 flex-1 overflow-hidden">
-    <div class="h-full overflow-auto px-2.5 pb-2.5 pt-2 font-mono text-[11px] leading-5 text-[#efe2d4]">
+    <div class="h-full overflow-auto px-2.5 pb-2.5 pt-2 font-mono text-xs leading-5 text-[#efe2d4]">
       {#each codeLines as line (line.id)}
         <div class="min-h-5 whitespace-pre">
           {#if line.tokens.length === 0}
@@ -139,10 +139,10 @@
           <div class="mb-1 flex items-center justify-between gap-2">
             <div class="font-semibold uppercase tracking-wide">notification</div>
             <div class="flex items-center gap-2">
-              <span class="text-[10px] opacity-80">10:42:13 PM</span>
+              <span class="text-xs opacity-80">10:42:13 PM</span>
               <button
                 type="button"
-                class="rounded px-1 text-[10px] opacity-80 hover:bg-white/10 hover:opacity-100"
+                class="rounded px-1 text-xs opacity-80 hover:bg-white/10 hover:opacity-100"
                 aria-label="Dismiss console notification"
               >
                 ×
@@ -150,7 +150,7 @@
             </div>
           </div>
 
-          <div class="font-mono text-[11px] leading-5 text-[#e5e7ea]">{notificationMessage}</div>
+          <div class="font-mono text-xs leading-5 text-[#e5e7ea]">{notificationMessage}</div>
         </div>
       </div>
     {/if}
