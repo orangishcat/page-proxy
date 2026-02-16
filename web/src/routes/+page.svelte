@@ -50,9 +50,9 @@
 
     <section class="flex flex-col items-center" id="tools">
       <h2 class="text-center text-4xl font-bold text-gray-900 dark:text-white">
-        Quick, robust tooling.
+        Robust, integrated tooling.
       </h2>
-      <p class="text-subtitle text-[#5e635e] dark:text-[#c1c6c1] mt-4">All your important tools in one place.</p>
+      <p class="text-subtitle text-[#5e635e] dark:text-[#c1c6c1] mt-4">Spend more time on designing, and less on converting it to code.</p>
 
       <div class="mt-9 w-full">
         <LandingDemoSelect />
