@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ElementInfo, SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
+  import { Tooltip } from "bits-ui";
   import { onDestroy, onMount } from "svelte";
   import {
     createMonacoEditor,
@@ -472,17 +473,32 @@
         <div class="flex h-12 w-full bg-[#282824]">
           <div class="h-full min-w-0 flex-1 pl-2" bind:this={previewHost}></div>
           <div class="flex h-full w-8 shrink-0 items-center justify-center border-l border-gray-700/80">
-            <div
-              class="flex h-full w-full cursor-grab items-center justify-center text-[#e0c987] hover:bg-white/5 active:cursor-grabbing"
-              draggable="true"
-              ondragstart={handlePreviewDragStart}
-              role="button"
-              tabindex="0"
-              aria-label="Drag the filter snippet into the editor to insert it."
-              title="Drag this snippet into the editor."
-            >
-              <GripVertical class="h-4 w-4" />
-            </div>
+            <Tooltip.Root>
+              <Tooltip.Trigger>
+                {#snippet child({ props })}
+                  <div
+                    {...props}
+                    class="flex h-full w-full cursor-grab items-center justify-center text-[#e0c987] hover:bg-white/5 active:cursor-grabbing"
+                    draggable="true"
+                    ondragstart={handlePreviewDragStart}
+                    role="button"
+                    tabindex="0"
+                    aria-label="Drag the filter snippet into the editor to insert it."
+                  >
+                    <GripVertical class="h-4 w-4" />
+                  </div>
+                {/snippet}
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Content
+                  sideOffset={6}
+                  class="z-[2147483647] rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
+                >
+                  Drag this snippet into the editor.
+                  <Tooltip.Arrow class="fill-[#1b1b1b]" />
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            </Tooltip.Root>
           </div>
         </div>
       </div>
@@ -503,14 +519,33 @@
               <div class="font-mono text-xs text-accent-500 truncate max-w-24">
                 {item.key}
               </div>
-              <div
-                class="font-mono text-xs text-secondary-500 truncate text-right"
-                class:underline={item.value.length > 18}
-                class:cursor-help={item.value.length > 18}
-                title={item.value.length > 18 ? item.value : undefined}
-              >
-                {item.value.length > 18 ? `${item.value.length} chars` : truncate(item.value, 30)}
-              </div>
+              {#if item.value.length > 18}
+                <Tooltip.Root>
+                  <Tooltip.Trigger>
+                    {#snippet child({ props })}
+                      <div
+                        {...props}
+                        class="font-mono text-xs text-secondary-500 truncate text-right underline cursor-help"
+                      >
+                        {item.value.length} chars
+                      </div>
+                    {/snippet}
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      sideOffset={6}
+                      class="z-[2147483647] max-w-[24em] break-all rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
+                    >
+                      {item.value}
+                      <Tooltip.Arrow class="fill-[#1b1b1b]" />
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
+              {:else}
+                <div class="font-mono text-xs text-secondary-500 truncate text-right">
+                  {truncate(item.value, 30)}
+                </div>
+              {/if}
             </button>
           {/each}
 
@@ -529,14 +564,33 @@
               <div class="font-mono text-xs text-accent-500 truncate max-w-24">
                 {item.key}
               </div>
-              <div
-                class="font-mono text-xs text-secondary-500 truncate text-right"
-                class:underline={item.value.length > 18}
-                class:cursor-help={item.value.length > 18}
-                title={item.value.length > 18 ? item.value : undefined}
-              >
-                {item.value.length > 18 ? `${item.value.length} chars` : truncate(item.value, 30)}
-              </div>
+              {#if item.value.length > 18}
+                <Tooltip.Root>
+                  <Tooltip.Trigger>
+                    {#snippet child({ props })}
+                      <div
+                        {...props}
+                        class="font-mono text-xs text-secondary-500 truncate text-right underline cursor-help"
+                      >
+                        {item.value.length} chars
+                      </div>
+                    {/snippet}
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      sideOffset={6}
+                      class="z-[2147483647] max-w-[24em] break-all rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
+                    >
+                      {item.value}
+                      <Tooltip.Arrow class="fill-[#1b1b1b]" />
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
+              {:else}
+                <div class="font-mono text-xs text-secondary-500 truncate text-right">
+                  {truncate(item.value, 30)}
+                </div>
+              {/if}
             </button>
           {/each}
 

@@ -16,6 +16,7 @@ export type StoredToolState = {
 
 const storageKeyPrefix = "pageproxy:";
 const toolPanelHeightStorageKey = "sidepanel:toolPanelHeightPx";
+const helpBannerDismissedStorageKey = "sidepanel:helpBannerDismissed";
 
 const isToolId = (value: unknown): value is ToolId =>
   value === "select" ||
@@ -135,6 +136,21 @@ export const saveToolPanelHeightSetting = async (height: number) => {
   await browser.storage.local
     .set({
       [toolPanelHeightStorageKey]: normalizedHeight,
+    })
+    .catch(() => undefined);
+};
+
+export const readHelpBannerDismissedSetting = async () => {
+  return browser.storage.local
+    .get(helpBannerDismissedStorageKey)
+    .then((stored) => stored[helpBannerDismissedStorageKey] === true)
+    .catch(() => false);
+};
+
+export const saveHelpBannerDismissedSetting = async (dismissed: boolean) => {
+  await browser.storage.local
+    .set({
+      [helpBannerDismissedStorageKey]: dismissed,
     })
     .catch(() => undefined);
 };

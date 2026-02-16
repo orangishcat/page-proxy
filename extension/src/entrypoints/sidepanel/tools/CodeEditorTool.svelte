@@ -3,6 +3,7 @@
   import { get } from "svelte/store";
   import { browser } from "wxt/browser";
   import { Play } from "lucide-svelte";
+  import { Tooltip } from "bits-ui";
 
   import { createMonacoEditor, updateMonacoEditorValue, type MonacoCodeEditorHandle } from "@/lib/code-editor";
   import Button from "@/lib/components/Button.svelte";
@@ -538,9 +539,24 @@
         <span class="text-accent-500">{scriptMetadataValue.website}</span>
       {/if}
       {#if hasUnsavedChanges}
-        <div class="flex items-center gap-2 text-xs text-blue-300" title="Unsaved changes">
-          <span class="h-2 w-2 rounded-full bg-blue-400"></span>
-        </div>
+        <Tooltip.Root>
+          <Tooltip.Trigger>
+            {#snippet child({ props })}
+              <div {...props} class="flex items-center gap-2 text-xs text-blue-300">
+                <span class="h-2 w-2 rounded-full bg-blue-400"></span>
+              </div>
+            {/snippet}
+          </Tooltip.Trigger>
+          <Tooltip.Portal>
+            <Tooltip.Content
+              sideOffset={6}
+              class="z-[2147483647] rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+            >
+              Unsaved changes
+              <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+            </Tooltip.Content>
+          </Tooltip.Portal>
+        </Tooltip.Root>
       {/if}
     </div>
     <div class="flex items-center gap-3">

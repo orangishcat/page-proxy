@@ -19,7 +19,9 @@
   import { elementEntries, insertDefinitions, sanitizeVariableName, selectorEntries } from "./tools/code-editor/state";
   import {
     activeToolState,
+    readHelpBannerDismissedSetting,
     readToolPanelHeightSetting,
+    saveHelpBannerDismissedSetting,
     saveToolPanelHeightSetting,
     type ToolId,
   } from "./tools/state-storage";
@@ -269,6 +271,10 @@
       showFirefoxExperimentalBanner = supportedBrowser === "firefox";
     });
 
+    void readHelpBannerDismissedSetting().then((dismissed) => {
+      showHelpBanner = !dismissed;
+    });
+
     toolPanelHeightPx = minToolPanelHeightPx;
     void readToolPanelHeightSetting().then((storedHeight) => {
       if (storedHeight === null) {
@@ -318,6 +324,12 @@
         return;
       }
 
+      if (event.key === "Escape" && activeTool === "select") {
+        event.preventDefault();
+        sendSelectionToggle(false);
+        return;
+      }
+
       const tool = getShortcutTool(event);
       if (!tool) {
         return;
@@ -355,6 +367,7 @@
 
   const dismissHelpBanner = () => {
     showHelpBanner = false;
+    void saveHelpBannerDismissedSetting(true);
   };
 
   const dismissStatusBanner = () => {
