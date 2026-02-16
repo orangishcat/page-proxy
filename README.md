@@ -12,7 +12,7 @@ Page Proxy is an all-in-one userscript manager and creator with custom tools for
 
 [Wait, but I don't get it. What problem is this trying to solve?](https://orangishcat.github.io/page-proxy/docs/purpose)
 
-## Usage instructions¥
+## Usage instructions
 
 - [Installation](https://orangishcat.github.io/page-proxy/install)
 - [Documentation](https://orangishcat.github.io/page-proxy/docs)
