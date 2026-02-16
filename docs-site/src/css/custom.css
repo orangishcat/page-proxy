@@ -185,6 +185,7 @@ body {
 }
 
 .theme-doc-markdown a {
+    color: var(--pp-accent-500);
     text-decoration-thickness: 0.08rem;
     text-underline-offset: 0.14rem;
     transition:

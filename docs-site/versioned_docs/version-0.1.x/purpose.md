@@ -34,7 +34,7 @@ I'm starting off simple here, for now to make Page Proxy userscripts you still n
 
 But the tools provided will help eliminate a lot of the boring work and setup.
 
-For example, to change a specific piece of text, you need to use [CSS Selector](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors)s
+For example, to change a specific piece of text, you need to use [CSS Selectors](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors)
 to identify the text you want to change, before actually changing it.
 
 But with Page Proxy, you can select an element and generate a selector for it. To make sure it selects what you want it to, you
