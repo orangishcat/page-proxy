@@ -94,6 +94,38 @@ Flow:
 
 </div>
 
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+## Selector popup
+
+The selector popup opens from **Select -> Save selector**.
+
+What you do in the popup:
+
+1. Edit the generated `pq.selector(...)` code in the popup editor.
+2. Use the live preview snippet for the active property/filter.
+3. Drag the preview grip into the selector code editor to insert filter fragments.
+4. Save the selector.
+
+What happens on save:
+
+- The sidepanel validates the snippet contains `pq.selector`.
+- It requires a `const` assignment.
+- It checks variable-name collisions.
+- If valid, it inserts the selector into the editor selector block.
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img src="img/editor_usage/selector_popup.png" alt="Page Proxy selector popup" />
+
+</div>
+
+</div>
+
 <div className="margin-bottom--xl">
 
 ## Create tool
@@ -176,38 +208,6 @@ Current behavior:
 <div className="col col--6 margin-bottom--xl">
 
 <img src="img/editor_usage/export_tool.png" alt="Page Proxy Export tool" />
-
-</div>
-
-</div>
-
-<div className="row align-items-center">
-
-<div className="col col--6 margin-bottom--xl">
-
-## Selector popup
-
-The selector popup opens from **Select -> Save selector**.
-
-What you do in the popup:
-
-1. Edit the generated `pq.selector(...)` code in the popup editor.
-2. Use the live preview snippet for the active property/filter.
-3. Drag the preview grip into the selector code editor to insert filter fragments.
-4. Save the selector.
-
-What happens on save:
-
-- The sidepanel validates the snippet contains `pq.selector`.
-- It requires a `const` assignment.
-- It checks variable-name collisions.
-- If valid, it inserts the selector into the editor selector block.
-
-</div>
-
-<div className="col col--6 margin-bottom--xl">
-
-<img src="img/editor_usage/selector_popup.png" alt="Page Proxy selector popup" />
 
 </div>
 
