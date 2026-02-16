@@ -2,6 +2,8 @@
 title: Extension usage
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Extension usage
 
 This page covers the Page Proxy extension workflow: sidepanel tools, code editor behavior, and selector popup flow.
@@ -34,7 +36,7 @@ Sidepanel overview with editor panel, toolbar, and tool panel.
 
 <div className="col col--6">
 
-<img src="img/editor_usage/side_panel.png" alt="Page Proxy sidepanel overview" />
+<img src={useBaseUrl('/img/editor_usage/side_panel.png', {absolute: true})} alt="Page Proxy sidepanel overview" />
 
 </div>
 
@@ -70,7 +72,7 @@ Code editor panel with metadata bar and Run button.
 
 <div className="col col--6">
 
-<img src="img/editor_usage/code_editor.png" alt="Page Proxy code editor tool" />
+<img src={useBaseUrl('/img/editor_usage/code_editor.png', {absolute: true})} alt="Page Proxy code editor tool" />
 
 </div>
 
@@ -100,7 +102,7 @@ Select tool property preview and selector save entry point.
 
 <div className="col col--6">
 
-<img src="img/editor_usage/select_tool.png" alt="Page Proxy Select tool" />
+<img src={useBaseUrl('/img/editor_usage/select_tool.png', {absolute: true})} alt="Page Proxy Select tool" />
 
 </div>
 
@@ -127,7 +129,7 @@ Create workflow area in the sidepanel (currently marked coming soon).
 
 <div className="col col--6">
 
-<img src="img/editor_usage/side_panel.png" alt="Page Proxy Create tool area" />
+<img src={useBaseUrl('/img/editor_usage/side_panel.png', {absolute: true})} alt="Page Proxy Create tool area" />
 
 </div>
 
@@ -157,7 +159,7 @@ Selectors tool with parsed selector entries and rules.
 
 <div className="col col--6">
 
-<img src="img/editor_usage/selectors_tool.png" alt="Page Proxy Selectors tool" />
+<img src={useBaseUrl('/img/editor_usage/selectors_tool.png', {absolute: true})} alt="Page Proxy Selectors tool" />
 
 </div>
 
@@ -185,7 +187,7 @@ Help tool with docs link, issues, and roadmap references.
 
 <div className="col col--6">
 
-<img src="img/editor_usage/help_tool.png" alt="Page Proxy Help tool" />
+<img src={useBaseUrl('/img/editor_usage/help_tool.png', {absolute: true})} alt="Page Proxy Help tool" />
 
 </div>
 
@@ -213,7 +215,7 @@ Export tool with format selector and export action.
 
 <div className="col col--6">
 
-<img src="img/editor_usage/export_tool.png" alt="Page Proxy Export tool" />
+<img src={useBaseUrl('/img/editor_usage/export_tool.png', {absolute: true})} alt="Page Proxy Export tool" />
 
 </div>
 
@@ -249,7 +251,7 @@ Selector popup editor with drag-and-drop preview snippets.
 
 <div className="col col--6">
 
-<img src="img/editor_usage/selector_popup.png" alt="Page Proxy selector popup" />
+<img src={useBaseUrl('/img/editor_usage/selector_popup.png', {absolute: true})} alt="Page Proxy selector popup" />
 
 </div>
 
