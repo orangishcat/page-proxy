@@ -11,9 +11,9 @@ Applies style properties to each element:
 ```ts
 const cards = Array.from(document.querySelectorAll(".card"));
 ps.applyStyle(cards, {
-  border: "0.1em solid #59C2FF",
-  borderRadius: "0.75em",
-  background: "rgba(89, 194, 255, 0.12)",
+    border: "0.1em solid #59C2FF",
+    borderRadius: "0.75em",
+    background: "rgba(89, 194, 255, 0.12)",
 });
 ```
 
@@ -28,15 +28,17 @@ Only elements exposing a `style` property are modified.
 import * as pq from "@page-proxy/pp/pp-query";
 import * as ps from "@page-proxy/pp/pp-style";
 
-const cards = pq.selector({
-  name: "cards",
-  baseSelector: ".card",
-  matches: () => true,
-}).queryAll();
+const cards = pq
+    .selector({
+        name: "cards",
+        baseSelector: ".card",
+        matches: () => true,
+    })
+    .queryAll();
 
 ps.applyStyle(cards, {
-  boxShadow: "0 0 0 0.08em rgba(89, 194, 255, 0.6)",
-  transition: "box-shadow 180ms ease",
+    boxShadow: "0 0 0 0.08em rgba(89, 194, 255, 0.6)",
+    transition: "box-shadow 180ms ease",
 });
 ```
 
@@ -62,6 +64,6 @@ const injected = ps.injectCSS(`
 `);
 
 if (injected) {
-  console.log("Inserted style rules");
+    console.log("Inserted style rules");
 }
 ```

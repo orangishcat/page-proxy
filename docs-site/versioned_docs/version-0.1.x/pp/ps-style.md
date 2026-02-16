@@ -8,8 +8,8 @@ title: ps (Style API)
 
 ```ts
 ps.applyStyle(Array.from(document.querySelectorAll(".target")), {
-  color: "#fff",
-  background: "#111",
+    color: "#fff",
+    background: "#111",
 });
 ```
 
@@ -28,7 +28,7 @@ const inserted = ps.injectCSS(`
 `);
 
 if (!inserted) {
-  console.log("Style already exists or could not be injected.");
+    console.log("Style already exists or could not be injected.");
 }
 ```
 

@@ -29,14 +29,14 @@ Returns an `ElementCreatedObserver`, which extends the built-in JavaScript `Muta
 
 ```js
 const observer = pv.onElementCreated(
-  (el) => {
-    if (el instanceof HTMLElement && el.matches(".toast")) {
-      const text = el.textContent ? el.textContent.trim() : "";
-      console.log("Toast appeared:", text);
-    }
-  },
-  document.body,
-  { childList: true, subtree: true },
+    (el) => {
+        if (el instanceof HTMLElement && el.matches(".toast")) {
+            const text = el.textContent ? el.textContent.trim() : "";
+            console.log("Toast appeared:", text);
+        }
+    },
+    document.body,
+    { childList: true, subtree: true },
 );
 
 // Later:
@@ -72,9 +72,9 @@ In-page notification behavior:
 
 ```js
 pv.notification("Saved profile", {
-  userId: "u_123",
-  role: "admin",
-  updatedAt: new Date().toISOString(),
+    userId: "u_123",
+    role: "admin",
+    updatedAt: new Date().toISOString(),
 });
 
 const cta = document.querySelector("button.primary");

@@ -6,7 +6,6 @@ title: Extension usage
 
 This page covers the Page Proxy extension workflow in `v0.1.x`: sidepanel tools, code editor behavior, and selector popup flow.
 
-
 <div className="row align-items-center">
 
 <div className="col col--6 margin-bottom--xl">
@@ -26,8 +25,7 @@ Toolbar shortcuts:
 - `Shift + 3`: Selectors
 - `Shift + 4`: Help
 - `Shift + 5`: Export
-</div>
-
+  </div>
 
 <div className="col col--6 margin-bottom--xl">
 
@@ -49,8 +47,8 @@ What it does:
 
 - Keeps `pq`, `ps`, and `pv` imports in your script.
 - Uses a selector definition block:
-  - `// ==Selectors==`
-  - `// ==/Selectors==`
+    - `// ==Selectors==`
+    - `// ==/Selectors==`
 - Parses script metadata and selector definitions as you edit.
 - Autosaves after a short delay when content changes.
 - Supports manual save with `Ctrl+S` / `Cmd+S`.
@@ -123,6 +121,7 @@ For each selector, the tool displays:
 - Parsed rules and helper usage extracted from the selector `matches` function.
 
 Use this to confirm selectors were saved correctly and to quickly audit selector logic.
+
 </div>
 
 <div className="col col--6 margin-bottom--xl">

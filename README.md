@@ -8,10 +8,12 @@
 
 Restyle and reskin webpages with a powerful set of developer tools.
 
-Page Proxy is a browser extension that allows you to proxy any website and apply custom CSS and JavaScript to it,
-with a JS API and UI-based tools that assist with UI/UX design.
+Page Proxy is an all-in-one userscript manager and creator with custom tools for userscript design, so you can spend more time designing instead of converting your ideas to code.
+
+[Wait, but what problem is this trying to solve?](https://orangishcat.github.io/page-proxy/docs)
 
 ## Usage instructions
+
 - [Installation](https://orangishcat.github.io/page-proxy/install)
 - [Documentation](https://orangishcat.github.io/page-proxy/docs)
 - There's a help button in the extension which contains known issues and usage tips.
@@ -39,6 +41,7 @@ with a JS API and UI-based tools that assist with UI/UX design.
 ```bash
 bun install
 ```
+
 ### Start Apps
 
 Run each target in a separate terminal:

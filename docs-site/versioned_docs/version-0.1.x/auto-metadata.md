@@ -103,5 +103,5 @@ Example:
 
 - This block is separate from metadata, but also required by the editor.
 - Place selector definitions between:
-  - `// ==Selectors==`
-  - `// ==/Selectors==`
+    - `// ==Selectors==`
+    - `// ==/Selectors==`

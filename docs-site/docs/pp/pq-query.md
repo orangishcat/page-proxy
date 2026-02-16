@@ -29,27 +29,25 @@ Builds reusable selector logic that can query now and observe future matches.
 
 ```js
 const premiumCard = pq.selector({
-  name: "premium-card",
-  baseSelector: ".card",
-  matches: (el) =>
-    pq.innerTextMatches(el, /premium/i) &&
-    pq.propContains(el, "class", "featured"),
-  postMap: (el) => {
-    const heading = el.querySelector("h2");
-    const title = heading && heading.textContent ? heading.textContent.trim() : "";
-    return {
-      element: el,
-      id: el.id,
-      title,
-    };
-  },
+    name: "premium-card",
+    baseSelector: ".card",
+    matches: (el) => pq.innerTextMatches(el, /premium/i) && pq.propContains(el, "class", "featured"),
+    postMap: (el) => {
+        const heading = el.querySelector("h2");
+        const title = heading && heading.textContent ? heading.textContent.trim() : "";
+        return {
+            element: el,
+            id: el.id,
+            title,
+        };
+    },
 });
 
 const first = premiumCard.query();
 const all = premiumCard.queryAll();
 
 const observer = premiumCard.onElementMatches((value) => {
-  console.log("Matched card:", value.id);
+    console.log("Matched card:", value.id);
 });
 
 // Later when no longer needed:
@@ -87,7 +85,7 @@ Checks one element against selector rules.
 ```js
 var candidate = document.querySelector(".card");
 if (candidate && premiumCard.matches(candidate)) {
-  console.log("Candidate passed selector rules");
+    console.log("Candidate passed selector rules");
 }
 ```
 
@@ -99,7 +97,7 @@ Returns `null` when no element matches.
 ```js
 var firstMatch = premiumCard.query();
 if (firstMatch) {
-  console.log("First match:", firstMatch);
+    console.log("First match:", firstMatch);
 }
 ```
 
@@ -121,16 +119,16 @@ Observes DOM creation and calls `func` for matching elements.
 - runs once immediately on the existing `targetNode` subtree
 - then runs for newly-added nodes and their descendants
 - defaults:
-  - `targetNode`: `document.body || document.documentElement`
-  - `observerOptions`: `{ childList: true, subtree: true }`
+    - `targetNode`: `document.body || document.documentElement`
+    - `observerOptions`: `{ childList: true, subtree: true }`
 
 ```js
 var observer = premiumCard.onElementMatches(
-  function (value) {
-    console.log("Matched during observation:", value);
-  },
-  document.body,
-  { childList: true, subtree: true },
+    function (value) {
+        console.log("Matched during observation:", value);
+    },
+    document.body,
+    { childList: true, subtree: true },
 );
 
 // stop observing later
@@ -212,11 +210,9 @@ pq.propExists(button, "innerText");
 Walks `parentElement` upward and returns the first parent that satisfies `matcher`.
 
 ```js
-const panelId = pq.traverseParents(
-  clickedButton,
-  (parent) => parent.classList.contains("settings-panel"),
-  { postMap: (parent) => parent.id },
-);
+const panelId = pq.traverseParents(clickedButton, (parent) => parent.classList.contains("settings-panel"), {
+    postMap: (parent) => parent.id,
+});
 ```
 
 - search starts from `el.parentElement` (not `el` itself)

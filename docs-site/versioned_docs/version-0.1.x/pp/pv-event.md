@@ -27,10 +27,10 @@ What it does:
 
 ```js
 const observer = pv.onElementCreated((el) => {
-  if (el instanceof HTMLElement && el.matches("[data-toast]")) {
-    const text = el.textContent ? el.textContent.trim() : "";
-    console.log("Toast:", text);
-  }
+    if (el instanceof HTMLElement && el.matches("[data-toast]")) {
+        const text = el.textContent ? el.textContent.trim() : "";
+        console.log("Toast:", text);
+    }
 });
 ```
 

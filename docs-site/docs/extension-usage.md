@@ -48,8 +48,8 @@ What it does:
 
 - Keeps `pq`, `ps`, and `pv` imports in your script.
 - Uses a selector definition block:
-  - `// ==Selectors==`
-  - `// ==/Selectors==`
+    - `// ==Selectors==`
+    - `// ==/Selectors==`
 - Parses script metadata and selector definitions as you edit.
 - Autosaves after a short delay when content changes.
 - Supports manual save with `Ctrl+S` / `Cmd+S`.

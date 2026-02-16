@@ -27,15 +27,15 @@ Builds reusable selector logic.
 
 ```js
 const premiumCards = pq.selector({
-  name: "premium-cards",
-  baseSelector: ".card",
-  matches: (el) => pq.innerTextMatches(el, /premium/i),
+    name: "premium-cards",
+    baseSelector: ".card",
+    matches: (el) => pq.innerTextMatches(el, /premium/i),
 });
 
 const first = premiumCards.query();
 const all = premiumCards.queryAll();
 const observer = premiumCards.onElementMatches((el) => {
-  console.log("New premium card:", el);
+    console.log("New premium card:", el);
 });
 ```
 
@@ -62,7 +62,7 @@ Tests one element against your selector rules.
 ```js
 var candidate = document.querySelector(".card");
 if (candidate && premiumCards.matches(candidate)) {
-  console.log("Candidate is a match");
+    console.log("Candidate is a match");
 }
 ```
 
@@ -92,16 +92,16 @@ Starts observing DOM insertions and runs `func` for matches.
 - runs once on the current subtree immediately
 - continues for future added nodes
 - default options:
-  - `targetNode`: `document.body || document.documentElement`
-  - `observerOptions`: `{ childList: true, subtree: true }`
+    - `targetNode`: `document.body || document.documentElement`
+    - `observerOptions`: `{ childList: true, subtree: true }`
 
 ```js
 var observer = premiumCards.onElementMatches(
-  function (value) {
-    console.log("Observed match:", value);
-  },
-  document.body,
-  { childList: true, subtree: true },
+    function (value) {
+        console.log("Observed match:", value);
+    },
+    document.body,
+    { childList: true, subtree: true },
 );
 
 observer.disconnect();
@@ -131,6 +131,6 @@ pq.propContains(el, "class", "featured");
 
 ```js
 const sectionId = pq.traverseParents(button, (parent) => parent.matches("section"), {
-  postMap: (parent) => parent.id,
+    postMap: (parent) => parent.id,
 });
 ```

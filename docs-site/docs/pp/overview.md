@@ -24,19 +24,19 @@ import * as ps from "@page-proxy/pp/pp-style";
 import * as pv from "@page-proxy/pp/pp-event";
 
 const premiumCardSelector = pq.selector({
-  name: "premium-card",
-  baseSelector: ".card",
-  matches: (element) => pq.innerTextMatches(element, /premium/i),
+    name: "premium-card",
+    baseSelector: ".card",
+    matches: (element) => pq.innerTextMatches(element, /premium/i),
 });
 
 const existingCards = premiumCardSelector.queryAll();
 ps.applyStyle(existingCards, {
-  border: "0.1em solid #59C2FF",
-  borderRadius: "0.5em",
+    border: "0.1em solid #59C2FF",
+    borderRadius: "0.5em",
 });
 
 premiumCardSelector.onElementMatches((card) => {
-  ps.applyStyle([card], { outline: "0.1em dashed #FCB253" });
+    ps.applyStyle([card], { outline: "0.1em dashed #FCB253" });
 });
 
 pv.notification("Styled premium cards", { count: existingCards.length });
