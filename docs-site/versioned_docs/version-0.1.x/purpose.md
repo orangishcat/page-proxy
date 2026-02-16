@@ -18,7 +18,7 @@ That brings us to userscripts.
 
 ## Userscripts
 
-Userscripts allow your changes to be persistent. By turning your edits into code, they can be saved and re-applied whenever you visit the webpage again.
+Userscripts allow your changes to be persistent. When you turn your edits into code, they can be saved and re-applied whenever you visit the webpage again.
 
 This allows you to finally add new features, or keep your UI tweaks, or even share them with others.
 
