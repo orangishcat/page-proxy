@@ -16,13 +16,12 @@
     </a>
   </div>
   <div class="rounded-2xl border border-[#4f4a38] bg-[#24231f] p-4 space-y-2">
-    <h2 class="text-title text-gray-100">
-      Known Issues
-    </h2>
+    <h2 class="text-title text-gray-100">Known Issues</h2>
     <ul class="list-disc pl-4 space-y-1.5">
-      <li>A site with a strict Content Security Policy (CSP) will block script execution (e.g. github.com, mozilla.org)</li>
+      <li>
+        A site with a strict Content Security Policy (CSP) will block script execution (e.g. github.com, mozilla.org)
+      </li>
       <li>Select tool doesn't work through iframes</li>
-      <li>Code autocomplete may not work on Chrome</li>
       <li>Loading the extension from a file often doesn't work</li>
     </ul>
     <a
@@ -35,13 +34,12 @@
     </a>
   </div>
   <div class="rounded-2xl border border-[#4f4a38] bg-[#24231f] p-4 space-y-2">
-    <h2 class="text-title text-gray-100">
-      Planned features
-    </h2>
+    <h2 class="text-title text-gray-100">Planned features</h2>
     <ul class="list-disc pl-4 space-y-1.5">
       <li>Query by element CSS properties (e.g. match all red text)</li>
       <li>Website homepage needs a lot of doing</li>
-      <li>Create tool:
+      <li>
+        Create tool:
         <ul class="list-disc pl-4 space-y-1.5">
           <li>Create a settings UI for your script (or any UI) easily</li>
           <li>Create components</li>
@@ -49,7 +47,11 @@
       </li>
       <li>Multi-file scripts</li>
       <li>
-        <a href="https://github.com/orangishcat/page-proxy/blob/main/ROADMAP.md" target="_blank" rel="noopener noreferrer">More...</a>
+        <a
+          href="https://github.com/orangishcat/page-proxy/blob/main/ROADMAP.md"
+          target="_blank"
+          rel="noopener noreferrer">More...</a
+        >
       </li>
     </ul>
     <a

@@ -1,3 +1,6 @@
+import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
+import tsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
+
 type MonacoEnvironment = {
   getWorker?: (moduleId: string, label: string) => Worker;
 };
@@ -15,14 +18,10 @@ export const ensureMonacoEnvironment = () => {
   envGlobal.MonacoEnvironment = {
     getWorker(_: string, label: string) {
       if (label === "typescript" || label === "javascript") {
-        return new Worker(new URL("monaco-editor/esm/vs/language/typescript/ts.worker.js", import.meta.url), {
-          type: "module",
-        });
+        return new tsWorker();
       }
 
-      return new Worker(new URL("monaco-editor/esm/vs/editor/editor.worker.js", import.meta.url), {
-        type: "module",
-      });
+      return new editorWorker();
     },
   };
 };
