@@ -12,7 +12,7 @@ The sidepanel has:
 
 - A code editor panel at the top.
 - A tool panel at the bottom.
-- A left toolbar for switching tools.
+- A toolbar on the top for switching tools.
 
 Toolbar shortcuts:
 
@@ -22,7 +22,7 @@ Toolbar shortcuts:
 - `Shift + 4`: Help
 - `Shift + 5`: Export
 
-<div className="row">
+<div className="row align-items-center">
 
 <div className="col col--6">
 
@@ -42,7 +42,7 @@ Sidepanel overview with editor panel, toolbar, and tool panel.
 
 ## Code editor
 
-The editor is the main script source of truth for the active tab.
+The editor is where you edit code and run it on the active tab..
 
 What it does:
 
@@ -58,7 +58,7 @@ What it does:
 
 On protected pages (for example browser internal pages), editing and execution are disabled and a protected-page message is shown.
 
-<div className="row">
+<div className="row align-items-center">
 
 <div className="col col--6">
 
@@ -88,7 +88,7 @@ Flow:
 4. Use the parent button to move one level up in the DOM.
 5. Click **Save selector** to open the selector popup.
 
-<div className="row">
+<div className="row align-items-center">
 
 <div className="col col--6">
 
@@ -115,7 +115,7 @@ Planned direction in the UI:
 - Generate reusable components.
 - Build script settings UI and other script-driven UI pieces.
 
-<div className="row">
+<div className="row align-items-center">
 
 <div className="col col--6">
 
@@ -145,7 +145,7 @@ For each selector, the tool displays:
 
 Use this to confirm selectors were saved correctly and to quickly audit selector logic.
 
-<div className="row">
+<div className="row align-items-center">
 
 <div className="col col--6">
 
@@ -173,7 +173,7 @@ Help contains quick project references:
 
 Use it as the first stop when behavior seems unexpected.
 
-<div className="row">
+<div className="row align-items-center">
 
 <div className="col col--6">
 
@@ -201,7 +201,7 @@ Current behavior:
 - Other formats are visible but marked coming soon.
 - Exported filename is derived from script title metadata.
 
-<div className="row">
+<div className="row align-items-center">
 
 <div className="col col--6">
 
@@ -237,7 +237,7 @@ What happens on save:
 - It checks variable-name collisions.
 - If valid, it inserts the selector into the editor selector block.
 
-<div className="row">
+<div className="row align-items-center">
 
 <div className="col col--6">
 

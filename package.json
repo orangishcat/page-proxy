@@ -19,7 +19,6 @@
         "web:test": "bun run --cwd web test",
         "docs:dev": "bun run --cwd docs-site dev",
         "docs:build": "bun run --cwd docs-site build",
-        "docs:preview": "bun run --cwd docs-site preview",
         "docs:check": "bun run --cwd docs-site check",
         "extension:generate-monaco-types": "bun run --cwd extension generate-monaco-types",
         "extension:dev": "bun run --cwd extension dev",

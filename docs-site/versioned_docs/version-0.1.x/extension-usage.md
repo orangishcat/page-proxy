@@ -7,9 +7,9 @@ title: Extension usage
 This page covers the Page Proxy extension workflow in `v0.1.x`: sidepanel tools, code editor behavior, and selector popup flow.
 
 
-<div className="row">
+<div className="row align-items-center">
 
-<div className="col col--6 margin-bottom--lg">
+<div className="col col--6 margin-bottom--xl">
 
 ## Sidepanel layout and shortcuts
 
@@ -17,7 +17,7 @@ The sidepanel has:
 
 - A code editor panel at the top.
 - A tool panel at the bottom.
-- A left toolbar for switching tools.
+- A toolbar on the top for switching tools.
 
 Toolbar shortcuts:
 
@@ -29,7 +29,7 @@ Toolbar shortcuts:
 </div>
 
 
-<div className="col col--6 margin-bottom--lg">
+<div className="col col--6 margin-bottom--xl">
 
 <img src="img/editor_usage/side_panel.png" alt="Page Proxy sidepanel overview" />
 
@@ -37,13 +37,13 @@ Toolbar shortcuts:
 
 </div>
 
-<div className="row">
+<div className="row align-items-center">
 
-<div className="col col--6 margin-bottom--lg">
+<div className="col col--6 margin-bottom--xl">
 
 ## Code editor
 
-The editor is the main script source of truth for the active tab.
+The editor is where you edit code and run it on the active tab..
 
 What it does:
 
@@ -61,7 +61,7 @@ On protected pages (for example browser internal pages), editing and execution a
 
 </div>
 
-<div className="col col--6 margin-bottom--lg">
+<div className="col col--6 margin-bottom--xl">
 
 <img src="img/editor_usage/code_editor.png" alt="Page Proxy code editor tool" />
 
@@ -69,9 +69,9 @@ On protected pages (for example browser internal pages), editing and execution a
 
 </div>
 
-<div className="row">
+<div className="row align-items-center">
 
-<div className="col col--6 margin-bottom--lg">
+<div className="col col--6 margin-bottom--xl">
 
 ## Select tool
 
@@ -87,7 +87,7 @@ Flow:
 
 </div>
 
-<div className="col col--6 margin-bottom--lg">
+<div className="col col--6 margin-bottom--xl">
 
 <img src="img/editor_usage/select_tool.png" alt="Page Proxy Select tool" />
 
@@ -95,7 +95,7 @@ Flow:
 
 </div>
 
-<div className="margin-bottom--lg">
+<div className="margin-bottom--xl">
 
 ## Create tool
 
@@ -108,9 +108,9 @@ Planned direction in the UI:
 
 </div>
 
-<div className="row">
+<div className="row align-items-center">
 
-<div className="col col--6 margin-bottom--lg">
+<div className="col col--6 margin-bottom--xl">
 
 ## Selectors tool
 
@@ -125,7 +125,7 @@ For each selector, the tool displays:
 Use this to confirm selectors were saved correctly and to quickly audit selector logic.
 </div>
 
-<div className="col col--6 margin-bottom--lg">
+<div className="col col--6 margin-bottom--xl">
 
 <img src="img/editor_usage/selectors_tool.png" alt="Page Proxy Selectors tool" />
 
@@ -133,9 +133,9 @@ Use this to confirm selectors were saved correctly and to quickly audit selector
 
 </div>
 
-<div className="row">
+<div className="row align-items-center">
 
-<div className="col col--6 margin-bottom--lg">
+<div className="col col--6 margin-bottom--xl">
 
 ## Help tool
 
@@ -149,7 +149,7 @@ Use it as the first stop when behavior seems unexpected.
 
 </div>
 
-<div className="col col--6 margin-bottom--lg">
+<div className="col col--6 margin-bottom--xl">
 
 <img src="img/editor_usage/help_tool.png" alt="Page Proxy Help tool" />
 
@@ -157,9 +157,9 @@ Use it as the first stop when behavior seems unexpected.
 
 </div>
 
-<div className="row">
+<div className="row align-items-center">
 
-<div className="col col--6 margin-bottom--lg">
+<div className="col col--6 margin-bottom--xl">
 
 ## Export tool
 
@@ -170,10 +170,10 @@ Current behavior:
 - `pp-script` export is available now.
 - Other formats are visible but marked coming soon.
 - Exported filename is derived from script title metadata.
--
+
 </div>
 
-<div className="col col--6 margin-bottom--lg">
+<div className="col col--6 margin-bottom--xl">
 
 <img src="img/editor_usage/export_tool.png" alt="Page Proxy Export tool" />
 
@@ -181,9 +181,9 @@ Current behavior:
 
 </div>
 
-<div className="row">
+<div className="row align-items-center">
 
-<div className="col col--6 margin-bottom--lg">
+<div className="col col--6 margin-bottom--xl">
 
 ## Selector popup
 
@@ -205,7 +205,7 @@ What happens on save:
 
 </div>
 
-<div className="col col--6 margin-bottom--lg">
+<div className="col col--6 margin-bottom--xl">
 
 <img src="img/editor_usage/selector_popup.png" alt="Page Proxy selector popup" />
 
