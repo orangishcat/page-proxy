@@ -401,11 +401,11 @@
   });
 </script>
 
-<Tooltip.Provider>
-  <div
-    class="flex flex-col w-full h-full overflow-hidden rounded-lg border border-gray-800 bg-gray-950 text-gray-100 font-sans text-sm shadow-2xl pp-content-ui-root"
-    style="color-scheme: dark;"
-  >
+<div
+  class="flex flex-col w-full h-full overflow-hidden rounded-lg border border-gray-800 bg-gray-950 text-gray-100 font-sans text-sm shadow-2xl pp-content-ui-root"
+  style="color-scheme: dark;"
+>
+  <Tooltip.Provider>
     <!-- Header -->
     <div class="flex items-center h-12 px-4 gap-2.5 bg-gray-900 border-b border-gray-800">
       <span class="text-lead">Selector editor</span>
@@ -492,7 +492,7 @@
                 <Tooltip.Portal>
                   <Tooltip.Content
                     sideOffset={6}
-                    class="z-[2147483647] rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
+                    class="rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
                   >
                     Drag this snippet into the editor.
                     <Tooltip.Arrow class="fill-[#1b1b1b]" />
@@ -525,6 +525,7 @@
                       {#snippet child({ props })}
                         <div
                           {...props}
+                          title={item.value}
                           class="font-mono text-xs text-secondary-500 truncate text-right underline cursor-help"
                         >
                           {item.value.length} chars
@@ -534,7 +535,8 @@
                     <Tooltip.Portal>
                       <Tooltip.Content
                         sideOffset={6}
-                        class="z-[2147483647] max-w-[24em] break-all rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
+                        data-tooltip
+                        class="max-w-[24em] break-all rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
                       >
                         {item.value}
                         <Tooltip.Arrow class="fill-[#1b1b1b]" />
@@ -570,6 +572,7 @@
                       {#snippet child({ props })}
                         <div
                           {...props}
+                          title={item.value}
                           class="font-mono text-xs text-secondary-500 truncate text-right underline cursor-help"
                         >
                           {item.value.length} chars
@@ -579,7 +582,7 @@
                     <Tooltip.Portal>
                       <Tooltip.Content
                         sideOffset={6}
-                        class="z-[2147483647] max-w-[24em] break-all rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
+                        class="max-w-[24em] break-all rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
                       >
                         {item.value}
                         <Tooltip.Arrow class="fill-[#1b1b1b]" />
@@ -601,5 +604,5 @@
         </div>
       </div>
     </div>
-  </div>
-</Tooltip.Provider>
+  </Tooltip.Provider>
+</div>

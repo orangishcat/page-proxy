@@ -26,12 +26,11 @@
     "grid min-w-64 gap-1.5 rounded-lg border border-gray-200 bg-gray-100 p-1 text-gray-700 shadow-xl dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100";
   const itemClasses =
     "text-body cursor-pointer rounded-lg px-3 py-2 text-left hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-700 dark:active:bg-gray-600";
-  const olClasses =
-    "mt-3 list-decimal space-y-1 pl-7 text-gray-700 dark:text-gray-300 space-y-3 [&>li]:pl-1"
+  const olClasses = "mt-3 list-decimal space-y-1 pl-7 text-gray-700 dark:text-gray-300 space-y-3 [&>li]:pl-1";
 
   // TODO: some sort of serverless endpoint that checks the latest version on Github releases?
   // Or some Actions workflow that updates the version number in the codebase??
-  const version = "0.1.1"
+  const version = "0.1.3";
 
   onMount(() => {
     const userAgent = navigator.userAgent.toLowerCase();
@@ -58,7 +57,9 @@
 
       <div class="flex w-full flex-col place-items-start justify-center space-y-4 md:col-span-3 h-[60vh]">
         <h1 class="text-display mt-8 mb-8">Install</h1>
-        <div class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-4 text-base dark:border-gray-800 dark:bg-gray-900">
+        <div
+          class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-4 text-base dark:border-gray-800 dark:bg-gray-900"
+        >
           <div class="grid gap-3 md:grid-cols-2">
             <DropdownMenu.Root bind:open={browserDropdownOpen}>
               <DropdownMenu.Trigger class={triggerClasses}>

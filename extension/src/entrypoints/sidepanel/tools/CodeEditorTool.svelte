@@ -11,7 +11,13 @@
   import { isRestrictedUrl } from "@/lib/utils/website-glob";
   import { requestSandboxEvaluation, requestScriptRun } from "./sandbox/actions";
   import { saveState } from "./code-editor/save";
-  import { codeEditorContent, elementEntries, scriptMetadata, setEditorApi, selectorEntries } from "./code-editor/state";
+  import {
+    codeEditorContent,
+    elementEntries,
+    scriptMetadata,
+    setEditorApi,
+    selectorEntries,
+  } from "./code-editor/state";
   import { getTabUrl, resolveActiveTab, shouldHandleTabUpdate, type ActiveTab } from "./code-editor/tabs";
   import type { ScriptMetadataState } from "./code-editor/state";
   import { activeToolState } from "./state-storage";
@@ -91,7 +97,7 @@
 
   const saveToolState = (content: string) => {
     try {
-      updateSandboxError([])
+      updateSandboxError([]);
       syncDefinitionsNow(content);
 
       const error = get(errorMessage);
@@ -550,7 +556,7 @@
           <Tooltip.Portal>
             <Tooltip.Content
               sideOffset={6}
-              class="z-[2147483647] rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+              class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
             >
               Unsaved changes
               <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
@@ -560,15 +566,31 @@
       {/if}
     </div>
     <div class="flex items-center gap-3">
-      <Button
-        class="px-3! py-1! text-xs"
-        variant="secondary"
-        aria-label="Run script"
-        onclick={runScript}
-        disabled={isRunning}
-      >
-        <Play class="h-4 w-4" />
-      </Button>
+      <Tooltip.Root>
+        <Tooltip.Trigger>
+          {#snippet child({ props })}
+            <Button
+              {...props}
+              class="px-3! py-1! text-xs"
+              variant="secondary"
+              aria-label="Run script"
+              onclick={runScript}
+              disabled={isRunning}
+            >
+              <Play class="h-4 w-4" />
+            </Button>
+          {/snippet}
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            sideOffset={6}
+            class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+          >
+            Run script
+            <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
     </div>
   </div>
   <div class="h-full min-h-0 w-full overflow-auto" bind:this={editorHost}></div>

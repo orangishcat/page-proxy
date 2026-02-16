@@ -64,7 +64,7 @@
       <Tooltip.Portal>
         <Tooltip.Content
           sideOffset={6}
-          class="z-[2147483647] rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+          class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
         >
           Select parent element
           <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
