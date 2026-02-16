@@ -39,6 +39,7 @@
       Planned features
     </h2>
     <ul class="list-disc pl-4 space-y-1.5">
+      <li>Query by element CSS properties (e.g. match all red text)</li>
       <li>Website homepage needs a lot of doing</li>
       <li>Create tool:
         <ul class="list-disc pl-4 space-y-1.5">
