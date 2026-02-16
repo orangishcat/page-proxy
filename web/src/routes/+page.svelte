@@ -24,7 +24,7 @@
           Customization at your <span class="text-accent-500">fingertips.</span>
         </h1>
         <p class="text-2xl text-[#5e635e] dark:text-[#a8a8a8]">
-          A set of developer tools to manipulate <em class="italic text-[#5e635e] dark:text-[#b1b4ad]">any</em> webpage to your will.
+          An all-in-one userscript manager and creator to manipulate the web to your will.
         </p>
 
         <div class="mt-2 flex items-center gap-5">
