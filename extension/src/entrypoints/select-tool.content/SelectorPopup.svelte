@@ -401,204 +401,205 @@
   });
 </script>
 
-<div
-  class="flex flex-col w-full h-full overflow-hidden rounded-lg border border-gray-800 bg-gray-950 text-gray-100 font-sans text-sm shadow-2xl pp-content-ui-root"
-  style="color-scheme: dark;"
->
-  <!-- Header -->
-  <div class="flex items-center h-12 px-4 gap-2.5 bg-gray-900 border-b border-gray-800">
-    <span class="text-lead">Selector editor</span>
-    <a
-      href="https://orangishcat.github.io/page-proxy/docs/pp/pq-query#pqselectordefinition"
-      target="_blank"
-      rel="noopener noreferrer"
-      class="text-caption text-accent-400 hover:text-accent-300 hover:underline"
-      >Selector documentation</a
-    >
-    <div class="flex-1"></div>
-    <button
-      type="button"
-      onclick={onCancel}
-      class="p-1 rounded text-gray-500 hover:bg-white/10 hover:text-white"
-      aria-label="Close popup">×</button
-    >
-  </div>
-
-  <!-- Body -->
-  <div class="flex flex-1 min-h-0 overflow-hidden">
-    <!-- Editor panel -->
-    <div class="flex flex-col flex-1 min-w-0 p-3 gap-3">
-      <div class="flex-1 min-h-0 rounded-lg border border-gray-800 bg-gray-950 overflow-hidden">
-        <div class="h-full w-full" bind:this={editorHost}></div>
-      </div>
-
-      {#if errorMessage}
-        <div class="text-xs text-red-400">{errorMessage}</div>
-      {/if}
-
-      <div class="flex gap-2">
-        <button
-          type="button"
-          onclick={handleSave}
-          class="flex-1 rounded-md py-2 px-4 text-sm font-medium bg-accent-500 text-gray-950 hover:bg-accent-400 transition-colors cursor-pointer"
-          >Save</button
-        >
-        <button
-          type="button"
-          onclick={onCancel}
-          class="flex-1 rounded-md py-2 px-4 text-sm font-medium bg-transparent text-gray-100 border border-white/20 hover:bg-white/10 transition-colors cursor-pointer"
-          >Cancel</button
-        >
-      </div>
+<Tooltip.Provider>
+  <div
+    class="flex flex-col w-full h-full overflow-hidden rounded-lg border border-gray-800 bg-gray-950 text-gray-100 font-sans text-sm shadow-2xl pp-content-ui-root"
+    style="color-scheme: dark;"
+  >
+    <!-- Header -->
+    <div class="flex items-center h-12 px-4 gap-2.5 bg-gray-900 border-b border-gray-800">
+      <span class="text-lead">Selector editor</span>
+      <a
+        href="https://orangishcat.github.io/page-proxy/docs/pp/pq-query#pqselectordefinition"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-caption text-accent-400 hover:text-accent-300 hover:underline">Selector documentation</a
+      >
+      <div class="flex-1"></div>
+      <button
+        type="button"
+        onclick={onCancel}
+        class="p-1 rounded text-gray-500 hover:bg-white/10 hover:text-white"
+        aria-label="Close popup">×</button
+      >
     </div>
 
-    <!-- Properties panel -->
-    <div class="flex flex-col w-64 max-w-64 min-w-0 border-l border-gray-800 bg-black/20 p-3 gap-3">
-      <div class="text-xs uppercase tracking-wide text-gray-500">Property filters</div>
-      {#if !isActiveSpecialProperty}
-        <div class="flex flex-col gap-1">
-          <select
-            value={filterOperator}
-            onchange={(e) => (filterOperator = e.currentTarget.value as FilterOperator)}
-            class="text-sm text-white bg-white/10 border border-white/15 py-1.5 px-2 rounded cursor-pointer"
-          >
-            <option value="contains">contains</option>
-            <option value="matches">matches</option>
-            <option value="keyExists">keyExists</option>
-          </select>
+    <!-- Body -->
+    <div class="flex flex-1 min-h-0 overflow-hidden">
+      <!-- Editor panel -->
+      <div class="flex flex-col flex-1 min-w-0 p-3 gap-3">
+        <div class="flex-1 min-h-0 rounded-lg border border-gray-800 bg-gray-950 overflow-hidden">
+          <div class="h-full w-full" bind:this={editorHost}></div>
         </div>
-      {/if}
 
-      <div class="w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden">
-        <div class="flex h-12 w-full bg-[#282824]">
-          <div class="h-full min-w-0 flex-1 pl-2" bind:this={previewHost}></div>
-          <div class="flex h-full w-8 shrink-0 items-center justify-center border-l border-gray-700/80">
-            <Tooltip.Root>
-              <Tooltip.Trigger>
-                {#snippet child({ props })}
-                  <div
-                    {...props}
-                    class="flex h-full w-full cursor-grab items-center justify-center text-[#e0c987] hover:bg-white/5 active:cursor-grabbing"
-                    draggable="true"
-                    ondragstart={handlePreviewDragStart}
-                    role="button"
-                    tabindex="0"
-                    aria-label="Drag the filter snippet into the editor to insert it."
+        {#if errorMessage}
+          <div class="text-xs text-red-400">{errorMessage}</div>
+        {/if}
+
+        <div class="flex gap-2">
+          <button
+            type="button"
+            onclick={handleSave}
+            class="flex-1 rounded-md py-2 px-4 text-sm font-medium bg-accent-500 text-gray-950 hover:bg-accent-400 transition-colors cursor-pointer"
+            >Save</button
+          >
+          <button
+            type="button"
+            onclick={onCancel}
+            class="flex-1 rounded-md py-2 px-4 text-sm font-medium bg-transparent text-gray-100 border border-white/20 hover:bg-white/10 transition-colors cursor-pointer"
+            >Cancel</button
+          >
+        </div>
+      </div>
+
+      <!-- Properties panel -->
+      <div class="flex flex-col w-64 max-w-64 min-w-0 border-l border-gray-800 bg-black/20 p-3 gap-3">
+        <div class="text-xs uppercase tracking-wide text-gray-500">Property filters</div>
+        {#if !isActiveSpecialProperty}
+          <div class="flex flex-col gap-1">
+            <select
+              value={filterOperator}
+              onchange={(e) => (filterOperator = e.currentTarget.value as FilterOperator)}
+              class="text-sm text-white bg-white/10 border border-white/15 py-1.5 px-2 rounded cursor-pointer"
+            >
+              <option value="contains">contains</option>
+              <option value="matches">matches</option>
+              <option value="keyExists">keyExists</option>
+            </select>
+          </div>
+        {/if}
+
+        <div class="w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden">
+          <div class="flex h-12 w-full bg-[#282824]">
+            <div class="h-full min-w-0 flex-1 pl-2" bind:this={previewHost}></div>
+            <div class="flex h-full w-8 shrink-0 items-center justify-center border-l border-gray-700/80">
+              <Tooltip.Root>
+                <Tooltip.Trigger>
+                  {#snippet child({ props })}
+                    <div
+                      {...props}
+                      class="flex h-full w-full cursor-grab items-center justify-center text-[#e0c987] hover:bg-white/5 active:cursor-grabbing"
+                      draggable="true"
+                      ondragstart={handlePreviewDragStart}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Drag the filter snippet into the editor to insert it."
+                    >
+                      <GripVertical class="h-4 w-4" />
+                    </div>
+                  {/snippet}
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                  <Tooltip.Content
+                    sideOffset={6}
+                    class="z-[2147483647] rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
                   >
-                    <GripVertical class="h-4 w-4" />
+                    Drag this snippet into the editor.
+                    <Tooltip.Arrow class="fill-[#1b1b1b]" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-gray-400 text-xs -mt-2">Edit me or use the grip to drag me into the code editor on the left!</p>
+
+        <div class="text-xs uppercase tracking-wide text-gray-500">Properties</div>
+        <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1">
+          <div class="flex flex-col gap-2">
+            {#each specialPropertyItems as item (item.key)}
+              <button
+                type="button"
+                onclick={() => (selectedPropertyKey = item.key)}
+                class={`flex justify-between items-center text-left rounded-md border border-transparent px-2 py-1 cursor-pointer
+              transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
+                aria-pressed={activePropertyKey === item.key}
+              >
+                <div class="font-mono text-xs text-accent-500 truncate max-w-24">
+                  {item.key}
+                </div>
+                {#if item.value.length > 18}
+                  <Tooltip.Root>
+                    <Tooltip.Trigger>
+                      {#snippet child({ props })}
+                        <div
+                          {...props}
+                          class="font-mono text-xs text-secondary-500 truncate text-right underline cursor-help"
+                        >
+                          {item.value.length} chars
+                        </div>
+                      {/snippet}
+                    </Tooltip.Trigger>
+                    <Tooltip.Portal>
+                      <Tooltip.Content
+                        sideOffset={6}
+                        class="z-[2147483647] max-w-[24em] break-all rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
+                      >
+                        {item.value}
+                        <Tooltip.Arrow class="fill-[#1b1b1b]" />
+                      </Tooltip.Content>
+                    </Tooltip.Portal>
+                  </Tooltip.Root>
+                {:else}
+                  <div class="font-mono text-xs text-secondary-500 truncate text-right">
+                    {truncate(item.value, 30)}
                   </div>
-                {/snippet}
-              </Tooltip.Trigger>
-              <Tooltip.Portal>
-                <Tooltip.Content
-                  sideOffset={6}
-                  class="z-[2147483647] rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
-                >
-                  Drag this snippet into the editor.
-                  <Tooltip.Arrow class="fill-[#1b1b1b]" />
-                </Tooltip.Content>
-              </Tooltip.Portal>
-            </Tooltip.Root>
+                {/if}
+              </button>
+            {/each}
+
+            {#if specialPropertyItems.length > 0 && nonSpecialPropertyItems.length > 0}
+              <hr class="border-gray-800" />
+            {/if}
+
+            {#each nonSpecialPropertyItems as item (item.key)}
+              <button
+                type="button"
+                onclick={() => (selectedPropertyKey = item.key)}
+                class={`flex justify-between items-center text-left rounded-md border border-transparent px-2 py-1 cursor-pointer
+              transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
+                aria-pressed={activePropertyKey === item.key}
+              >
+                <div class="font-mono text-xs text-accent-500 truncate max-w-24">
+                  {item.key}
+                </div>
+                {#if item.value.length > 18}
+                  <Tooltip.Root>
+                    <Tooltip.Trigger>
+                      {#snippet child({ props })}
+                        <div
+                          {...props}
+                          class="font-mono text-xs text-secondary-500 truncate text-right underline cursor-help"
+                        >
+                          {item.value.length} chars
+                        </div>
+                      {/snippet}
+                    </Tooltip.Trigger>
+                    <Tooltip.Portal>
+                      <Tooltip.Content
+                        sideOffset={6}
+                        class="z-[2147483647] max-w-[24em] break-all rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
+                      >
+                        {item.value}
+                        <Tooltip.Arrow class="fill-[#1b1b1b]" />
+                      </Tooltip.Content>
+                    </Tooltip.Portal>
+                  </Tooltip.Root>
+                {:else}
+                  <div class="font-mono text-xs text-secondary-500 truncate text-right">
+                    {truncate(item.value, 30)}
+                  </div>
+                {/if}
+              </button>
+            {/each}
+
+            {#if propertyItems.length === 0}
+              <div class="col-span-full text-xs text-gray-500 text-center p-4">No properties available.</div>
+            {/if}
           </div>
         </div>
       </div>
-
-      <p class="text-gray-400 text-xs -mt-2">Edit me or use the grip to drag me into the code editor on the left!</p>
-
-      <div class="text-xs uppercase tracking-wide text-gray-500">Properties</div>
-      <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1">
-        <div class="flex flex-col gap-2">
-          {#each specialPropertyItems as item (item.key)}
-            <button
-              type="button"
-              onclick={() => (selectedPropertyKey = item.key)}
-              class={`flex justify-between items-center text-left rounded-md border border-transparent px-2 py-1 cursor-pointer
-              transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
-              aria-pressed={activePropertyKey === item.key}
-            >
-              <div class="font-mono text-xs text-accent-500 truncate max-w-24">
-                {item.key}
-              </div>
-              {#if item.value.length > 18}
-                <Tooltip.Root>
-                  <Tooltip.Trigger>
-                    {#snippet child({ props })}
-                      <div
-                        {...props}
-                        class="font-mono text-xs text-secondary-500 truncate text-right underline cursor-help"
-                      >
-                        {item.value.length} chars
-                      </div>
-                    {/snippet}
-                  </Tooltip.Trigger>
-                  <Tooltip.Portal>
-                    <Tooltip.Content
-                      sideOffset={6}
-                      class="z-[2147483647] max-w-[24em] break-all rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
-                    >
-                      {item.value}
-                      <Tooltip.Arrow class="fill-[#1b1b1b]" />
-                    </Tooltip.Content>
-                  </Tooltip.Portal>
-                </Tooltip.Root>
-              {:else}
-                <div class="font-mono text-xs text-secondary-500 truncate text-right">
-                  {truncate(item.value, 30)}
-                </div>
-              {/if}
-            </button>
-          {/each}
-
-          {#if specialPropertyItems.length > 0 && nonSpecialPropertyItems.length > 0}
-            <hr class="border-gray-800" />
-          {/if}
-
-          {#each nonSpecialPropertyItems as item (item.key)}
-            <button
-              type="button"
-              onclick={() => (selectedPropertyKey = item.key)}
-              class={`flex justify-between items-center text-left rounded-md border border-transparent px-2 py-1 cursor-pointer
-              transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
-              aria-pressed={activePropertyKey === item.key}
-            >
-              <div class="font-mono text-xs text-accent-500 truncate max-w-24">
-                {item.key}
-              </div>
-              {#if item.value.length > 18}
-                <Tooltip.Root>
-                  <Tooltip.Trigger>
-                    {#snippet child({ props })}
-                      <div
-                        {...props}
-                        class="font-mono text-xs text-secondary-500 truncate text-right underline cursor-help"
-                      >
-                        {item.value.length} chars
-                      </div>
-                    {/snippet}
-                  </Tooltip.Trigger>
-                  <Tooltip.Portal>
-                    <Tooltip.Content
-                      sideOffset={6}
-                      class="z-[2147483647] max-w-[24em] break-all rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
-                    >
-                      {item.value}
-                      <Tooltip.Arrow class="fill-[#1b1b1b]" />
-                    </Tooltip.Content>
-                  </Tooltip.Portal>
-                </Tooltip.Root>
-              {:else}
-                <div class="font-mono text-xs text-secondary-500 truncate text-right">
-                  {truncate(item.value, 30)}
-                </div>
-              {/if}
-            </button>
-          {/each}
-
-          {#if propertyItems.length === 0}
-            <div class="col-span-full text-xs text-gray-500 text-center p-4">No properties available.</div>
-          {/if}
-        </div>
-      </div>
     </div>
   </div>
-</div>
+</Tooltip.Provider>

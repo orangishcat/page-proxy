@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { Tooltip } from "bits-ui";
   import { browser } from "wxt/browser";
   import { CircleQuestionMark, MousePointer, Plus, Share } from "lucide-svelte";
 
@@ -376,9 +377,10 @@
   };
 </script>
 
-<main class="flex h-full w-full overflow-hidden bg-[#222121] text-white">
-  <div class="h-full w-full min-h-0 min-w-full">
-    <div class="flex h-full w-full min-h-0 flex-col" bind:this={toolPanelLayout}>
+<Tooltip.Provider>
+  <main class="flex h-full w-full overflow-hidden bg-[#222121] text-white">
+    <div class="h-full w-full min-h-0 min-w-full">
+      <div class="flex h-full w-full min-h-0 flex-col" bind:this={toolPanelLayout}>
       {#if showUnsupportedBrowserBanner}
         <div class="flex w-full max-w-none shrink-0 items-center gap-2 bg-red-700 px-4 py-2 text-caption text-red-100">
           <span class="flex-1">Your browser is not supported. Please use Chrome, Brave, or Firefox to avoid unexpected issues.</span>
@@ -602,6 +604,7 @@
           </div>
         </div>
       {/if}
+      </div>
     </div>
-  </div>
-</main>
+  </main>
+</Tooltip.Provider>
