@@ -23,6 +23,7 @@
   let statusMessage = $state<string | null>(null);
   let isDeleteWarningVisible = $state(false);
   let isDeletingScript = $state(false);
+  let metadataScrollContainer = $state<HTMLDivElement | null>(null);
 
   let scriptMetadataValue = $state<ScriptMetadataState>({
     title: "Page Proxy",
@@ -96,9 +97,24 @@
     downloadPpScript();
   };
 
+  const forceMetadataScrollToBottom = () => {
+    if (!metadataScrollContainer) {
+      return;
+    }
+
+    metadataScrollContainer.scrollTop = metadataScrollContainer.scrollHeight;
+  };
+
+  const revealDeleteConfirmation = () => {
+    forceMetadataScrollToBottom();
+    requestAnimationFrame(forceMetadataScrollToBottom);
+    window.setTimeout(forceMetadataScrollToBottom, 60);
+  };
+
   const handleDeleteWarningOpenChange = (open: boolean) => {
     if (open) {
       statusMessage = null;
+      revealDeleteConfirmation();
     }
     isDeleteWarningVisible = open;
   };
@@ -130,7 +146,7 @@
 </script>
 
 <div class="flex w-full min-h-0 flex-1 flex-col gap-4 px-4 py-4">
-  <div class="min-h-0 flex-1 overflow-y-auto space-y-3 pr-1">
+  <div class="min-h-0 flex-1 overflow-y-auto space-y-3 pr-1" bind:this={metadataScrollContainer}>
     <div class="grid grid-cols-[fit-content(7rem)_minmax(0,1fr)] gap-x-4 gap-y-2 text-body whitespace-pre-line">
       <span class="min-w-0 text-right truncate text-gray-500">Title</span>
       <span class="min-w-0 wrap-break-word text-left font-mono">{scriptMetadataValue.title || "Untitled script"}</span>

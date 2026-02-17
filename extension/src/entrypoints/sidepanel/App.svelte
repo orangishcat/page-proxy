@@ -133,6 +133,25 @@
     return Boolean(target.closest('input, textarea, select, [contenteditable="true"], [contenteditable]'));
   };
 
+  const isMonacoEditorTarget = (target: EventTarget | null) => {
+    if (!(target instanceof Element)) {
+      return false;
+    }
+
+    return Boolean(target.closest(".monaco-editor, .monaco-diff-editor"));
+  };
+
+  const isCodeEditorFocused = (eventTarget: EventTarget | null) => {
+    if (isMonacoEditorTarget(eventTarget) || isMonacoEditorTarget(document.activeElement)) {
+      return true;
+    }
+
+    return (
+      document.querySelector(".monaco-editor textarea.inputarea:focus, .monaco-diff-editor textarea.inputarea:focus") !==
+      null
+    );
+  };
+
   const getShortcutTool = (event: KeyboardEvent): ToolbarControlId | null => {
     if (!event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) {
       return null;
@@ -341,7 +360,11 @@
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (isEditableTarget(event.target) || isEditableTarget(document.activeElement)) {
+      if (
+        isEditableTarget(event.target) ||
+        isEditableTarget(document.activeElement) ||
+        isCodeEditorFocused(event.target)
+      ) {
         return;
       }
 
