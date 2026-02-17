@@ -20,7 +20,7 @@
   } from "./code-editor/state";
   import { getTabUrl, resolveActiveTab, shouldHandleTabUpdate, type ActiveTab } from "./code-editor/tabs";
   import type { ScriptMetadataState } from "./code-editor/state";
-  import { activeToolState } from "./state-storage";
+  import { activeToolState, removeStoredToolState } from "./state-storage";
   import {
     buildDefaultScript,
     buildProtectedDisplay,
@@ -335,6 +335,31 @@
     saveNow(editorValue);
   };
 
+  const resetScriptToDefault = async () => {
+    if (isProtectedPage) {
+      throw new Error("This page is protected and cannot store scripts.");
+    }
+
+    const websiteGlob = activeWebsiteGlob?.trim() ?? scriptMetadataValue.website.trim();
+
+    if (websiteGlob) {
+      await removeStoredToolState(websiteGlob).catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : "Unknown storage error.";
+        throw new Error(`Unable to delete script from extension storage: ${message}`);
+      });
+    }
+
+    const defaultContent = buildDefaultScript(websiteGlob, scriptFormatConfig);
+    const normalizedContent = ensureWebsiteMetadata(
+      ensureScriptImports(ensureDefineBlock(defaultContent, scriptFormatConfig), scriptFormatConfig),
+      websiteGlob,
+    );
+
+    activeWebsiteGlob = websiteGlob || null;
+    updateEditorContent(normalizedContent, { persist: false, sync: true });
+    setErrorMessage(null);
+  };
+
   const handleEditorKeydown = (event: KeyboardEvent) => {
     if (event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey)) {
       return;
@@ -499,7 +524,7 @@
     editorValue = buildDefaultScript("", scriptFormatConfig);
     codeEditorContent.set(editorValue);
     setupEditor();
-    setEditorApi({ insertDefinitions: insertDefinitionLines });
+    setEditorApi({ insertDefinitions: insertDefinitionLines, resetToDefault: resetScriptToDefault });
     refreshActiveTab();
     browser.tabs.onActivated.addListener(handleTabActivated);
     browser.tabs.onUpdated.addListener(handleTabUpdated);

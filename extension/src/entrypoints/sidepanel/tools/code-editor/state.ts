@@ -24,6 +24,7 @@ export const scriptMetadata = writable<ScriptMetadataState>({
 
 type EditorApi = {
   insertDefinitions: (lines: string[]) => void;
+  resetToDefault: () => Promise<void>;
 };
 
 const editorApi = writable<EditorApi | null>(null);
@@ -40,6 +41,15 @@ export const insertDefinitions = (lines: string[]) => {
 
   api.insertDefinitions(lines);
   return true;
+};
+
+export const resetEditorToDefault = async () => {
+  const api = get(editorApi);
+  if (!api) {
+    throw new Error("Editor is not ready.");
+  }
+
+  await api.resetToDefault();
 };
 
 export const sanitizeVariableName = (name: string) =>
