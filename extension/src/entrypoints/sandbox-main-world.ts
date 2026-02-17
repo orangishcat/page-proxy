@@ -21,6 +21,7 @@ type LockdownOptions = {
   errorTaming?: "safe" | "unsafe" | "unsafe-guards";
   stackFiltering?: "concise" | "verbose";
   overrideTaming?: "severe" | "moderate" | "min";
+  mathTaming?: "safe" | "unsafe";
 };
 
 const lockdownFn = lockdown as unknown as (options?: LockdownOptions) => void;
@@ -91,6 +92,7 @@ const ensureLockdown = (errors: string[]) => {
       errorTaming: "safe",
       stackFiltering: "concise",
       overrideTaming: "severe",
+      mathTaming: "unsafe",
     });
   } catch (error) {
     if (hasHarden() || hasLockdownMarker()) {

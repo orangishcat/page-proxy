@@ -13,6 +13,7 @@ declare module '@endo/lockdown' {
     errorTaming?: 'safe' | 'unsafe' | 'unsafe-guards';
     stackFiltering?: 'concise' | 'verbose';
     overrideTaming?: 'severe' | 'moderate' | 'min';
+    mathTaming?: 'safe' | 'unsafe';
   };
 
   export const lockdown: (options?: LockdownOptions) => void;
