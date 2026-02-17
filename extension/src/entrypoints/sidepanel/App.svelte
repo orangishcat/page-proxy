@@ -23,8 +23,10 @@
     activeToolState,
     readHelpBannerDismissedSetting,
     readToolPanelHeightSetting,
+    readUserscriptReloadBannerDismissedSetting,
     saveHelpBannerDismissedSetting,
     saveToolPanelHeightSetting,
+    saveUserscriptReloadBannerDismissedSetting,
     type ToolId,
   } from "./tools/state-storage";
 
@@ -32,7 +34,7 @@
 
   const toolLabels: Record<ToolId, string> = {
     select: "Select",
-    "create": "Create",
+    create: "Create",
     selectors: "Selectors",
     share: "Export",
     help: "Help",
@@ -48,7 +50,9 @@
   let showUnsupportedBrowserBanner = $state(false);
   let showFirefoxExperimentalBanner = $state(false);
   let showUserscriptEnableBanner = $state(false);
+  let showUserscriptReloadBanner = $state(false);
   let userscriptEnableWithFirefoxPermissions = $state(false);
+  let userscriptReloadBannerDismissed = $state(false);
   let showHelpBanner = $state(true);
   let toolPanelHeightPx = $state<number | null>(null);
   let toolPanelLayout = $state<HTMLDivElement | null>(null);
@@ -68,7 +72,7 @@
   const activeToolLabel = $derived(toolLabels[activeTool]);
   const shortcutLabels: Record<ToolbarControlId, string> = {
     select: "⇧1",
-    "create": "⇧2",
+    create: "⇧2",
     selectors: "⇧3",
     help: "⇧4",
     share: "⇧5",
@@ -81,8 +85,9 @@
   const toolLabelText = $derived(showHoveredToolLabel ? hoveredToolText : activeToolLabel);
   const isSelectToolActive = $derived(activeTool === "select");
   const toolPanelStyle = $derived(
-    toolPanelHeightPx === null ? undefined :
-    `height: ${toolPanelHeightPx}px; min-height: ${minToolPanelHeightPx}px; max-height: ${maxToolPanelHeightPx}px;`
+    toolPanelHeightPx === null
+      ? undefined
+      : `height: ${toolPanelHeightPx}px; min-height: ${minToolPanelHeightPx}px; max-height: ${maxToolPanelHeightPx}px;`,
   );
 
   const setActiveTool = (tool: ToolId) => {
@@ -275,11 +280,17 @@
       showFirefoxExperimentalBanner = supportedBrowser === "firefox";
       userscriptEnableWithFirefoxPermissions = supportedBrowser === "firefox";
     });
-    void ensureCodeRunnerUserscript().then((status) => {
-      if (!status.ok && status.needsEnablement) {
-        showUserscriptEnableBanner = true;
-      }
-    });
+    void Promise.all([ensureCodeRunnerUserscript(), readUserscriptReloadBannerDismissedSetting()]).then(
+      ([status, reloadBannerDismissed]) => {
+        userscriptReloadBannerDismissed = reloadBannerDismissed;
+        if (!status.ok && status.needsEnablement) {
+          showUserscriptEnableBanner = true;
+          return;
+        }
+
+        showUserscriptReloadBanner = status.ok && !reloadBannerDismissed;
+      },
+    );
 
     void readHelpBannerDismissedSetting().then((dismissed) => {
       showHelpBanner = !dismissed;
@@ -375,6 +386,12 @@
     showUserscriptEnableBanner = false;
   };
 
+  const dismissUserscriptReloadBanner = () => {
+    showUserscriptReloadBanner = false;
+    userscriptReloadBannerDismissed = true;
+    void saveUserscriptReloadBannerDismissedSetting(true);
+  };
+
   const requestFirefoxUserscriptPermission = (event: MouseEvent) => {
     event.preventDefault();
     void browser.permissions
@@ -392,6 +409,7 @@
           }
 
           showUserscriptEnableBanner = false;
+          showUserscriptReloadBanner = !userscriptReloadBannerDismissed;
           setErrorMessage(null);
           setSuccessMessage("Userscripts API enabled.");
         });
@@ -420,265 +438,291 @@
   <main class="flex h-full w-full overflow-hidden bg-[#222121] text-white">
     <div class="h-full w-full min-h-0 min-w-full">
       <div class="flex h-full w-full min-h-0 flex-col" bind:this={toolPanelLayout}>
-      {#if showUnsupportedBrowserBanner}
-        <div class="flex w-full max-w-none shrink-0 items-center gap-2 bg-red-700 px-4 py-2 text-caption text-red-100">
-          <span class="flex-1">Your browser is not supported. Please use Chrome, Brave, or Firefox to avoid unexpected issues.</span>
-          <button
-            type="button"
-            class="rounded border border-red-200 px-2 py-0.5 text-caption text-red-100 hover:bg-red-800"
-            aria-label="Dismiss unsupported browser notice"
-            onclick={dismissUnsupportedBrowserBanner}
+        {#if showUnsupportedBrowserBanner}
+          <div
+            class="flex w-full max-w-none shrink-0 items-center gap-2 bg-red-700 px-4 py-2 text-caption text-red-100"
           >
-            Dismiss
-          </button>
-        </div>
-      {/if}
-
-      {#if showFirefoxExperimentalBanner}
-        <div class="flex w-full max-w-none shrink-0 items-center gap-2 bg-[#3d341d] px-4 py-2 text-caption text-[#f4de9e]">
-          <span class="flex-1">Firefox support is experimental.</span>
-          <button
-            type="button"
-            class="rounded border border-[#8f7a3c] px-2 py-0.5 text-caption text-[#f4de9e] hover:bg-[#5c4f28]"
-            aria-label="Dismiss Firefox experimental notice"
-            onclick={dismissFirefoxExperimentalBanner}
-          >
-            Dismiss
-          </button>
-        </div>
-      {/if}
-
-      {#if showUserscriptEnableBanner}
-        <div class="flex w-full max-w-none shrink-0 items-center gap-2 bg-[#4a2a0f] px-4 py-2 text-caption text-[#ffd8b0]">
-          <span class="flex w-full flex-1 flex-wrap items-center gap-1">
-            <span>Page Proxy needs the Userscripts API to run untrusted scripts.</span>
-            {#if userscriptEnableWithFirefoxPermissions}
-              <a
-                href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/permissions/request"
-                target="_blank"
-                rel="noreferrer"
-                class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
-                onclick={requestFirefoxUserscriptPermission}
-              >
-                Enable it here.
-              </a>
-            {:else}
-              <a
-                href="https://developer.chrome.com/docs/extensions/reference/api/userScripts#chrome_versions_138_and_newer_allow_user_scripts_toggle"
-                target="_blank"
-                rel="noreferrer"
-                class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
-              >
-                Instructions to enable.
-              </a>
-            {/if}
-          </span>
-          <button
-            type="button"
-            class="rounded border border-[#8f5f31] px-2 py-0.5 text-caption text-[#ffd8b0] hover:bg-[#5f3918]"
-            aria-label="Dismiss Userscripts API notice"
-            onclick={dismissUserscriptEnableBanner}
-          >
-            Dismiss
-          </button>
-        </div>
-      {/if}
-
-      {#if !showUnsupportedBrowserBanner && showHelpBanner}
-        <div class="flex w-full max-w-none shrink-0 items-center gap-2 bg-[#1e2f46] px-4 py-2 text-caption text-[#d4e9ff]">
-          <span class="flex w-full flex-1 flex-wrap items-center gap-1">
-            <span>Something not working? Check the Help tool</span>
-            <CircleQuestionMark class="h-4 w-4" aria-hidden="true" />
-            <span>for troubleshooting or</span>
-            <a
-              href="https://github.com/orangishcat/page-proxy"
-              target="_blank"
-              rel="noreferrer"
-              class="font-semibold text-[#d4e9ff] underline underline-offset-2 hover:opacity-80"
+            <span class="flex-1"
+              >Your browser is not supported. Please use Chrome, Brave, or Firefox to avoid unexpected issues.</span
             >
-              report a bug
-            </a>
-            <span>.</span>
-          </span>
-          <button
-            type="button"
-            class="rounded border border-[#4c6f98] px-2 py-0.5 text-caption text-[#d4e9ff] hover:bg-[#27405f]"
-            aria-label="Dismiss help notice"
-            onclick={dismissHelpBanner}
-          >
-            Dismiss
-          </button>
-        </div>
-      {/if}
-
-      <section
-        class="relative flex w-full shrink-0 flex-col bg-[#282824]"
-        aria-label="Tool panel"
-        bind:this={toolPanelSection}
-        style={toolPanelStyle}
-      >
-        <div
-          class="flex justify-between h-12 px-3 py-2 bg-[#393a34]"
-          role="toolbar"
-          aria-label="Tool actions"
-          tabindex="0"
-          onmouseenter={() => {
-            isToolbarHovered = true;
-          }}
-          onmouseleave={() => {
-            isToolbarHovered = false;
-            hoveredTool = null;
-            lastHoveredTool = null;
-          }}
-        >
-          <!-- Left side -->
-          <div class="h-full min-w-0 flex flex-1 flex-row gap-3 place-items-center">
-            <Button
-              class={toolButtonClasses(activeTool === "select")}
-              variant="outline"
-              aria-label="Toggle selection mode"
-              aria-pressed={isSelectToolActive}
-              onmouseenter={() => {
-                hoveredTool = "select";
-                lastHoveredTool = "select";
-              }}
-              onmouseleave={() => {
-                hoveredTool = null;
-              }}
-              onclick={activateSelectTool}
-            >
-              <MousePointer class={iconSize} />
-            </Button>
-            <Button
-              class={toolButtonClasses(activeTool === "create")}
-              variant="outline"
-              aria-label="Create tool"
-              onmouseenter={() => {
-                hoveredTool = "create";
-                lastHoveredTool = "create";
-              }}
-              onmouseleave={() => {
-                hoveredTool = null;
-              }}
-              onclick={() => setActiveTool("create")}
-            >
-              <Plus class={iconSize} />
-            </Button>
-            <Button
-              class="{toolButtonClasses(activeTool === 'selectors')} text-sm"
-              variant="outline"
-              aria-label="Selectors tool"
-              onmouseenter={() => {
-                hoveredTool = "selectors";
-                lastHoveredTool = "selectors";
-              }}
-              onmouseleave={() => {
-                hoveredTool = null;
-              }}
-              onclick={() => setActiveTool("selectors")}
-            >
-              $0
-            </Button>
-            <span
-              class="min-w-0 max-w-full flex-1 truncate transition duration-300 {showHoveredToolLabel
-                ? 'text-gray-600 dark:text-gray-400'
-                : ''}"
-            >
-              {toolLabelText}
-            </span>
-          </div>
-          <!-- Right side -->
-          <div class="h-full flex flex-row gap-4 place-items-center">
-            <Button
-              class={toolButtonClasses(activeTool === "help")}
-              variant="outline"
-              aria-label="Help"
-              onmouseenter={() => {
-                hoveredTool = "help";
-                lastHoveredTool = "help";
-              }}
-              onmouseleave={() => {
-                hoveredTool = null;
-              }}
-              onclick={() => setActiveTool("help")}
-            >
-              <CircleQuestionMark class={iconSize} />
-            </Button>
-            <Button
-              class="{toolButtonClasses(activeTool === 'share')} bg-secondary-500"
-              variant="outline"
-              aria-label="Export tool"
-              onmouseenter={() => {
-                hoveredTool = "share";
-                lastHoveredTool = "share";
-              }}
-              onmouseleave={() => {
-                hoveredTool = null;
-              }}
-              onclick={() => setActiveTool("share")}
-            >
-              <Share class={iconSize} />
-            </Button>
-          </div>
-        </div>
-
-        {#if activeTool === "select"}
-          <SelectTool />
-        {:else if activeTool === "create"}
-          <CreateTool />
-        {:else if activeTool === "selectors"}
-          <SelectorsTool />
-        {:else if activeTool === "help"}
-          <HelpTool />
-        {:else if activeTool === "share"}
-          <ExportTool />
-        {:else if activeTool === "none"}
-          <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4 justify-center place-items-center">
-            <p class="text-caption text-gray-500 dark:text-gray-400">Select a tool from the top bar</p>
-          </div>
-        {:else}
-          <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4">
-            <p class="text-body">
-              Unknown tool: {activeTool}
-            </p>
-          </div>
-        {/if}
-      </section>
-
-      <div
-        class="h-2 w-full shrink-0 cursor-row-resize bg-[#282824] transition-colors hover:bg-[#4a4b45] active:bg-accent-500/40"
-        role="separator"
-        aria-label="Resize tool panel"
-        aria-orientation="horizontal"
-        bind:this={toolPanelResizeHandle}
-        onpointerdown={startToolPanelResize}
-        onpointermove={updateToolPanelResize}
-        onpointerup={finishToolPanelResize}
-        onpointercancel={finishToolPanelResize}
-      ></div>
-
-      <CodeEditorTool />
-
-      {#if errorMessageValue || successMessageValue}
-        <div
-          class={`w-full shrink-0 px-4 py-2 text-caption ${
-            successMessageValue ? "bg-[#1f3a22] text-[#b8f3bf]" : "bg-[#3b1d1d] text-[#f5b1b1]"
-          }`}
-          bind:this={errorBannerElement}
-        >
-          <div class="flex items-center gap-2">
-            <span class="flex-1">{successMessageValue ?? errorMessageValue}</span>
             <button
               type="button"
-              class="rounded border border-current px-2 py-0.5 text-caption hover:bg-black/10"
-              aria-label="Dismiss status message"
-              onclick={dismissStatusBanner}
+              class="rounded border border-red-200 px-2 py-0.5 text-caption text-red-100 hover:bg-red-800"
+              aria-label="Dismiss unsupported browser notice"
+              onclick={dismissUnsupportedBrowserBanner}
             >
               Dismiss
             </button>
           </div>
-        </div>
-      {/if}
+        {/if}
+
+        {#if showFirefoxExperimentalBanner}
+          <div
+            class="flex w-full max-w-none shrink-0 items-center gap-2 bg-[#3d341d] px-4 py-2 text-caption text-[#f4de9e]"
+          >
+            <span class="flex-1">Firefox support is experimental.</span>
+            <button
+              type="button"
+              class="rounded border border-[#8f7a3c] px-2 py-0.5 text-caption text-[#f4de9e] hover:bg-[#5c4f28]"
+              aria-label="Dismiss Firefox experimental notice"
+              onclick={dismissFirefoxExperimentalBanner}
+            >
+              Dismiss
+            </button>
+          </div>
+        {/if}
+
+        {#if showUserscriptEnableBanner}
+          <div
+            class="flex w-full max-w-none shrink-0 items-center gap-2 bg-[#4a2a0f] px-4 py-2 text-caption text-[#ffd8b0]"
+          >
+            <span class="flex w-full flex-1 flex-wrap items-center gap-1">
+              <span>Page Proxy needs the Userscripts API to run untrusted scripts.</span>
+              {#if userscriptEnableWithFirefoxPermissions}
+                <a
+                  href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/permissions/request"
+                  target="_blank"
+                  rel="noreferrer"
+                  class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
+                  onclick={requestFirefoxUserscriptPermission}
+                >
+                  Enable it here.
+                </a>
+              {:else}
+                <a
+                  href="https://developer.chrome.com/docs/extensions/reference/api/userScripts#chrome_versions_138_and_newer_allow_user_scripts_toggle"
+                  target="_blank"
+                  rel="noreferrer"
+                  class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
+                >
+                  Instructions to enable
+                </a>
+              {/if}
+            </span>
+            <button
+              type="button"
+              class="rounded border border-[#8f5f31] px-2 py-0.5 text-caption text-[#ffd8b0] hover:bg-[#5f3918]"
+              aria-label="Dismiss Userscripts API notice"
+              onclick={dismissUserscriptEnableBanner}
+            >
+              Dismiss
+            </button>
+          </div>
+        {/if}
+
+        {#if !showUserscriptEnableBanner && showUserscriptReloadBanner}
+          <div
+            class="flex w-full max-w-none shrink-0 items-center gap-2 bg-[#1e2f46] px-4 py-2 text-caption text-[#d4e9ff]"
+          >
+            <span class="flex-1">Note: you may need to reload all your tabs for the Userscript API to take effect.</span>
+            <button
+              type="button"
+              class="rounded border border-[#4c6f98] px-2 py-0.5 text-caption text-[#d4e9ff] hover:bg-[#27405f]"
+              aria-label="Dismiss Userscript reload notice"
+              onclick={dismissUserscriptReloadBanner}
+            >
+              Dismiss
+            </button>
+          </div>
+        {/if}
+
+        {#if !showUnsupportedBrowserBanner && showHelpBanner}
+          <div
+            class="flex w-full max-w-none shrink-0 items-center gap-2 bg-[#1e2f46] px-4 py-2 text-caption text-[#d4e9ff]"
+          >
+            <span class="flex w-full flex-1 flex-wrap items-center gap-1">
+              <span>Something not working? Check the Help tool</span>
+              <CircleQuestionMark class="h-4 w-4" aria-hidden="true" />
+              <span>for troubleshooting or</span>
+              <a
+                href="https://github.com/orangishcat/page-proxy"
+                target="_blank"
+                rel="noreferrer"
+                class="font-semibold text-[#d4e9ff] underline underline-offset-2 hover:opacity-80"
+              >
+                report a bug
+              </a>
+              <span>.</span>
+            </span>
+            <button
+              type="button"
+              class="rounded border border-[#4c6f98] px-2 py-0.5 text-caption text-[#d4e9ff] hover:bg-[#27405f]"
+              aria-label="Dismiss help notice"
+              onclick={dismissHelpBanner}
+            >
+              Dismiss
+            </button>
+          </div>
+        {/if}
+
+        <section
+          class="relative flex w-full shrink-0 flex-col bg-[#282824]"
+          aria-label="Tool panel"
+          bind:this={toolPanelSection}
+          style={toolPanelStyle}
+        >
+          <div
+            class="flex justify-between h-12 px-3 py-2 bg-[#393a34]"
+            role="toolbar"
+            aria-label="Tool actions"
+            tabindex="0"
+            onmouseenter={() => {
+              isToolbarHovered = true;
+            }}
+            onmouseleave={() => {
+              isToolbarHovered = false;
+              hoveredTool = null;
+              lastHoveredTool = null;
+            }}
+          >
+            <!-- Left side -->
+            <div class="h-full min-w-0 flex flex-1 flex-row gap-3 place-items-center">
+              <Button
+                class={toolButtonClasses(activeTool === "select")}
+                variant="outline"
+                aria-label="Toggle selection mode"
+                aria-pressed={isSelectToolActive}
+                onmouseenter={() => {
+                  hoveredTool = "select";
+                  lastHoveredTool = "select";
+                }}
+                onmouseleave={() => {
+                  hoveredTool = null;
+                }}
+                onclick={activateSelectTool}
+              >
+                <MousePointer class={iconSize} />
+              </Button>
+              <Button
+                class={toolButtonClasses(activeTool === "create")}
+                variant="outline"
+                aria-label="Create tool"
+                onmouseenter={() => {
+                  hoveredTool = "create";
+                  lastHoveredTool = "create";
+                }}
+                onmouseleave={() => {
+                  hoveredTool = null;
+                }}
+                onclick={() => setActiveTool("create")}
+              >
+                <Plus class={iconSize} />
+              </Button>
+              <Button
+                class="{toolButtonClasses(activeTool === 'selectors')} text-sm"
+                variant="outline"
+                aria-label="Selectors tool"
+                onmouseenter={() => {
+                  hoveredTool = "selectors";
+                  lastHoveredTool = "selectors";
+                }}
+                onmouseleave={() => {
+                  hoveredTool = null;
+                }}
+                onclick={() => setActiveTool("selectors")}
+              >
+                $0
+              </Button>
+              <span
+                class="min-w-0 max-w-full flex-1 truncate transition duration-300 {showHoveredToolLabel
+                  ? 'text-gray-600 dark:text-gray-400'
+                  : ''}"
+              >
+                {toolLabelText}
+              </span>
+            </div>
+            <!-- Right side -->
+            <div class="h-full flex flex-row gap-4 place-items-center">
+              <Button
+                class={toolButtonClasses(activeTool === "help")}
+                variant="outline"
+                aria-label="Help"
+                onmouseenter={() => {
+                  hoveredTool = "help";
+                  lastHoveredTool = "help";
+                }}
+                onmouseleave={() => {
+                  hoveredTool = null;
+                }}
+                onclick={() => setActiveTool("help")}
+              >
+                <CircleQuestionMark class={iconSize} />
+              </Button>
+              <Button
+                class="{toolButtonClasses(activeTool === 'share')} bg-secondary-500"
+                variant="outline"
+                aria-label="Export tool"
+                onmouseenter={() => {
+                  hoveredTool = "share";
+                  lastHoveredTool = "share";
+                }}
+                onmouseleave={() => {
+                  hoveredTool = null;
+                }}
+                onclick={() => setActiveTool("share")}
+              >
+                <Share class={iconSize} />
+              </Button>
+            </div>
+          </div>
+
+          {#if activeTool === "select"}
+            <SelectTool />
+          {:else if activeTool === "create"}
+            <CreateTool />
+          {:else if activeTool === "selectors"}
+            <SelectorsTool />
+          {:else if activeTool === "help"}
+            <HelpTool />
+          {:else if activeTool === "share"}
+            <ExportTool />
+          {:else if activeTool === "none"}
+            <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4 justify-center place-items-center">
+              <p class="text-caption text-gray-500 dark:text-gray-400">Select a tool from the top bar</p>
+            </div>
+          {:else}
+            <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4">
+              <p class="text-body">
+                Unknown tool: {activeTool}
+              </p>
+            </div>
+          {/if}
+        </section>
+
+        <div
+          class="h-2 w-full shrink-0 cursor-row-resize bg-[#282824] transition-colors hover:bg-[#4a4b45] active:bg-accent-500/40"
+          role="separator"
+          aria-label="Resize tool panel"
+          aria-orientation="horizontal"
+          bind:this={toolPanelResizeHandle}
+          onpointerdown={startToolPanelResize}
+          onpointermove={updateToolPanelResize}
+          onpointerup={finishToolPanelResize}
+          onpointercancel={finishToolPanelResize}
+        ></div>
+
+        <CodeEditorTool />
+
+        {#if errorMessageValue || successMessageValue}
+          <div
+            class={`w-full shrink-0 px-4 py-2 text-caption ${
+              successMessageValue ? "bg-[#1f3a22] text-[#b8f3bf]" : "bg-[#3b1d1d] text-[#f5b1b1]"
+            }`}
+            bind:this={errorBannerElement}
+          >
+            <div class="flex items-center gap-2">
+              <span class="flex-1">{successMessageValue ?? errorMessageValue}</span>
+              <button
+                type="button"
+                class="rounded border border-current px-2 py-0.5 text-caption hover:bg-black/10"
+                aria-label="Dismiss status message"
+                onclick={dismissStatusBanner}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        {/if}
       </div>
     </div>
   </main>

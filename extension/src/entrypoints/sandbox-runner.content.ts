@@ -1,6 +1,5 @@
 import {browser} from 'wxt/browser';
 import {defineContentScript} from 'wxt/utils/define-content-script';
-import {injectScript} from 'wxt/utils/inject-script';
 import log from 'loglevel';
 
 import {
@@ -16,46 +15,12 @@ import {
   type ScriptRunResponse
 } from '@/lib/script-runner';
 
-const injectedScriptPath = 'sandbox-main-world.js';
 const responseTimeoutMs = 1800;
 const scriptRunResponseTimeoutMs = 1800;
-const injectionTimeoutMs = 1800;
 const logger = log.getLogger('sandbox-runner');
 logger.setLevel('debug', false);
-let injectPromise: Promise<boolean> | null = null;
 const pendingResponses = new Map<string, (response: SandboxEvaluateResponse) => void>();
 const pendingScriptRunResponses = new Map<string, (response: ScriptRunResponse) => void>();
-
-const ensureInjected = () => {
-  if (injectPromise) {
-    return injectPromise;
-  }
-
-  logger.debug('Injecting sandbox main-world script');
-  const injectTask = injectScript(injectedScriptPath, {keepInDom: true})
-    .then(() => {
-      logger.debug('Sandbox main-world script injected');
-      return true;
-    })
-    .catch((error: unknown) => {
-      logger.error('Sandbox main-world injection failed', {error});
-      return false;
-    });
-
-  injectPromise = new Promise((resolve) => {
-    const timeoutId = window.setTimeout(() => {
-      logger.warn('Sandbox main-world injection timed out, continuing', {injectionTimeoutMs});
-      resolve(true);
-    }, injectionTimeoutMs);
-
-    void injectTask.then((result) => {
-      window.clearTimeout(timeoutId);
-      resolve(result);
-    });
-  });
-
-  return injectPromise;
-};
 
 const resolvePendingResponse = (response: SandboxEvaluateResponse) => {
   const resolver = pendingResponses.get(response.requestId);
@@ -114,44 +79,32 @@ export default defineContentScript({
     const handleSandboxRequest = (message: {
       requestId: string;
       code: string;
-    }) => {
-      logger.debug('Handling sandbox:evaluate', {requestId: message.requestId});
-      return ensureInjected().then((injected) => {
-        if (!injected) {
-          logger.error('Sandbox script injection failed', {requestId: message.requestId});
-          return buildSandboxErrorResponse(
-            message.requestId,
-            'Unable to inject the sandbox script.'
+    }) =>
+      new Promise<SandboxEvaluateResponse>((resolve) => {
+        const timeoutId = window.setTimeout(() => {
+          pendingResponses.delete(message.requestId);
+          logger.warn('Sandbox request timed out', {requestId: message.requestId, responseTimeoutMs});
+          resolve(
+            buildSandboxErrorResponse(message.requestId, 'Sandbox request timed out.')
           );
-        }
+        }, responseTimeoutMs);
 
-        return new Promise<SandboxEvaluateResponse>((resolve) => {
-          const timeoutId = window.setTimeout(() => {
-            pendingResponses.delete(message.requestId);
-            logger.warn('Sandbox request timed out', {requestId: message.requestId, responseTimeoutMs});
-            resolve(
-              buildSandboxErrorResponse(message.requestId, 'Sandbox request timed out.')
-            );
-          }, responseTimeoutMs);
-
-          pendingResponses.set(message.requestId, (response) => {
-            window.clearTimeout(timeoutId);
-            logger.debug('Sandbox response received before timeout', {requestId: message.requestId});
-            resolve(response);
-          });
-
-          logger.debug('Posting sandbox:evaluate to main world', {requestId: message.requestId});
-          window.postMessage(
-            {
-              type: 'sandbox:evaluate',
-              requestId: message.requestId,
-              code: message.code
-            },
-            getTargetOrigin()
-          );
+        pendingResponses.set(message.requestId, (response) => {
+          window.clearTimeout(timeoutId);
+          logger.debug('Sandbox response received before timeout', {requestId: message.requestId});
+          resolve(response);
         });
+
+        logger.debug('Posting sandbox:evaluate to main world', {requestId: message.requestId});
+        window.postMessage(
+          {
+            type: 'sandbox:evaluate',
+            requestId: message.requestId,
+            code: message.code
+          },
+          getTargetOrigin()
+        );
       });
-    };
 
     const handleScriptRunRequest = (message: {requestId: string; code: string}) =>
       new Promise<ScriptRunResponse>((resolve) => {

@@ -284,6 +284,11 @@ export const requestSandboxEvaluation = async (code: string): Promise<SandboxRes
     return toResult('Sandbox is unavailable on this page.');
   }
 
+  const userscriptStatus = await ensureCodeRunnerUserscript();
+  if (!userscriptStatus.ok) {
+    return toResult(userscriptStatus.message);
+  }
+
   const requestId = buildRequestId();
   const request: SandboxEvaluateRequest = {
     type: 'sandbox:evaluate',

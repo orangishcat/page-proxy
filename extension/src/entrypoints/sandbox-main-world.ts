@@ -86,11 +86,24 @@ const ensureLockdown = (errors: string[]) => {
     return false;
   }
 
-  lockdownFn({
-    errorTaming: "safe",
-    stackFiltering: "concise",
-    overrideTaming: "severe",
-  });
+  try {
+    lockdownFn({
+      errorTaming: "safe",
+      stackFiltering: "concise",
+      overrideTaming: "severe",
+    });
+  } catch (error) {
+    if (hasHarden() || hasLockdownMarker()) {
+      setLockdownMarker();
+      lockdownReady = true;
+      console.warn("[pp sandbox-main-world] lockdown failed; continuing with partial lockdown", { error });
+      return true;
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    errors.push(`Sandbox initialization failed: ${message}`);
+    return false;
+  }
   setLockdownMarker();
   lockdownReady = true;
   return true;
@@ -233,6 +246,7 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
   const errors: string[] = [];
   const elements: SandboxResult["elements"] = [];
   const selectors: SelectorEntry[] = [];
+  let hardenWarningShown = false;
 
   if (!code.trim()) {
     return { elements, selectors, errors };
@@ -249,15 +263,26 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
   }
 
   const harden = getHarden();
-  if (!harden) {
-    errors.push("Sandbox initialization failed: harden is unavailable.");
-    return { elements, selectors, errors };
-  }
+  const hardenValue = <T>(value: T): T => {
+    if (!harden) {
+      return value;
+    }
+
+    try {
+      return harden(value) as T;
+    } catch (error) {
+      if (!hardenWarningShown) {
+        hardenWarningShown = true;
+        console.warn("[pp sandbox-main-world] harden() failed; continuing without hardening", { error });
+      }
+      return value;
+    }
+  };
 
   const registerSelector = (definition: unknown) => {
     const result = createSelectorEntry(definition, errors);
     if (!result) {
-      return harden({});
+      return hardenValue({});
     }
     const { entry, matches, postMap } = result;
     selectors.push(entry);
@@ -267,7 +292,7 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
       matches,
       postMap,
     });
-    return harden({
+    return hardenValue({
       definition: entry,
       matches: (el: Element) => resolvedSelector.matches(el),
       onElementMatches: (
@@ -283,19 +308,19 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
   const applyStyle = (elementsValue: unknown, values: unknown) => {
     if (!Array.isArray(elementsValue)) {
       errors.push("ps.applyStyle expects an array of elements.");
-      return harden({});
+      return hardenValue({});
     }
 
     if (!isRecord(values)) {
       errors.push("ps.applyStyle expects a style object with string values.");
-      return harden({});
+      return hardenValue({});
     }
 
     const entries = Object.entries(values).filter((entry): entry is [string, string] => typeof entry[1] === "string");
 
     if (entries.length === 0) {
       errors.push("ps.applyStyle expects at least one style value.");
-      return harden({});
+      return hardenValue({});
     }
 
     const styleValues = Object.fromEntries(entries);
@@ -307,24 +332,24 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
     });
     ps.applyStyle(styledElements, styleValues);
 
-    return harden({});
+    return hardenValue({});
   };
 
-  const pageApi = harden({
+  const pageApi = hardenValue({
     ...pv.createApi(),
   });
 
-  const queryApi = harden({
+  const queryApi = hardenValue({
     ...pq,
     selector: registerSelector,
   });
 
-  const styleApi = harden({
+  const styleApi = hardenValue({
     ...ps,
     applyStyle,
   });
 
-  const eventApi = harden({
+  const eventApi = hardenValue({
     ...pv,
   });
 
@@ -335,7 +360,7 @@ const evaluateDefinitionBlock = (code: string): SandboxResult => {
     pv: eventApi,
     pp: pageApi,
   });
-  harden(compartment.globalThis);
+  hardenValue(compartment.globalThis);
   compartment.evaluate(`'use strict';\n${code}`);
 
   return { elements, selectors, errors };
@@ -412,7 +437,18 @@ export default defineUnlistedScript(() => {
     window.addEventListener("error", onError);
     window.addEventListener("unhandledrejection", onRejection);
 
-    const result = evaluateDefinitionBlock(code);
+    let result: SandboxResult;
+    try {
+      result = evaluateDefinitionBlock(code);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      result = {
+        elements: [],
+        selectors: [],
+        errors: [`Sandbox execution failed: ${message}`],
+      };
+      console.error("[pp sandbox-main-world] evaluation crashed", { requestId, error });
+    }
     console.debug("[pp sandbox-main-world] evaluation completed", {
       requestId,
       elementCount: result.elements.length,

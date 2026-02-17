@@ -38,9 +38,9 @@ export default defineConfig({
       sourcemap: env.command === "serve" ? true : false,
     },
   }),
-  manifest: {
+  manifest: ({ browser }) => ({
     name: "Page Proxy",
-    version: "0.1.3",
+    version: "0.1.4",
     description: "Proxy and restyle pages with an extension-based UI.",
     action: {
       default_title: "Page Proxy",
@@ -57,7 +57,9 @@ export default defineConfig({
       48: "logo_filled.png",
       128: "logo_filled.png",
     },
-    permissions: ["storage", "scripting", "tabs", "userScripts"],
+    permissions:
+      browser === "firefox" ? ["storage", "scripting", "tabs"] : ["storage", "scripting", "tabs", "userScripts"],
+    optional_permissions: browser === "firefox" ? ["userScripts"] : [],
     host_permissions: ["<all_urls>"],
     web_accessible_resources: [
       {
@@ -65,5 +67,16 @@ export default defineConfig({
         matches: ["<all_urls>"],
       },
     ],
+  }),
+  hooks: {
+    "build:manifestGenerated": (wxt, manifest) => {
+      if (wxt.config.browser !== "firefox") {
+        return;
+      }
+
+      manifest.web_accessible_resources?.forEach((resource) => {
+        delete (resource as { use_dynamic_url?: boolean }).use_dynamic_url;
+      });
+    },
   },
 });

@@ -17,6 +17,7 @@ export type StoredToolState = {
 const storageKeyPrefix = "pageproxy:";
 const toolPanelHeightStorageKey = "sidepanel:toolPanelHeightPx";
 const helpBannerDismissedStorageKey = "sidepanel:helpBannerDismissed";
+const userscriptReloadBannerDismissedStorageKey = "sidepanel:userscriptReloadBannerDismissed";
 
 const isToolId = (value: unknown): value is ToolId =>
   value === "select" ||
@@ -151,6 +152,21 @@ export const saveHelpBannerDismissedSetting = async (dismissed: boolean) => {
   await browser.storage.local
     .set({
       [helpBannerDismissedStorageKey]: dismissed,
+    })
+    .catch(() => undefined);
+};
+
+export const readUserscriptReloadBannerDismissedSetting = async () => {
+  return browser.storage.local
+    .get(userscriptReloadBannerDismissedStorageKey)
+    .then((stored) => stored[userscriptReloadBannerDismissedStorageKey] === true)
+    .catch(() => false);
+};
+
+export const saveUserscriptReloadBannerDismissedSetting = async (dismissed: boolean) => {
+  await browser.storage.local
+    .set({
+      [userscriptReloadBannerDismissedStorageKey]: dismissed,
     })
     .catch(() => undefined);
 };
