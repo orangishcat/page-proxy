@@ -21,7 +21,6 @@ Page Proxy is an all-in-one userscript manager and creator with custom tools for
 ## Supported browsers
 
 - Tested on Chrome, Brave, Firefox
-- **Edge may not work, please do not use Edge**
 - Use other Chromium or Firefox-based browsers at your own risk
 
 ## Features
