@@ -61,6 +61,7 @@ Example:
 - Required field.
 - Human-readable summary shown in metadata/export views.
 - Can be empty text, but the field line must exist.
+- Supports multiline values (see below).
 
 Example:
 
@@ -84,6 +85,7 @@ Example:
 - Optional field.
 - Used for attribution (libraries, snippets, contributors).
 - If empty, it may be hidden in parts of the UI.
+- Supports multiline values (see below).
 
 Example:
 
@@ -91,11 +93,31 @@ Example:
 // @credits Inspired by internal design-system selectors.
 ```
 
+## Multiline metadata example
+
+`@description` and `@credits` support multiline values.
+
+Add continuation lines directly below the metadata key line:
+
+```js
+// ==Page Proxy==
+// @title Product card tweaks
+// @website https://shop.example.com/*
+// @description Improve readability for dense product cards.
+// Increase spacing between title and pricing rows.
+// @author Jane Doe
+// @credits UI idea from internal design review.
+// Selector strategy adapted from old userscript experiments.
+// ==/Page Proxy==
+```
+
 ## Metadata parsing rules
 
 - Each metadata line must use `// @key value` (a colon like `@key: value` is also accepted).
 - Required fields are `@title`, `@website`, and `@description`.
 - Optional fields are `@author` and `@credits`.
+- Multiline continuation lines are supported only for `@description` and `@credits`.
+- A multiline field continues until the next metadata key (next `// @...` line).
 - Duplicate supported fields (for example two `@website` lines) are invalid.
 - Unknown metadata keys are ignored.
 
