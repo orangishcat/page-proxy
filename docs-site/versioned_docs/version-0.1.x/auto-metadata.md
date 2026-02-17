@@ -95,7 +95,7 @@ Example:
 
 ## Multiline metadata example
 
-`@description` and `@credits` support multiline values.
+`@description` and `@credits` support multiline values (new in v0.1.4).
 
 Add continuation lines directly below the metadata key line:
 
