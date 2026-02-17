@@ -17,15 +17,14 @@ import {
 } from '@/lib/script-runner';
 
 const injectedScriptPath = 'sandbox-main-world.js';
-const runScriptPath = 'code-runner-main-world.js';
-const responseTimeoutMs = 2000;
-const injectionTimeoutMs = 2000;
+const responseTimeoutMs = 1800;
+const scriptRunResponseTimeoutMs = 1800;
+const injectionTimeoutMs = 1800;
 const logger = log.getLogger('sandbox-runner');
 logger.setLevel('debug', false);
 let injectPromise: Promise<boolean> | null = null;
-let runInjectPromise: Promise<boolean> | null = null;
 const pendingResponses = new Map<string, (response: SandboxEvaluateResponse) => void>();
-const pendingRunResponses = new Map<string, (response: ScriptRunResponse) => void>();
+const pendingScriptRunResponses = new Map<string, (response: ScriptRunResponse) => void>();
 
 const ensureInjected = () => {
   if (injectPromise) {
@@ -58,37 +57,6 @@ const ensureInjected = () => {
   return injectPromise;
 };
 
-const ensureRunInjected = () => {
-  if (runInjectPromise) {
-    return runInjectPromise;
-  }
-
-  logger.debug('Injecting code-runner main-world script');
-  const injectTask = injectScript(runScriptPath, {keepInDom: true})
-    .then(() => {
-      logger.debug('Code-runner main-world script injected');
-      return true;
-    })
-    .catch((error: unknown) => {
-      logger.error('Code-runner main-world injection failed', {error});
-      return false;
-    });
-
-  runInjectPromise = new Promise((resolve) => {
-    const timeoutId = window.setTimeout(() => {
-      logger.warn('Code-runner main-world injection timed out, continuing', {injectionTimeoutMs});
-      resolve(true);
-    }, injectionTimeoutMs);
-
-    void injectTask.then((result) => {
-      window.clearTimeout(timeoutId);
-      resolve(result);
-    });
-  });
-
-  return runInjectPromise;
-};
-
 const resolvePendingResponse = (response: SandboxEvaluateResponse) => {
   const resolver = pendingResponses.get(response.requestId);
   if (!resolver) {
@@ -101,15 +69,15 @@ const resolvePendingResponse = (response: SandboxEvaluateResponse) => {
   resolver(response);
 };
 
-const resolvePendingRunResponse = (response: ScriptRunResponse) => {
-  const resolver = pendingRunResponses.get(response.requestId);
+const resolvePendingScriptRunResponse = (response: ScriptRunResponse) => {
+  const resolver = pendingScriptRunResponses.get(response.requestId);
   if (!resolver) {
-    logger.debug('No pending script response resolver', {requestId: response.requestId});
+    logger.debug('No pending script:run response resolver', {requestId: response.requestId});
     return;
   }
 
-  pendingRunResponses.delete(response.requestId);
-  logger.debug('Resolved script response', {requestId: response.requestId});
+  pendingScriptRunResponses.delete(response.requestId);
+  logger.debug('Resolved script:run response', {requestId: response.requestId});
   resolver(response);
 };
 
@@ -134,22 +102,13 @@ export default defineContentScript({
       }
 
       if (!isSandboxResponse(event.data)) {
+        if (isScriptRunResponse(event.data)) {
+          resolvePendingScriptRunResponse(event.data);
+        }
         return;
       }
 
       resolvePendingResponse(event.data);
-    });
-
-    window.addEventListener('message', (event) => {
-      if (!isWindowSource(event.source)) {
-        return;
-      }
-
-      if (!isScriptRunResponse(event.data)) {
-        return;
-      }
-
-      resolvePendingRunResponse(event.data);
     });
 
     const handleSandboxRequest = (message: {
@@ -157,8 +116,7 @@ export default defineContentScript({
       code: string;
     }) => {
       logger.debug('Handling sandbox:evaluate', {requestId: message.requestId});
-      return (
-      ensureInjected().then((injected) => {
+      return ensureInjected().then((injected) => {
         if (!injected) {
           logger.error('Sandbox script injection failed', {requestId: message.requestId});
           return buildSandboxErrorResponse(
@@ -192,46 +150,40 @@ export default defineContentScript({
             getTargetOrigin()
           );
         });
-      })
-    );
+      });
     };
 
-    const handleScriptRun = (message: {requestId: string; code: string}) =>
-      ensureRunInjected().then((injected) => {
-        logger.debug('Handling script:run', {requestId: message.requestId});
-        if (!injected) {
-          logger.error('Script runner injection failed', {requestId: message.requestId});
-          return buildScriptRunResponse(
-            message.requestId,
-            'Unable to inject the script runner.'
-          );
-        }
-
-        return new Promise<ScriptRunResponse>((resolve) => {
-          const timeoutId = window.setTimeout(() => {
-            pendingRunResponses.delete(message.requestId);
-            logger.warn('Script run timed out', {requestId: message.requestId, responseTimeoutMs});
-            resolve(
-              buildScriptRunResponse(message.requestId, 'Script execution timed out (probably due to CSP, try another website).')
-            );
-          }, responseTimeoutMs);
-
-          pendingRunResponses.set(message.requestId, (response) => {
-            window.clearTimeout(timeoutId);
-            logger.debug('Script response received before timeout', {requestId: message.requestId});
-            resolve(response);
+    const handleScriptRunRequest = (message: {requestId: string; code: string}) =>
+      new Promise<ScriptRunResponse>((resolve) => {
+        const timeoutId = window.setTimeout(() => {
+          pendingScriptRunResponses.delete(message.requestId);
+          logger.warn('Script run request timed out', {
+            requestId: message.requestId,
+            scriptRunResponseTimeoutMs
           });
-
-          logger.debug('Posting script:run to main world', {requestId: message.requestId});
-          window.postMessage(
-            {
-              type: 'script:run',
-              requestId: message.requestId,
-              code: message.code
-            },
-            getTargetOrigin()
+          resolve(
+            buildScriptRunResponse(
+              message.requestId,
+              'Script run request timed out waiting for main-world response.'
+            )
           );
+        }, scriptRunResponseTimeoutMs);
+
+        pendingScriptRunResponses.set(message.requestId, (response) => {
+          window.clearTimeout(timeoutId);
+          logger.debug('Script run response received before timeout', {requestId: message.requestId});
+          resolve(response);
         });
+
+        logger.debug('Posting script:run to main world', {requestId: message.requestId});
+        window.postMessage(
+          {
+            type: 'script:run',
+            requestId: message.requestId,
+            code: message.code
+          },
+          getTargetOrigin()
+        );
       });
 
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -246,12 +198,15 @@ export default defineContentScript({
           return;
         }
 
-        void handleScriptRun(message)
+        void handleScriptRunRequest(message)
           .then((response) => {
             sendResponse(response);
           })
           .catch((error: unknown) => {
-            logger.error('script:run handling failed before response', {requestId: message.requestId, error});
+            logger.error('script:run handling failed before response', {
+              requestId: message.requestId,
+              error
+            });
             sendResponse(
               buildScriptRunResponse(
                 message.requestId,

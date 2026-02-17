@@ -5,6 +5,7 @@ import { isRestrictedUrl, matchWebsiteGlob } from "@/lib/utils/website-glob";
 import { isScriptRunResponse, type ScriptRunRequest } from "@/lib/script-runner";
 import { createTabBadgeUpdater } from "@/lib/background/tab-badge";
 import { buildDefaultScript } from "@/lib/default-script";
+import { ensureCodeRunnerUserscript } from "@/lib/userscript-runner";
 import log from "loglevel";
 
 type ToolId = "select" | "create" | "selectors" | "help" | "share" | "none";
@@ -31,6 +32,8 @@ const defaultScriptConfig = {
   defineBlockStart: defaultDefineBlockStart,
   defineBlockEnd: defaultDefineBlockEnd,
 } as const;
+const logger = log.getLogger("background");
+logger.setLevel("debug", false);
 
 const isToolId = (value: unknown): value is ToolId =>
   value === "select" ||
@@ -148,7 +151,7 @@ const normalizeContentForStorage = (content: string) => ensureScriptImports(ensu
 
 const isDefaultScriptState = (state: StoredToolState) => {
   const defaultContent = normalizeContentForStorage(buildDefaultScript(state.websiteGlob, defaultScriptConfig));
-  log.debug(`Default content: ${defaultContent}, code editor content: ${state.codeEditor.content}`);
+  logger.debug(`Default content: ${defaultContent}, code editor content: ${state.codeEditor.content}`);
   return state.codeEditor.content === defaultContent;
 };
 
@@ -181,10 +184,33 @@ const buildRunRequest = (code: string): ScriptRunRequest => ({
   code,
 });
 
+const isNoReceiverError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("Receiving end does not exist") ||
+    message.includes("Could not establish connection") ||
+    message.includes("No receiving end")
+  );
+};
+
+const sendRunRequestToTab = (tabId: number, code: string) =>
+  browser.tabs
+    .sendMessage(tabId, buildRunRequest(code), { frameId: 0 })
+    .catch((error: unknown) => {
+      if (!isNoReceiverError(error)) {
+        throw error;
+      }
+
+      return browser.tabs.sendMessage(tabId, buildRunRequest(code));
+    });
+
 const runScriptInTab = async (tabId: number, code: string) => {
-  const response: unknown = await browser.tabs.sendMessage(tabId, buildRunRequest(code), {
-    frameId: 0,
-  });
+  const userscriptStatus = await ensureCodeRunnerUserscript();
+  if (!userscriptStatus.ok) {
+    return false;
+  }
+
+  const response: unknown = await sendRunRequestToTab(tabId, code);
   if (!isScriptRunResponse(response)) {
     return false;
   }
@@ -210,6 +236,12 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
 };
 
 export default defineBackground(() => {
+  void ensureCodeRunnerUserscript().then((status) => {
+    if (!status.ok) {
+      logger.warn("Unable to initialize User Scripts runner", { message: status.message });
+    }
+  });
+
   const sidePanel = browser.sidePanel;
   if (sidePanel?.setPanelBehavior) {
     void sidePanel.setPanelBehavior({ openPanelOnActionClick: true });

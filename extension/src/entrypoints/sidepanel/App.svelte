@@ -18,6 +18,7 @@
   import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
   import type { SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
   import { elementEntries, insertDefinitions, sanitizeVariableName, selectorEntries } from "./tools/code-editor/state";
+  import { ensureCodeRunnerUserscript } from "@/lib/userscript-runner";
   import {
     activeToolState,
     readHelpBannerDismissedSetting,
@@ -46,6 +47,8 @@
   let successMessageValue = $state<string | null>(null);
   let showUnsupportedBrowserBanner = $state(false);
   let showFirefoxExperimentalBanner = $state(false);
+  let showUserscriptEnableBanner = $state(false);
+  let userscriptEnableWithFirefoxPermissions = $state(false);
   let showHelpBanner = $state(true);
   let toolPanelHeightPx = $state<number | null>(null);
   let toolPanelLayout = $state<HTMLDivElement | null>(null);
@@ -270,6 +273,12 @@
     void detectBrowserSupport().then(({ browser: supportedBrowser, supported }) => {
       showUnsupportedBrowserBanner = !supported;
       showFirefoxExperimentalBanner = supportedBrowser === "firefox";
+      userscriptEnableWithFirefoxPermissions = supportedBrowser === "firefox";
+    });
+    void ensureCodeRunnerUserscript().then((status) => {
+      if (!status.ok && status.needsEnablement) {
+        showUserscriptEnableBanner = true;
+      }
     });
 
     void readHelpBannerDismissedSetting().then((dismissed) => {
@@ -362,6 +371,36 @@
     showFirefoxExperimentalBanner = false;
   };
 
+  const dismissUserscriptEnableBanner = () => {
+    showUserscriptEnableBanner = false;
+  };
+
+  const requestFirefoxUserscriptPermission = (event: MouseEvent) => {
+    event.preventDefault();
+    void browser.permissions
+      .request({ permissions: ["userScripts"] })
+      .then((granted) => {
+        if (!granted) {
+          setErrorMessage("Userscripts API permission was not granted.");
+          return;
+        }
+
+        return ensureCodeRunnerUserscript().then((status) => {
+          if (!status.ok) {
+            setErrorMessage(status.message);
+            return;
+          }
+
+          showUserscriptEnableBanner = false;
+          setErrorMessage(null);
+          setSuccessMessage("Userscripts API enabled.");
+        });
+      })
+      .catch(() => {
+        setErrorMessage("Unable to request Userscripts API permission.");
+      });
+  };
+
   const dismissUnsupportedBrowserBanner = () => {
     showUnsupportedBrowserBanner = false;
   };
@@ -403,6 +442,42 @@
             class="rounded border border-[#8f7a3c] px-2 py-0.5 text-caption text-[#f4de9e] hover:bg-[#5c4f28]"
             aria-label="Dismiss Firefox experimental notice"
             onclick={dismissFirefoxExperimentalBanner}
+          >
+            Dismiss
+          </button>
+        </div>
+      {/if}
+
+      {#if showUserscriptEnableBanner}
+        <div class="flex w-full max-w-none shrink-0 items-center gap-2 bg-[#4a2a0f] px-4 py-2 text-caption text-[#ffd8b0]">
+          <span class="flex w-full flex-1 flex-wrap items-center gap-1">
+            <span>Page Proxy needs the Userscripts API to run untrusted scripts.</span>
+            {#if userscriptEnableWithFirefoxPermissions}
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/permissions/request"
+                target="_blank"
+                rel="noreferrer"
+                class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
+                onclick={requestFirefoxUserscriptPermission}
+              >
+                Enable it here.
+              </a>
+            {:else}
+              <a
+                href="https://developer.chrome.com/docs/extensions/reference/api/userScripts#chrome_versions_138_and_newer_allow_user_scripts_toggle"
+                target="_blank"
+                rel="noreferrer"
+                class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
+              >
+                Instructions to enable.
+              </a>
+            {/if}
+          </span>
+          <button
+            type="button"
+            class="rounded border border-[#8f5f31] px-2 py-0.5 text-caption text-[#ffd8b0] hover:bg-[#5f3918]"
+            aria-label="Dismiss Userscripts API notice"
+            onclick={dismissUserscriptEnableBanner}
           >
             Dismiss
           </button>

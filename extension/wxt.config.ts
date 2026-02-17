@@ -10,8 +10,9 @@ export default defineConfig({
   root: ".",
   srcDir: "src",
   entrypointsDir: "entrypoints",
+  manifestVersion: 3,
   modules: ["@wxt-dev/module-svelte"],
-  vite: () => ({
+  vite: (env) => ({
     resolve: {
       dedupe: ["svelte", "monaco-editor", "monaco-editor-core"],
       alias: [
@@ -34,6 +35,7 @@ export default defineConfig({
     },
     build: {
       assetsInlineLimit: 0,
+      sourcemap: env.command === "serve" ? true : false,
     },
   }),
   manifest: {
@@ -55,7 +57,7 @@ export default defineConfig({
       48: "logo_filled.png",
       128: "logo_filled.png",
     },
-    permissions: ["storage", "scripting", "tabs"],
+    permissions: ["storage", "scripting", "tabs", "userScripts"],
     host_permissions: ["<all_urls>"],
     web_accessible_resources: [
       {

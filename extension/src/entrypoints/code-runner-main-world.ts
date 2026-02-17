@@ -59,7 +59,14 @@ const stripPpImportText = (code: string) =>
     .join('\n');
 
 const wrapExecutableCode = (code: string) =>
-  `((pq, ps, pv, pa, pp) => {\n${code}\n})(globalThis.pq, globalThis.ps, globalThis.pv, globalThis.pa, globalThis.pp);`;
+  [
+    'const pq = globalThis.pq;',
+    'const ps = globalThis.ps;',
+    'const pv = globalThis.pv;',
+    'const pa = globalThis.pa;',
+    'const pp = globalThis.pp;',
+    code
+  ].join('\n');
 
 const maxLogDepth = 5;
 const maxLogEntries = 50;
@@ -212,6 +219,28 @@ const createNotificationCapture = () => {
   return {logs, sink};
 };
 
+const toExecutionErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return String(error);
+};
+
+const runScriptCode = (code: string) => {
+  const executableCode = wrapExecutableCode(stripPpImportText(code));
+  const blob = new Blob([executableCode], {type: 'text/javascript'});
+  const blobUrl = URL.createObjectURL(blob);
+
+  return import(/* @vite-ignore */ blobUrl)
+    .then(() => {
+      URL.revokeObjectURL(blobUrl);
+    })
+    .catch((error: unknown) => {
+      URL.revokeObjectURL(blobUrl);
+      throw error;
+    });
+};
+
 const getTargetOrigin = () => {
   if (window.location.origin === 'null') {
     return '*';
@@ -222,49 +251,64 @@ const getTargetOrigin = () => {
 
 const isWindowSource = (source: MessageEventSource | null) => source === window || source === null;
 
-const respondOnce = (
+const runScriptRequest = (
   requestId: string,
-  response: ScriptRunResponse,
-  cleanup: () => void,
-  responded: {value: boolean}
-) => {
-  if (responded.value) {
-    return;
-  }
-
-  responded.value = true;
-  cleanup();
-  window.postMessage(response, getTargetOrigin());
-};
-
-const injectBlobScript = (
   code: string,
-  onSuccess: () => void,
-  onFailure: () => void
+  sendResult: (response: ScriptRunResponse) => void
 ) => {
-  const blob = new Blob([code], {type: 'text/javascript'});
-  const url = URL.createObjectURL(blob);
-  const script = document.createElement('script');
+  const {logs, sink} = createNotificationCapture();
+  const modules = ensurePpModules();
+  let notificationSinkKey = modules.pv.notificationSinkGlobalKey;
+  const pageApi = modules.pv.createApi();
+  let hasResponded = false;
 
-  script.async = false;
-  script.src = url;
-  script.onload = () => {
-    URL.revokeObjectURL(url);
-    script.remove();
-    onSuccess();
-  };
-  script.onerror = () => {
-    URL.revokeObjectURL(url);
-    script.remove();
-    onFailure();
+  const cleanup = () => {
+    window.removeEventListener('error', onError);
+    window.removeEventListener('unhandledrejection', onRejection);
+    delete (globalThis as Record<string, unknown>)[notificationSinkKey];
   };
 
-  (document.head || document.documentElement).appendChild(script);
+  const respond = (error: string | null) => {
+    if (hasResponded) {
+      return;
+    }
+
+    hasResponded = true;
+    cleanup();
+    sendResult(buildScriptRunResponse(requestId, error, logs));
+  };
+
+  const onError = (errorEvent: ErrorEvent) => {
+    respond(`Script execution failed: ${errorEvent.message || 'Unknown error.'}`);
+    errorEvent.preventDefault();
+  };
+
+  const onRejection = (rejection: PromiseRejectionEvent) => {
+    respond(`Script execution failed: ${toExecutionErrorMessage(rejection.reason)}`);
+    rejection.preventDefault();
+  };
+
+  window.addEventListener('error', onError);
+  window.addEventListener('unhandledrejection', onRejection);
+
+  notificationSinkKey = modules.pv.notificationSinkGlobalKey;
+  (globalThis as Record<string, unknown>).pq = modules.pq;
+  (globalThis as Record<string, unknown>).ps = modules.ps;
+  (globalThis as Record<string, unknown>).pv = modules.pv;
+  (globalThis as Record<string, unknown>).pa = pageApi;
+  (globalThis as Record<string, unknown>).pp = pageApi;
+  (globalThis as Record<string, unknown>)[notificationSinkKey] = sink;
+
+  void runScriptCode(code)
+    .then(() => {
+      respond(null);
+    })
+    .catch((error: unknown) => {
+      respond(`Script execution failed: ${toExecutionErrorMessage(error)}`);
+    });
 };
 
 export default defineUnlistedScript(() => {
-  console.debug('[pp code-runner-main-world] initialized', {href: window.location.href});
-
   window.addEventListener('message', (event) => {
     if (!isWindowSource(event.source)) {
       return;
@@ -274,87 +318,8 @@ export default defineUnlistedScript(() => {
       return;
     }
 
-    const {requestId, code} = event.data;
-    console.debug('[pp code-runner-main-world] request received', {requestId});
-    const responded = {value: false};
-    const {logs, sink} = createNotificationCapture();
-    let notificationSinkKey = pv.notificationSinkGlobalKey;
-
-    const onError = (errorEvent: ErrorEvent) => {
-      respondOnce(
-        requestId,
-        buildScriptRunResponse(
-          requestId,
-          `Script execution failed: ${errorEvent.message || 'Unknown error.'}`,
-          logs
-        ),
-        cleanupListeners,
-        responded
-      );
-      errorEvent.preventDefault();
-    };
-
-    const onRejection = (rejection: PromiseRejectionEvent) => {
-      const rawMessage =
-        rejection.reason instanceof Error
-          ? rejection.reason.message
-          : 'Unknown rejection.';
-      respondOnce(
-        requestId,
-        buildScriptRunResponse(
-          requestId,
-          `Script execution failed: ${rawMessage}`,
-          logs
-        ),
-        cleanupListeners,
-        responded
-      );
-      rejection.preventDefault();
-    };
-
-    const cleanupListeners = () => {
-      window.removeEventListener('error', onError);
-      window.removeEventListener('unhandledrejection', onRejection);
-      delete (globalThis as Record<string, unknown>)[notificationSinkKey];
-    };
-
-    window.addEventListener('error', onError);
-    window.addEventListener('unhandledrejection', onRejection);
-
-    const modules = ensurePpModules();
-    notificationSinkKey = modules.pv.notificationSinkGlobalKey;
-    const pageApi = modules.pv.createApi();
-    (globalThis as Record<string, unknown>).pq = modules.pq;
-    (globalThis as Record<string, unknown>).ps = modules.ps;
-    (globalThis as Record<string, unknown>).pv = modules.pv;
-    (globalThis as Record<string, unknown>).pa = pageApi;
-    (globalThis as Record<string, unknown>).pp = pageApi;
-    (globalThis as Record<string, unknown>)[notificationSinkKey] = sink;
-    const executableCode = wrapExecutableCode(stripPpImportText(code));
-    injectBlobScript(
-      executableCode,
-      () => {
-        console.debug('[pp code-runner-main-world] execution completed', {requestId, logs: logs.length});
-        respondOnce(
-          requestId,
-          buildScriptRunResponse(requestId, null, logs),
-          cleanupListeners,
-          responded
-        );
-      },
-      () => {
-        console.error('[pp code-runner-main-world] script injection failed', {requestId});
-        respondOnce(
-          requestId,
-          buildScriptRunResponse(
-            requestId,
-            'Script execution blocked by the page Content Security Policy; try another website.',
-            logs
-          ),
-          cleanupListeners,
-          responded
-        );
-      }
-    );
+    runScriptRequest(event.data.requestId, event.data.code, (response) => {
+      window.postMessage(response, getTargetOrigin());
+    });
   });
 });

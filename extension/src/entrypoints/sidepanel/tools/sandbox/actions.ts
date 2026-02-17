@@ -13,13 +13,15 @@ import {
   type ScriptRunRequest,
   type ScriptRunResult
 } from '@/lib/script-runner';
+import {ensureCodeRunnerUserscript, getUserscriptEnableMessage} from '@/lib/userscript-runner';
 import {isRestrictedUrl} from '@/lib/utils/website-glob';
 
 const emptyResult: SandboxResult = {elements: [], selectors: [], errors: []};
 const emptyRunResult: ScriptRunResult = {errors: [], logs: []};
-const responseTimeoutMs = 15000;
+const responseTimeoutMs = 1800;
 const maxScriptRunAttempts = 3;
 const scriptRunRetryDelayMs = 200;
+const scriptRunBroadcastWaitTimeoutMs = 1500;
 const receiverBootstrapDelayMs = 150;
 const sandboxRunnerScriptFile = 'content-scripts/sandbox-runner.js';
 const logger = log.getLogger('sandbox-actions');
@@ -67,6 +69,18 @@ const isNoReceiverError = (error: unknown) => {
   );
 };
 
+const isClosedMessageChannelError = (error: unknown) => {
+  const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  return (
+    message.includes('message channel closed before a response was received') ||
+    message.includes('message port closed before a response was received') ||
+    (
+      message.includes('listener indicated an asynchronous response') &&
+      message.includes('closed before a response was received')
+    )
+  );
+};
+
 const injectSandboxRunnerReceiver = (tabId: number) => {
   const browserWithScripting = browser as BrowserWithScripting;
   if (browserWithScripting.scripting?.executeScript) {
@@ -103,9 +117,9 @@ const injectSandboxRunnerReceiver = (tabId: number) => {
   return Promise.resolve(false);
 };
 
-const sendMessageToTab = (
+const sendSandboxMessageToTab = (
   tabId: number,
-  request: SandboxEvaluateRequest | ScriptRunRequest
+  request: SandboxEvaluateRequest
 ): Promise<unknown> =>
   browser.tabs
     .sendMessage(tabId, request, {frameId: 0})
@@ -142,6 +156,33 @@ const sendMessageToTab = (
       });
     });
 
+const sendScriptRunMessageToTab = (
+  tabId: number,
+  request: ScriptRunRequest
+): Promise<unknown> =>
+  browser.tabs
+    .sendMessage(tabId, request, {frameId: 0})
+    .catch((error: unknown) => {
+      if (!isNoReceiverError(error)) {
+        throw toError(error);
+      }
+
+      logger.warn('No script-run receiver in frame 0, retrying without frameId.', {
+        tabId,
+        requestType: request.type,
+        error
+      });
+
+      return browser.tabs.sendMessage(tabId, request);
+    })
+    .catch((error: unknown) => {
+      if (!isNoReceiverError(error)) {
+        throw toError(error);
+      }
+
+      throw toError(error);
+    });
+
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, fallbackValue: T): Promise<T> =>
   new Promise((resolve, reject) => {
     const timeoutId = globalThis.setTimeout(() => {
@@ -159,6 +200,74 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, fallbackValue: T
         reject(toError(error));
       });
   });
+
+const createScriptRunBroadcastWaiter = (requestId: string, timeoutMs: number) => {
+  let settled = false;
+  let timeoutId: ReturnType<typeof globalThis.setTimeout> | null = null;
+  let listener: ((message: unknown) => boolean) | null = null;
+
+  const cleanup = () => {
+    if (timeoutId !== null) {
+      globalThis.clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+
+    if (listener) {
+      browser.runtime.onMessage.removeListener(listener);
+      listener = null;
+    }
+  };
+
+  const promise = new Promise<unknown>((resolve) => {
+    listener = (message: unknown) => {
+      if (!isScriptRunResponse(message) || message.requestId !== requestId) {
+        return false;
+      }
+
+      settled = true;
+      cleanup();
+      resolve(message);
+      return false;
+    };
+
+    browser.runtime.onMessage.addListener(listener);
+    timeoutId = globalThis.setTimeout(() => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      cleanup();
+      resolve(undefined);
+    }, timeoutMs);
+  });
+
+  return {
+    promise,
+    cancel: () => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      cleanup();
+    }
+  };
+};
+
+const toScriptRunResultFromResponse = (
+  requestId: string,
+  response: unknown
+): ScriptRunResult | null => {
+  if (!isScriptRunResponse(response) || response.requestId !== requestId) {
+    return null;
+  }
+
+  return {
+    errors: response.error ? [response.error] : [],
+    logs: response.logs ?? []
+  };
+};
 
 export const requestSandboxEvaluation = async (code: string): Promise<SandboxResult> => {
   if (!code.trim()) {
@@ -190,7 +299,7 @@ export const requestSandboxEvaluation = async (code: string): Promise<SandboxRes
   );
 
   return withTimeout(
-    sendMessageToTab(activeTab.id, request),
+    sendSandboxMessageToTab(activeTab.id, request),
     responseTimeoutMs,
     timeoutFallback
   )
@@ -238,9 +347,10 @@ const requestScriptRunAttempt = (
     requestId,
     'Script request timed out waiting for tab response.'
   );
+  const broadcastWaiter = createScriptRunBroadcastWaiter(requestId, scriptRunBroadcastWaitTimeoutMs);
 
   return withTimeout(
-    sendMessageToTab(tabId, request),
+    sendScriptRunMessageToTab(tabId, request),
     responseTimeoutMs,
     timeoutFallback
   )
@@ -251,33 +361,63 @@ const requestScriptRunAttempt = (
         attempt
       });
 
-      if (response === undefined && attempt < maxScriptRunAttempts) {
-        logger.warn('Received empty script:run response, retrying.', {
-          requestId,
-          attempt,
-          retryDelayMs: scriptRunRetryDelayMs
-        });
-
-        return wait(scriptRunRetryDelayMs).then(() =>
-          requestScriptRunAttempt(tabId, tabUrl, code, attempt + 1)
-        );
+      const directResult = toScriptRunResultFromResponse(requestId, response);
+      if (directResult) {
+        broadcastWaiter.cancel();
+        return directResult;
       }
 
-      if (response === undefined) {
-        return toRunResult('Script runner did not respond. Reload the page and try again.');
-      }
+      return broadcastWaiter.promise.then((broadcastResponse) => {
+        const broadcastResult = toScriptRunResultFromResponse(requestId, broadcastResponse);
+        if (broadcastResult) {
+          return broadcastResult;
+        }
 
-      if (!isScriptRunResponse(response) || response.requestId !== requestId) {
+        if (response === undefined && attempt < maxScriptRunAttempts) {
+          logger.warn('Received empty script:run response, retrying.', {
+            requestId,
+            attempt,
+            retryDelayMs: scriptRunRetryDelayMs
+          });
+
+          return wait(scriptRunRetryDelayMs).then(() =>
+            requestScriptRunAttempt(tabId, tabUrl, code, attempt + 1)
+          );
+        }
+
+        if (response === undefined) {
+          return toRunResult('Script runner did not respond. Reload the page and try again.');
+        }
+
         return toRunResult('Script returned an invalid response.');
-      }
-
-      return {
-        errors: response.error ? [response.error] : [],
-        logs: response.logs ?? []
-      };
+      });
     })
     .catch((error: unknown) => {
+      if (isClosedMessageChannelError(error)) {
+        logger.warn('script:run response channel closed', {requestId, error, attempt});
+        return broadcastWaiter.promise.then((broadcastResponse) => {
+          const broadcastResult = toScriptRunResultFromResponse(requestId, broadcastResponse);
+          if (broadcastResult) {
+            return broadcastResult;
+          }
+
+          if (attempt < maxScriptRunAttempts) {
+            return wait(scriptRunRetryDelayMs).then(() =>
+              requestScriptRunAttempt(tabId, tabUrl, code, attempt + 1)
+            );
+          }
+
+          return toRunResult('Script runner disconnected before it could reply. Reload the page and try again.');
+        });
+      }
+
+      broadcastWaiter.cancel();
       logger.error('script:run failed', {requestId, error, attempt});
+      if (isNoReceiverError(error)) {
+        return toRunResult(
+          `${getUserscriptEnableMessage()} If already enabled, reload this tab and run again.`
+        );
+      }
       return toRunResult('Unable to connect to the active tab.');
     });
 };
@@ -295,6 +435,11 @@ export const requestScriptRun = async (code: string): Promise<ScriptRunResult> =
 
   if (isRestrictedUrl(activeTab.url)) {
     return toRunResult('Script execution is unavailable on this page.');
+  }
+
+  const userscriptStatus = await ensureCodeRunnerUserscript();
+  if (!userscriptStatus.ok) {
+    return toRunResult(userscriptStatus.message);
   }
 
   return requestScriptRunAttempt(activeTab.id, activeTab.url, code, 1);
