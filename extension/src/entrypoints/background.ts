@@ -236,6 +236,8 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
 };
 
 export default defineBackground(() => {
+  const tabsWithPendingInitialLoad = new Set<number>();
+
   void ensureCodeRunnerUserscript().then((status) => {
     if (!status.ok) {
       logger.warn("Unable to initialize User Scripts runner", { message: status.message });
@@ -297,6 +299,7 @@ export default defineBackground(() => {
 
   browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.status === "loading") {
+      tabsWithPendingInitialLoad.add(tabId);
       void badgeUpdater.handleTabLoading(tabId);
       return;
     }
@@ -304,6 +307,11 @@ export default defineBackground(() => {
     if (changeInfo.status !== "complete") {
       return;
     }
+
+    if (!tabsWithPendingInitialLoad.has(tabId)) {
+      return;
+    }
+    tabsWithPendingInitialLoad.delete(tabId);
 
     if (!tab?.url) {
       return;
@@ -321,6 +329,7 @@ export default defineBackground(() => {
   });
 
   browser.tabs.onRemoved.addListener((tabId) => {
+    tabsWithPendingInitialLoad.delete(tabId);
     badgeUpdater.handleTabRemoved(tabId);
   });
 });

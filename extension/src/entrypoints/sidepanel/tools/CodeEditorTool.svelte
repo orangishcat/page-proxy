@@ -9,7 +9,7 @@
   import Button from "@/lib/components/Button.svelte";
   import { parseScriptMetadata } from "@/lib/utils/script-metadata";
   import { isRestrictedUrl } from "@/lib/utils/website-glob";
-  import { requestSandboxEvaluation, requestScriptRun } from "./sandbox/actions";
+  import { requestScriptRun } from "./script/actions";
   import { saveState } from "./code-editor/save";
   import {
     codeEditorContent,
@@ -53,8 +53,6 @@
   let editorValue = $state("");
   let saveTimer: number | null = null;
   let pendingAutosaveContent: string | null = null;
-  let sandboxSyncTimer: number | null = null;
-  let pendingSandboxContent: string | null = null;
   let isRunning = $state(false);
   let activeTabId = $state<number | null>(null);
   let activeTabUrl = $state<string | null>(null);
@@ -97,12 +95,6 @@
 
   const saveToolState = (content: string) => {
     try {
-      updateSandboxError([]);
-      syncDefinitionsNow(content);
-
-      const error = get(errorMessage);
-      if (error) throw new Error(error);
-
       void saveState({
         content,
         isProtectedPage,
@@ -146,9 +138,7 @@
     saveToolState(content);
   };
 
-  let lastSandboxError = $state<string | null>(null);
   let lastRunError = $state<string | null>(null);
-  let sandboxRequestId = $state(0);
 
   const getDefinitionBlock = (content: string) => {
     const lines = content.split("\n");
@@ -166,77 +156,7 @@
     return lines.slice(startIndex + 1, endIndex).join("\n");
   };
 
-  const updateSandboxError = (errors: string[]) => {
-    if (errors.length === 0) {
-      if (lastSandboxError && get(errorMessage) === lastSandboxError) {
-        setErrorMessage(null);
-      }
-      lastSandboxError = null;
-      return;
-    }
-
-    const message = errors[0];
-    lastSandboxError = message;
-    setErrorMessage(message);
-  };
-
   const formatIndentation = (content: string) => content;
-
-  const syncDefinitionsNow = (content: string) => {
-    if (isProtectedPage) {
-      updateSandboxError([]);
-      elementEntries.set([]);
-      selectorEntries.set([]);
-      return;
-    }
-    let definitionBlock = "";
-    try {
-      definitionBlock = getDefinitionBlock(content);
-    } catch (error) {
-      updateSandboxError([error instanceof Error ? error.message : "Invalid selector definition block."]);
-      elementEntries.set([]);
-      selectorEntries.set([]);
-      return;
-    }
-
-    const formattedDefinition = formatIndentation(definitionBlock);
-    if (!formattedDefinition.trim()) {
-      updateSandboxError([]);
-      elementEntries.set([]);
-      selectorEntries.set([]);
-      return;
-    }
-
-    const requestId = ++sandboxRequestId;
-    void requestSandboxEvaluation(formattedDefinition).then((result) => {
-      if (requestId !== sandboxRequestId) {
-        return;
-      }
-
-      updateSandboxError(result.errors);
-      elementEntries.set(result.elements);
-      selectorEntries.set(result.selectors);
-    });
-  };
-
-  const syncDefinitions = (content: string) => {
-    if (isProtectedPage) {
-      return;
-    }
-
-    pendingSandboxContent = content;
-
-    if (sandboxSyncTimer) {
-      window.clearTimeout(sandboxSyncTimer);
-    }
-
-    sandboxSyncTimer = window.setTimeout(() => {
-      const latestContent = pendingSandboxContent ?? "";
-      pendingSandboxContent = null;
-      sandboxSyncTimer = null;
-      syncDefinitionsNow(latestContent);
-    }, 1000);
-  };
 
   const updateRunError = (errors: string[]) => {
     if (errors.length === 0) {
@@ -286,14 +206,11 @@
       });
   };
 
-  const updateEditorContent = (content: string, options: { persist?: boolean; sync?: boolean } = {}) => {
-    const { persist = true, sync = true } = options;
+  const updateEditorContent = (content: string, options: { persist?: boolean } = {}) => {
+    const { persist = true } = options;
     editorValue = content;
     codeEditorContent.set(content);
     updateScriptMetadata(content);
-    if (sync) {
-      syncDefinitions(content);
-    }
 
     if (editorHandle) {
       isProgrammaticUpdate = true;
@@ -356,7 +273,7 @@
     );
 
     activeWebsiteGlob = websiteGlob || null;
-    updateEditorContent(normalizedContent, { persist: false, sync: true });
+    updateEditorContent(normalizedContent, { persist: false });
     setErrorMessage(null);
   };
 
@@ -401,7 +318,7 @@
       activeToolState.set("none");
       const baseContent = buildDefaultScript("", scriptFormatConfig);
       const displayContent = isProtectedPage ? buildProtectedDisplay(baseContent, scriptFormatConfig) : baseContent;
-      updateEditorContent(displayContent, { persist: false, sync: !isProtectedPage });
+      updateEditorContent(displayContent, { persist: false });
       return Promise.resolve();
     }
 
@@ -416,7 +333,7 @@
     const displayContent = isProtectedPage
       ? buildProtectedDisplay(contentWithWebsite, scriptFormatConfig)
       : contentWithWebsite;
-    updateEditorContent(displayContent, { persist: false, sync: !isProtectedPage });
+    updateEditorContent(displayContent, { persist: false });
   };
 
   const applyActiveTab = (tab: ActiveTab | null) => {
@@ -429,14 +346,13 @@
     isProtectedPage = isRestrictedUrl(activeTabUrl ?? undefined);
 
     if (isProtectedPage) {
-      updateSandboxError([]);
       elementEntries.set([]);
       selectorEntries.set([]);
 
       activeWebsiteGlob = null;
       activeToolState.set("none");
       const protectedContent = buildProtectedDisplay(buildDefaultScript("", scriptFormatConfig), scriptFormatConfig);
-      updateEditorContent(protectedContent, { persist: false, sync: false });
+      updateEditorContent(protectedContent, { persist: false });
       canPersistEditorChanges = true;
       return;
     }
@@ -501,7 +417,6 @@
         codeEditorContent.set(editorValue);
         updateScriptMetadata(editorValue);
         if (!isProgrammaticUpdate) {
-          syncDefinitions(editorValue);
           if (canPersistEditorChanges) {
             saveToStorage(editorValue);
           }
@@ -523,6 +438,8 @@
     canPersistEditorChanges = false;
     editorValue = buildDefaultScript("", scriptFormatConfig);
     codeEditorContent.set(editorValue);
+    elementEntries.set([]);
+    selectorEntries.set([]);
     setupEditor();
     setEditorApi({ insertDefinitions: insertDefinitionLines, resetToDefault: resetScriptToDefault });
     refreshActiveTab();
@@ -536,11 +453,6 @@
       if (saveTimer) {
         window.clearTimeout(saveTimer);
         saveTimer = null;
-      }
-
-      if (sandboxSyncTimer) {
-        window.clearTimeout(sandboxSyncTimer);
-        sandboxSyncTimer = null;
       }
 
       if (editorHandle) {

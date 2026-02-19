@@ -12,7 +12,6 @@
     "clean": "wxt clean"
   },
   "dependencies": {
-    "@endo/lockdown": "1.0.18",
     "@page-proxy/pp": "workspace:*",
     "bits-ui": "2.15.4",
     "loglevel": "1.9.2",

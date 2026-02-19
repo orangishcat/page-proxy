@@ -2,8 +2,6 @@ import { browser } from "wxt/browser";
 
 const codeRunnerScriptId = "page-proxy-code-runner";
 const codeRunnerScriptFile = "code-runner-main-world.js";
-const sandboxRunnerScriptId = "page-proxy-sandbox-runner";
-const sandboxRunnerScriptFile = "sandbox-main-world.js";
 const userscriptEnableMessage =
   "Userscripts API is not enabled. Enable it for Page Proxy, reload this tab, and run again.";
 const userscriptWorldCsp = [
@@ -22,7 +20,6 @@ type UserscriptRegistration = {
 
 const userscriptRegistrations: UserscriptRegistration[] = [
   { id: codeRunnerScriptId, file: codeRunnerScriptFile },
-  { id: sandboxRunnerScriptId, file: sandboxRunnerScriptFile },
 ];
 
 type UserScriptsApi = {

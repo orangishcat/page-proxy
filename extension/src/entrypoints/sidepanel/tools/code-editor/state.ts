@@ -1,7 +1,24 @@
 import {get, writable} from 'svelte/store';
-import type {ElementEntry, SelectorEntry} from '@/lib/sandbox';
 
-export type {ElementEntry, SelectorEntry};
+export type BoundingBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type ElementEntry = {
+  name: string;
+  selector: string;
+  bbox: BoundingBox;
+  attributes: Record<string, string>;
+};
+
+export type SelectorEntry = {
+  name: string;
+  ruleKeys: string[];
+  rules?: string[];
+};
 
 export type ScriptMetadataState = {
   title: string;
