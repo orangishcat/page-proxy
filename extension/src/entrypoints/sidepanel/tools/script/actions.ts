@@ -10,7 +10,7 @@ import {
 import { ensureCodeRunnerUserscript, getUserscriptEnableMessage } from "@/lib/userscript-runner";
 import { isRestrictedUrl } from "@/lib/utils/website-glob";
 
-const emptyRunResult: ScriptRunResult = { errors: [], logs: [] };
+const emptyRunResult: ScriptRunResult = { errors: [], logs: [], selectors: [] };
 const responseTimeoutMs = 1800;
 const maxScriptRunAttempts = 3;
 const scriptRunRetryDelayMs = 200;
@@ -18,7 +18,7 @@ const scriptRunBroadcastWaitTimeoutMs = 1500;
 const logger = log.getLogger("script-actions");
 logger.setLevel("debug", false);
 
-const toRunResult = (message: string): ScriptRunResult => ({ errors: [message], logs: [] });
+const toRunResult = (message: string): ScriptRunResult => ({ errors: [message], logs: [], selectors: [] });
 
 const buildRequestId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -155,6 +155,7 @@ const toScriptRunResultFromResponse = (requestId: string, response: unknown): Sc
   return {
     errors: response.error ? [response.error] : [],
     logs: response.logs ?? [],
+    selectors: response.selectors ?? [],
   };
 };
 

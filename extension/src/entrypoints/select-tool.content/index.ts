@@ -5,6 +5,13 @@ import { mount, unmount } from "svelte";
 import log from "loglevel";
 
 import type { ElementInfo, SelectorSavePayload, SelectorSaveResult, SelectToolMessage } from "@/lib/selection";
+import {
+  buildScriptRunResponse,
+  isScriptRunRequest,
+  isScriptRunResponse,
+  type ScriptRunRequest,
+  type ScriptRunResponse,
+} from "@/lib/script-runner";
 import type { SidepanelShortcutId, SidepanelShortcutMessage } from "@/lib/sidepanel-shortcuts";
 import SelectorPopupContainer from "./SelectorPopupContainer.svelte";
 import "@/styles/app.css";
@@ -19,6 +26,7 @@ const styleId = "page-proxy-selection-styles";
 const selectorLabelId = "page-proxy-selector-label";
 const filteredSelectionClasses = new Set([hoverClass, selectedClass]);
 const uiBaseFontSizePx = 16;
+const scriptRunBridgeTimeoutMs = 1800;
 
 const selectionStyles = `
 .pp-hover { outline: 2px solid #86d24b !important; outline-offset: -1px !important; }
@@ -636,26 +644,88 @@ export default defineContentScript({
 
     window.addEventListener("keydown", onShortcutKeyDown, { capture: true });
 
-    browser.runtime.onMessage.addListener((message: SelectToolMessage) => {
-      logger.debug("select tool message received", { type: message.type });
-      if (message.type === "selector:open") {
-        void openSelectorPopup(message.payload);
-        return;
+    const isWindowSource = (source: MessageEventSource | null) => source === window || source === null;
+
+    const forwardScriptRunToMainWorld = (
+      request: ScriptRunRequest,
+      sendResponse: (response?: ScriptRunResponse) => void,
+    ) => {
+      const targetOrigin = window.location.origin === "null" ? "*" : window.location.origin;
+      let settled = false;
+      let timeoutId: ReturnType<typeof globalThis.setTimeout> | null = null;
+
+      const cleanup = () => {
+        if (timeoutId !== null) {
+          globalThis.clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        window.removeEventListener("message", onMessage);
+      };
+
+      const respond = (response: ScriptRunResponse) => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        cleanup();
+        sendResponse(response);
+      };
+
+      const onMessage = (event: MessageEvent) => {
+        if (!isWindowSource(event.source)) {
+          return;
+        }
+
+        if (!isScriptRunResponse(event.data) || event.data.requestId !== request.requestId) {
+          return;
+        }
+
+        respond(event.data);
+      };
+
+      window.addEventListener("message", onMessage);
+      timeoutId = globalThis.setTimeout(() => {
+        respond(buildScriptRunResponse(request.requestId, "Script runner did not respond. Reload the page and try again."));
+      }, scriptRunBridgeTimeoutMs);
+
+      window.postMessage(request, targetOrigin);
+      return true;
+    };
+
+    browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+      if (isScriptRunRequest(message)) {
+        logger.debug("script run bridge received", { requestId: message.requestId });
+        return forwardScriptRunToMainWorld(message, sendResponse);
       }
-      if (message.type === "select:parent") {
-        if (!selectionEnabled) return;
+
+      if (!message || typeof message !== "object" || typeof (message as { type?: unknown }).type !== "string") {
+        return false;
+      }
+
+      const selectMessage = message as SelectToolMessage;
+      logger.debug("select tool message received", { type: selectMessage.type });
+      if (selectMessage.type === "selector:open") {
+        void openSelectorPopup(selectMessage.payload);
+        return false;
+      }
+      if (selectMessage.type === "select:parent") {
+        if (!selectionEnabled) {
+          return false;
+        }
         const parent = selectedTarget?.parentElement;
         if (!parent) {
           logger.debug("select parent skipped", { reason: "no-parent" });
-          return;
+          return false;
         }
         clearHoverAndNotify();
         applySelection(parent);
-        return;
+        return false;
       }
-      if (message.type === "select:toggle") {
-        setSelectionEnabled(message.enabled);
+      if (selectMessage.type === "select:toggle") {
+        setSelectionEnabled(selectMessage.enabled);
       }
+      return false;
     });
 
     window.addEventListener("unload", () => {

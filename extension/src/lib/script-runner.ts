@@ -39,11 +39,19 @@ export type ScriptRunResponse = {
   requestId: string;
   error: string | null;
   logs: ScriptRunLogEntry[];
+  selectors: ScriptRunSelectorEntry[];
 };
 
 export type ScriptRunResult = {
   errors: string[];
   logs: ScriptRunLogEntry[];
+  selectors: ScriptRunSelectorEntry[];
+};
+
+export type ScriptRunSelectorEntry = {
+  name: string;
+  ruleKeys: string[];
+  rules: string[];
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -66,6 +74,20 @@ export const isScriptRunResponse = (value: unknown): value is ScriptRunResponse 
     return false;
   }
 
+  const selectors = value.selectors;
+  const hasValidSelectors =
+    (Array.isArray(selectors) &&
+      selectors.every(
+        (entry) =>
+          isRecord(entry) &&
+          typeof entry.name === 'string' &&
+          Array.isArray(entry.ruleKeys) &&
+          entry.ruleKeys.every((ruleKey) => typeof ruleKey === 'string') &&
+          Array.isArray(entry.rules) &&
+          entry.rules.every((rule) => typeof rule === 'string')
+      )) ||
+    selectors === undefined;
+
   const logs = value.logs;
   const hasValidLogs =
     (Array.isArray(logs) &&
@@ -82,17 +104,20 @@ export const isScriptRunResponse = (value: unknown): value is ScriptRunResponse 
     value.type === 'script:result' &&
     typeof value.requestId === 'string' &&
     (value.error === null || typeof value.error === 'string') &&
-    hasValidLogs
+    hasValidLogs &&
+    hasValidSelectors
   );
 };
 
 export const buildScriptRunResponse = (
   requestId: string,
   error: string | null,
-  logs: ScriptRunLogEntry[] = []
+  logs: ScriptRunLogEntry[] = [],
+  selectors: ScriptRunSelectorEntry[] = []
 ): ScriptRunResponse => ({
   type: 'script:result',
   requestId,
   error,
-  logs
+  logs,
+  selectors
 });

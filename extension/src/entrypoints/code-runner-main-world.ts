@@ -5,6 +5,7 @@ import {
   isScriptRunRequest,
   type ScriptRunLogEntry,
   type ScriptRunLogValue,
+  type ScriptRunSelectorEntry,
   type ScriptRunResponse
 } from '@/lib/script-runner';
 import * as pq from '@page-proxy/pp/pp-query';
@@ -70,6 +71,7 @@ const wrapExecutableCode = (code: string) =>
 
 const maxLogDepth = 5;
 const maxLogEntries = 50;
+const maxSelectorRules = 24;
 
 const getConstructorName = (value: object) => {
   const constructor = (value as {constructor?: {name?: unknown}}).constructor;
@@ -226,6 +228,66 @@ const toExecutionErrorMessage = (error: unknown) => {
   return String(error);
 };
 
+const normalizeRuleText = (value: string) => value.replace(/\s+/g, ' ').trim();
+
+const getRuleValues = (source: string, pattern: RegExp) =>
+  Array.from(source.matchAll(pattern))
+    .map((match) => normalizeRuleText(match[1] ?? ''))
+    .filter((value) => value.length > 0);
+
+const extractSelectorRules = (definition: pq.SelectorDefinition<unknown>): string[] => {
+  const uniqueRules = new Set<string>();
+  const pushRule = (rule: string) => {
+    const normalizedRule = normalizeRuleText(rule);
+    if (!normalizedRule || uniqueRules.size >= maxSelectorRules) {
+      return;
+    }
+
+    uniqueRules.add(normalizedRule);
+  };
+
+  const normalizedBaseSelector = definition.baseSelector?.trim() ?? '';
+  if (normalizedBaseSelector) {
+    pushRule(`baseSelector: ${normalizedBaseSelector}`);
+  }
+
+  const matchesSource = typeof definition.matches === 'function' ? definition.matches.toString() : '';
+  getRuleValues(matchesSource, /pq\.(?:propMatches|propContains|propExists)\s*\([^,]+,\s*['"`]([^'"`]+)['"`]/g).forEach(
+    (propertyKey) => pushRule(propertyKey)
+  );
+  getRuleValues(matchesSource, /pq\.tagMatches\s*\([^,]+,\s*['"`]([^'"`]+)['"`]/g).forEach((tag) =>
+    pushRule(`tag: ${tag}`)
+  );
+  getRuleValues(matchesSource, /pq\.selectorMatches\s*\([^,]+,\s*['"`]([^'"`]+)['"`]/g).forEach((selectorText) =>
+    pushRule(`selector: ${selectorText}`)
+  );
+
+  if (matchesSource.includes('pq.bboxMatches(')) {
+    pushRule('bbox');
+  }
+
+  if (matchesSource.includes('pq.innerTextMatches(')) {
+    pushRule('innerText');
+  }
+
+  if (uniqueRules.size === 0) {
+    pushRule('matches');
+  }
+
+  return Array.from(uniqueRules);
+};
+
+const toSelectorEntry = (definition: pq.SelectorDefinition<unknown>): ScriptRunSelectorEntry => {
+  const name = definition.name?.trim() || 'Unnamed selector';
+  const rules = extractSelectorRules(definition);
+
+  return {
+    name,
+    ruleKeys: rules,
+    rules
+  };
+};
+
 const runScriptCode = (code: string) => {
   const executableCode = wrapExecutableCode(stripPpImportText(code));
   const blob = new Blob([executableCode], {type: 'text/javascript'});
@@ -257,10 +319,19 @@ const runScriptRequest = (
   sendResult: (response: ScriptRunResponse) => void
 ) => {
   const {logs, sink} = createNotificationCapture();
+  const selectorsByName = new Map<string, ScriptRunSelectorEntry>();
   const modules = ensurePpModules();
   let notificationSinkKey = modules.pv.notificationSinkGlobalKey;
   const pageApi = modules.pv.createApi();
   let hasResponded = false;
+  const queryApi = {
+    ...modules.pq,
+    selector: <T = HTMLElement>(definition: pq.SelectorDefinition<T>) => {
+      const entry = toSelectorEntry(definition);
+      selectorsByName.set(entry.name, entry);
+      return modules.pq.selector(definition);
+    }
+  } satisfies typeof pq;
 
   const cleanup = () => {
     window.removeEventListener('error', onError);
@@ -275,7 +346,7 @@ const runScriptRequest = (
 
     hasResponded = true;
     cleanup();
-    sendResult(buildScriptRunResponse(requestId, error, logs));
+    sendResult(buildScriptRunResponse(requestId, error, logs, Array.from(selectorsByName.values())));
   };
 
   const onError = (errorEvent: ErrorEvent) => {
@@ -292,7 +363,7 @@ const runScriptRequest = (
   window.addEventListener('unhandledrejection', onRejection);
 
   notificationSinkKey = modules.pv.notificationSinkGlobalKey;
-  (globalThis as Record<string, unknown>).pq = modules.pq;
+  (globalThis as Record<string, unknown>).pq = queryApi;
   (globalThis as Record<string, unknown>).ps = modules.ps;
   (globalThis as Record<string, unknown>).pv = modules.pv;
   (globalThis as Record<string, unknown>).pa = pageApi;

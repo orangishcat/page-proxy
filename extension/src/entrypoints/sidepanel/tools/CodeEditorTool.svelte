@@ -199,6 +199,7 @@
     const formattedScript = formatIndentation(editorValue);
     void requestScriptRun(formattedScript)
       .then((result) => {
+        selectorEntries.set(result.selectors);
         updateRunError(result.errors);
       })
       .finally(() => {
