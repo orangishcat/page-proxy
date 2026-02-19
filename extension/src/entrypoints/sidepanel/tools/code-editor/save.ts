@@ -1,4 +1,5 @@
 import { parseScriptMetadata } from "@/lib/utils/script-metadata";
+import type { ScriptGrantValue } from "@/lib/grants";
 import { matchWebsiteGlob } from "@/lib/utils/website-glob";
 import {
   ensureWebsiteMetadata,
@@ -18,6 +19,7 @@ import {
 type SaveStateOptions = {
   content: string;
   selectorEntries: StoredSelectorEntry[];
+  allowedGrants: ScriptGrantValue[];
   isProtectedPage: boolean;
   scriptFormatConfig: ScriptFormatConfig;
   activeTabUrl: string | null;
@@ -75,6 +77,9 @@ export const saveState = async (options: SaveStateOptions) => {
     },
     selectorPanel: {
       entries: options.selectorEntries,
+    },
+    permissions: {
+      allowedGrants: options.allowedGrants,
     },
     websiteGlob,
     updatedAt: Date.now(),

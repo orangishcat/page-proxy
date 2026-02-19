@@ -4,9 +4,13 @@ title: Extension usage
 
 import useBaseUrl from '@docusaurus/useBaseUrl';
 
-# Extension usage
+# Extension usage (next)
 
-This page covers the Page Proxy extension workflow: sidepanel tools, code editor behavior, and selector popup flow.
+This page covers the Page Proxy extension workflow in `next`: sidepanel tools, code editor behavior, and selector popup flow.
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
 
 ## Sidepanel layout and shortcuts
 
@@ -24,23 +28,19 @@ Toolbar shortcuts:
 - `Shift + 4`: Help
 - `Shift + 5`: Export
 
-<div className="row align-items-center">
-
-<div className="col col--6">
-
-### Screenshot
-
-Sidepanel overview with editor panel, toolbar, and tool panel.
-
 </div>
 
-<div className="col col--6">
+<div className="col col--6 margin-bottom--xl">
 
 <img src={useBaseUrl('/img/editor_usage/side_panel.png', {absolute: true})} alt="Page Proxy sidepanel overview" />
 
 </div>
 
 </div>
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
 
 ## Code editor
 
@@ -56,27 +56,25 @@ What it does:
 - Autosaves after a short delay when content changes.
 - Supports manual save with `Ctrl+S` / `Cmd+S`.
 - Runs your script with the Run button (play icon).
+    - Script runs with a 2-second timeout.
+    - If the run button is still disabled even after 2 seconds, it's a bug, please report it.
 - Stores state per website/tab context.
 
 On protected pages (for example browser internal pages), editing and execution are disabled and a protected-page message is shown.
 
-<div className="row align-items-center">
-
-<div className="col col--6">
-
-### Screenshot
-
-Code editor panel with metadata bar and Run button.
-
 </div>
 
-<div className="col col--6">
+<div className="col col--6 margin-bottom--xl">
 
 <img src={useBaseUrl('/img/editor_usage/code_editor.png', {absolute: true})} alt="Page Proxy code editor tool" />
 
 </div>
 
 </div>
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
 
 ## Select tool
 
@@ -87,26 +85,53 @@ Flow:
 1. Activate Select (`Shift + 1`).
 2. Click an element on the page.
 3. Review captured properties in the Select panel.
-4. Use the parent button to move one level up in the DOM.
+4. Use the parent button (up arrow) to move one level up in the DOM.
 5. Click **Save selector** to open the selector popup.
-
-<div className="row align-items-center">
-
-<div className="col col--6">
-
-### Screenshot
-
-Select tool property preview and selector save entry point.
 
 </div>
 
-<div className="col col--6">
+<div className="col col--6 margin-bottom--xl">
 
 <img src={useBaseUrl('/img/editor_usage/select_tool.png', {absolute: true})} alt="Page Proxy Select tool" />
 
 </div>
 
 </div>
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+## Selector popup
+
+The selector popup opens from **Select -> Save selector**.
+
+What you do in the popup:
+
+1. Edit the generated `pq.selector(...)` code in the popup editor.
+    - You can name the variable and the `name` property to be whatever you want.
+2. Use the live preview snippet for the active property/filter.
+3. Drag the preview grip into the selector code editor to insert filter fragments.
+4. Save the selector.
+
+What happens on save:
+
+- The sidepanel validates the snippet contains `pq.selector`.
+- It requires a `const` assignment.
+- It checks variable-name collisions.
+- If valid, it inserts the selector into the editor selector block.
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img src={useBaseUrl('/img/editor_usage/selector_popup.png', {absolute: true})} alt="Page Proxy selector popup" />
+
+</div>
+
+</div>
+
+<div className="margin-bottom--xl">
 
 ## Create tool
 
@@ -117,23 +142,11 @@ Planned direction in the UI:
 - Generate reusable components.
 - Build script settings UI and other script-driven UI pieces.
 
+</div>
+
 <div className="row align-items-center">
 
-<div className="col col--6">
-
-### Screenshot
-
-Create workflow area in the sidepanel (currently marked coming soon).
-
-</div>
-
-<div className="col col--6">
-
-<img src={useBaseUrl('/img/editor_usage/side_panel.png', {absolute: true})} alt="Page Proxy Create tool area" />
-
-</div>
-
-</div>
+<div className="col col--6 margin-bottom--xl">
 
 ## Selectors tool
 
@@ -147,23 +160,19 @@ For each selector, the tool displays:
 
 Use this to confirm selectors were saved correctly and to quickly audit selector logic.
 
-<div className="row align-items-center">
-
-<div className="col col--6">
-
-### Screenshot
-
-Selectors tool with parsed selector entries and rules.
-
 </div>
 
-<div className="col col--6">
+<div className="col col--6 margin-bottom--xl">
 
 <img src={useBaseUrl('/img/editor_usage/selectors_tool.png', {absolute: true})} alt="Page Proxy Selectors tool" />
 
 </div>
 
 </div>
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
 
 ## Help tool
 
@@ -175,23 +184,19 @@ Help contains quick project references:
 
 Use it as the first stop when behavior seems unexpected.
 
-<div className="row align-items-center">
-
-<div className="col col--6">
-
-### Screenshot
-
-Help tool with docs link, issues, and roadmap references.
-
 </div>
 
-<div className="col col--6">
+<div className="col col--6 margin-bottom--xl">
 
 <img src={useBaseUrl('/img/editor_usage/help_tool.png', {absolute: true})} alt="Page Proxy Help tool" />
 
 </div>
 
 </div>
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
 
 ## Export tool
 
@@ -203,55 +208,11 @@ Current behavior:
 - Other formats are visible but marked coming soon.
 - Exported filename is derived from script title metadata.
 
-<div className="row align-items-center">
-
-<div className="col col--6">
-
-### Screenshot
-
-Export tool with format selector and export action.
-
 </div>
 
-<div className="col col--6">
+<div className="col col--6 margin-bottom--xl">
 
 <img src={useBaseUrl('/img/editor_usage/export_tool.png', {absolute: true})} alt="Page Proxy Export tool" />
-
-</div>
-
-</div>
-
-## Selector popup
-
-The selector popup opens from **Select -> Save selector**.
-
-What you do in the popup:
-
-1. Edit the generated `pq.selector(...)` code in the popup editor.
-2. Use the live preview snippet for the active property/filter.
-3. Drag the preview grip into the selector code editor to insert filter fragments.
-4. Save the selector.
-
-What happens on save:
-
-- The sidepanel validates the snippet contains `pq.selector`.
-- It requires a `const` assignment.
-- It checks variable-name collisions.
-- If valid, it inserts the selector into the editor selector block.
-
-<div className="row align-items-center">
-
-<div className="col col--6">
-
-### Screenshot
-
-Selector popup editor with drag-and-drop preview snippets.
-
-</div>
-
-<div className="col col--6">
-
-<img src={useBaseUrl('/img/editor_usage/selector_popup.png', {absolute: true})} alt="Page Proxy selector popup" />
 
 </div>
 

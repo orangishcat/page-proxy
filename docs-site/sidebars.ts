@@ -8,7 +8,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Basics',
       collapsed: false,
-      items: ['extension-usage', 'your-first-script', 'auto-metadata'],
+      items: ['extension-usage', 'your-first-script', 'auto-metadata', 'permissions'],
     },
     {
       type: 'category',

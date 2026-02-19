@@ -1,13 +1,16 @@
+import { parseScriptGrantValues, type ScriptGrantValue } from "@/lib/grants";
+
 export type ScriptMetadata = {
   title: string;
   website: string;
   description: string;
   author: string;
   credits: string;
+  grants: ScriptGrantValue[];
 };
 
 const requiredMetadataFields = ["title", "website", "description"] as const;
-const optionalMetadataFields = ["author", "credits"] as const;
+const optionalMetadataFields = ["author", "credits", "grant"] as const;
 const supportedMetadataFields = [...requiredMetadataFields, ...optionalMetadataFields] as const;
 const multilineMetadataFields = ["description", "credits"] as const;
 
@@ -33,7 +36,9 @@ export const parseScriptMetadata = (content: string): ScriptMetadata => {
     description: "",
     author: "",
     credits: "",
+    grant: "",
   };
+  let parsedGrants: ScriptGrantValue[] = [];
   const seen = new Set<(typeof supportedMetadataFields)[number]>();
   let activeMultilineField: (typeof multilineMetadataFields)[number] | null = null;
 
@@ -60,6 +65,9 @@ export const parseScriptMetadata = (content: string): ScriptMetadata => {
 
         seen.add(typedKey);
         parsed[typedKey] = value.trim();
+        if (typedKey === "grant") {
+          parsedGrants = parseScriptGrantValues(value.trim());
+        }
         activeMultilineField = multilineMetadataFields.includes(typedKey as (typeof multilineMetadataFields)[number])
           ? (typedKey as (typeof multilineMetadataFields)[number])
           : null;
@@ -96,5 +104,6 @@ export const parseScriptMetadata = (content: string): ScriptMetadata => {
     description: parsed.description,
     author: parsed.author,
     credits: parsed.credits,
+    grants: parsedGrants,
   };
 };

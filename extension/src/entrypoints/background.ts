@@ -1,6 +1,13 @@
 import { defineBackground } from "wxt/utils/define-background";
 
 import { browser } from "wxt/browser";
+import { coerceScriptGrantValues, type ScriptGrantValue } from "@/lib/grants";
+import {
+  isGrantPermissionResolveMessage,
+  type GrantPermissionRequestMessage,
+  type GrantPermissionResolveResult,
+} from "@/lib/grant-permissions";
+import { parseScriptMetadata } from "@/lib/utils/script-metadata";
 import { isRestrictedUrl, matchWebsiteGlob } from "@/lib/utils/website-glob";
 import { isScriptRunResponse, type ScriptRunRequest } from "@/lib/script-runner";
 import { createTabBadgeUpdater } from "@/lib/background/tab-badge";
@@ -15,11 +22,22 @@ type StoredToolState = {
   codeEditor: {
     content: string;
   };
+  selectorPanel: {
+    entries: Array<{
+      name: string;
+      ruleKeys: string[];
+      rules?: string[];
+    }>;
+  };
+  permissions: {
+    allowedGrants: ScriptGrantValue[];
+  };
   websiteGlob: string;
   updatedAt: number;
 };
 
 const storageKeyPrefix = "pageproxy:";
+const runOnPageLoadGrant: ScriptGrantValue = "run-on-page-load";
 const defaultScriptImportLines = [
   'import * as pq from "@page-proxy/pp/pp-query";',
   'import * as ps from "@page-proxy/pp/pp-style";',
@@ -43,6 +61,41 @@ const isToolId = (value: unknown): value is ToolId =>
   value === "share" ||
   value === "none";
 
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === "string");
+
+const coerceStoredSelectorEntries = (value: unknown): StoredToolState["selectorPanel"]["entries"] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const entries: StoredToolState["selectorPanel"]["entries"] = [];
+  value.forEach((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      return;
+    }
+
+    const data = entry as {
+      name?: unknown;
+      ruleKeys?: unknown;
+      rules?: unknown;
+    };
+
+    if (typeof data.name !== "string" || !isStringArray(data.ruleKeys)) {
+      return;
+    }
+
+    const rules = isStringArray(data.rules) ? data.rules : undefined;
+    entries.push({
+      name: data.name,
+      ruleKeys: data.ruleKeys,
+      rules,
+    });
+  });
+
+  return entries;
+};
+
 const fromStorageKey = (key: string) => {
   if (!key.startsWith(storageKeyPrefix)) {
     return null;
@@ -60,6 +113,8 @@ const coerceStoredToolState = (value: unknown, websiteGlob: string): StoredToolS
   const data = value as {
     activeTool?: unknown;
     codeEditor?: unknown;
+    selectorPanel?: unknown;
+    permissions?: unknown;
     websiteGlob?: unknown;
     updatedAt?: unknown;
   };
@@ -73,10 +128,19 @@ const coerceStoredToolState = (value: unknown, websiteGlob: string): StoredToolS
     return null;
   }
 
+  const selectorPanel = data.selectorPanel as { entries?: unknown } | undefined;
+  const permissions = data.permissions as { allowedGrants?: unknown } | undefined;
+
   return {
     activeTool: data.activeTool,
     codeEditor: {
       content: codeEditor.content,
+    },
+    selectorPanel: {
+      entries: coerceStoredSelectorEntries(selectorPanel?.entries),
+    },
+    permissions: {
+      allowedGrants: coerceScriptGrantValues(permissions?.allowedGrants),
     },
     websiteGlob:
       typeof data.websiteGlob === "string" && data.websiteGlob.trim().length > 0 ? data.websiteGlob : websiteGlob,
@@ -110,6 +174,20 @@ const findStoredToolStatesForUrl = async (url: string) => {
   return states
     .filter((entry) => matchWebsiteGlob(entry.websiteGlob, url))
     .sort((left, right) => right.websiteGlob.length - left.websiteGlob.length);
+};
+
+const toStorageKey = (websiteGlob: string) => `${storageKeyPrefix}${websiteGlob.trim()}`;
+
+const readStoredToolState = async (websiteGlob: string) => {
+  const key = toStorageKey(websiteGlob);
+  const stored = await browser.storage.local.get(key);
+  return coerceStoredToolState(stored[key], websiteGlob);
+};
+
+const saveStoredToolState = async (state: StoredToolState) => {
+  await browser.storage.local.set({
+    [toStorageKey(state.websiteGlob)]: state,
+  });
 };
 
 const ensureScriptImports = (content: string) => {
@@ -164,13 +242,44 @@ const toRunnableScriptContent = (state: StoredToolState) => {
   return content;
 };
 
+const extractScriptGrants = (content: string) => {
+  try {
+    const metadata = parseScriptMetadata(content);
+    return metadata.grants;
+  } catch {
+    return [];
+  }
+};
+
+const getMissingAllowedGrants = (state: StoredToolState, requiredGrants: ScriptGrantValue[]) =>
+  requiredGrants.filter((grant) => !state.permissions.allowedGrants.includes(grant));
+
 const countMatchingScriptsForUrl = async (url: string) => {
   if (isRestrictedUrl(url)) {
     return 0;
   }
 
   const matchedStates = await findStoredToolStatesForUrl(url);
-  return matchedStates.map((entry) => toRunnableScriptContent(entry.state)).filter((code) => code !== null).length;
+  return matchedStates
+    .map((entry) => {
+      const content = toRunnableScriptContent(entry.state);
+      if (!content) {
+        return null;
+      }
+
+      const scriptGrants = extractScriptGrants(content);
+      if (!scriptGrants.includes(runOnPageLoadGrant)) {
+        return null;
+      }
+
+      const missingGrants = getMissingAllowedGrants(entry.state, scriptGrants);
+      if (missingGrants.length > 0) {
+        return null;
+      }
+
+      return content;
+    })
+    .filter((code) => code !== null).length;
 };
 
 const buildRequestId = () =>
@@ -217,6 +326,49 @@ const runScriptInTab = async (tabId: number, code: string) => {
   return response.error === null;
 };
 
+const requestGrantPermissions = (payload: GrantPermissionRequestMessage["payload"]) =>
+  browser.runtime.sendMessage({
+    type: "grant:request",
+    payload,
+  } satisfies GrantPermissionRequestMessage);
+
+const resolveGrantPermissions = async (
+  websiteGlob: string,
+  requestedGrants: ScriptGrantValue[],
+  allow: boolean,
+): Promise<GrantPermissionResolveResult> => {
+  const normalizedWebsiteGlob = websiteGlob.trim();
+  if (!normalizedWebsiteGlob) {
+    return { ok: false, error: "Missing website glob for permission request." };
+  }
+
+  const grants = coerceScriptGrantValues(requestedGrants);
+  if (grants.length === 0) {
+    return { ok: false, error: "No supported grants were requested." };
+  }
+
+  const state = await readStoredToolState(normalizedWebsiteGlob);
+  if (!state) {
+    return { ok: false, error: `No script state found for website glob "${normalizedWebsiteGlob}".` };
+  }
+
+  if (!allow) {
+    return { ok: true, allowedGrants: state.permissions.allowedGrants };
+  }
+
+  const nextAllowedGrants = coerceScriptGrantValues([...state.permissions.allowedGrants, ...grants]);
+  const nextState: StoredToolState = {
+    ...state,
+    permissions: {
+      allowedGrants: nextAllowedGrants,
+    },
+    updatedAt: Date.now(),
+  };
+
+  await saveStoredToolState(nextState);
+  return { ok: true, allowedGrants: nextAllowedGrants };
+};
+
 const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
   if (isRestrictedUrl(url)) {
     return 0;
@@ -224,9 +376,43 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
 
   const tabUrl = url ?? "";
   const matchedStates = await findStoredToolStatesForUrl(tabUrl);
-  const scripts = matchedStates
-    .map((entry) => toRunnableScriptContent(entry.state))
-    .filter((code): code is string => code !== null);
+  const scripts: string[] = [];
+  const permissionRequests = new Map<string, Set<ScriptGrantValue>>();
+
+  matchedStates.forEach((entry) => {
+    const content = toRunnableScriptContent(entry.state);
+    if (!content) {
+      return;
+    }
+
+    const scriptGrants = extractScriptGrants(content);
+    if (!scriptGrants.includes(runOnPageLoadGrant)) {
+      return;
+    }
+
+    const missingGrants = getMissingAllowedGrants(entry.state, scriptGrants);
+    if (missingGrants.length > 0) {
+      if (!permissionRequests.has(entry.websiteGlob)) {
+        permissionRequests.set(entry.websiteGlob, new Set<ScriptGrantValue>());
+      }
+      missingGrants.forEach((grant) => {
+        permissionRequests.get(entry.websiteGlob)?.add(grant);
+      });
+      return;
+    }
+
+    scripts.push(content);
+  });
+
+  permissionRequests.forEach((grants, websiteGlob) => {
+    void requestGrantPermissions({
+      websiteGlob,
+      grants: Array.from(grants),
+    }).catch(() => {
+      logger.debug("No open sidepanel receiver for grant request.", { websiteGlob });
+    });
+  });
+
   if (scripts.length === 0) {
     return 0;
   }
@@ -242,6 +428,23 @@ export default defineBackground(() => {
     if (!status.ok) {
       logger.warn("Unable to initialize User Scripts runner", { message: status.message });
     }
+  });
+
+  browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+    if (!isGrantPermissionResolveMessage(message)) {
+      return false;
+    }
+
+    void resolveGrantPermissions(message.payload.websiteGlob, message.payload.grants, message.payload.allow)
+      .then((result) => {
+        sendResponse(result);
+      })
+      .catch((error: unknown) => {
+        const messageText = error instanceof Error ? error.message : "Unable to process permission request.";
+        sendResponse({ ok: false, error: messageText } satisfies GrantPermissionResolveResult);
+      });
+
+    return true;
   });
 
   const sidePanel = browser.sidePanel;

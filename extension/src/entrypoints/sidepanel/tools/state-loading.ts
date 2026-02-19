@@ -147,6 +147,9 @@ export const buildDefaultToolState = (websiteGlob: string, config: ScriptFormatC
   selectorPanel: {
     entries: [],
   },
+  permissions: {
+    allowedGrants: [],
+  },
   websiteGlob,
   updatedAt: Date.now(),
 });

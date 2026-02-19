@@ -20,7 +20,7 @@
   } from "./code-editor/state";
   import { getTabUrl, resolveActiveTab, shouldHandleTabUpdate, type ActiveTab } from "./code-editor/tabs";
   import type { ScriptMetadataState } from "./code-editor/state";
-  import { activeToolState, removeStoredToolState } from "./state-storage";
+  import { activeToolState, allowedScriptGrantsState, removeStoredToolState } from "./state-storage";
   import {
     buildDefaultScript,
     buildProtectedDisplay,
@@ -98,6 +98,7 @@
       void saveState({
         content,
         selectorEntries: get(selectorEntries),
+        allowedGrants: get(allowedScriptGrantsState),
         isProtectedPage,
         scriptFormatConfig,
         activeTabUrl,
@@ -320,6 +321,7 @@
       activeWebsiteGlob = null;
       activeToolState.set("none");
       selectorEntries.set([]);
+      allowedScriptGrantsState.set([]);
       const baseContent = buildDefaultScript("", scriptFormatConfig);
       const displayContent = isProtectedPage ? buildProtectedDisplay(baseContent, scriptFormatConfig) : baseContent;
       updateEditorContent(displayContent, { persist: false });
@@ -330,6 +332,7 @@
     activeWebsiteGlob = resolvedState.websiteGlob;
     activeToolState.set(resolvedState.state.activeTool);
     selectorEntries.set(resolvedState.state.selectorPanel.entries);
+    allowedScriptGrantsState.set(resolvedState.state.permissions.allowedGrants);
     const normalizedBaseContent = ensureScriptImports(
       ensureDefineBlock(resolvedState.state.codeEditor.content, scriptFormatConfig),
       scriptFormatConfig,
@@ -353,6 +356,7 @@
     if (isProtectedPage) {
       elementEntries.set([]);
       selectorEntries.set([]);
+      allowedScriptGrantsState.set([]);
 
       activeWebsiteGlob = null;
       activeToolState.set("none");
@@ -445,6 +449,7 @@
     codeEditorContent.set(editorValue);
     elementEntries.set([]);
     selectorEntries.set([]);
+    allowedScriptGrantsState.set([]);
     setupEditor();
     setEditorApi({ insertDefinitions: insertDefinitionLines, resetToDefault: resetScriptToDefault });
     refreshActiveTab();

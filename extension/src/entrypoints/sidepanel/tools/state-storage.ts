@@ -1,6 +1,7 @@
 import { writable } from "svelte/store";
 import { browser } from "wxt/browser";
 
+import { coerceScriptGrantValues, type ScriptGrantValue } from "@/lib/grants";
 import { matchWebsiteGlob } from "@/lib/utils/website-glob";
 
 export type ToolId = "select" | "create" | "selectors" | "help" | "share" | "none";
@@ -18,6 +19,9 @@ export type StoredToolState = {
   };
   selectorPanel: {
     entries: StoredSelectorEntry[];
+  };
+  permissions: {
+    allowedGrants: ScriptGrantValue[];
   };
   websiteGlob: string;
   updatedAt: number;
@@ -91,6 +95,7 @@ const coerceStoredToolState = (value: unknown, websiteGlob: string): StoredToolS
     activeTool?: unknown;
     codeEditor?: unknown;
     selectorPanel?: unknown;
+    permissions?: unknown;
     websiteGlob?: unknown;
     updatedAt?: unknown;
   };
@@ -105,6 +110,7 @@ const coerceStoredToolState = (value: unknown, websiteGlob: string): StoredToolS
   }
 
   const selectorPanel = data.selectorPanel as { entries?: unknown } | undefined;
+  const permissions = data.permissions as { allowedGrants?: unknown } | undefined;
 
   return {
     activeTool: data.activeTool,
@@ -114,6 +120,9 @@ const coerceStoredToolState = (value: unknown, websiteGlob: string): StoredToolS
     selectorPanel: {
       entries: coerceStoredSelectorEntries(selectorPanel?.entries),
     },
+    permissions: {
+      allowedGrants: coerceScriptGrantValues(permissions?.allowedGrants),
+    },
     websiteGlob:
       typeof data.websiteGlob === "string" && data.websiteGlob.trim().length > 0 ? data.websiteGlob : websiteGlob,
     updatedAt: typeof data.updatedAt === "number" ? data.updatedAt : Date.now(),
@@ -121,6 +130,7 @@ const coerceStoredToolState = (value: unknown, websiteGlob: string): StoredToolS
 };
 
 export const activeToolState = writable<ToolId>("none");
+export const allowedScriptGrantsState = writable<ScriptGrantValue[]>([]);
 
 export const listStoredToolStates = async () => {
   const allValues = await browser.storage.local.get(null);

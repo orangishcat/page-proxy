@@ -1,0 +1,219 @@
+---
+title: Extension usage
+---
+
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
+# Extension usage (v0.2.x)
+
+This page covers the Page Proxy extension workflow in `v0.2.x`: sidepanel tools, code editor behavior, and selector popup flow.
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+## Sidepanel layout and shortcuts
+
+The sidepanel has:
+
+- A code editor panel at the top.
+- A tool panel at the bottom.
+- A toolbar on the top for switching tools.
+
+Toolbar shortcuts:
+
+- `Shift + 1`: Select
+- `Shift + 2`: Create
+- `Shift + 3`: Selectors
+- `Shift + 4`: Help
+- `Shift + 5`: Export
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img src={useBaseUrl('/img/editor_usage/side_panel.png', {absolute: true})} alt="Page Proxy sidepanel overview" />
+
+</div>
+
+</div>
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+## Code editor
+
+The editor is where you edit code and run it on the active tab..
+
+What it does:
+
+- Keeps `pq`, `ps`, and `pv` imports in your script.
+- Uses a selector definition block:
+    - `// ==Selectors==`
+    - `// ==/Selectors==`
+- Parses script metadata and selector definitions as you edit.
+- Autosaves after a short delay when content changes.
+- Supports manual save with `Ctrl+S` / `Cmd+S`.
+- Runs your script with the Run button (play icon).
+    - Script runs with a 2-second timeout.
+    - If the run button is still disabled even after 2 seconds, it's a bug, please report it.
+- Stores state per website/tab context.
+
+On protected pages (for example browser internal pages), editing and execution are disabled and a protected-page message is shown.
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img src={useBaseUrl('/img/editor_usage/code_editor.png', {absolute: true})} alt="Page Proxy code editor tool" />
+
+</div>
+
+</div>
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+## Select tool
+
+Use Select to inspect elements on the current page.
+
+Flow:
+
+1. Activate Select (`Shift + 1`).
+2. Click an element on the page.
+3. Review captured properties in the Select panel.
+4. Use the parent button (up arrow) to move one level up in the DOM.
+5. Click **Save selector** to open the selector popup.
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img src={useBaseUrl('/img/editor_usage/select_tool.png', {absolute: true})} alt="Page Proxy Select tool" />
+
+</div>
+
+</div>
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+## Selector popup
+
+The selector popup opens from **Select -> Save selector**.
+
+What you do in the popup:
+
+1. Edit the generated `pq.selector(...)` code in the popup editor.
+    - You can name the variable and the `name` property to be whatever you want.
+2. Use the live preview snippet for the active property/filter.
+3. Drag the preview grip into the selector code editor to insert filter fragments.
+4. Save the selector.
+
+What happens on save:
+
+- The sidepanel validates the snippet contains `pq.selector`.
+- It requires a `const` assignment.
+- It checks variable-name collisions.
+- If valid, it inserts the selector into the editor selector block.
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img src={useBaseUrl('/img/editor_usage/selector_popup.png', {absolute: true})} alt="Page Proxy selector popup" />
+
+</div>
+
+</div>
+
+<div className="margin-bottom--xl">
+
+## Create tool
+
+Create is currently marked as coming soon.
+
+Planned direction in the UI:
+
+- Generate reusable components.
+- Build script settings UI and other script-driven UI pieces.
+
+</div>
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+## Selectors tool
+
+Selectors shows selector entries parsed from your selector block in the editor.
+
+For each selector, the tool displays:
+
+- Selector name.
+- Rule count.
+- Parsed rules and helper usage extracted from the selector `matches` function.
+
+Use this to confirm selectors were saved correctly and to quickly audit selector logic.
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img src={useBaseUrl('/img/editor_usage/selectors_tool.png', {absolute: true})} alt="Page Proxy Selectors tool" />
+
+</div>
+
+</div>
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+## Help tool
+
+Help contains quick project references:
+
+- Documentation link.
+- Known issues list.
+- Planned features and roadmap links.
+
+Use it as the first stop when behavior seems unexpected.
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img src={useBaseUrl('/img/editor_usage/help_tool.png', {absolute: true})} alt="Page Proxy Help tool" />
+
+</div>
+
+</div>
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+## Export tool
+
+Export packages your current script from the editor.
+
+Current behavior:
+
+- `pp-script` export is available now.
+- Other formats are visible but marked coming soon.
+- Exported filename is derived from script title metadata.
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img src={useBaseUrl('/img/editor_usage/export_tool.png', {absolute: true})} alt="Page Proxy Export tool" />
+
+</div>
+
+</div>

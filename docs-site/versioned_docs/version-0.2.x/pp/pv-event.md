@@ -2,7 +2,7 @@
 title: pv (Event API)
 ---
 
-# pv module (next)
+# pv module (v0.2.x)
 
 `pv` handles DOM creation events and Page Proxy notifications.
 

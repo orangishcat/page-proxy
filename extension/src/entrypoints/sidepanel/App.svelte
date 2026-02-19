@@ -15,9 +15,11 @@
   import { detectBrowserSupport } from "@/lib/utils/browser-support";
   import { attachSelectionListener, sendSelectionToggle } from "./tools/select-tool/actions";
   import { errorMessage, setErrorMessage, setSuccessMessage, successMessage } from "./tools/tool-errors";
+  import { isGrantPermissionRequestMessage } from "@/lib/grant-permissions";
   import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
   import type { SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
   import { elementEntries, insertDefinitions, sanitizeVariableName, selectorEntries } from "./tools/code-editor/state";
+  import { grantPermissionRequest } from "./tools/grant-permissions/state";
   import { ensureCodeRunnerUserscript } from "@/lib/userscript-runner";
   import {
     activeToolState,
@@ -98,15 +100,15 @@
     const wasSelectTool = activeTool === "select";
     activeTool = tool;
     const isSelectTool = tool === "select";
-    if (wasSelectTool !== isSelectTool) {
-      sendSelectionToggle(isSelectTool);
+    if (wasSelectTool && !isSelectTool) {
+      sendSelectionToggle(false);
     }
     activeToolState.set(tool);
   };
 
   const activateSelectTool = () => {
+    sendSelectionToggle(true);
     if (activeTool === "select") {
-      sendSelectionToggle(true);
       return;
     }
 
@@ -338,10 +340,12 @@
       const wasSelectTool = activeTool === "select";
       activeTool = tool;
       const isSelectTool = tool === "select";
-      if (wasSelectTool !== isSelectTool) {
-        sendSelectionToggle(isSelectTool);
+      if (wasSelectTool && !isSelectTool) {
+        sendSelectionToggle(false);
       }
     });
+
+    sendSelectionToggle(false);
 
     const cleanup = attachSelectionListener();
 
@@ -349,6 +353,15 @@
       if (isSelectorSaveMessage(message)) {
         sendResponse(saveSelectorDefinition(message.payload));
         return true;
+      }
+
+      if (isGrantPermissionRequestMessage(message)) {
+        grantPermissionRequest.set({
+          websiteGlob: message.payload.websiteGlob,
+          grants: message.payload.grants,
+        });
+        setActiveTool("help");
+        return false;
       }
 
       if (!isSidepanelShortcutMessage(message)) {

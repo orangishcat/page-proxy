@@ -3,11 +3,6 @@ title: Overview
 slug: /
 ---
 
-# Page Proxy Documentation
+# Page Proxy Documentation (next)
 
-This site documents the Page Proxy `pp` browser scripting library.
-
-- Latest stable: **v0.1.x**
-- Next (unreleased) docs: **next**
-
-Use the version dropdown in the navbar to switch versions.
+This version documents the `pp` library APIs available in **next**, plus a few guides and tutorials to help you get started.

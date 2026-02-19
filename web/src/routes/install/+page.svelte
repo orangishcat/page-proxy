@@ -30,7 +30,7 @@
 
   // TODO: some sort of serverless endpoint that checks the latest version on Github releases?
   // Or some Actions workflow that updates the version number in the codebase??
-  const version = "0.1.6";
+  const version = "0.2.0";
 
   onMount(() => {
     const userAgent = navigator.userAgent.toLowerCase();
