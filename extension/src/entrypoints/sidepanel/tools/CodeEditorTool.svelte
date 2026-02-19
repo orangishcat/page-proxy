@@ -97,6 +97,7 @@
     try {
       void saveState({
         content,
+        selectorEntries: get(selectorEntries),
         isProtectedPage,
         scriptFormatConfig,
         activeTabUrl,
@@ -200,6 +201,7 @@
     void requestScriptRun(formattedScript)
       .then((result) => {
         selectorEntries.set(result.selectors);
+        saveNow(editorValue);
         updateRunError(result.errors);
       })
       .finally(() => {
@@ -317,6 +319,7 @@
     if (!normalizedUrl) {
       activeWebsiteGlob = null;
       activeToolState.set("none");
+      selectorEntries.set([]);
       const baseContent = buildDefaultScript("", scriptFormatConfig);
       const displayContent = isProtectedPage ? buildProtectedDisplay(baseContent, scriptFormatConfig) : baseContent;
       updateEditorContent(displayContent, { persist: false });
@@ -326,6 +329,7 @@
     const resolvedState = await resolveStoredToolStateForUrl(normalizedUrl, scriptFormatConfig);
     activeWebsiteGlob = resolvedState.websiteGlob;
     activeToolState.set(resolvedState.state.activeTool);
+    selectorEntries.set(resolvedState.state.selectorPanel.entries);
     const normalizedBaseContent = ensureScriptImports(
       ensureDefineBlock(resolvedState.state.codeEditor.content, scriptFormatConfig),
       scriptFormatConfig,

@@ -144,6 +144,9 @@ export const buildDefaultToolState = (websiteGlob: string, config: ScriptFormatC
   codeEditor: {
     content: normalizeContentForStorage(buildDefaultScript(websiteGlob, config), false, config),
   },
+  selectorPanel: {
+    entries: [],
+  },
   websiteGlob,
   updatedAt: Date.now(),
 });

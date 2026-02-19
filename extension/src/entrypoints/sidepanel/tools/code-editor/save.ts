@@ -7,10 +7,17 @@ import {
   resolveWebsiteGlob,
   type ScriptFormatConfig,
 } from "../state-loading";
-import { removeStoredToolState, saveStoredToolState, type StoredToolState, type ToolId } from "../state-storage";
+import {
+  removeStoredToolState,
+  saveStoredToolState,
+  type StoredSelectorEntry,
+  type StoredToolState,
+  type ToolId,
+} from "../state-storage";
 
 type SaveStateOptions = {
   content: string;
+  selectorEntries: StoredSelectorEntry[];
   isProtectedPage: boolean;
   scriptFormatConfig: ScriptFormatConfig;
   activeTabUrl: string | null;
@@ -65,6 +72,9 @@ export const saveState = async (options: SaveStateOptions) => {
     activeTool: options.activeTool,
     codeEditor: {
       content: contentWithWebsite,
+    },
+    selectorPanel: {
+      entries: options.selectorEntries,
     },
     websiteGlob,
     updatedAt: Date.now(),

@@ -5,10 +5,19 @@ import { matchWebsiteGlob } from "@/lib/utils/website-glob";
 
 export type ToolId = "select" | "create" | "selectors" | "help" | "share" | "none";
 
+export type StoredSelectorEntry = {
+  name: string;
+  ruleKeys: string[];
+  rules?: string[];
+};
+
 export type StoredToolState = {
   activeTool: ToolId;
   codeEditor: {
     content: string;
+  };
+  selectorPanel: {
+    entries: StoredSelectorEntry[];
   };
   websiteGlob: string;
   updatedAt: number;
@@ -26,6 +35,41 @@ const isToolId = (value: unknown): value is ToolId =>
   value === "help" ||
   value === "share" ||
   value === "none";
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === "string");
+
+const coerceStoredSelectorEntries = (value: unknown): StoredSelectorEntry[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const entries: StoredSelectorEntry[] = [];
+  value.forEach((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      return;
+    }
+
+    const data = entry as {
+      name?: unknown;
+      ruleKeys?: unknown;
+      rules?: unknown;
+    };
+
+    if (typeof data.name !== "string" || !isStringArray(data.ruleKeys)) {
+      return;
+    }
+
+    const rules = isStringArray(data.rules) ? data.rules : undefined;
+    entries.push({
+      name: data.name,
+      ruleKeys: data.ruleKeys,
+      rules,
+    });
+  });
+
+  return entries;
+};
 
 export const toStorageKey = (websiteGlob: string) => `${storageKeyPrefix}${websiteGlob.trim()}`;
 
@@ -46,6 +90,7 @@ const coerceStoredToolState = (value: unknown, websiteGlob: string): StoredToolS
   const data = value as {
     activeTool?: unknown;
     codeEditor?: unknown;
+    selectorPanel?: unknown;
     websiteGlob?: unknown;
     updatedAt?: unknown;
   };
@@ -59,10 +104,15 @@ const coerceStoredToolState = (value: unknown, websiteGlob: string): StoredToolS
     return null;
   }
 
+  const selectorPanel = data.selectorPanel as { entries?: unknown } | undefined;
+
   return {
     activeTool: data.activeTool,
     codeEditor: {
       content: codeEditor.content,
+    },
+    selectorPanel: {
+      entries: coerceStoredSelectorEntries(selectorPanel?.entries),
     },
     websiteGlob:
       typeof data.websiteGlob === "string" && data.websiteGlob.trim().length > 0 ? data.websiteGlob : websiteGlob,
