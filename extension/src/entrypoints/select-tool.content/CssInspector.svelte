@@ -1,5 +1,7 @@
 <script lang="ts">
   import { Tooltip } from "bits-ui";
+  import { RotateCcw } from "lucide-svelte";
+  import { SvelteMap } from "svelte/reactivity";
   import type { CssSelectorPart } from "./css-inspector";
 
   type PropertyItem = {
@@ -7,19 +9,127 @@
     value: string;
   };
 
+  type CssComputedStyleProperty = {
+    key: string;
+    value: string;
+    edited: boolean;
+  };
+
   type Props = {
     activeCssPart: CssSelectorPart | null;
     propertyItems: PropertyItem[];
+    computedStyleProperties: CssComputedStyleProperty[];
     hasNthOfTypeRule: boolean;
     isCssEditorFocused: boolean;
     cssPreviewErrorMessage: string | null;
     onRemoveNthOfType: () => void;
+    onUpdateComputedStyleValue: (key: string, value: string) => void;
+    onRevertComputedStyleValue: (key: string) => void;
   };
 
-  let { activeCssPart, propertyItems, hasNthOfTypeRule, isCssEditorFocused, cssPreviewErrorMessage, onRemoveNthOfType }: Props =
-    $props();
+  let {
+    activeCssPart,
+    propertyItems,
+    computedStyleProperties,
+    hasNthOfTypeRule,
+    isCssEditorFocused,
+    cssPreviewErrorMessage,
+    onRemoveNthOfType,
+    onUpdateComputedStyleValue,
+    onRevertComputedStyleValue,
+  }: Props = $props();
+
+  let propertySearchTerm = $state("");
+  let computedValueDrafts = $state<Record<string, string>>({});
+
+  const computedInputRefs = new SvelteMap<string, HTMLInputElement>();
+
+  const computedValueInput = (node: HTMLInputElement, key: string) => {
+    let currentKey = key;
+    computedInputRefs.set(currentKey, node);
+
+    return {
+      update(nextKey: string) {
+        if (nextKey === currentKey) {
+          return;
+        }
+        computedInputRefs.delete(currentKey);
+        currentKey = nextKey;
+        computedInputRefs.set(currentKey, node);
+      },
+      destroy() {
+        computedInputRefs.delete(currentKey);
+      },
+    };
+  };
 
   const truncate = (val: string, max: number) => (val.length > max ? `${val.slice(0, max)}…` : val);
+
+  const normalizedSearchTerm = $derived.by(() => propertySearchTerm.trim().toLowerCase());
+
+  const filteredPropertyItems = $derived.by(() => {
+    const searchTerm = normalizedSearchTerm;
+    if (!searchTerm) {
+      return propertyItems;
+    }
+    return propertyItems.filter(
+      (property) =>
+        property.key.toLowerCase().includes(searchTerm) || property.value.toLowerCase().includes(searchTerm),
+    );
+  });
+
+  const filteredComputedStyleProperties = $derived.by(() => {
+    const searchTerm = normalizedSearchTerm;
+    if (!searchTerm) {
+      return computedStyleProperties;
+    }
+    return computedStyleProperties.filter(
+      (property) =>
+        property.key.toLowerCase().includes(searchTerm) || property.value.toLowerCase().includes(searchTerm),
+    );
+  });
+
+  const getDraftValue = (key: string, fallbackValue: string) => computedValueDrafts[key] ?? fallbackValue;
+
+  const setDraftValue = (key: string, value: string) => {
+    computedValueDrafts = {
+      ...computedValueDrafts,
+      [key]: value,
+    };
+  };
+
+  const clearDraftValue = (key: string) => {
+    if (!(key in computedValueDrafts)) {
+      return;
+    }
+    const { [key]: _ignored, ...rest } = computedValueDrafts;
+    computedValueDrafts = rest;
+  };
+
+  const focusComputedValueInput = (key: string) => {
+    const input = computedInputRefs.get(key);
+    if (!input) {
+      return;
+    }
+    input.focus();
+    input.select();
+  };
+
+  const commitComputedValue = (key: string, currentValue: string) => {
+    const nextValue = getDraftValue(key, currentValue).trim();
+    clearDraftValue(key);
+
+    if (nextValue === currentValue.trim()) {
+      return;
+    }
+
+    onUpdateComputedStyleValue(key, nextValue);
+  };
+
+  const revertComputedValue = (key: string) => {
+    clearDraftValue(key);
+    onRevertComputedStyleValue(key);
+  };
 </script>
 
 <div class="flex-1 min-h-0 flex flex-col gap-3">
@@ -32,15 +142,23 @@
       <p class="h-14 text-xs leading-5 text-gray-400">{activeCssPart.description}</p>
     </div>
   {:else}
-    <div class="h-14 text-xs leading-5 text-gray-500">
-      Place the text caret on a selector part to inspect it.
-    </div>
+    <div class="h-14 text-xs leading-5 text-gray-500">Place the text caret on a selector part to inspect it.</div>
   {/if}
 
-  <div class="text-xs uppercase tracking-wide text-gray-500">Properties</div>
-  <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
+  <div class="flex items-center justify-between gap-2">
+    <div class="text-xs uppercase tracking-wide text-gray-500">Properties</div>
+    <input
+      type="search"
+      bind:value={propertySearchTerm}
+      placeholder="Search"
+      class="h-6 w-28 rounded border border-white/15 bg-white/5 px-2 text-xs text-gray-100 placeholder:text-gray-500 focus:border-white/25 focus:outline-none"
+      aria-label="Search CSS inspector properties"
+    />
+  </div>
+
+  <div class="max-h-32 overflow-y-auto overflow-x-hidden pr-1">
     <div class="flex flex-col gap-2">
-      {#each propertyItems as item (item.key)}
+      {#each filteredPropertyItems as item (item.key)}
         <div class="flex justify-between items-center rounded-md border border-transparent px-2 py-1 hover:bg-white/10">
           <div class="font-mono text-xs text-accent-500 truncate max-w-24">
             {item.key}
@@ -75,8 +193,70 @@
           {/if}
         </div>
       {/each}
-      {#if propertyItems.length === 0}
+      {#if filteredPropertyItems.length === 0}
         <div class="text-xs text-gray-500 text-center p-2">No properties available.</div>
+      {/if}
+    </div>
+  </div>
+
+  <div class="text-xs uppercase tracking-wide text-gray-500">Computed styles</div>
+  <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
+    <div class="flex flex-col gap-2">
+      {#each filteredComputedStyleProperties as property (property.key)}
+        <div
+          class={`relative flex justify-between items-center gap-2 rounded-md border px-2 py-1 pl-2 transition-colors ${property.edited ? "border-accent-400/40 bg-accent-500/10" : "border-transparent hover:bg-white/10"}`}
+          role="button"
+          tabindex="0"
+          onkeydown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              focusComputedValueInput(property.key);
+            }
+          }}
+          onclick={() => focusComputedValueInput(property.key)}
+        >
+          {#if property.edited}
+            <button
+              type="button"
+              class="absolute left-1 top-1/2 -translate-y-1/2 inline-flex h-4 w-4 items-center justify-center rounded text-accent-300 hover:bg-accent-400/20"
+              onclick={(event) => {
+                event.stopPropagation();
+                revertComputedValue(property.key);
+              }}
+              aria-label={`Revert ${property.key}`}
+            >
+              <RotateCcw class="h-3.5 w-3.5 -scale-x-100" />
+            </button>
+          {/if}
+          <div class="font-mono text-xs text-accent-500 truncate w-24 shrink-0">
+            {property.key}
+          </div>
+          <input
+            type="text"
+            use:computedValueInput={property.key}
+            value={getDraftValue(property.key, property.value)}
+            class="h-6 w-full max-w-30 shrink-0 rounded border border-transparent bg-transparent px-1 font-mono text-xs text-secondary-500 text-right focus:border-white/20 focus:bg-white/5 focus:outline-none"
+            onclick={(event) => event.stopPropagation()}
+            oninput={(event) => setDraftValue(property.key, event.currentTarget.value)}
+            onblur={() => commitComputedValue(property.key, property.value)}
+            onkeydown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                commitComputedValue(property.key, property.value);
+                event.currentTarget.blur();
+              }
+              if (event.key === "Escape") {
+                event.preventDefault();
+                clearDraftValue(property.key);
+                event.currentTarget.blur();
+              }
+            }}
+            aria-label={`Edit ${property.key}`}
+          />
+        </div>
+      {/each}
+      {#if filteredComputedStyleProperties.length === 0}
+        <div class="text-xs text-gray-500 text-center p-2">No computed styles available.</div>
       {/if}
     </div>
   </div>

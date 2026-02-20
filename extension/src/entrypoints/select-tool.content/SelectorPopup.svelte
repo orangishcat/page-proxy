@@ -24,12 +24,13 @@
   type Props = {
     info: ElementInfo;
     propertyItems: PropertyItem[];
+    targetElement: Element | null;
     onSave: (payload: SelectorSavePayload) => Promise<SelectorSaveResult>;
     onCancel: () => void;
     onVisibilityChange?: (hidden: boolean) => void;
   };
 
-  let { info, propertyItems, onSave, onCancel, onVisibilityChange }: Props = $props();
+  let { info, propertyItems, targetElement, onSave, onCancel, onVisibilityChange }: Props = $props();
 
   let editorHost = $state<HTMLDivElement | null>(null);
   let editorHandle = $state<MonacoCodeEditorHandle | null>(null);
@@ -56,6 +57,7 @@
 
   let filterOperator = $state<FilterOperator>("matches");
   let selectedPropertyKey = $state<string | null>(null);
+  let propertySearchTerm = $state("");
   let errorMessage = $state("");
   type PopupMode = "pp-api" | "css";
   let popupMode = $state<PopupMode>("pp-api");
@@ -65,6 +67,22 @@
   transparentDragImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
 
   const baseSelectorPattern = /(["']baseSelector["']\s*:\s*)(["'`])((?:\\.|(?!\2)[\s\S])*?)\2/;
+  const cssDeclarationPattern = /^([a-zA-Z-][\w-]*)\s*:\s*(.+?)\s*;?$/;
+
+  type CssComputedStyleProperty = {
+    key: string;
+    value: string;
+    originalValue: string;
+    edited: boolean;
+    originalOrder: number;
+    declarationOrder: number | null;
+  };
+
+  type ParsedCssDeclaration = {
+    key: string;
+    value: string;
+    order: number;
+  };
 
   const decodeStringLiteral = (value: string) => {
     return value.replace(/\\([\\'"`nrt])/g, (_match, token: string) => {
@@ -256,6 +274,138 @@
     return `ps.injectCSS(\`\n${cssDocument}\n\`);`;
   };
 
+  const isIgnorableCssValue = (value: string) => {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) {
+      return true;
+    }
+
+    if (
+      normalized === "auto" ||
+      normalized === "normal" ||
+      normalized === "none" ||
+      normalized === "transparent" ||
+      normalized === "initial" ||
+      normalized === "inherit" ||
+      normalized === "unset" ||
+      normalized === "revert" ||
+      normalized === "revert-layer"
+    ) {
+      return true;
+    }
+
+    const isZeroToken = (token: string) => /^[-+]?0*\.?0+(?:[a-z%]+)?$/i.test(token);
+    if (isZeroToken(normalized)) {
+      return true;
+    }
+
+    const zeroTokens = normalized
+      .split(/[\s,/]+/)
+      .map((token) => token.trim())
+      .filter((token) => token.length > 0);
+    if (zeroTokens.length > 0 && zeroTokens.every((token) => isZeroToken(token))) {
+      return true;
+    }
+
+    if (/^rgba?\(\s*0\s*[,\s]\s*0\s*[,\s]\s*0(?:\s*[,/]\s*0(?:\.0+)?)?\s*\)$/.test(normalized)) {
+      return true;
+    }
+
+    if (normalized === "#0000" || normalized === "#00000000") {
+      return true;
+    }
+
+    return false;
+  };
+
+  const readComputedStyleEntries = (element: Element | null) => {
+    if (!element?.isConnected) {
+      return [] as Array<{ key: string; value: string; originalOrder: number }>;
+    }
+
+    const computedStyle = getComputedStyle(element);
+    const entries: Array<{ key: string; value: string; originalOrder: number }> = [];
+    for (let index = 0; index < computedStyle.length; index += 1) {
+      const key = computedStyle.item(index);
+      if (!key) {
+        continue;
+      }
+      const value = computedStyle.getPropertyValue(key).trim();
+      if (isIgnorableCssValue(value)) {
+        continue;
+      }
+      entries.push({
+        key,
+        value,
+        originalOrder: index,
+      });
+    }
+
+    return entries;
+  };
+
+  const parseCssDeclarations = (declarations: string): ParsedCssDeclaration[] => {
+    return declarations
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .map((line, order) => {
+        const match = line.match(cssDeclarationPattern);
+        if (!match) {
+          return null;
+        }
+        return {
+          key: match[1].toLowerCase(),
+          value: match[2].trim(),
+          order,
+        } satisfies ParsedCssDeclaration;
+      })
+      .filter((entry): entry is ParsedCssDeclaration => entry !== null);
+  };
+
+  const serializeCssDeclarations = (declarations: ParsedCssDeclaration[]) =>
+    declarations.map((declaration) => `${declaration.key}: ${declaration.value};`).join("\n");
+
+  const upsertCssDeclaration = (declarations: string, key: string, value: string) => {
+    const normalizedKey = key.trim().toLowerCase();
+    if (!normalizedKey) {
+      return declarations;
+    }
+
+    const parsed = parseCssDeclarations(declarations);
+    const existingIndex = parsed.findIndex((entry) => entry.key === normalizedKey);
+    const trimmedValue = value.trim();
+    if (!trimmedValue) {
+      if (existingIndex >= 0) {
+        parsed.splice(existingIndex, 1);
+      }
+      return serializeCssDeclarations(parsed);
+    }
+
+    if (existingIndex >= 0) {
+      parsed[existingIndex] = { ...parsed[existingIndex], value: trimmedValue };
+      return serializeCssDeclarations(parsed);
+    }
+
+    return serializeCssDeclarations([
+      ...parsed,
+      {
+        key: normalizedKey,
+        value: trimmedValue,
+        order: parsed.length,
+      },
+    ]);
+  };
+
+  const removeCssDeclaration = (declarations: string, key: string) => {
+    const normalizedKey = key.trim().toLowerCase();
+    if (!normalizedKey) {
+      return declarations;
+    }
+    const parsed = parseCssDeclarations(declarations).filter((entry) => entry.key !== normalizedKey);
+    return serializeCssDeclarations(parsed);
+  };
+
   const replaceBaseSelectorInCode = (code: string, nextSelector: string): string | null => {
     if (!baseSelectorPattern.test(code)) {
       return null;
@@ -294,6 +444,25 @@
   const specialPropertyItems = $derived.by(() => propertyItems.filter((item) => isSpecialPropertyKey(item.key)));
 
   const nonSpecialPropertyItems = $derived.by(() => propertyItems.filter((item) => !isSpecialPropertyKey(item.key)));
+  const normalizedPropertySearchTerm = $derived.by(() => propertySearchTerm.trim().toLowerCase());
+  const filteredSpecialPropertyItems = $derived.by(() =>
+    specialPropertyItems.filter((item) => {
+      const searchTerm = normalizedPropertySearchTerm;
+      if (!searchTerm) {
+        return true;
+      }
+      return item.key.toLowerCase().includes(searchTerm) || item.value.toLowerCase().includes(searchTerm);
+    }),
+  );
+  const filteredNonSpecialPropertyItems = $derived.by(() =>
+    nonSpecialPropertyItems.filter((item) => {
+      const searchTerm = normalizedPropertySearchTerm;
+      if (!searchTerm) {
+        return true;
+      }
+      return item.key.toLowerCase().includes(searchTerm) || item.value.toLowerCase().includes(searchTerm);
+    }),
+  );
 
   const isActiveSpecialProperty = $derived.by(() => isSpecialPropertyKey(activePropertyKey));
 
@@ -314,6 +483,47 @@
   const cssPropertyItems = $derived.by(() =>
     propertyItems.filter((item) => item.key !== "selector" && item.key !== "bbox" && item.key !== "innerText"),
   );
+  const baseComputedStyleEntries = $derived.by(() => readComputedStyleEntries(targetElement));
+  const cssDeclarationEntries = $derived.by(() => parseCssDeclarations(readDeclarationSourceFromCssEditor(cssEditorValue)));
+  const cssComputedStyleProperties = $derived.by<CssComputedStyleProperty[]>(() => {
+    const baseValueByKey = new Map(baseComputedStyleEntries.map((entry) => [entry.key, entry.value]));
+    const baseOrderByKey = new Map(baseComputedStyleEntries.map((entry) => [entry.key, entry.originalOrder]));
+    const declarationByKey = new Map(cssDeclarationEntries.map((entry) => [entry.key, entry]));
+    const allKeys = new Set<string>([...baseValueByKey.keys(), ...declarationByKey.keys()]);
+    const entries: CssComputedStyleProperty[] = [];
+
+    allKeys.forEach((key) => {
+      const declaration = declarationByKey.get(key);
+      const originalValue = baseValueByKey.get(key) ?? "";
+      const value = declaration?.value ?? originalValue;
+      const edited = declaration !== undefined && value !== originalValue;
+      entries.push({
+        key,
+        value,
+        originalValue,
+        edited,
+        originalOrder: baseOrderByKey.get(key) ?? Number.MAX_SAFE_INTEGER,
+        declarationOrder: declaration?.order ?? null,
+      });
+    });
+
+    entries.sort((left, right) => {
+      if (left.edited !== right.edited) {
+        return left.edited ? -1 : 1;
+      }
+      if (left.originalOrder !== right.originalOrder) {
+        return left.originalOrder - right.originalOrder;
+      }
+      const leftDeclarationOrder = left.declarationOrder ?? Number.MAX_SAFE_INTEGER;
+      const rightDeclarationOrder = right.declarationOrder ?? Number.MAX_SAFE_INTEGER;
+      if (leftDeclarationOrder !== rightDeclarationOrder) {
+        return leftDeclarationOrder - rightDeclarationOrder;
+      }
+      return left.key.localeCompare(right.key);
+    });
+
+    return entries;
+  });
 
   const activeCssPart = $derived.by<CssSelectorPart | null>(() => {
     const currentOffset = hoveredCssOffset;
@@ -416,6 +626,38 @@
     ]);
     cssEditorHandle.editor.pushUndoStop();
     cssEditorHandle.editor.focus();
+  };
+
+  const updateCssDocumentDeclarations = (nextDeclarationSource: string) => {
+    if (!cssEditorHandle) {
+      return;
+    }
+
+    const currentCssDocument = cssEditorHandle.editor.getValue();
+    const selectorValue = normalizeSelectorFromCssEditor(currentCssDocument);
+    if (!selectorValue) {
+      return;
+    }
+
+    const nextCssDocument = buildCssDocument(selectorValue, nextDeclarationSource);
+    if (nextCssDocument === currentCssDocument) {
+      return;
+    }
+
+    updateMonacoEditorValue(cssEditorHandle, nextCssDocument);
+    cssEditorValue = nextCssDocument;
+  };
+
+  const handleCssComputedPropertyChange = (key: string, value: string) => {
+    const declarationSource = readDeclarationSourceFromCssEditor(cssEditorHandle?.editor.getValue() ?? cssEditorValue);
+    const nextDeclarationSource = upsertCssDeclaration(declarationSource, key, value);
+    updateCssDocumentDeclarations(nextDeclarationSource);
+  };
+
+  const handleCssComputedPropertyRevert = (key: string) => {
+    const declarationSource = readDeclarationSourceFromCssEditor(cssEditorHandle?.editor.getValue() ?? cssEditorValue);
+    const nextDeclarationSource = removeCssDeclaration(declarationSource, key);
+    updateCssDocumentDeclarations(nextDeclarationSource);
   };
 
   const handleCssSave = async () => {
@@ -1203,10 +1445,19 @@
         </p>
 
         {#if popupMode === "pp-api"}
-          <div class="text-xs uppercase tracking-wide text-gray-500">Properties</div>
+          <div class="flex items-center justify-between gap-2">
+            <div class="text-xs uppercase tracking-wide text-gray-500">Properties</div>
+            <input
+              type="search"
+              bind:value={propertySearchTerm}
+              placeholder="Search"
+              class="h-6 w-28 rounded border border-white/15 bg-white/5 px-2 text-xs text-gray-100 placeholder:text-gray-500 focus:border-white/25 focus:outline-none"
+              aria-label="Search properties"
+            />
+          </div>
           <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1">
             <div class="flex flex-col gap-2">
-              {#each specialPropertyItems as item (item.key)}
+              {#each filteredSpecialPropertyItems as item (item.key)}
                 <button
                   type="button"
                   onclick={() => (selectedPropertyKey = item.key)}
@@ -1249,11 +1500,11 @@
                 </button>
               {/each}
 
-              {#if specialPropertyItems.length > 0 && nonSpecialPropertyItems.length > 0}
+              {#if filteredSpecialPropertyItems.length > 0 && filteredNonSpecialPropertyItems.length > 0}
                 <hr class="border-gray-800" />
               {/if}
 
-              {#each nonSpecialPropertyItems as item (item.key)}
+              {#each filteredNonSpecialPropertyItems as item (item.key)}
                 <button
                   type="button"
                   onclick={() => (selectedPropertyKey = item.key)}
@@ -1295,7 +1546,7 @@
                 </button>
               {/each}
 
-              {#if propertyItems.length === 0}
+              {#if filteredSpecialPropertyItems.length === 0 && filteredNonSpecialPropertyItems.length === 0}
                 <div class="col-span-full text-xs text-gray-500 text-center p-4">No properties available.</div>
               {/if}
             </div>
@@ -1304,10 +1555,13 @@
           <CssInspector
             {activeCssPart}
             propertyItems={cssPropertyItems}
+            computedStyleProperties={cssComputedStyleProperties}
             {hasNthOfTypeRule}
             {isCssEditorFocused}
             {cssPreviewErrorMessage}
             onRemoveNthOfType={removeNthOfTypeFromCssSelector}
+            onUpdateComputedStyleValue={handleCssComputedPropertyChange}
+            onRevertComputedStyleValue={handleCssComputedPropertyRevert}
           />
         {/if}
       </div>

@@ -169,5 +169,5 @@
       style={direction === "top" || direction === "bottom" ? `left: ${arrowOffset.left}` : `top: ${arrowOffset.top}`}
     ></div>
   {/if}
-  <SelectorPopup {info} {propertyItems} {onSave} {onCancel} onVisibilityChange={handlePopupVisibilityChange} />
+  <SelectorPopup {info} {propertyItems} {targetElement} {onSave} {onCancel} onVisibilityChange={handlePopupVisibilityChange} />
 </div>
