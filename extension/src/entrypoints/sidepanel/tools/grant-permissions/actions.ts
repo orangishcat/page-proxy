@@ -2,6 +2,7 @@ import { browser } from "wxt/browser";
 
 import {
   type GrantPermissionResolveResult,
+  type GrantPermissionResolveMessage,
   type GrantPermissionRequestPayload,
 } from "@/lib/grant-permissions";
 
@@ -9,13 +10,13 @@ export const resolveGrantPermissionRequest = async (
   payload: GrantPermissionRequestPayload,
   allow: boolean,
 ): Promise<GrantPermissionResolveResult> => {
-  const response = await browser.runtime.sendMessage({
+  const response = (await browser.runtime.sendMessage({
     type: "grant:resolve",
     payload: {
       ...payload,
       allow,
     },
-  });
+  } satisfies GrantPermissionResolveMessage)) as unknown;
 
   if (!response || typeof response !== "object") {
     return {
@@ -34,4 +35,3 @@ export const resolveGrantPermissionRequest = async (
     error: "Invalid grant permission response.",
   };
 };
-
