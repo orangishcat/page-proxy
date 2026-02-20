@@ -4,8 +4,7 @@
 
 <script lang="ts">
   import { asset, resolve } from "$app/paths";
-  import { Bell, Moon, Sun } from "lucide-svelte";
-  import AccountWidget from "$lib/components/AccountWidget.svelte";
+  import { Moon, Sun } from "lucide-svelte";
   import { onMount } from "svelte";
   import Button from "$lib/components/Button.svelte";
 
@@ -60,11 +59,19 @@
 
 <nav class={navClasses} class:max-w-full={variant === "app"}>
   {#if variant === "landing"}
-    <a class="flex items-center gap-1.5 justify-self-start -my-4 -mt-5 ml-4" href={resolve("/")} aria-label="Page Proxy">
+    <a
+      class="flex items-center gap-1.5 justify-self-start -my-4 -mt-5 ml-4"
+      href={resolve("/")}
+      aria-label="Page Proxy"
+    >
       <img src={asset("/logo_text.png")} alt="" class="h-13" draggable="false" />
     </a>
   {:else}
-    <a class="flex items-center gap-1.5 justify-self-start -my-4 -mt-5 ml-4" href={resolve("/")} aria-label="Page Proxy">
+    <a
+      class="flex items-center gap-1.5 justify-self-start -my-4 -mt-5 ml-4"
+      href={resolve("/")}
+      aria-label="Page Proxy"
+    >
       <img src={asset("/logo_text.png")} alt="" class="h-13" draggable="false" />
     </a>
   {/if}
@@ -95,15 +102,8 @@
         <Moon class="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
       {/if}
     </Button>
-    {#if variant === "landing"}
-      <a href={resolve("/install")} class="ml-4">
-        <Button type="button" class="px-6">Install</Button>
-      </a>
-    {:else}
-      <Button variant="outline" class={iconButtonClasses} type="button" aria-label="Notifications">
-        <Bell class="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-      </Button>
-      <AccountWidget />
-    {/if}
+    <a href={resolve("/install")} class="ml-4">
+      <Button type="button" class="px-6">Install</Button>
+    </a>
   </div>
 </nav>

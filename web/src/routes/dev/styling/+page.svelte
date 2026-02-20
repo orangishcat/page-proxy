@@ -6,17 +6,14 @@
   import type {NavbarVariant} from "$lib/components/Navbar.svelte";
   import Navbar from "$lib/components/Navbar.svelte";
   import GridItem from "$lib/components/GridItem.svelte";
-  import AccountWidget from "$lib/components/AccountWidget.svelte";
 
   const entries: Array<
     | { name: string; type: "button"; variant: ButtonVariant; label: string }
     | { name: string; type: "dropdown"; label: string; initialOpen: boolean }
-    | { name: string; type: "component"; component: typeof AccountWidget | typeof Dialog }
   > = [
     {name: "Button / Primary", type: "button", variant: "primary", label: "Primary Button"},
     {name: "Button / Secondary", type: "button", variant: "secondary", label: "Secondary Button"},
     {name: "Dropdown", type: "dropdown", label: "Dropdown", initialOpen: false},
-    {name: "Account", type: "component", component: AccountWidget},
   ];
 
   type WidgetComponent = typeof GridItem | typeof Dialog;
@@ -140,10 +137,7 @@
         <div class="grid w-full max-w-md place-items-center gap-5 text-center">
           <div class="text-label">{entry.name}</div>
           <div class="flex w-full items-center justify-center">
-            {#if entry.type === "component"}
-              {@const Component = entry.component}
-              <Component/>
-            {:else if entry.type === "button"}
+            {#if entry.type === "button"}
               <Button variant={entry.variant}>{entry.label}</Button>
             {:else if entry.type === "dropdown"}
               <Dropdown label={entry.label} initialOpen={entry.initialOpen}/>
