@@ -9,6 +9,7 @@ export type MonacoCodeEditorHandle = {
 };
 
 export type CreateMonacoEditorOptions = {
+  language?: string;
   readOnly?: boolean;
   lineNumbers?: "on" | "off";
   minimap?: boolean;

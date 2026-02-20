@@ -21,16 +21,18 @@ logger.setLevel("debug", false);
 
 const hoverClass = "pp-hover";
 const selectedClass = "pp-selected";
+const hoveredPreviewClass = "pp-hovered";
 const contentUiRootClass = "pp-content-ui-root";
 const styleId = "page-proxy-selection-styles";
 const selectorLabelId = "page-proxy-selector-label";
-const filteredSelectionClasses = new Set([hoverClass, selectedClass]);
+const filteredSelectionClasses = new Set([hoverClass, selectedClass, hoveredPreviewClass]);
 const uiBaseFontSizePx = 16;
 const scriptRunBridgeTimeoutMs = 1800;
 
 const selectionStyles = `
 .pp-hover { outline: 2px solid #86d24b !important; outline-offset: -1px !important; }
 .pp-selected { outline: 2px solid #bb9348 !important; outline-offset: -1px !important; }
+.pp-hovered { outline: 2px solid #5aa0ff !important; outline-offset: -1px !important; }
 .pp-selected-label {
   position: fixed;
   z-index: 2147483646;
@@ -234,6 +236,7 @@ export default defineContentScript({
     let popupTarget: Element | null = null;
     let popupApp: ReturnType<typeof mount> | null = null;
     let shadowUi: Awaited<ReturnType<typeof createShadowRootUi>> | null = null;
+    let resumeSelectionAfterPopup = false;
 
     logger.debug("select tool content script initialized", { href: window.location.href });
 
@@ -273,7 +276,8 @@ export default defineContentScript({
       selectedTarget = null;
     };
 
-    const clearSelectorPopup = () => {
+    const clearSelectorPopup = ({ resumeSelection = true }: { resumeSelection?: boolean } = {}) => {
+      const hadPopup = popupApp !== null || shadowUi !== null || popupTarget !== null || popupFrame !== null;
       if (popupApp) {
         void unmount(popupApp);
         popupApp = null;
@@ -288,6 +292,13 @@ export default defineContentScript({
         popupFrame = null;
       }
       logger.debug("selector popup closed");
+      if (hadPopup) {
+        const shouldResumeSelection = resumeSelection && resumeSelectionAfterPopup;
+        resumeSelectionAfterPopup = false;
+        if (shouldResumeSelection) {
+          setSelectionEnabled(true);
+        }
+      }
     };
 
     const isNoReceiverError = (error: unknown) => {
@@ -407,7 +418,14 @@ export default defineContentScript({
       }
 
       ensureSelectionStyles();
-      clearSelectorPopup();
+      clearSelectorPopup({ resumeSelection: false });
+      if (selectionEnabled) {
+        resumeSelectionAfterPopup = true;
+        setSelectionEnabled(false);
+      } else {
+        resumeSelectionAfterPopup = false;
+        postMessage({ type: "select:mode", enabled: false });
+      }
 
       if (!target.classList.contains(selectedClass)) {
         clearSelected();
@@ -460,7 +478,7 @@ export default defineContentScript({
     };
 
     const applySelection = (target: Element) => {
-      clearSelectorPopup();
+      clearSelectorPopup({ resumeSelection: false });
       if (selectedTarget && selectedTarget !== target) selectedTarget.classList.remove(selectedClass);
       selectedTarget = target;
       ensureSelectionStyles();
@@ -573,7 +591,7 @@ export default defineContentScript({
       const target = getEventTarget(event);
       stopEvent(event);
       if (!target) return;
-      if (shadowUi) clearSelectorPopup();
+      if (shadowUi) clearSelectorPopup({ resumeSelection: false });
       applySelection(target);
     };
 
@@ -625,7 +643,7 @@ export default defineContentScript({
       window.removeEventListener("resize", onViewportChange);
       clearHover();
       clearSelected();
-      clearSelectorPopup();
+      clearSelectorPopup({ resumeSelection: false });
       queuedHoverTarget = null;
       if (hoverFrame !== null) {
         window.cancelAnimationFrame(hoverFrame);
@@ -723,6 +741,18 @@ export default defineContentScript({
         return false;
       }
       if (selectMessage.type === "select:toggle") {
+        if (shadowUi) {
+          if (selectMessage.enabled) {
+            resumeSelectionAfterPopup = true;
+            if (selectionEnabled) {
+              setSelectionEnabled(false);
+            } else {
+              postMessage({ type: "select:mode", enabled: false });
+            }
+            return false;
+          }
+          resumeSelectionAfterPopup = false;
+        }
         setSelectionEnabled(selectMessage.enabled);
       }
       return false;

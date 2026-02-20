@@ -1,5 +1,6 @@
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 import "monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution.js";
+import "monaco-editor/esm/vs/basic-languages/css/css.contribution.js";
 import "monaco-editor/esm/vs/editor/edcore.main.js";
 import type { CreateMonacoEditorOptions, MonacoCodeEditorHandle } from "./types";
 import { ensureMonacoEnvironment } from "./environment";
@@ -54,6 +55,7 @@ export const createMonacoEditor = (
   ensureMonacoEditor();
 
   const {
+    language = "javascript",
     readOnly = false,
     lineNumbers = "on",
     minimap = false,
@@ -65,7 +67,7 @@ export const createMonacoEditor = (
     editorOptions = {},
   } = options;
 
-  const model = monaco.editor.createModel(value, "javascript", createModelUri(modelUri));
+  const model = monaco.editor.createModel(value, language, createModelUri(modelUri));
   const editor = monaco.editor.create(
     parent,
     buildEditorConstructionOptions({
