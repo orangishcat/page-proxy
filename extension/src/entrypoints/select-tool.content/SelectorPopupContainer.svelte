@@ -156,8 +156,11 @@
 
 <div
   bind:this={containerEl}
-  class="pp-no-select-tool fixed z-1500 w-[min(725px,92vw)] h-[min(449px,80vh)] pointer-events-auto"
-  style="top: {position.top}px; left: {position.left}px; visibility: {visible && !popupHidden ? 'visible' : 'hidden'};"
+  class="pp-no-select-tool fixed z-1500 pointer-events-auto"
+  style="top: {position.top}px; left: {position.left}px; width: min(45.3125em, 92vw); height: min(28.0625em, 80vh); visibility: {visible &&
+  !popupHidden
+    ? 'visible'
+    : 'hidden'};"
 >
   <!-- Arrow -->
   {#if direction !== "center"}

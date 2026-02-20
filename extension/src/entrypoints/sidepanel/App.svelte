@@ -201,7 +201,21 @@
 
   const saveSelectorDefinition = (payload: SelectorSavePayload): SelectorSaveResult => {
     const rawCode = payload.code.trim();
-    if (!rawCode.includes("pq.selector")) {
+    const includesSelectorDefinition = rawCode.includes("pq.selector");
+    const includesInjectCssCall = rawCode.includes("ps.injectCSS");
+
+    if (includesInjectCssCall && !includesSelectorDefinition) {
+      if (!insertDefinitions([rawCode])) {
+        const error = "Unable to save selector to the editor.";
+        setErrorMessage(error);
+        return { ok: false, error };
+      }
+
+      setErrorMessage(null);
+      return { ok: true };
+    }
+
+    if (!includesSelectorDefinition) {
       const error = `Selector definition must include pq.selector.`;
       setErrorMessage(error);
       return { ok: false, error };

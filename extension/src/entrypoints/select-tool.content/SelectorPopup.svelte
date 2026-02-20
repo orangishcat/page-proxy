@@ -311,6 +311,9 @@
   const hasNthOfTypeRule = $derived.by(
     () => popupMode === "css" && cssSelectorParts.some((part) => part.type === "pseudo" && /^:nth-of-type\(/i.test(part.text)),
   );
+  const cssPropertyItems = $derived.by(() =>
+    propertyItems.filter((item) => item.key !== "selector" && item.key !== "bbox" && item.key !== "innerText"),
+  );
 
   const activeCssPart = $derived.by<CssSelectorPart | null>(() => {
     const currentOffset = hoveredCssOffset;
@@ -415,7 +418,7 @@
     cssEditorHandle.editor.focus();
   };
 
-  const handleCssSave = () => {
+  const handleCssSave = async () => {
     const currentCssDocument = cssEditorHandle?.editor.getValue() ?? cssEditorValue;
     const selectorValue = normalizeSelectorFromCssEditor(currentCssDocument);
     if (selectorValue.length === 0) {
@@ -424,11 +427,7 @@
     }
 
     const declarationValue = readDeclarationSourceFromCssEditor(currentCssDocument);
-    const currentCode = editorHandle?.editor.getValue() ?? editorValue;
-    const codeWithSelector = replaceBaseSelectorInCode(currentCode, selectorValue) ?? currentCode;
     const injectSnippet = buildInjectCssSnippet(selectorValue, declarationValue);
-    const nextCode = `${codeWithSelector.trimEnd()}\n\n${injectSnippet}\n`;
-    setSelectorEditorCode(nextCode);
 
     const nextCssDocument = buildCssDocument(selectorValue, declarationValue);
     cssEditorValue = nextCssDocument;
@@ -436,8 +435,19 @@
       updateMonacoEditorValue(cssEditorHandle, nextCssDocument);
     }
 
+    const payload: SelectorSavePayload = {
+      name: null,
+      code: injectSnippet,
+      baseSelector: selectorValue,
+    };
+
+    const result = await onSave(payload);
+    if (!result.ok) {
+      errorMessage = result.error;
+      return;
+    }
+
     errorMessage = "";
-    switchPopupMode("pp-api");
   };
 
   const clearPreviewHighlights = () => {
@@ -1155,7 +1165,7 @@
         <div
           class={`w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden ${popupMode === "pp-api" ? "" : "hidden"}`}
         >
-          <div class="flex h-12 w-full bg-[#282824]">
+          <div class="flex h-12 w-full bg-gray-900">
             <div class="h-full min-w-0 flex-1 pl-2" bind:this={previewHost}></div>
             <div class="flex h-full w-8 shrink-0 items-center justify-center border-l border-gray-700/80">
               <Tooltip.Root>
@@ -1163,7 +1173,7 @@
                   {#snippet child({ props })}
                     <div
                       {...props}
-                      class="flex h-full w-full cursor-grab items-center justify-center text-[#e0c987] hover:bg-white/5 active:cursor-grabbing"
+                      class="flex h-full w-full cursor-grab items-center justify-center text-accent-400 hover:bg-white/5 active:cursor-grabbing"
                       draggable="true"
                       ondragstart={handlePreviewDragStart}
                       role="button"
@@ -1177,10 +1187,10 @@
                 <Tooltip.Portal>
                   <Tooltip.Content
                     sideOffset={6}
-                    class="rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
+                    class="rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-caption text-gray-100 shadow-lg"
                   >
                     Drag this snippet into the editor.
-                    <Tooltip.Arrow class="fill-[#1b1b1b]" />
+                    <Tooltip.Arrow class="fill-gray-900" />
                   </Tooltip.Content>
                 </Tooltip.Portal>
               </Tooltip.Root>
@@ -1224,10 +1234,10 @@
                         <Tooltip.Content
                           sideOffset={6}
                           data-tooltip
-                          class="max-w-[24em] break-all rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
+                          class="max-w-96 break-all rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-caption text-gray-100 shadow-lg"
                         >
                           {item.value}
-                          <Tooltip.Arrow class="fill-[#1b1b1b]" />
+                          <Tooltip.Arrow class="fill-gray-900" />
                         </Tooltip.Content>
                       </Tooltip.Portal>
                     </Tooltip.Root>
@@ -1270,10 +1280,10 @@
                       <Tooltip.Portal>
                         <Tooltip.Content
                           sideOffset={6}
-                          class="max-w-[24em] break-all rounded-md border border-gray-700 bg-[#1b1b1b] px-2 py-1 text-caption text-gray-100 shadow-lg"
+                          class="max-w-96 break-all rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-caption text-gray-100 shadow-lg"
                         >
                           {item.value}
-                          <Tooltip.Arrow class="fill-[#1b1b1b]" />
+                          <Tooltip.Arrow class="fill-gray-900" />
                         </Tooltip.Content>
                       </Tooltip.Portal>
                     </Tooltip.Root>
@@ -1293,6 +1303,7 @@
         {:else}
           <CssInspector
             {activeCssPart}
+            propertyItems={cssPropertyItems}
             {hasNthOfTypeRule}
             {isCssEditorFocused}
             {cssPreviewErrorMessage}
