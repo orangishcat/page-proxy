@@ -40,7 +40,7 @@
       <div class="text-caption text-gray-500 dark:text-gray-400 flex h-full justify-center place-items-center">
         <div class="flex flex-col items-center gap-2">
           <span>No element selected</span>
-          <span>{selectModeEnabledValue ? "Esc to cancel" : "⇧+1 to enable"}</span>
+          <span>{selectModeEnabledValue ? "Esc to cancel select mode" : "⇧+1 to enable select mode"}</span>
         </div>
       </div>
     {/if}

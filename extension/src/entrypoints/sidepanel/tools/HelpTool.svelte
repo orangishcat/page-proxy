@@ -4,7 +4,11 @@
   import Button from "@/lib/components/Button.svelte";
   import type { ScriptGrantValue } from "@/lib/grants";
   import { resolveGrantPermissionRequest } from "./grant-permissions/actions";
-  import { clearGrantPermissionRequest, grantPermissionRequest, type GrantPermissionRequestState } from "./grant-permissions/state";
+  import {
+    clearGrantPermissionRequest,
+    grantPermissionRequest,
+    type GrantPermissionRequestState,
+  } from "./grant-permissions/state";
   import { allowedScriptGrantsState } from "./state-storage";
   import { setErrorMessage, setSuccessMessage } from "./tool-errors";
 
@@ -34,7 +38,9 @@
 
         allowedScriptGrantsState.set(result.allowedGrants);
         clearGrantPermissionRequest();
-        setSuccessMessage(allow ? "Grant permissions saved." : "Grant request denied.");
+        setSuccessMessage(
+          allow ? "Grant permissions saved (reload the page for permissions to take effect)." : "Grant request denied.",
+        );
       })
       .catch(() => {
         setErrorMessage("Unable to update grant permissions.");
