@@ -10,29 +10,6 @@ export type ScriptFormatConfig = DefaultScriptConfig & {
 
 export { buildDefaultScript };
 
-export const ensureScriptImports = (content: string, config: ScriptFormatConfig) => {
-  const withoutLegacyAliases = content
-    .split("\n")
-    .filter((line) => {
-      const trimmed = line.trim();
-      if (trimmed === 'import * as pa from "@page-proxy/pp/pp-api";') {
-        return false;
-      }
-      if (trimmed === "const pp = pa.pp;" || trimmed === "const pp = pv.pp;") {
-        return false;
-      }
-      return true;
-    })
-    .join("\n");
-
-  const hasAllImports = config.ppImportLines.every((line) => withoutLegacyAliases.includes(line));
-  if (hasAllImports) {
-    return withoutLegacyAliases;
-  }
-
-  return [...config.ppImportLines, "", withoutLegacyAliases.trimStart()].join("\n");
-};
-
 export const ensureDefineBlock = (content: string, config: ScriptFormatConfig) => {
   const lines = content.split("\n");
   const startIndex = lines.findIndex((line) => line.trim() === config.defineBlockStart);
@@ -73,7 +50,7 @@ export const stripProtectedDisplay = (content: string, config: ScriptFormatConfi
 
 export const normalizeContentForStorage = (content: string, isProtectedPage: boolean, config: ScriptFormatConfig) => {
   const rawContent = isProtectedPage ? stripProtectedDisplay(content, config) : content;
-  return ensureScriptImports(ensureDefineBlock(rawContent, config), config);
+  return ensureDefineBlock(rawContent, config);
 };
 
 export const ensureWebsiteMetadata = (content: string, websiteGlob: string) => {

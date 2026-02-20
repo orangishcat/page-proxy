@@ -101,7 +101,7 @@
   <div class="rounded-2xl border border-[#4f4a38] bg-[#24231f] p-4 space-y-2">
     <h2 class="text-title text-gray-100">
       Page Proxy Docs
-      <span class="text-subtitle">v0.2.x</span>
+      <span class="text-subtitle">next</span>
     </h2>
     <p>Quick references for script metadata, permissions, and sidepanel tools.</p>
     <a

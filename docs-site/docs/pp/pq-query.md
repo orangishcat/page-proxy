@@ -7,7 +7,7 @@ title: pq (Query API)
 `pq` provides query builders and reusable DOM matching helpers.
 
 ```js
-import * as pq from "@page-proxy/pp/pp-query";
+import { pq } from "@page-proxy/pp";
 ```
 
 ## `pq.selector(definition)`

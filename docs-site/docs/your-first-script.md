@@ -9,11 +9,11 @@ This quick example runs a basic "Hello World" script with Page Proxy.
 ## Hello World
 
 ```ts
-import * as pv from "@page-proxy/pp/pp-event";
+import { pa } from "@page-proxy/pp";
 
 // Imports, metadata, etc...
 
-pv.notification("Hello World");
+pa.notification("Hello World");
 ```
 
 When this script runs, Page Proxy logs the message and shows an in-page notification.
@@ -23,7 +23,7 @@ When this script runs, Page Proxy logs the message and shows an in-page notifica
 You can pass multiple values too! For example
 
 ```js
-pv.notification("Hello", { page: location.href });
+pa.notification("Hello", { page: location.href });
 ```
 
 And it will have an object viewer.

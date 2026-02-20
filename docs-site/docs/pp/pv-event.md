@@ -4,10 +4,10 @@ title: pv (Event API)
 
 # pv module (next)
 
-`pv` handles DOM creation events and Page Proxy notifications.
+`pv` handles DOM creation events.
 
 ```js
-import * as pv from "@page-proxy/pp/pp-event";
+import { pv } from "@page-proxy/pp";
 ```
 
 ## `onElementCreated(func, targetNode, observerOptions)`
@@ -43,29 +43,4 @@ observer.runOnTargetNode();
 observer.disconnect();
 ```
 
-## `notification(...values)`
-
-Shows an in-page notification and logs values to the console.
-
-Notification behavior:
-
-- rich viewer for objects and elements
-- close button support
-- auto-dismiss after ~4.2s
-- auto-dismiss pauses while any details viewer is open
-- keeps at most 4 notifications on screen
-
-```js
-pv.notification("User synced", { id: "u_42", plan: "pro" });
-pv.notification("Primary button", document.querySelector(".btn-primary"));
-```
-
-## API object
-
-`createApi()` returns `{ notification }` and `pp` is the instantiated alias.
-
-```js
-const api = pv.createApi();
-api.notification("hello");
-pv.pp.notification("hello from pp");
-```
+For notifications, use `pa.notification(...)`.

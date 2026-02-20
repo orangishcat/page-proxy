@@ -6,6 +6,9 @@
     ".": "./src/index.ts",
     "./pp-query": "./src/pp-query.ts",
     "./pp-style": "./src/pp-style.ts",
-    "./pp-event": "./src/pp-event.ts"
+    "./pp-event": "./src/pp-event.ts",
+    "./pp-api": "./src/pp-api.ts",
+    "./pp-network": "./src/pp-network.ts",
+    "./pp-storage": "./src/pp-storage.ts"
   }
 }

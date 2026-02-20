@@ -26,7 +26,6 @@
     buildProtectedDisplay,
     ensureDefineBlock,
     ensureWebsiteMetadata,
-    ensureScriptImports,
     resolveStoredToolStateForUrl,
     type ScriptFormatConfig,
   } from "./state-loading";
@@ -34,11 +33,7 @@
 
   const defineBlockStart = "// ==Selectors==";
   const defineBlockEnd = "// ==/Selectors==";
-  const ppImportLines = [
-    'import * as pq from "@page-proxy/pp/pp-query";',
-    'import * as ps from "@page-proxy/pp/pp-style";',
-    'import * as pv from "@page-proxy/pp/pp-event";',
-  ];
+  const ppImportLines = ['import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";'];
   const protectedComment =
     "// This page is protected. Either switch to a different page or allow the extension access to this page to run scripts.";
   const scriptFormatConfig: ScriptFormatConfig = {
@@ -271,10 +266,7 @@
     }
 
     const defaultContent = buildDefaultScript(websiteGlob, scriptFormatConfig);
-    const normalizedContent = ensureWebsiteMetadata(
-      ensureScriptImports(ensureDefineBlock(defaultContent, scriptFormatConfig), scriptFormatConfig),
-      websiteGlob,
-    );
+    const normalizedContent = ensureWebsiteMetadata(ensureDefineBlock(defaultContent, scriptFormatConfig), websiteGlob);
 
     activeWebsiteGlob = websiteGlob || null;
     updateEditorContent(normalizedContent, { persist: false });
@@ -333,10 +325,7 @@
     activeToolState.set(resolvedState.state.activeTool);
     selectorEntries.set(resolvedState.state.selectorPanel.entries);
     allowedScriptGrantsState.set(resolvedState.state.permissions.allowedGrants);
-    const normalizedBaseContent = ensureScriptImports(
-      ensureDefineBlock(resolvedState.state.codeEditor.content, scriptFormatConfig),
-      scriptFormatConfig,
-    );
+    const normalizedBaseContent = ensureDefineBlock(resolvedState.state.codeEditor.content, scriptFormatConfig);
     const contentWithWebsite = ensureWebsiteMetadata(normalizedBaseContent, resolvedState.websiteGlob);
     const displayContent = isProtectedPage
       ? buildProtectedDisplay(contentWithWebsite, scriptFormatConfig)

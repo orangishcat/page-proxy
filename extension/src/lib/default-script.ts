@@ -20,7 +20,7 @@ export const buildDefaultScript = (websiteGlob: string, config: DefaultScriptCon
     config.defineBlockStart,
     config.defineBlockEnd,
     "",
-    'pv.notification("Hello world!");',
+    'pa.notification("Hello world!");',
     "",
   ].join("\n");
 };

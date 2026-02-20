@@ -8,13 +8,14 @@ import {
   type ScriptRunSelectorEntry,
   type ScriptRunResponse
 } from '@/lib/script-runner';
-import * as pq from '@page-proxy/pp/pp-query';
-import * as ps from '@page-proxy/pp/pp-style';
-import * as pv from '@page-proxy/pp/pp-event';
+import {pa, pn, pq, ps, pt, pv} from '@page-proxy/pp';
 
 type PpModuleBindings = {
+  pa: typeof pa;
+  pn: typeof pn;
   pq: typeof pq;
   ps: typeof ps;
+  pt: typeof pt;
   pv: typeof pv;
 };
 
@@ -26,8 +27,11 @@ const ensurePpModules = (): PpModuleBindings => {
   const target = window as WindowWithPpModules;
   if (!target.__pageProxyPpModules__) {
     target.__pageProxyPpModules__ = {
+      pa,
+      pn,
       pq,
       ps,
+      pt,
       pv
     };
   }
@@ -46,7 +50,16 @@ const stripPpImportText = (code: string) =>
       if (trimmed === 'import * as ps from "@page-proxy/pp/pp-style";') {
         return false;
       }
+      if (/^import\s*\{[^}]+\}\s*from\s*["']@page-proxy\/pp["'];?$/.test(trimmed)) {
+        return false;
+      }
       if (trimmed === 'import * as pa from "@page-proxy/pp/pp-api";') {
+        return false;
+      }
+      if (trimmed === 'import * as pn from "@page-proxy/pp/pp-network";') {
+        return false;
+      }
+      if (trimmed === 'import * as pt from "@page-proxy/pp/pp-storage";') {
         return false;
       }
       if (trimmed === 'import * as pv from "@page-proxy/pp/pp-event";') {
@@ -61,10 +74,12 @@ const stripPpImportText = (code: string) =>
 
 const wrapExecutableCode = (code: string) =>
   [
+    'const pa = globalThis.pa;',
+    'const pn = globalThis.pn;',
     'const pq = globalThis.pq;',
     'const ps = globalThis.ps;',
+    'const pt = globalThis.pt;',
     'const pv = globalThis.pv;',
-    'const pa = globalThis.pa;',
     'const pp = globalThis.pp;',
     code
   ].join('\n');
@@ -313,6 +328,35 @@ const getTargetOrigin = () => {
 
 const isWindowSource = (source: MessageEventSource | null) => source === window || source === null;
 
+const metadataBlockPattern = /\/\/\s*==\s*Page\s*Proxy\s*==([\s\S]*?)\/\/\s*==\s*\/\s*Page\s*Proxy\s*==/m;
+
+const extractMetadataField = (metadataBlock: string, field: string) => {
+  const match = metadataBlock.match(new RegExp(`^\\/\\/\\s*@${field}(?:\\s*:?\\s*)(.*)$`, 'm'));
+  return match?.[1]?.trim() ?? '';
+};
+
+const hashString = (value: string) => {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(16).padStart(8, '0');
+};
+
+const buildScriptStorageScope = (code: string) => {
+  const metadataBlock = code.match(metadataBlockPattern)?.[1] ?? '';
+  const title = extractMetadataField(metadataBlock, 'title');
+  const website = extractMetadataField(metadataBlock, 'website');
+  const metadataIdentity = [title, website].filter((value) => value.length > 0).join('::');
+  if (metadataIdentity.length > 0) {
+    return `meta-${hashString(metadataIdentity)}`;
+  }
+
+  return `code-${hashString(code)}`;
+};
+
 const runScriptRequest = (
   requestId: string,
   code: string,
@@ -320,9 +364,11 @@ const runScriptRequest = (
 ) => {
   const {logs, sink} = createNotificationCapture();
   const selectorsByName = new Map<string, ScriptRunSelectorEntry>();
+  const storageScope = buildScriptStorageScope(code);
   const modules = ensurePpModules();
-  let notificationSinkKey = modules.pv.notificationSinkGlobalKey;
-  const pageApi = modules.pv.createApi();
+  const pageStorageApi = modules.pt.createStorage(storageScope);
+  const pageNetworkApi = modules.pn.createNetwork(storageScope);
+  let notificationSinkKey = modules.pa.notificationSinkGlobalKey;
   let hasResponded = false;
   const queryApi = {
     ...modules.pq,
@@ -362,12 +408,15 @@ const runScriptRequest = (
   window.addEventListener('error', onError);
   window.addEventListener('unhandledrejection', onRejection);
 
-  notificationSinkKey = modules.pv.notificationSinkGlobalKey;
+  notificationSinkKey = modules.pa.notificationSinkGlobalKey;
+  (globalThis as Record<string, unknown>).pa = modules.pa;
+  (globalThis as Record<string, unknown>).pn = pageNetworkApi;
   (globalThis as Record<string, unknown>).pq = queryApi;
   (globalThis as Record<string, unknown>).ps = modules.ps;
+  (globalThis as Record<string, unknown>).pt = pageStorageApi;
   (globalThis as Record<string, unknown>).pv = modules.pv;
-  (globalThis as Record<string, unknown>).pa = pageApi;
-  (globalThis as Record<string, unknown>).pp = pageApi;
+  (globalThis as Record<string, unknown>).pp = modules.pa.pp;
+  (globalThis as Record<string, unknown>)[modules.pt.scriptStorageScopeGlobalKey] = storageScope;
   (globalThis as Record<string, unknown>)[notificationSinkKey] = sink;
 
   void runScriptCode(code)

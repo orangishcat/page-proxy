@@ -7,9 +7,7 @@ title: Auto metadata
 When you create a new script, Page Proxy generates this template:
 
 ```js
-import * as pq from "@page-proxy/pp/pp-query";
-import * as ps from "@page-proxy/pp/pp-style";
-import * as pv from "@page-proxy/pp/pp-event";
+import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";
 
 // ==Page Proxy==
 // @title Page Proxy

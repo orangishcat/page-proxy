@@ -14,6 +14,10 @@ const outputFile = path.join(extensionDir, "src/types/pp-monaco-extra-lib.txt");
 const outDir = path.join(extensionDir, ".tmp/pp-monaco-types");
 const sourceFiles = [
   path.join(ppPackageSrcDir, "raw-imports.d.ts"),
+  path.join(ppPackageSrcDir, "index.ts"),
+  path.join(ppPackageSrcDir, "pp-api.ts"),
+  path.join(ppPackageSrcDir, "pp-network.ts"),
+  path.join(ppPackageSrcDir, "pp-storage.ts"),
   path.join(ppPackageSrcDir, "pp-query.ts"),
   path.join(ppPackageSrcDir, "pp-style.ts"),
   path.join(ppPackageSrcDir, "pp-event.ts"),
@@ -21,16 +25,32 @@ const sourceFiles = [
 
 const sourceModuleSpecs = [
   {
+    sourceFile: "index.d.ts",
+    moduleNames: ["@page-proxy/pp"],
+  },
+  {
+    sourceFile: "pp-api.d.ts",
+    moduleNames: ["@page-proxy/pp/pp-api"],
+  },
+  {
+    sourceFile: "pp-network.d.ts",
+    moduleNames: ["@page-proxy/pp/pp-network"],
+  },
+  {
+    sourceFile: "pp-storage.d.ts",
+    moduleNames: ["@page-proxy/pp/pp-storage"],
+  },
+  {
     sourceFile: "pp-query.d.ts",
-    moduleNames: ["@page-proxy/pp/pp-query", "@page-proxy/pp/pp-query"],
+    moduleNames: ["@page-proxy/pp/pp-query"],
   },
   {
     sourceFile: "pp-style.d.ts",
-    moduleNames: ["@page-proxy/pp/pp-style", "@page-proxy/pp/pp-style"],
+    moduleNames: ["@page-proxy/pp/pp-style"],
   },
   {
     sourceFile: "pp-event.d.ts",
-    moduleNames: ["@page-proxy/pp/pp-event", "@page-proxy/pp/pp-event"],
+    moduleNames: ["@page-proxy/pp/pp-event"],
   },
 ];
 

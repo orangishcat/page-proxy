@@ -8,16 +8,21 @@ let ppTypesRegistered = false;
 let languageServiceConfigured = false;
 
 const ppGlobalDeclarations = `
+import * as paModule from "@page-proxy/pp/pp-api";
+import * as pnModule from "@page-proxy/pp/pp-network";
 import * as pqModule from "@page-proxy/pp/pp-query";
 import * as psModule from "@page-proxy/pp/pp-style";
+import * as ptModule from "@page-proxy/pp/pp-storage";
 import * as pvModule from "@page-proxy/pp/pp-event";
 
 declare global {
+  const pa: typeof paModule;
+  const pn: typeof pnModule;
   const pq: typeof pqModule;
   const ps: typeof psModule;
+  const pt: ReturnType<typeof ptModule.createStorage>;
   const pv: typeof pvModule;
-  const pa: ReturnType<typeof pvModule.createApi>;
-  const pp: ReturnType<typeof pvModule.createApi>;
+  const pp: typeof paModule.pp;
 }
 
 export {};

@@ -14,7 +14,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'pp Library',
       collapsed: false,
-      items: ['pp/overview', 'pp/pq-query', 'pp/pv-event', 'pp/ps-style'],
+      items: ['pp/overview', 'pp/pa-api', 'pp/pn-network', 'pp/pt-storage', 'pp/pq-query', 'pp/pv-event', 'pp/ps-style'],
     },
   ],
 };

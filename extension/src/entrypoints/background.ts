@@ -38,11 +38,7 @@ type StoredToolState = {
 
 const storageKeyPrefix = "pageproxy:";
 const runOnPageLoadGrant: ScriptGrantValue = "run-on-page-load";
-const defaultScriptImportLines = [
-  'import * as pq from "@page-proxy/pp/pp-query";',
-  'import * as ps from "@page-proxy/pp/pp-style";',
-  'import * as pv from "@page-proxy/pp/pp-event";',
-] as const;
+const defaultScriptImportLines = ['import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";'] as const;
 const defaultDefineBlockStart = "// ==Selectors==";
 const defaultDefineBlockEnd = "// ==/Selectors==";
 const defaultScriptConfig = {
@@ -190,29 +186,6 @@ const saveStoredToolState = async (state: StoredToolState) => {
   });
 };
 
-const ensureScriptImports = (content: string) => {
-  const withoutLegacyAliases = content
-    .split("\n")
-    .filter((line) => {
-      const trimmed = line.trim();
-      if (trimmed === 'import * as pa from "@page-proxy/pp/pp-api";') {
-        return false;
-      }
-      if (trimmed === "const pp = pa.pp;" || trimmed === "const pp = pv.pp;") {
-        return false;
-      }
-      return true;
-    })
-    .join("\n");
-
-  const hasAllImports = defaultScriptImportLines.every((line) => withoutLegacyAliases.includes(line));
-  if (hasAllImports) {
-    return withoutLegacyAliases;
-  }
-
-  return [...defaultScriptImportLines, "", withoutLegacyAliases.trimStart()].join("\n");
-};
-
 const ensureDefineBlock = (content: string) => {
   const lines = content.split("\n");
   const startIndex = lines.findIndex((line) => line.trim() === defaultDefineBlockStart);
@@ -225,7 +198,7 @@ const ensureDefineBlock = (content: string) => {
   return [content.trimEnd(), "", defaultDefineBlockStart, defaultDefineBlockEnd, ""].join("\n");
 };
 
-const normalizeContentForStorage = (content: string) => ensureScriptImports(ensureDefineBlock(content));
+const normalizeContentForStorage = (content: string) => ensureDefineBlock(content);
 
 const isDefaultScriptState = (state: StoredToolState) => {
   const defaultContent = normalizeContentForStorage(buildDefaultScript(state.websiteGlob, defaultScriptConfig));

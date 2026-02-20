@@ -10,6 +10,7 @@ declare module "wxt/browser" {
     | "/content-scripts/select-tool.js"
     | "/dashboard.html"
     | "/icon.png"
+    | "/logo_128x128.png"
     | "/logo_filled.png"
     | "/sidepanel.html"
   type HtmlPublicPath = Extract<PublicPath, `${string}.html`>

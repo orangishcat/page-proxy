@@ -6,16 +6,17 @@ title: pp Library Overview
 
 `pp` scripting is grouped into:
 
+- `pa`: page-level API helpers (notifications).
+- `pn`: network wrapper around `fetch` with optional local cache.
 - `pq`: DOM querying and matching.
 - `ps`: style application helpers (`applyStyle`, `injectCSS`).
-- `pv`: mutation observers and in-page notifications.
+- `pt`: script-scoped storage helpers.
+- `pv`: mutation observers.
 
 ## Quick example
 
 ```ts
-import * as pq from "@page-proxy/pp/pp-query";
-import * as ps from "@page-proxy/pp/pp-style";
-import * as pv from "@page-proxy/pp/pp-event";
+import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";
 
 const premiumCardSelector = pq.selector({
     name: "premium-card",
@@ -33,7 +34,11 @@ premiumCardSelector.onElementMatches((card) => {
     ps.applyStyle([card], { outline: "0.1em dashed #FCB253" });
 });
 
-pv.notification("Styled premium cards", { count: existingCards.length });
+pa.notification("Styled premium cards", { count: existingCards.length });
+pt.setItem("last-card-count", String(existingCards.length));
+
+const response = await pn.get("/api/cards", { cache: true });
+console.log(await response.json());
 ```
 
 Use this version for scripts targeting `next` runtime behavior.
