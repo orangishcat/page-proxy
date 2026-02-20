@@ -10,11 +10,7 @@
   } from "@/lib/code-editor";
   import { GripVertical } from "lucide-svelte";
   import { buildPreviewCode, isSpecialPropertyKey, type FilterOperator } from "./preview-code";
-  import {
-    appendSnippetToSelector,
-    parseCssSelectorParts,
-    type CssSelectorPart,
-  } from "./css-inspector";
+  import { appendSnippetToSelector, parseCssSelectorParts, type CssSelectorPart } from "./css-inspector";
 
   type PropertyItem = {
     key: string;
@@ -311,6 +307,9 @@
   });
 
   const cssSelectorParts = $derived.by(() => parseCssSelectorParts(activeCssSelector));
+  const hasNthOfTypeRule = $derived.by(
+    () => popupMode === "css" && cssSelectorParts.some((part) => part.type === "pseudo" && /^:nth-of-type\(/i.test(part.text)),
+  );
 
   const activeCssPart = $derived.by<CssSelectorPart | null>(() => {
     const currentOffset = hoveredCssOffset;
@@ -321,11 +320,7 @@
       return null;
     }
 
-    return (
-      cssSelectorParts.find(
-        (part) => currentOffset >= part.startOffset && currentOffset < part.endOffset,
-      ) ?? null
-    );
+    return cssSelectorParts.find((part) => currentOffset >= part.startOffset && currentOffset < part.endOffset) ?? null;
   });
 
   const previewCode = $derived.by(() => buildPreviewCode(activePropertyItem, filterOperator));
@@ -383,6 +378,40 @@
     if (cssEditorHandle && cssEditorHandle.editor.getValue() !== nextCssDocument) {
       updateMonacoEditorValue(cssEditorHandle, nextCssDocument);
     }
+  };
+
+  const removeNthOfTypeFromCssSelector = () => {
+    if (popupMode !== "css" || !cssEditorHandle) {
+      return;
+    }
+
+    const currentCssDocument = cssEditorHandle.editor.getValue();
+    const selectorSource = readSelectorSourceFromCssEditor(currentCssDocument);
+    const nthOfTypePattern = /:nth-of-type\(\s*[^)]*\s*\)/gi;
+    if (!nthOfTypePattern.test(selectorSource)) {
+      return;
+    }
+
+    const declarationValue = readDeclarationSourceFromCssEditor(currentCssDocument);
+    const selectorWithoutNthOfType = selectorSource.replace(nthOfTypePattern, "");
+    const normalizedSelector = normalizeSelectorFromCssEditor(selectorWithoutNthOfType);
+    if (!normalizedSelector) {
+      cssPreviewErrorMessage = "CSS selector is invalid.";
+      return;
+    }
+
+    const nextCssDocument = buildCssDocument(normalizedSelector, declarationValue);
+    const fullRange = cssEditorHandle.model.getFullModelRange();
+    cssEditorHandle.editor.pushUndoStop();
+    cssEditorHandle.editor.executeEdits("page-proxy-remove-nth-of-type", [
+      {
+        range: fullRange,
+        text: nextCssDocument,
+        forceMoveMarkers: true,
+      },
+    ]);
+    cssEditorHandle.editor.pushUndoStop();
+    cssEditorHandle.editor.focus();
   };
 
   const handleCssSave = () => {
@@ -1055,7 +1084,9 @@
     <div class="flex flex-1 min-h-0 overflow-hidden">
       <!-- Editor panel -->
       <div class="flex flex-col flex-1 min-w-0 p-3 gap-3">
-        <div class={`flex-1 min-h-0 rounded-lg border border-gray-800 bg-gray-950 overflow-hidden ${popupMode === "pp-api" ? "" : "hidden"}`}>
+        <div
+          class={`flex-1 min-h-0 rounded-lg border border-gray-800 bg-gray-950 overflow-hidden ${popupMode === "pp-api" ? "" : "hidden"}`}
+        >
           <div class="h-full w-full" bind:this={editorHost}></div>
         </div>
         <div
@@ -1120,7 +1151,9 @@
           </div>
         {/if}
 
-        <div class={`w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden ${popupMode === "pp-api" ? "" : "hidden"}`}>
+        <div
+          class={`w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden ${popupMode === "pp-api" ? "" : "hidden"}`}
+        >
           <div class="flex h-12 w-full bg-[#282824]">
             <div class="h-full min-w-0 flex-1 pl-2" bind:this={previewHost}></div>
             <div class="flex h-full w-8 shrink-0 items-center justify-center border-l border-gray-700/80">
@@ -1267,13 +1300,23 @@
                 <p class="text-[0.8em] text-gray-400">{activeCssPart.description}</p>
               </div>
             {:else}
-              <div class="text-[0.8em] text-gray-500">
-                Place the text caret on a selector part to inspect it.
-              </div>
+              <div class="text-[0.8em] text-gray-500">Place the text caret on a selector part to inspect it.</div>
             {/if}
           </div>
-          <div class="mt-auto space-y-[0.5em]">
-            <p class="text-lg text-gray-500">
+          <div class="mt-auto space-y-4">
+            {#if hasNthOfTypeRule}
+              <p class="text-xs text-gray-500">
+                Want to broaden the selector?
+                <button
+                  type="button"
+                  class="ml-1 cursor-pointer bg-transparent p-0 text-accent-400 underline decoration-accent-400/80 underline-offset-2 transition hover:text-accent-300"
+                  onclick={removeNthOfTypeFromCssSelector}
+                >
+                  Remove nth-of-type
+                </button>
+              </p>
+            {/if}
+            <p class="text-xs text-gray-500">
               Hold alt/option to highlight matching elements{isCssEditorFocused ? " (unfocus code editor first)" : ""}
             </p>
             {#if cssPreviewErrorMessage}
