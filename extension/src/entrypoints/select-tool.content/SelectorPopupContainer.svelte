@@ -26,6 +26,7 @@
   let direction = $state<"top" | "bottom" | "left" | "right" | "center">("right");
   let arrowOffset = $state({ left: "50%", top: "50%" });
   let visible = $state(false);
+  let popupHidden = $state(false);
   const uiBaseFontSizePx = 16;
 
   const updatePosition = () => {
@@ -147,12 +148,16 @@
   const stopKeyPropagation = (event: KeyboardEvent) => {
     event.stopPropagation();
   };
+
+  const handlePopupVisibilityChange = (hidden: boolean) => {
+    popupHidden = hidden;
+  };
 </script>
 
 <div
   bind:this={containerEl}
   class="pp-no-select-tool fixed z-1500 w-[min(725px,92vw)] h-[min(449px,80vh)] pointer-events-auto"
-  style="top: {position.top}px; left: {position.left}px; visibility: {visible ? 'visible' : 'hidden'};"
+  style="top: {position.top}px; left: {position.left}px; visibility: {visible && !popupHidden ? 'visible' : 'hidden'};"
 >
   <!-- Arrow -->
   {#if direction !== "center"}
@@ -161,5 +166,5 @@
       style={direction === "top" || direction === "bottom" ? `left: ${arrowOffset.left}` : `top: ${arrowOffset.top}`}
     ></div>
   {/if}
-  <SelectorPopup {info} {propertyItems} {onSave} {onCancel} />
+  <SelectorPopup {info} {propertyItems} {onSave} {onCancel} onVisibilityChange={handlePopupVisibilityChange} />
 </div>

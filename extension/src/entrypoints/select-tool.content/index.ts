@@ -32,7 +32,7 @@ const scriptRunBridgeTimeoutMs = 1800;
 const selectionStyles = `
 .pp-hover { outline: 2px solid #86d24b !important; outline-offset: -1px !important; }
 .pp-selected { outline: 2px solid #bb9348 !important; outline-offset: -1px !important; }
-.pp-hovered { outline: 2px solid #5aa0ff !important; outline-offset: -1px !important; }
+.pp-hovered { outline: 2px solid #86d24b !important; outline-offset: -1px !important; }
 .pp-selected-label {
   position: fixed;
   z-index: 2147483646;

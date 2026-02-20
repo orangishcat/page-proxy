@@ -29,9 +29,10 @@
     propertyItems: PropertyItem[];
     onSave: (payload: SelectorSavePayload) => Promise<SelectorSaveResult>;
     onCancel: () => void;
+    onVisibilityChange?: (hidden: boolean) => void;
   };
 
-  let { info, propertyItems, onSave, onCancel }: Props = $props();
+  let { info, propertyItems, onSave, onCancel, onVisibilityChange }: Props = $props();
 
   let editorHost = $state<HTMLDivElement | null>(null);
   let editorHandle = $state<MonacoCodeEditorHandle | null>(null);
@@ -43,8 +44,14 @@
   let cssEditorValue = $state("");
   let hoveredCssOffset = $state<number | null>(null);
   let isAltHighlighting = $state(false);
+  let isCssEditorFocused = $state(false);
   let highlightedPreviewElements: Element[] = [];
+  let highlightedPreviewCount = $state(0);
+  let cssPreviewErrorMessage = $state<string | null>(null);
+  let highlightNoticeElement: HTMLDivElement | null = null;
   let disposeCssCursorChange: (() => void) | null = null;
+  let disposeCssFocus: (() => void) | null = null;
+  let disposeCssBlur: (() => void) | null = null;
 
   let previewHost = $state<HTMLDivElement | null>(null);
   let previewHandle = $state<MonacoCodeEditorHandle | null>(null);
@@ -122,30 +129,60 @@
     }
 
     const lines: string[] = [];
-    let pendingCombinator = "";
+    let currentLine = "";
 
     parts.forEach((part) => {
       if (part.type === "descendant") {
+        if (currentLine.length > 0 && !currentLine.endsWith(" ")) {
+          currentLine = `${currentLine} `;
+        }
         return;
       }
       if (part.type === "group") {
+        if (currentLine.trim().length > 0) {
+          lines.push(`${currentLine.trimEnd()},`);
+          currentLine = "";
+          return;
+        }
+        if (lines.length > 0) {
+          lines[lines.length - 1] = `${lines[lines.length - 1].trimEnd()},`;
+          return;
+        }
         lines.push(",");
-        pendingCombinator = "";
         return;
       }
       if (part.type === "combinator") {
-        pendingCombinator = part.text;
+        if (currentLine.trim().length === 0) {
+          return;
+        }
+        lines.push(`${currentLine.trimEnd()} ${part.text}`);
+        currentLine = "";
         return;
       }
 
-      if (pendingCombinator.length > 0) {
-        lines.push(`${pendingCombinator} ${part.text}`);
-        pendingCombinator = "";
+      if (currentLine.length === 0) {
+        currentLine = part.text;
         return;
       }
 
-      lines.push(part.text);
+      const attachesDirectly =
+        part.type === "class" || part.type === "id" || part.type === "attribute" || part.type === "pseudo";
+      if (attachesDirectly) {
+        currentLine = `${currentLine.trimEnd()}${part.text}`;
+        return;
+      }
+
+      if (currentLine.endsWith(" ")) {
+        currentLine = `${currentLine}${part.text}`;
+        return;
+      }
+
+      currentLine = `${currentLine.trimEnd()} ${part.text}`;
     });
+
+    if (currentLine.trim().length > 0) {
+      lines.push(currentLine.trimEnd());
+    }
 
     return lines.join("\n");
   };
@@ -378,16 +415,40 @@
       element.classList.remove(hoveredPreviewClass);
     });
     highlightedPreviewElements = [];
+    highlightedPreviewCount = 0;
   };
 
-  const isValidSelectorForPreview = (selector: string) => {
-    if (!selector.trim()) {
-      return false;
+  const getSelectorPreviewState = (selector: string) => {
+    const normalizedSelector = selector.trim();
+    if (!normalizedSelector) {
+      return { matchingElements: [] as Element[], error: "CSS selector is invalid." };
     }
+
     if (typeof CSS === "undefined" || typeof CSS.supports !== "function") {
-      return true;
+      return { matchingElements: [] as Element[], error: "CSS selector is invalid." };
     }
-    return CSS.supports(`selector(${selector})`);
+
+    if (!CSS.supports(`selector(${normalizedSelector})`)) {
+      return { matchingElements: [] as Element[], error: "CSS selector is invalid." };
+    }
+
+    const matchingElements = Array.from(document.querySelectorAll(normalizedSelector)).filter(
+      (element) => !element.closest(".pp-no-select-tool"),
+    );
+    if (matchingElements.length === 0) {
+      return { matchingElements, error: "CSS selector matches no elements." };
+    }
+
+    return { matchingElements, error: null };
+  };
+
+  const updateCssPreviewErrorMessage = () => {
+    if (popupMode !== "css") {
+      cssPreviewErrorMessage = null;
+      return;
+    }
+    const selector = normalizeSelectorFromCssEditor(cssEditorHandle?.editor.getValue() ?? cssEditorValue);
+    cssPreviewErrorMessage = getSelectorPreviewState(selector).error;
   };
 
   const applyPreviewHighlights = () => {
@@ -397,13 +458,14 @@
     }
 
     const selector = normalizeSelectorFromCssEditor(cssEditorHandle?.editor.getValue() ?? cssEditorValue);
-    if (!isValidSelectorForPreview(selector)) {
+    const previewState = getSelectorPreviewState(selector);
+    cssPreviewErrorMessage = previewState.error;
+    if (previewState.matchingElements.length === 0) {
       return;
     }
 
-    highlightedPreviewElements = Array.from(document.querySelectorAll(selector)).filter(
-      (element) => !element.closest(".pp-no-select-tool"),
-    );
+    highlightedPreviewElements = previewState.matchingElements;
+    highlightedPreviewCount = highlightedPreviewElements.length;
     highlightedPreviewElements.forEach((element) => {
       element.classList.add(hoveredPreviewClass);
     });
@@ -417,8 +479,40 @@
     clearPreviewHighlights();
   };
 
+  const removeHighlightNotice = () => {
+    highlightNoticeElement?.remove();
+    highlightNoticeElement = null;
+  };
+
+  const showHighlightNotice = (matchCount: number) => {
+    if (!highlightNoticeElement?.isConnected) {
+      const notice = document.createElement("div");
+      notice.className = "pp-no-select-tool";
+      notice.style.position = "fixed";
+      notice.style.top = "1em";
+      notice.style.right = "1em";
+      notice.style.zIndex = "2147483647";
+      notice.style.pointerEvents = "none";
+      notice.style.padding = "0.625em 0.75em";
+      notice.style.borderRadius = "0.5em";
+      notice.style.border = "0.0625em solid #86d24b";
+      notice.style.background = "rgba(22, 30, 22, 0.96)";
+      notice.style.color = "#e8f7e8";
+      notice.style.fontFamily = "'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif";
+      notice.style.setProperty("font-size", "16px", "important");
+      notice.style.lineHeight = "1.3";
+      notice.style.boxShadow = "0 0.25em 0.75em rgba(0, 0, 0, 0.35)";
+      document.body.appendChild(notice);
+      highlightNoticeElement = notice;
+    }
+    highlightNoticeElement.textContent = `${matchCount} matching elements are highlighted in lime.`;
+  };
+
   const handleWindowKeyDown = (event: KeyboardEvent) => {
     if (!event.altKey || popupMode !== "css") {
+      return;
+    }
+    if (isCssEditorFocused) {
       return;
     }
     if (isAltHighlighting) {
@@ -525,6 +619,24 @@
     } else {
       hoveredCssOffset = null;
     }
+
+    const focusDisposable = cssEditorHandle.editor.onDidFocusEditorText(() => {
+      isCssEditorFocused = true;
+    });
+    disposeCssFocus = () => {
+      focusDisposable.dispose();
+      disposeCssFocus = null;
+    };
+
+    const blurDisposable = cssEditorHandle.editor.onDidBlurEditorText(() => {
+      isCssEditorFocused = false;
+    });
+    disposeCssBlur = () => {
+      blurDisposable.dispose();
+      disposeCssBlur = null;
+    };
+
+    isCssEditorFocused = cssEditorHandle.editor.hasTextFocus();
   };
 
   const setupPreview = () => {
@@ -805,6 +917,8 @@
     window.removeEventListener("keyup", handleWindowKeyUp, { capture: true });
     window.removeEventListener("blur", handleWindowBlur, { capture: true });
     clearPreviewHighlights();
+    removeHighlightNotice();
+    onVisibilityChange?.(false);
 
     if (editorHandle) {
       const editorDom = editorHandle.editor.getDomNode();
@@ -827,6 +941,12 @@
     if (disposeCssCursorChange) {
       disposeCssCursorChange();
     }
+    if (disposeCssFocus) {
+      disposeCssFocus();
+    }
+    if (disposeCssBlur) {
+      disposeCssBlur();
+    }
     if (cssEditorHandle) {
       cssEditorHandle.dispose();
       cssEditorHandle = null;
@@ -848,6 +968,8 @@
   $effect(() => {
     if (popupMode !== "css") {
       stopAltPreview();
+      isCssEditorFocused = false;
+      updateCssPreviewErrorMessage();
       return;
     }
 
@@ -864,6 +986,8 @@
       updateMonacoEditorValue(cssEditorHandle, syncedCssDocument);
       cssEditorValue = syncedCssDocument;
     }
+
+    updateCssPreviewErrorMessage();
   });
 
   $effect(() => {
@@ -872,11 +996,23 @@
     }
     applyPreviewHighlights();
   });
+
+  $effect(() => {
+    if (isAltHighlighting && popupMode === "css") {
+      showHighlightNotice(highlightedPreviewCount);
+      return;
+    }
+    removeHighlightNotice();
+  });
+
+  $effect(() => {
+    onVisibilityChange?.(isAltHighlighting);
+  });
 </script>
 
 <div
   class="flex flex-col w-full h-full overflow-hidden rounded-lg border border-gray-800 bg-gray-950 text-gray-100 font-sans text-sm shadow-2xl pp-content-ui-root"
-  style={`color-scheme: dark; visibility: ${isAltHighlighting ? "hidden" : "visible"}; ${popupMode === "css" ? "font-size: 16px !important;" : ""}`}
+  style={`color-scheme: dark; ${popupMode === "css" ? "font-size: 16px !important;" : ""}`}
 >
   <Tooltip.Provider>
     <!-- Header -->
@@ -1136,7 +1272,14 @@
               </div>
             {/if}
           </div>
-          <p class="mt-auto text-[1em] text-gray-500">Hold alt/option to highlight matching elements</p>
+          <div class="mt-auto space-y-[0.5em]">
+            <p class="text-lg text-gray-500">
+              Hold alt/option to highlight matching elements{isCssEditorFocused ? " (unfocus code editor first)" : ""}
+            </p>
+            {#if cssPreviewErrorMessage}
+              <p class="text-[0.875em] text-red-400">{cssPreviewErrorMessage}</p>
+            {/if}
+          </div>
         {/if}
       </div>
     </div>

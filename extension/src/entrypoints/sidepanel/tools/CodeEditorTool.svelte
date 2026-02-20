@@ -256,10 +256,13 @@
       throw new Error("This page is protected and cannot store scripts.");
     }
 
-    const websiteGlob = activeWebsiteGlob?.trim() ?? scriptMetadataValue.website.trim();
+    const activeWebsite = activeWebsiteGlob?.trim() ?? "";
+    const metadataWebsite = scriptMetadataValue.website.trim();
+    const websiteGlob = activeWebsite || metadataWebsite;
+    const websiteGlobsToRemove = Array.from(new Set([activeWebsite, metadataWebsite].filter((glob) => glob.length > 0)));
 
-    if (websiteGlob) {
-      await removeStoredToolState(websiteGlob).catch((error: unknown) => {
+    if (websiteGlobsToRemove.length > 0) {
+      await Promise.all(websiteGlobsToRemove.map((glob) => removeStoredToolState(glob))).catch((error: unknown) => {
         const message = error instanceof Error ? error.message : "Unknown storage error.";
         throw new Error(`Unable to delete script from extension storage: ${message}`);
       });
