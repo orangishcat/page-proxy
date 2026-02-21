@@ -11,7 +11,6 @@ Page Proxy lets you inspect, select, and restyle websites with extension tools a
 
 ## Useful links
 
-- [Documentation](https://orangishcat.github.io/page-proxy/docs)
 - [Extension usage guide](https://orangishcat.github.io/page-proxy/docs/extension-usage)
 - [Permissions reference](https://orangishcat.github.io/page-proxy/docs/permissions)
 - [Issue tracker](https://github.com/orangishcat/page-proxy/issues)

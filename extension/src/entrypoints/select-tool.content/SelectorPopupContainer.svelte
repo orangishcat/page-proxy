@@ -156,7 +156,7 @@
 
 <div
   bind:this={containerEl}
-  class="pp-no-select-tool fixed z-1500 pointer-events-auto"
+  class="pp-no-select-tool fixed z-2147483646 pointer-events-auto"
   style="top: {position.top}px; left: {position.left}px; width: min(45.3125em, 92vw); height: min(28.0625em, 80vh); visibility: {visible &&
   !popupHidden
     ? 'visible'
@@ -169,5 +169,12 @@
       style={direction === "top" || direction === "bottom" ? `left: ${arrowOffset.left}` : `top: ${arrowOffset.top}`}
     ></div>
   {/if}
-  <SelectorPopup {info} {propertyItems} {targetElement} {onSave} {onCancel} onVisibilityChange={handlePopupVisibilityChange} />
+  <SelectorPopup
+    {info}
+    {propertyItems}
+    {targetElement}
+    {onSave}
+    {onCancel}
+    onVisibilityChange={handlePopupVisibilityChange}
+  />
 </div>

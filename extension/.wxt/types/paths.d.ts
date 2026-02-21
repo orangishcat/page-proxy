@@ -5,7 +5,6 @@ declare module "wxt/browser" {
   export type PublicPath =
     | ""
     | "/"
-    | "/HELP.md"
     | "/background.js"
     | "/code-runner-main-world.js"
     | "/content-scripts/select-tool.js"

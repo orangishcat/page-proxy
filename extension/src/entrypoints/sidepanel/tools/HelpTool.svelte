@@ -15,8 +15,6 @@
   import { allowedScriptGrantsState } from "./state-storage";
   import { setErrorMessage, setSuccessMessage } from "./tool-errors";
 
-  const helpDocUrl = "https://orangishcat.github.io/page-proxy/docs";
-
   let grantRequest = $state<GrantPermissionRequestState>(null);
   let isResolvingGrantRequest = $state(false);
   let isLoadingHelpContent = $state(true);
@@ -139,19 +137,11 @@
       </div>
     </div>
   {/if}
-  <div class="rounded-2xl border border-[#4f4a38] bg-[#24231f] p-4 space-y-3">
+  <div class="rounded-2xl p-4 space-y-3">
     {#if isLoadingHelpContent}
       <p class="text-body text-gray-300">Loading help content...</p>
     {:else if helpContentError}
       <p class="text-body text-red-300">{helpContentError}</p>
-      <a
-        class="text-body text-accent-500 underline decoration-accent-500/60 underline-offset-4 hover:text-accent-400"
-        href={helpDocUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Open documentation
-      </a>
     {:else}
       <article
         class="text-body text-gray-200 space-y-3 [&_h1]:text-title [&_h1]:text-gray-100 [&_h2]:text-subtitle [&_h2]:text-gray-100 [&_h3]:text-subtitle [&_h3]:text-gray-200 [&_p]:leading-relaxed [&_a]:text-accent-500 [&_a]:underline [&_a]:decoration-accent-500/60 [&_a]:underline-offset-4 [&_a:hover]:text-accent-400 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-1.5 [&_code]:font-mono [&_code]:rounded [&_code]:bg-gray-900 [&_code]:px-1 [&_code]:py-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-gray-900 [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0"
