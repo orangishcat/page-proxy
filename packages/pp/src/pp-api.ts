@@ -1,8 +1,16 @@
+import DOMPurify from "dompurify";
+import { marked } from "marked";
 import { buildNotificationBody } from "./pp-notification-viewer";
 import pageNotificationStyles from "./pp-event-notification-style.css?raw";
 import * as ps from "./pp-style";
 
 export type NotificationLevel = "log" | "info" | "warn" | "error" | "debug" | "notification";
+export type MarkdownRenderOptions = {
+  breaks?: boolean;
+  linkTarget?: string;
+  linkRel?: string;
+  linkReferrerPolicy?: string;
+};
 
 export const notificationSinkGlobalKey = "__pageProxyNotificationSink__";
 
@@ -129,8 +137,35 @@ export const notification = (...values: unknown[]) => {
   });
 };
 
+export const renderMarkdown = (content: string, options: MarkdownRenderOptions = {}) => {
+  const {
+    breaks = true,
+    linkTarget = "_blank",
+    linkRel = "noreferrer noopener",
+    linkReferrerPolicy = "no-referrer",
+  } = options;
+
+  const renderedMarkdown = marked.parse(content, { async: false, breaks });
+  if (typeof renderedMarkdown !== "string") {
+    throw new Error("Unable to render markdown content.");
+  }
+
+  const sanitizedHtml = DOMPurify.sanitize(renderedMarkdown);
+  const template = document.createElement("template");
+  template.innerHTML = sanitizedHtml;
+  template.content.querySelectorAll("a[href]").forEach((link) => {
+    link.setAttribute("target", linkTarget);
+    link.setAttribute("rel", linkRel);
+    link.setAttribute("referrerpolicy", linkReferrerPolicy);
+  });
+
+  return template.innerHTML;
+};
+
 export const createApi = () => ({
   notification,
+  copyToClipboard,
+  renderMarkdown,
 });
 
 export const pp = createApi();

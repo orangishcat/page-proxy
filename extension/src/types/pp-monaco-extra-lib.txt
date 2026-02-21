@@ -17,13 +17,25 @@ declare module "@page-proxy/pp" {
 }
 declare module "@page-proxy/pp/pp-api" {
   export type NotificationLevel = "log" | "info" | "warn" | "error" | "debug" | "notification";
+  export type MarkdownRenderOptions = {
+      breaks?: boolean;
+      linkTarget?: string;
+      linkRel?: string;
+      linkReferrerPolicy?: string;
+  };
   export declare const notificationSinkGlobalKey = "__pageProxyNotificationSink__";
   export declare const notification: (...values: unknown[]) => void;
+  export declare const copyToClipboard: (text: string) => Promise<void>;
+  export declare const renderMarkdown: (content: string, options?: MarkdownRenderOptions) => string;
   export declare const createApi: () => {
       notification: (...values: unknown[]) => void;
+      copyToClipboard: (text: string) => Promise<void>;
+      renderMarkdown: (content: string, options?: MarkdownRenderOptions) => string;
   };
   export declare const pp: {
       notification: (...values: unknown[]) => void;
+      copyToClipboard: (text: string) => Promise<void>;
+      renderMarkdown: (content: string, options?: MarkdownRenderOptions) => string;
   };
 }
 declare module "@page-proxy/pp/pp-network" {
@@ -138,6 +150,12 @@ declare module "@page-proxy/pp/pp-style" {
 }
 declare module "@page-proxy/pp/pp-event" {
   export type OnElementCreatedHandler = (element: Element) => void;
+  export type KeyAction = "press" | "release";
+  export type OnKeyPressedHandler = (event: KeyboardEvent) => void;
+  export type OnKeyPressedOptions = {
+      keyAction?: KeyAction[];
+      cancel?: boolean;
+  };
   export declare class ElementCreatedObserver extends MutationObserver {
       private readonly func;
       private readonly targetNode;
@@ -145,5 +163,6 @@ declare module "@page-proxy/pp/pp-event" {
       runOnTargetNode(): void;
   }
   export declare const onElementCreated: (func: OnElementCreatedHandler, targetNode?: Node, observerOptions?: MutationObserverInit) => ElementCreatedObserver;
+  export declare const onKeyPressed: (keys: string, func: OnKeyPressedHandler, options?: OnKeyPressedOptions) => () => void;
   export declare const pageModificationFunctions: string[];
 }

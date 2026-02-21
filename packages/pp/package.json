@@ -2,6 +2,10 @@
   "name": "@page-proxy/pp",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "dompurify": "3.2.7",
+    "marked": "14.0.0"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./pp-query": "./src/pp-query.ts",

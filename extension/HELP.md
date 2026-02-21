@@ -10,7 +10,7 @@ Refer to the [extension usage guide](https://orangishcat.github.io/page-proxy/do
 ## Known issues
 
 - Select tool cannot inspect inside iframes.
-- Loading the extension directly from files often fails.
+- Loading the extension directly from a CRX or XPI often fails, loading unpacked is recommended.
 
 [Report an issue](https://github.com/orangishcat/page-proxy/issues)
 
