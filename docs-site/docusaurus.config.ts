@@ -145,6 +145,7 @@ const config: Config = {
       logo: {
         alt: "Page Proxy",
         src: "img/logo_filled.png",
+        href: "https://orangishcat.github.io",
       },
       items: [
         {
