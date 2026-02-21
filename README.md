@@ -8,7 +8,7 @@
 
 Restyle and reskin webpages with a powerful set of developer tools.
 
-Page Proxy is an all-in-one userscript manager and creator with custom tools for userscript design, so you can spend more time designing instead of converting your ideas to code.
+Page Proxy is an all-in-one userscript manager and creator with custom GUI tools for userscript design, so you can spend more time designing instead of converting your ideas to code.
 
 [Wait, but I don't get it. What problem is this trying to solve?](https://orangishcat.github.io/page-proxy/docs/purpose)
 
