@@ -2,7 +2,7 @@
 title: Extension usage
 ---
 
-import useBaseUrl from '@docusaurus/useBaseUrl';
+import useBaseUrl from "@docusaurus/useBaseUrl";
 
 # Extension usage (v0.2.x)
 
@@ -32,7 +32,7 @@ Toolbar shortcuts:
 
 <div className="col col--6 margin-bottom--xl">
 
-<img src={useBaseUrl('/img/editor_usage/side_panel.png', {absolute: true})} alt="Page Proxy sidepanel overview" />
+<img src={useBaseUrl("/img/editor_usage/side_panel.png", { absolute: true })} alt="Page Proxy sidepanel overview" />
 
 </div>
 
@@ -66,7 +66,7 @@ On protected pages (for example browser internal pages), editing and execution a
 
 <div className="col col--6 margin-bottom--xl">
 
-<img src={useBaseUrl('/img/editor_usage/code_editor.png', {absolute: true})} alt="Page Proxy code editor tool" />
+<img src={useBaseUrl("/img/editor_usage/code_editor.png", { absolute: true })} alt="Page Proxy code editor tool" />
 
 </div>
 
@@ -92,7 +92,7 @@ Flow:
 
 <div className="col col--6 margin-bottom--xl">
 
-<img src={useBaseUrl('/img/editor_usage/select_tool.png', {absolute: true})} alt="Page Proxy Select tool" />
+<img src={useBaseUrl("/img/editor_usage/select_tool.png", { absolute: true })} alt="Page Proxy Select tool" />
 
 </div>
 
@@ -102,9 +102,9 @@ Flow:
 
 <div className="col col--6 margin-bottom--xl">
 
-## Selector popup
+## Selector editor
 
-The selector popup opens from **Select -> Save selector**.
+The selector editor opens from **Select -> Save selector**.
 
 What you do:
 
@@ -114,7 +114,7 @@ What you do:
 3. Drag the preview grip into the selector code editor to insert filter fragments.
 4. Save the selector.
 
-What happens on save:
+What happens on clicking `Save`:
 
 - The sidepanel validates the snippet contains `pq.selector`.
 - It requires a `const` assignment.
@@ -125,7 +125,7 @@ What happens on save:
 
 <div className="col col--6 margin-bottom--xl">
 
-<img src={useBaseUrl('/img/editor_usage/selector_popup.png', {absolute: true})} alt="Page Proxy selector popup" />
+<img src={useBaseUrl("/img/editor_usage/selector_popup.png", { absolute: true })} alt="Page Proxy selector popup" />
 
 </div>
 
@@ -147,15 +147,17 @@ What you do:
 4. Hold `z` to preview matching elements and `x` to preview applied styles.
 5. Optionally remove `:nth-of-type(...)` quickly.
 
-What happens on save:
+Changing the selector updates `baseSelector` in the selector popup, so no need to edit it manually.
 
-- The popup inserts a `ps.injectCSS(...)` snippet using your current selector and declarations.
+What happens on clicking `Save`:
+
+- The popup inserts a `ps.injectCSS(...)` snippet using your current selector and declarations in the Selectors block.
 
 </div>
 
 <div className="col col--6 margin-bottom--xl">
 
-<img src={useBaseUrl('/img/editor_usage/css_inspector.png', {absolute: true})} alt="Page Proxy CSS inspector" />
+<img src={useBaseUrl("/img/editor_usage/css_inspector.png", { absolute: true })} alt="Page Proxy CSS inspector" />
 
 </div>
 
@@ -194,7 +196,7 @@ Use this to confirm selectors were saved correctly and to quickly audit selector
 
 <div className="col col--6 margin-bottom--xl">
 
-<img src={useBaseUrl('/img/editor_usage/selectors_tool.png', {absolute: true})} alt="Page Proxy Selectors tool" />
+<img src={useBaseUrl("/img/editor_usage/selectors_tool.png", { absolute: true })} alt="Page Proxy Selectors tool" />
 
 </div>
 
@@ -219,7 +221,7 @@ Use it as the first stop when behavior seems unexpected.
 
 <div className="col col--6 margin-bottom--xl">
 
-<img src={useBaseUrl('/img/editor_usage/help_tool.png', {absolute: true})} alt="Page Proxy Help tool" />
+<img src={useBaseUrl("/img/editor_usage/help_tool.png", { absolute: true })} alt="Page Proxy Help tool" />
 
 </div>
 
@@ -243,7 +245,7 @@ Current behavior:
 
 <div className="col col--6 margin-bottom--xl">
 
-<img src={useBaseUrl('/img/editor_usage/export_tool.png', {absolute: true})} alt="Page Proxy Export tool" />
+<img src={useBaseUrl("/img/editor_usage/export_tool.png", { absolute: true })} alt="Page Proxy Export tool" />
 
 </div>
 
