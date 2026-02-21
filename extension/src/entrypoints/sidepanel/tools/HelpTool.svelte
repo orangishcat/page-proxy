@@ -1,8 +1,11 @@
 <script lang="ts">
+  import DOMPurify from "dompurify";
+  import { marked } from "marked";
   import { onMount } from "svelte";
 
   import Button from "@/lib/components/Button.svelte";
   import type { ScriptGrantValue } from "@/lib/grants";
+  import { loadHelpContentMarkdown } from "@/lib/help/help-content";
   import { resolveGrantPermissionRequest } from "./grant-permissions/actions";
   import {
     clearGrantPermissionRequest,
@@ -12,10 +15,40 @@
   import { allowedScriptGrantsState } from "./state-storage";
   import { setErrorMessage, setSuccessMessage } from "./tool-errors";
 
+  const helpDocUrl = "https://orangishcat.github.io/page-proxy/docs";
+
   let grantRequest = $state<GrantPermissionRequestState>(null);
   let isResolvingGrantRequest = $state(false);
+  let isLoadingHelpContent = $state(true);
+  let helpContentHtml = $state("");
+  let helpContentError = $state<string | null>(null);
 
   const formatGrantLabel = (grant: ScriptGrantValue) => grant;
+  const renderHelpContentMarkdown = (content: string) => {
+    const renderedMarkdown = marked.parse(content, { async: false, breaks: true });
+    if (typeof renderedMarkdown !== "string") {
+      throw new Error("Unable to render help content.");
+    }
+
+    return DOMPurify.sanitize(renderedMarkdown);
+  };
+
+  const loadHelpContent = () => {
+    isLoadingHelpContent = true;
+    helpContentError = null;
+
+    return loadHelpContentMarkdown()
+      .then((content) => {
+        helpContentHtml = renderHelpContentMarkdown(content);
+      })
+      .catch((error: unknown) => {
+        helpContentHtml = "";
+        helpContentError = error instanceof Error ? error.message : "Unable to load help content.";
+      })
+      .finally(() => {
+        isLoadingHelpContent = false;
+      });
+  };
 
   const resolveGrantRequest = (allow: boolean) => {
     if (!grantRequest || isResolvingGrantRequest) {
@@ -54,6 +87,8 @@
     const unsubscribeGrantPermissionRequest = grantPermissionRequest.subscribe((value) => {
       grantRequest = value;
     });
+
+    void loadHelpContent();
 
     return () => {
       unsubscribeGrantPermissionRequest();
@@ -104,67 +139,25 @@
       </div>
     </div>
   {/if}
-  <div class="rounded-2xl border border-[#4f4a38] bg-[#24231f] p-4 space-y-2">
-    <h2 class="text-title text-gray-100">
-      Page Proxy Docs
-      <span class="text-subtitle">next</span>
-    </h2>
-    <p>Quick references for script metadata, permissions, and sidepanel tools.</p>
-    <a
-      class="text-body text-accent-500 underline decoration-accent-500/60 underline-offset-4 hover:text-accent-400"
-      href="https://orangishcat.github.io/page-proxy/docs"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Open documentation
-    </a>
-  </div>
-  <div class="rounded-2xl border border-[#4f4a38] bg-[#24231f] p-4 space-y-2">
-    <h2 class="text-title text-gray-100">Known Issues</h2>
-    <ul class="list-disc pl-4 space-y-1.5">
-      <li>
-        A site with a strict Content Security Policy (CSP) will block script execution (e.g. github.com, mozilla.org)
-      </li>
-      <li>Select tool doesn't work through iframes</li>
-      <li>Loading the extension from a file often doesn't work</li>
-    </ul>
-    <a
-      class="text-body text-accent-500 underline decoration-accent-500/60 underline-offset-4 hover:text-accent-400"
-      href="https://github.com/orangishcat/page-proxy/issues"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Report issue
-    </a>
-  </div>
-  <div class="rounded-2xl border border-[#4f4a38] bg-[#24231f] p-4 space-y-2">
-    <h2 class="text-title text-gray-100">Planned features</h2>
-    <ul class="list-disc pl-4 space-y-1.5">
-      <li>Query by element CSS properties (e.g. match all red text)</li>
-      <li>Website homepage needs a lot of doing</li>
-      <li>
-        Create tool:
-        <ul class="list-disc pl-4 space-y-1.5">
-          <li>Create a settings UI for your script (or any UI) easily</li>
-          <li>Create components</li>
-        </ul>
-      </li>
-      <li>Multi-file scripts</li>
-      <li>
-        <a
-          href="https://github.com/orangishcat/page-proxy/blob/main/ROADMAP.md"
-          target="_blank"
-          rel="noopener noreferrer">More...</a
-        >
-      </li>
-    </ul>
-    <a
-      class="text-body text-accent-500 underline decoration-accent-500/60 underline-offset-4 hover:text-accent-400"
-      href="https://github.com/orangishcat/page-proxy/issues"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Feature requests are welcome
-    </a>
+  <div class="rounded-2xl border border-[#4f4a38] bg-[#24231f] p-4 space-y-3">
+    {#if isLoadingHelpContent}
+      <p class="text-body text-gray-300">Loading help content...</p>
+    {:else if helpContentError}
+      <p class="text-body text-red-300">{helpContentError}</p>
+      <a
+        class="text-body text-accent-500 underline decoration-accent-500/60 underline-offset-4 hover:text-accent-400"
+        href={helpDocUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Open documentation
+      </a>
+    {:else}
+      <article
+        class="text-body text-gray-200 space-y-3 [&_h1]:text-title [&_h1]:text-gray-100 [&_h2]:text-subtitle [&_h2]:text-gray-100 [&_h3]:text-subtitle [&_h3]:text-gray-200 [&_p]:leading-relaxed [&_a]:text-accent-500 [&_a]:underline [&_a]:decoration-accent-500/60 [&_a]:underline-offset-4 [&_a:hover]:text-accent-400 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-1.5 [&_code]:font-mono [&_code]:rounded [&_code]:bg-gray-900 [&_code]:px-1 [&_code]:py-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-gray-900 [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0"
+      >
+        {@html helpContentHtml}
+      </article>
+    {/if}
   </div>
 </div>

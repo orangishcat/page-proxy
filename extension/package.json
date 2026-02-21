@@ -13,9 +13,12 @@
   },
   "dependencies": {
     "@page-proxy/pp": "workspace:*",
+    "axios": "1.13.2",
     "bits-ui": "2.15.4",
+    "dompurify": "3.2.7",
     "loglevel": "1.9.2",
     "lucide-svelte": "0.562.0",
+    "marked": "14.0.0",
     "monaco-editor": "0.55.1",
     "picomatch": "4.0.3",
     "svelte": "5.48.2"
