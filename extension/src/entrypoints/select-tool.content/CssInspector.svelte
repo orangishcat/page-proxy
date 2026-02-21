@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Tooltip } from "bits-ui";
-  import { RotateCcw } from "lucide-svelte";
+  import { RotateCw } from "lucide-svelte";
   import { SvelteMap } from "svelte/reactivity";
   import type { CssSelectorPart } from "./css-inspector";
 
@@ -156,11 +156,11 @@
     />
   </div>
 
-  <div class="max-h-32 overflow-y-auto overflow-x-hidden pr-1">
+  <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
     <div class="flex flex-col gap-2">
       {#each filteredPropertyItems as item (item.key)}
         <div class="flex justify-between items-center rounded-md border border-transparent px-2 py-1 hover:bg-white/10">
-          <div class="font-mono text-xs text-accent-500 truncate max-w-24">
+          <div title={item.key} class="font-mono text-xs text-accent-500 truncate flex-1 min-w-0">
             {item.key}
           </div>
           {#if item.value.length > 18}
@@ -196,15 +196,12 @@
       {#if filteredPropertyItems.length === 0}
         <div class="text-xs text-gray-500 text-center p-2">No properties available.</div>
       {/if}
-    </div>
-  </div>
-
-  <div class="text-xs uppercase tracking-wide text-gray-500">Computed styles</div>
-  <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
-    <div class="flex flex-col gap-2">
+      <hr class="my-1 border-gray-800" />
       {#each filteredComputedStyleProperties as property (property.key)}
+        {@const currentValue = getDraftValue(property.key, property.value)}
+        {@const inputWidthCh = Math.max(5, currentValue.length + 1)}
         <div
-          class={`relative flex justify-between items-center gap-2 rounded-md border px-2 py-1 pl-2 transition-colors ${property.edited ? "border-accent-400/40 bg-accent-500/10" : "border-transparent hover:bg-white/10"}`}
+          class={`relative flex justify-between items-center gap-2 rounded-md border px-2 py-1 overflow-visible transition-colors ${property.edited ? "border-accent-400/40 bg-accent-500/10" : "border-transparent hover:bg-white/10"}`}
           role="button"
           tabindex="0"
           onkeydown={(event) => {
@@ -225,34 +222,54 @@
               }}
               aria-label={`Revert ${property.key}`}
             >
-              <RotateCcw class="h-3.5 w-3.5 -scale-x-100" />
+              <RotateCw class="h-3.5 w-3.5 -scale-x-100 text-gray-300 cursor-pointer" strokeWidth={2.75} />
             </button>
           {/if}
-          <div class="font-mono text-xs text-accent-500 truncate w-24 shrink-0">
+          <div
+            title={property.key}
+            class={`font-mono text-xs text-accent-500 truncate flex-1 min-w-0 ${property.edited ? "pl-5" : ""}`}
+          >
             {property.key}
           </div>
-          <input
-            type="text"
-            use:computedValueInput={property.key}
-            value={getDraftValue(property.key, property.value)}
-            class="h-6 w-full max-w-30 shrink-0 rounded border border-transparent bg-transparent px-1 font-mono text-xs text-secondary-500 text-right focus:border-white/20 focus:bg-white/5 focus:outline-none"
-            onclick={(event) => event.stopPropagation()}
-            oninput={(event) => setDraftValue(property.key, event.currentTarget.value)}
-            onblur={() => commitComputedValue(property.key, property.value)}
-            onkeydown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                commitComputedValue(property.key, property.value);
-                event.currentTarget.blur();
-              }
-              if (event.key === "Escape") {
-                event.preventDefault();
-                clearDraftValue(property.key);
-                event.currentTarget.blur();
-              }
-            }}
-            aria-label={`Edit ${property.key}`}
-          />
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <input
+                  {...props}
+                  type="text"
+                  use:computedValueInput={property.key}
+                  value={currentValue}
+                  style={`width: ${inputWidthCh}ch;`}
+                  class="h-6 shrink-0 rounded border border-transparent bg-transparent px-1 font-mono text-xs text-secondary-500 text-right hover:overflow-visible focus:border-white/20 focus:bg-white/5 focus:outline-none"
+                  onclick={(event) => event.stopPropagation()}
+                  oninput={(event) => setDraftValue(property.key, event.currentTarget.value)}
+                  onblur={() => commitComputedValue(property.key, property.value)}
+                  onkeydown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      commitComputedValue(property.key, property.value);
+                      event.currentTarget.blur();
+                    }
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      clearDraftValue(property.key);
+                      event.currentTarget.blur();
+                    }
+                  }}
+                  aria-label={`Edit ${property.key}`}
+                />
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                sideOffset={6}
+                class="max-w-96 break-all rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-caption text-gray-100 shadow-lg"
+              >
+                {currentValue}
+                <Tooltip.Arrow class="fill-gray-900" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
         </div>
       {/each}
       {#if filteredComputedStyleProperties.length === 0}
@@ -275,7 +292,10 @@
     </p>
   {/if}
   <p class="text-xs text-gray-500">
-    Hold alt/option to highlight matching elements{isCssEditorFocused ? " (unfocus code editor first)" : ""}
+    Hold z to highlight matching elements{isCssEditorFocused ? " (unfocus code editor first)" : ""}
+  </p>
+  <p class="text-xs text-gray-500">
+    Hold x to preview applied CSS styles{isCssEditorFocused ? " (unfocus code editor first)" : ""}
   </p>
   {#if cssPreviewErrorMessage}
     <p class="text-sm text-red-400">{cssPreviewErrorMessage}</p>

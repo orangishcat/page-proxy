@@ -41,12 +41,14 @@
   let cssEditorHandle = $state<MonacoCodeEditorHandle | null>(null);
   let cssEditorValue = $state("");
   let hoveredCssOffset = $state<number | null>(null);
-  let isAltHighlighting = $state(false);
+  let isMatchPreviewing = $state(false);
+  let isCssStylePreviewing = $state(false);
   let isCssEditorFocused = $state(false);
   let highlightedPreviewElements: Element[] = [];
   let highlightedPreviewCount = $state(0);
   let cssPreviewErrorMessage = $state<string | null>(null);
   let highlightNoticeElement: HTMLDivElement | null = null;
+  let cssStylePreviewElement: HTMLStyleElement | null = null;
   let disposeCssCursorChange: (() => void) | null = null;
   let disposeCssFocus: (() => void) | null = null;
   let disposeCssBlur: (() => void) | null = null;
@@ -274,48 +276,38 @@
     return `ps.injectCSS(\`\n${cssDocument}\n\`);`;
   };
 
-  const isIgnorableCssValue = (value: string) => {
-    const normalized = value.trim().toLowerCase();
-    if (!normalized) {
-      return true;
+  const readDefaultComputedStyleValueMap = (sourceElement: Element) => {
+    const targetTagName =
+      sourceElement instanceof HTMLElement && sourceElement.tagName.length > 0
+        ? sourceElement.tagName.toLowerCase()
+        : "div";
+    const host = document.body ?? document.documentElement;
+    if (!host) {
+      return new Map<string, string>();
     }
 
-    if (
-      normalized === "auto" ||
-      normalized === "normal" ||
-      normalized === "none" ||
-      normalized === "transparent" ||
-      normalized === "initial" ||
-      normalized === "inherit" ||
-      normalized === "unset" ||
-      normalized === "revert" ||
-      normalized === "revert-layer"
-    ) {
-      return true;
+    const dummyElement = document.createElement(targetTagName);
+    dummyElement.classList.add("pp-no-select-tool");
+    dummyElement.setAttribute("aria-hidden", "true");
+    dummyElement.style.position = "fixed";
+    dummyElement.style.left = "-9999px";
+    dummyElement.style.top = "-9999px";
+    dummyElement.style.visibility = "hidden";
+    dummyElement.style.pointerEvents = "none";
+    host.appendChild(dummyElement);
+
+    const defaultComputedStyle = getComputedStyle(dummyElement);
+    const defaultValues = new Map<string, string>();
+    for (let index = 0; index < defaultComputedStyle.length; index += 1) {
+      const key = defaultComputedStyle.item(index);
+      if (!key) {
+        continue;
+      }
+      defaultValues.set(key, defaultComputedStyle.getPropertyValue(key).trim());
     }
 
-    const isZeroToken = (token: string) => /^[-+]?0*\.?0+(?:[a-z%]+)?$/i.test(token);
-    if (isZeroToken(normalized)) {
-      return true;
-    }
-
-    const zeroTokens = normalized
-      .split(/[\s,/]+/)
-      .map((token) => token.trim())
-      .filter((token) => token.length > 0);
-    if (zeroTokens.length > 0 && zeroTokens.every((token) => isZeroToken(token))) {
-      return true;
-    }
-
-    if (/^rgba?\(\s*0\s*[,\s]\s*0\s*[,\s]\s*0(?:\s*[,/]\s*0(?:\.0+)?)?\s*\)$/.test(normalized)) {
-      return true;
-    }
-
-    if (normalized === "#0000" || normalized === "#00000000") {
-      return true;
-    }
-
-    return false;
+    dummyElement.remove();
+    return defaultValues;
   };
 
   const readComputedStyleEntries = (element: Element | null) => {
@@ -323,6 +315,7 @@
       return [] as Array<{ key: string; value: string; originalOrder: number }>;
     }
 
+    const defaultValues = readDefaultComputedStyleValueMap(element);
     const computedStyle = getComputedStyle(element);
     const entries: Array<{ key: string; value: string; originalOrder: number }> = [];
     for (let index = 0; index < computedStyle.length; index += 1) {
@@ -331,7 +324,8 @@
         continue;
       }
       const value = computedStyle.getPropertyValue(key).trim();
-      if (isIgnorableCssValue(value)) {
+      const defaultValue = defaultValues.get(key) ?? "";
+      if (value === defaultValue) {
         continue;
       }
       entries.push({
@@ -753,12 +747,58 @@
     });
   };
 
-  const stopAltPreview = () => {
-    if (!isAltHighlighting) {
+  const removeCssStylePreview = () => {
+    cssStylePreviewElement?.remove();
+    cssStylePreviewElement = null;
+  };
+
+  const applyCssStylePreview = () => {
+    removeCssStylePreview();
+    if (popupMode !== "css") {
       return;
     }
-    isAltHighlighting = false;
+
+    const currentCssDocument = cssEditorHandle?.editor.getValue() ?? cssEditorValue;
+    const selector = normalizeSelectorFromCssEditor(currentCssDocument);
+    const declarations = readDeclarationSourceFromCssEditor(currentCssDocument);
+    if (!declarations.trim()) {
+      cssPreviewErrorMessage = "Add at least one CSS declaration to preview applied styles.";
+      return;
+    }
+
+    const previewState = getSelectorPreviewState(selector);
+    cssPreviewErrorMessage = previewState.error;
+    if (previewState.matchingElements.length === 0) {
+      return;
+    }
+
+    const previewStyleElement = document.createElement("style");
+    previewStyleElement.className = "pp-no-select-tool";
+    previewStyleElement.setAttribute("data-page-proxy", "css-style-preview");
+    previewStyleElement.textContent = `${selector} {\n${declarations}\n}`;
+    (document.head ?? document.documentElement).appendChild(previewStyleElement);
+    cssStylePreviewElement = previewStyleElement;
+  };
+
+  const stopMatchPreview = () => {
+    if (!isMatchPreviewing) {
+      return;
+    }
+    isMatchPreviewing = false;
     clearPreviewHighlights();
+  };
+
+  const stopCssStylePreview = () => {
+    if (!isCssStylePreviewing) {
+      return;
+    }
+    isCssStylePreviewing = false;
+    removeCssStylePreview();
+  };
+
+  const stopPreviewModes = () => {
+    stopMatchPreview();
+    stopCssStylePreview();
   };
 
   const removeHighlightNotice = () => {
@@ -791,27 +831,41 @@
   };
 
   const handleWindowKeyDown = (event: KeyboardEvent) => {
-    if (!event.altKey || popupMode !== "css") {
+    if (popupMode !== "css") {
       return;
     }
     if (isCssEditorFocused) {
       return;
     }
-    if (isAltHighlighting) {
+    const key = event.key.toLowerCase();
+    if (key === "z") {
+      if (!isMatchPreviewing) {
+        isMatchPreviewing = true;
+        applyPreviewHighlights();
+      }
       return;
     }
-    isAltHighlighting = true;
-    applyPreviewHighlights();
+    if (key === "x") {
+      if (!isCssStylePreviewing) {
+        isCssStylePreviewing = true;
+        applyCssStylePreview();
+      }
+    }
   };
 
   const handleWindowKeyUp = (event: KeyboardEvent) => {
-    if (!event.altKey) {
-      stopAltPreview();
+    const key = event.key.toLowerCase();
+    if (key === "z") {
+      stopMatchPreview();
+      return;
+    }
+    if (key === "x") {
+      stopCssStylePreview();
     }
   };
 
   const handleWindowBlur = () => {
-    stopAltPreview();
+    stopPreviewModes();
   };
 
   const setupEditor = () => {
@@ -877,8 +931,11 @@
         if (!setBaseSelectorInCode(normalizedSelectorValue)) {
           return;
         }
-        if (isAltHighlighting) {
+        if (isMatchPreviewing) {
           applyPreviewHighlights();
+        }
+        if (isCssStylePreviewing) {
+          applyCssStylePreview();
         }
       },
       editorOptions: {
@@ -1198,7 +1255,7 @@
     window.removeEventListener("keydown", handleWindowKeyDown, { capture: true });
     window.removeEventListener("keyup", handleWindowKeyUp, { capture: true });
     window.removeEventListener("blur", handleWindowBlur, { capture: true });
-    clearPreviewHighlights();
+    stopPreviewModes();
     removeHighlightNotice();
     onVisibilityChange?.(false);
 
@@ -1249,7 +1306,7 @@
 
   $effect(() => {
     if (popupMode !== "css") {
-      stopAltPreview();
+      stopPreviewModes();
       isCssEditorFocused = false;
       updateCssPreviewErrorMessage();
       return;
@@ -1273,14 +1330,14 @@
   });
 
   $effect(() => {
-    if (!isAltHighlighting) {
+    if (!isMatchPreviewing) {
       return;
     }
     applyPreviewHighlights();
   });
 
   $effect(() => {
-    if (isAltHighlighting && popupMode === "css") {
+    if (isMatchPreviewing && popupMode === "css") {
       showHighlightNotice(highlightedPreviewCount);
       return;
     }
@@ -1288,7 +1345,15 @@
   });
 
   $effect(() => {
-    onVisibilityChange?.(isAltHighlighting);
+    const shouldHidePopupForCssPreview = isCssStylePreviewing && !cssPreviewErrorMessage;
+    onVisibilityChange?.(isMatchPreviewing || shouldHidePopupForCssPreview);
+  });
+
+  $effect(() => {
+    if (!isCssStylePreviewing) {
+      return;
+    }
+    applyCssStylePreview();
   });
 </script>
 
@@ -1465,7 +1530,7 @@
               transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
                   aria-pressed={activePropertyKey === item.key}
                 >
-                  <div class="font-mono text-xs text-accent-500 truncate max-w-24">
+                  <div title={item.key} class="font-mono text-xs text-accent-500 truncate max-w-24">
                     {item.key}
                   </div>
                   {#if item.value.length > 18}
@@ -1512,7 +1577,7 @@
               transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
                   aria-pressed={activePropertyKey === item.key}
                 >
-                  <div class="font-mono text-xs text-accent-500 truncate max-w-24">
+                  <div title={item.key} class="font-mono text-xs text-accent-500 truncate max-w-24">
                     {item.key}
                   </div>
                   {#if item.value.length > 18}

@@ -23,7 +23,7 @@ Builds reusable selector logic.
 - `matches(element)`
   Required predicate that decides whether an element matches.
 - `postMap(element)` (optional)
-  Optional transform for matched elements returned from `query`, `queryAll`, and `onElementMatches`.
+  Optional transform for matched elements returned from `query`, `queryAll`, `waitUntilMatch`, and `onElementMatches`.
 
 ```js
 const premiumCards = pq.selector({
@@ -37,6 +37,7 @@ const all = premiumCards.queryAll();
 const observer = premiumCards.onElementMatches((el) => {
     console.log("New premium card:", el);
 });
+const nextMatch = await premiumCards.waitUntilMatch();
 ```
 
 ### Available methods:
@@ -82,6 +83,21 @@ Returns all current matches as an array.
 ```js
 var allMatches = premiumCards.queryAll();
 console.log("Total matches:", allMatches.length);
+```
+
+#### `waitUntilMatch(targetNode?, observerOptions?)`
+
+Returns a `Promise` that resolves when a matching element exists.
+
+- first checks current DOM for an immediate match
+- otherwise observes created elements until a match appears
+- default options:
+    - `targetNode`: `document.body || document.documentElement`
+    - `observerOptions`: `{ childList: true, subtree: true }`
+
+```js
+const match = await premiumCards.waitUntilMatch();
+console.log("Resolved match:", match);
 ```
 
 #### `onElementMatches(func, targetNode, observerOptions)`

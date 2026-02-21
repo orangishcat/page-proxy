@@ -210,6 +210,55 @@ const buildCacheIdentity = (request: Request, cacheKey: string | undefined) => {
   return request.url;
 };
 
+const buildCacheStorageKeysForInvalidate = (key: string, scopeOverride?: string) => {
+  const normalizedKey = key.trim();
+  if (normalizedKey.length === 0) {
+    return [] as string[];
+  }
+
+  const storageKeys = [toNetworkCacheStorageKey(normalizedKey, scopeOverride)];
+  const baseHref = typeof globalThis.location?.href === "string" ? globalThis.location.href : undefined;
+  const canParseUrl =
+    typeof URL !== "undefined" &&
+    typeof URL.canParse === "function" &&
+    URL.canParse(normalizedKey, baseHref);
+
+  if (!canParseUrl) {
+    return storageKeys;
+  }
+
+  const normalizedUrl = new URL(normalizedKey, baseHref).href;
+  const request = new Request(normalizedUrl);
+  const normalizedUrlIdentity = buildCacheIdentity(request, undefined);
+  const normalizedUrlStorageKey = toNetworkCacheStorageKey(normalizedUrlIdentity, scopeOverride);
+
+  if (normalizedUrlStorageKey !== storageKeys[0]) {
+    storageKeys.push(normalizedUrlStorageKey);
+  }
+
+  return storageKeys;
+};
+
+const invalidateCache = (key: string, scopeOverride?: string) => {
+  const storageKeys = buildCacheStorageKeysForInvalidate(key, scopeOverride);
+  if (storageKeys.length === 0) {
+    return false;
+  }
+
+  let invalidated = false;
+  storageKeys.forEach((storageKey) => {
+    const hasEntry = getRawItem(storageKey) !== null;
+    if (!hasEntry) {
+      return;
+    }
+
+    removeRawItem(storageKey);
+    invalidated = true;
+  });
+
+  return invalidated;
+};
+
 const runNetworkFetch = async (input: NetworkFetchInput, options: NetworkFetchOptions = {}, scopeOverride?: string) => {
   const requestInit = buildFetchRequestInit(options);
   const request = new Request(input, requestInit);
@@ -245,6 +294,7 @@ const createMethodFetch =
 
 export const createNetwork = (scopeOverride?: string) => ({
   fetch: (input: NetworkFetchInput, options: NetworkFetchOptions = {}) => runNetworkFetch(input, options, scopeOverride),
+  invalidateCache: (key: string) => invalidateCache(key, scopeOverride),
   get: createMethodFetch("GET", scopeOverride),
   head: createMethodFetch("HEAD", scopeOverride),
   post: createMethodFetch("POST", scopeOverride),
@@ -257,6 +307,7 @@ export const createNetwork = (scopeOverride?: string) => ({
 });
 
 export const fetch = (input: NetworkFetchInput, options: NetworkFetchOptions = {}) => runNetworkFetch(input, options);
+export { invalidateCache };
 export const get = createMethodFetch("GET");
 export const head = createMethodFetch("HEAD");
 export const post = createMethodFetch("POST");

@@ -36,8 +36,10 @@ declare module "@page-proxy/pp/pp-network" {
       requestCache?: RequestCache;
   };
   export type NetworkMethodOptions = Omit<NetworkFetchOptions, "method">;
+  declare const invalidateCache: (key: string, scopeOverride?: string) => boolean;
   export declare const createNetwork: (scopeOverride?: string) => {
       fetch: (input: NetworkFetchInput, options?: NetworkFetchOptions) => Promise<Response>;
+      invalidateCache: (key: string) => boolean;
       get: (input: NetworkFetchInput, options?: NetworkMethodOptions) => Promise<Response>;
       head: (input: NetworkFetchInput, options?: NetworkMethodOptions) => Promise<Response>;
       post: (input: NetworkFetchInput, options?: NetworkMethodOptions) => Promise<Response>;
@@ -49,6 +51,7 @@ declare module "@page-proxy/pp/pp-network" {
       patch: (input: NetworkFetchInput, options?: NetworkMethodOptions) => Promise<Response>;
   };
   export declare const fetch: (input: NetworkFetchInput, options?: NetworkFetchOptions) => Promise<Response>;
+  export { invalidateCache };
   export declare const get: (input: NetworkFetchInput, options?: NetworkMethodOptions) => Promise<Response>;
   export declare const head: (input: NetworkFetchInput, options?: NetworkMethodOptions) => Promise<Response>;
   export declare const post: (input: NetworkFetchInput, options?: NetworkMethodOptions) => Promise<Response>;
@@ -125,6 +128,7 @@ declare module "@page-proxy/pp/pp-query" {
       onElementMatches: (func: (value: T) => void, targetNode?: Node, observerOptions?: MutationObserverInit) => import("@page-proxy/pp/pp-event").ElementCreatedObserver;
       query: () => T | null;
       queryAll: () => T[];
+      waitUntilMatch: (targetNode?: Node, observerOptions?: MutationObserverInit) => Promise<T>;
   };
 }
 declare module "@page-proxy/pp/pp-style" {

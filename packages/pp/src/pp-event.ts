@@ -63,6 +63,7 @@ export const pageModificationFunctions = [
   "pt.getItem",
   "pv.onElementCreated",
   "pn.fetch",
+  "pn.invalidateCache",
   "pn.get",
   "pn.head",
   "pn.post",
