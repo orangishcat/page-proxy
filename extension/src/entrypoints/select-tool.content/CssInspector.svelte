@@ -292,10 +292,10 @@
     </p>
   {/if}
   <p class="text-xs text-gray-500">
-    Hold z to highlight matching elements{isCssEditorFocused ? " (unfocus code editor first)" : ""}
+    Hold <code>z</code> to highlight matching elements{isCssEditorFocused ? " (unfocus code editor first)" : ""}
   </p>
   <p class="text-xs text-gray-500">
-    Hold x to preview applied CSS styles{isCssEditorFocused ? " (unfocus code editor first)" : ""}
+    Hold <code>x</code> to preview applied CSS styles{isCssEditorFocused ? " (unfocus code editor first)" : ""}
   </p>
   {#if cssPreviewErrorMessage}
     <p class="text-sm text-red-400">{cssPreviewErrorMessage}</p>
