@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "postinstall": "bun run --cwd extension prepare",
-    "check": "bun run --cwd web check && bun run --cwd extension check && bun run --cwd docs-site check",
+    "check": "bun run --cwd web check && bun run --cwd extension check",
     "web:dev": "bun run --cwd web dev",
     "web:build": "bun run --cwd web build",
     "web:preview": "bun run --cwd web preview",

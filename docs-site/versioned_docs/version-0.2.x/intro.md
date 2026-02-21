@@ -3,9 +3,9 @@ title: Overview
 slug: /
 ---
 
-# Page Proxy Documentation (next)
+# Page Proxy Documentation (v0.2.x)
 
-This version documents the `pp` library APIs available in **next**, plus a few guides and tutorials to help you get started.
+This version documents the `pp` library APIs available in **v0.2.x**, plus a few guides and tutorials to help you get started.
 
 ## What changed since v0.1.6
 
