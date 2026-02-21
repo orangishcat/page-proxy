@@ -1,21 +1,6 @@
-import {
-  getRawItem,
-  networkCacheKeyPrefix,
-  removeRawItem,
-  setRawItem,
-  toNetworkCacheStorageKey,
-} from "./pp-storage";
+import { getRawItem, networkCacheKeyPrefix, removeRawItem, setRawItem, toNetworkCacheStorageKey } from "./pp-storage";
 
-type NetworkRequestMethod =
-  | "GET"
-  | "HEAD"
-  | "POST"
-  | "PUT"
-  | "DELETE"
-  | "CONNECT"
-  | "OPTIONS"
-  | "TRACE"
-  | "PATCH";
+type NetworkRequestMethod = "GET" | "HEAD" | "POST" | "PUT" | "DELETE" | "CONNECT" | "OPTIONS" | "TRACE" | "PATCH";
 
 type NetworkFetchInput = RequestInfo | URL;
 
@@ -48,10 +33,7 @@ const isHeaderEntryArray = (value: unknown): value is Array<[string, string]> =>
   Array.isArray(value) &&
   value.every(
     (entry) =>
-      Array.isArray(entry) &&
-      entry.length === 2 &&
-      typeof entry[0] === "string" &&
-      typeof entry[1] === "string",
+      Array.isArray(entry) && entry.length === 2 && typeof entry[0] === "string" && typeof entry[1] === "string",
   );
 
 const normalizeMethod = (method: string | undefined): NetworkRequestMethod => {
@@ -164,7 +146,7 @@ const buildResponseFromCache = (entry: StoredCacheEntry) =>
   });
 
 const buildFetchRequestInit = (options: NetworkFetchOptions, methodOverride?: NetworkRequestMethod): RequestInit => {
-  const { cache: _cache, cacheDuration: _cacheDuration, cacheKey: _cacheKey, requestCache, ...requestInit } = options;
+  const { requestCache, ...requestInit } = options;
   const resolvedMethod = methodOverride ?? normalizeMethod(requestInit.method);
 
   return {
@@ -176,7 +158,12 @@ const buildFetchRequestInit = (options: NetworkFetchOptions, methodOverride?: Ne
 
 const shouldUseCache = (options: NetworkFetchOptions) => options.cache === true;
 
-const persistCacheEntry = async (storageKey: string, response: Response, cacheDuration: number, scopeOverride?: string) => {
+const persistCacheEntry = async (
+  storageKey: string,
+  response: Response,
+  cacheDuration: number,
+  scopeOverride?: string,
+) => {
   const responseClone = response.clone();
   const responseBuffer = await responseClone.arrayBuffer();
   const bodySize = responseBuffer.byteLength;
@@ -219,9 +206,7 @@ const buildCacheStorageKeysForInvalidate = (key: string, scopeOverride?: string)
   const storageKeys = [toNetworkCacheStorageKey(normalizedKey, scopeOverride)];
   const baseHref = typeof globalThis.location?.href === "string" ? globalThis.location.href : undefined;
   const canParseUrl =
-    typeof URL !== "undefined" &&
-    typeof URL.canParse === "function" &&
-    URL.canParse(normalizedKey, baseHref);
+    typeof URL !== "undefined" && typeof URL.canParse === "function" && URL.canParse(normalizedKey, baseHref);
 
   if (!canParseUrl) {
     return storageKeys;
@@ -293,7 +278,8 @@ const createMethodFetch =
     );
 
 export const createNetwork = (scopeOverride?: string) => ({
-  fetch: (input: NetworkFetchInput, options: NetworkFetchOptions = {}) => runNetworkFetch(input, options, scopeOverride),
+  fetch: (input: NetworkFetchInput, options: NetworkFetchOptions = {}) =>
+    runNetworkFetch(input, options, scopeOverride),
   invalidateCache: (key: string) => invalidateCache(key, scopeOverride),
   get: createMethodFetch("GET", scopeOverride),
   head: createMethodFetch("HEAD", scopeOverride),

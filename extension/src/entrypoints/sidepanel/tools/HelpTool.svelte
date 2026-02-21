@@ -1,11 +1,9 @@
 <script lang="ts">
-  import DOMPurify from "dompurify";
-  import { marked } from "marked";
   import { onMount } from "svelte";
 
   import Button from "@/lib/components/Button.svelte";
   import type { ScriptGrantValue } from "@/lib/grants";
-  import { loadHelpContentMarkdown } from "@/lib/help/help-content";
+  import { loadHelpContentMarkdown, renderHelpContentMarkdown } from "@/lib/help/help-content";
   import { resolveGrantPermissionRequest } from "./grant-permissions/actions";
   import {
     clearGrantPermissionRequest,
@@ -22,30 +20,21 @@
   let helpContentError = $state<string | null>(null);
 
   const formatGrantLabel = (grant: ScriptGrantValue) => grant;
-  const renderHelpContentMarkdown = (content: string) => {
-    const renderedMarkdown = marked.parse(content, { async: false, breaks: true });
-    if (typeof renderedMarkdown !== "string") {
-      throw new Error("Unable to render help content.");
-    }
-
-    return DOMPurify.sanitize(renderedMarkdown);
-  };
-
-  const loadHelpContent = () => {
+  const loadHelpContent = async () => {
     isLoadingHelpContent = true;
     helpContentError = null;
 
-    return loadHelpContentMarkdown()
-      .then((content) => {
+    try {
+      try {
+        const content = await loadHelpContentMarkdown();
         helpContentHtml = renderHelpContentMarkdown(content);
-      })
-      .catch((error: unknown) => {
+      } catch (error) {
         helpContentHtml = "";
         helpContentError = error instanceof Error ? error.message : "Unable to load help content.";
-      })
-      .finally(() => {
-        isLoadingHelpContent = false;
-      });
+      }
+    } finally {
+      isLoadingHelpContent = false;
+    }
   };
 
   const resolveGrantRequest = (allow: boolean) => {
@@ -144,7 +133,7 @@
       <p class="text-body text-red-300">{helpContentError}</p>
     {:else}
       <article
-        class="text-body text-gray-200 space-y-3 [&_h1]:text-title [&_h1]:text-gray-100 [&_h2]:text-subtitle [&_h2]:text-gray-100 [&_h3]:text-subtitle [&_h3]:text-gray-200 [&_p]:leading-relaxed [&_a]:text-accent-500 [&_a]:underline [&_a]:decoration-accent-500/60 [&_a]:underline-offset-4 [&_a:hover]:text-accent-400 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-1.5 [&_code]:font-mono [&_code]:rounded [&_code]:bg-gray-900 [&_code]:px-1 [&_code]:py-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-gray-900 [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0"
+        class="text-body text-gray-200 space-y-3 [&_h1]:text-[2em] [&_h1]:font-semibold [&_h1]:leading-[1.2] [&_h1]:text-gray-100 [&_h1]:mt-[0.2em] [&_h1]:mb-[0.45em] [&_h2]:text-[1.6em] [&_h2]:font-semibold [&_h2]:leading-[1.25] [&_h2]:text-gray-100 [&_h2]:mt-[1em] [&_h2]:mb-[0.4em] [&_h3]:text-[1.3em] [&_h3]:font-semibold [&_h3]:leading-[1.3] [&_h3]:text-gray-200 [&_h3]:mt-[0.9em] [&_h3]:mb-[0.35em] [&_h4]:text-[1.15em] [&_h4]:font-semibold [&_h4]:leading-[1.35] [&_h4]:text-gray-200 [&_h4]:mt-[0.8em] [&_h4]:mb-[0.3em] [&_h5]:text-[1.05em] [&_h5]:font-semibold [&_h5]:leading-[1.4] [&_h5]:text-gray-300 [&_h5]:mt-[0.7em] [&_h5]:mb-[0.25em] [&_h6]:text-[1em] [&_h6]:font-semibold [&_h6]:leading-[1.45] [&_h6]:text-gray-400 [&_h6]:mt-[0.6em] [&_h6]:mb-[0.2em] [&_p]:leading-relaxed [&_a]:text-accent-500 [&_a]:underline [&_a]:decoration-accent-500/60 [&_a]:underline-offset-4 [&_a:hover]:text-accent-400 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-1.5 [&_code]:font-mono [&_code]:rounded [&_code]:bg-gray-900 [&_code]:px-1 [&_code]:py-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-gray-900 [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0"
       >
         {@html helpContentHtml}
       </article>

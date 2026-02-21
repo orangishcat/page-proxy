@@ -1,29 +1,23 @@
 # Page Proxy Help
 
+<!--This file is fetched by the extension and displayed in the extension's help panel.-->
+
 Page Proxy lets you inspect, select, and restyle websites with extension tools and script APIs.
 
-## Quick start
-
-1. Open a supported page and click the extension icon.
-2. In `Code Editor`, define selectors inside the `// ==Selectors==` block.
-3. Use `Select` to inspect elements and copy properties.
-4. Run the script and reload the page when needed.
-
-## Useful links
-
-- [Extension usage guide](https://orangishcat.github.io/page-proxy/docs/extension-usage)
-- [Permissions reference](https://orangishcat.github.io/page-proxy/docs/permissions)
-- [Issue tracker](https://github.com/orangishcat/page-proxy/issues)
-- [Roadmap](https://github.com/orangishcat/page-proxy/blob/main/ROADMAP.md)
+Refer to the [extension usage guide](https://orangishcat.github.io/page-proxy/docs/extension-usage) and
+[API documentation](https://orangishcat.github.io/page-proxy/docs/) to write your first script!
 
 ## Known issues
 
-- Strict CSP websites can block script execution (for example, `github.com` and `mozilla.org`).
 - Select tool cannot inspect inside iframes.
 - Loading the extension directly from files often fails.
+
+[Report an issue](https://github.com/orangishcat/page-proxy/issues)
 
 ## Planned features
 
 - Query elements by computed CSS properties.
 - Create tool improvements for settings UI and reusable components.
 - Multi-file scripts.
+
+[Roadmap](https://github.com/orangishcat/page-proxy/blob/main/ROADMAP.md)
