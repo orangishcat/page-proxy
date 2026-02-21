@@ -164,7 +164,6 @@ export const renderMarkdown = (content: string, options: MarkdownRenderOptions =
 
 export const createApi = () => ({
   notification,
-  copyToClipboard,
   renderMarkdown,
 });
 

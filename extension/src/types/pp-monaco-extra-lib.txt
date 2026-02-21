@@ -25,16 +25,13 @@ declare module "@page-proxy/pp/pp-api" {
   };
   export declare const notificationSinkGlobalKey = "__pageProxyNotificationSink__";
   export declare const notification: (...values: unknown[]) => void;
-  export declare const copyToClipboard: (text: string) => Promise<void>;
   export declare const renderMarkdown: (content: string, options?: MarkdownRenderOptions) => string;
   export declare const createApi: () => {
       notification: (...values: unknown[]) => void;
-      copyToClipboard: (text: string) => Promise<void>;
       renderMarkdown: (content: string, options?: MarkdownRenderOptions) => string;
   };
   export declare const pp: {
       notification: (...values: unknown[]) => void;
-      copyToClipboard: (text: string) => Promise<void>;
       renderMarkdown: (content: string, options?: MarkdownRenderOptions) => string;
   };
 }
