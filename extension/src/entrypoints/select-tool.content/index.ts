@@ -13,7 +13,7 @@ import {
   type ScriptRunResponse,
 } from "@/lib/script-runner";
 import type { SidepanelShortcutId, SidepanelShortcutMessage } from "@/lib/sidepanel-shortcuts";
-import SelectorPopupContainer from "./SelectorPopupContainer.svelte";
+import PopupContainer from "./PopupContainer.svelte";
 import "@/styles/app.css";
 
 const logger = log.getLogger("select-tool");
@@ -443,7 +443,7 @@ export default defineContentScript({
         anchor: "body",
         zIndex: 2147483647,
         onMount(container: HTMLElement) {
-          const app = mount(SelectorPopupContainer, {
+          const app = mount(PopupContainer, {
             target: container,
             props: {
               info,
