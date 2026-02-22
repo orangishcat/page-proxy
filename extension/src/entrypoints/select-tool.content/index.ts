@@ -4,7 +4,13 @@ import { createShadowRootUi } from "wxt/utils/content-script-ui/shadow-root";
 import { mount, unmount } from "svelte";
 import log from "loglevel";
 
-import type { ElementInfo, SelectorSavePayload, SelectorSaveResult, SelectToolMessage } from "@/lib/selection";
+import type {
+  ElementInfo,
+  SelectorOpenResult,
+  SelectorSavePayload,
+  SelectorSaveResult,
+  SelectToolMessage,
+} from "@/lib/selection";
 import {
   buildScriptRunResponse,
   isScriptRunRequest,
@@ -223,6 +229,9 @@ const getShortcutTool = (event: KeyboardEvent): SidepanelShortcutId | null => {
 export default defineContentScript({
   matches: ["<all_urls>"],
   cssInjectionMode: "ui",
+  allFrames: true,
+  matchAboutBlank: true,
+  matchOriginAsFallback: true,
 
   main(ctx) {
     let selectionEnabled = false;
@@ -409,12 +418,11 @@ export default defineContentScript({
     const openSelectorPopup = async (requestedInfo: ElementInfo | null) => {
       const target = resolvePopupTarget(requestedInfo);
       if (!target) {
-        postMessage({ type: "select:selected", payload: null });
         logger.debug("selector popup open skipped", {
           reason: "no-target",
           selectionEnabled,
         });
-        return;
+        return false;
       }
 
       ensureSelectionStyles();
@@ -465,6 +473,7 @@ export default defineContentScript({
         target: describeElementCompact(target),
         selector: info.selector,
       });
+      return true;
     };
 
     const isExcludedFromSelection = (target: EventTarget | null) => {
@@ -724,8 +733,16 @@ export default defineContentScript({
       const selectMessage = message as SelectToolMessage;
       logger.debug("select tool message received", { type: selectMessage.type });
       if (selectMessage.type === "selector:open") {
-        void openSelectorPopup(selectMessage.payload);
-        return false;
+        void openSelectorPopup(selectMessage.payload).then((opened) => {
+          sendResponse({
+            opened,
+          } satisfies SelectorOpenResult);
+        }).catch(() => {
+          sendResponse({
+            opened: false,
+          } satisfies SelectorOpenResult);
+        });
+        return true;
       }
       if (selectMessage.type === "select:parent") {
         if (!selectionEnabled) {

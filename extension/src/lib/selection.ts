@@ -14,6 +14,15 @@ export type ElementInfo = {
   };
 };
 
+export type ElementSelectionSource = "content" | "devtools";
+
+export type ElementSelectionContext = {
+  source: ElementSelectionSource;
+  tabId: number | null;
+  frameId: number | null;
+  frameUrl: string | null;
+};
+
 export type SelectorSavePayload = {
   name: string | null;
   code: string;
@@ -28,6 +37,10 @@ export type SelectorSaveResult =
       ok: false;
       error: string;
     };
+
+export type SelectorOpenResult = {
+  opened: boolean;
+};
 
 export type SelectToolMessage =
   | {

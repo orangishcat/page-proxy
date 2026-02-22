@@ -1,5 +1,5 @@
-import type {ElementInfo} from '@/lib/selection';
-import {derived, writable} from 'svelte/store';
+import type {ElementInfo, ElementSelectionContext, ElementSelectionSource} from '@/lib/selection';
+import {derived, get, writable} from 'svelte/store';
 
 export type BoundingBox = ElementInfo['boundingBox'];
 
@@ -9,6 +9,15 @@ export type PropertyItem = {
   value: string;
   rawValue: string | BoundingBox;
   primary: boolean;
+};
+
+const defaultSelectionSource: ElementSelectionSource = 'content';
+
+const defaultSelectionContext: ElementSelectionContext = {
+  source: defaultSelectionSource,
+  tabId: null,
+  frameId: 0,
+  frameUrl: null
 };
 
 const formatBoundingBoxCompact = (box: BoundingBox) =>
@@ -112,11 +121,15 @@ export const selectedInfo = writable<ElementInfo | null>(null);
 export const propertyItems = derived(selectedInfo, (info) => buildPropertyList(info));
 export const hasSelection = derived(selectedInfo, (info) => Boolean(info));
 export const selectModeEnabled = writable(false);
+export const selectionContext = writable<ElementSelectionContext>(defaultSelectionContext);
 
-export const setSelection = (info: ElementInfo | null) => {
+export const setSelection = (info: ElementInfo | null, context: ElementSelectionContext = defaultSelectionContext) => {
   selectedInfo.set(info);
+  selectionContext.set(info ? context : defaultSelectionContext);
 };
 
 export const setSelectModeEnabled = (enabled: boolean) => {
   selectModeEnabled.set(enabled);
 };
+
+export const getSelectionContext = () => get(selectionContext);
