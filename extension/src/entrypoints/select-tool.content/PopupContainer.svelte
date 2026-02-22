@@ -31,7 +31,7 @@
   let visible = $state(false);
   let popupHidden = $state(false);
   let popupMode = $state<PopupMode>("pp-api");
-  let baseSelector = $state(info.selector);
+  let baseSelector = $derived(info.selector);
 
   const uiBaseFontSizePx = 16;
 
