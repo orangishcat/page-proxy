@@ -11,26 +11,19 @@
   import HelpTool from "./tools/HelpTool.svelte";
   import SelectorsTool from "./tools/SelectorsTool.svelte";
   import CodeEditorTool from "./tools/CodeEditorTool.svelte";
-  import Banner from "./banners/Banner.svelte";
   import BannerContainer from "./banners/BannerContainer.svelte";
   import Button from "@/lib/components/Button.svelte";
-  import { detectBrowserSupport } from "@/lib/utils/browser-support";
   import { attachSelectionListener, sendSelectionToggle } from "./tools/select-tool/actions";
-  import { errorMessage, setErrorMessage, setSuccessMessage, successMessage } from "./tools/tool-errors";
+  import { setErrorMessage } from "./tools/tool-errors";
   import { isGrantPermissionRequestMessage } from "@/lib/grant-permissions";
   import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
   import type { SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
   import { elementEntries, insertDefinitions, sanitizeVariableName, selectorEntries } from "./tools/code-editor/state";
   import { grantPermissionRequest } from "./tools/grant-permissions/state";
-  import { ensureCodeRunnerUserscript } from "@/lib/userscript-runner";
   import {
     activeToolState,
-    readHelpBannerDismissedSetting,
     readToolPanelHeightSetting,
-    readUserscriptReloadBannerDismissedSetting,
-    saveHelpBannerDismissedSetting,
     saveToolPanelHeightSetting,
-    saveUserscriptReloadBannerDismissedSetting,
     type ToolId,
   } from "./tools/state-storage";
 
@@ -49,15 +42,6 @@
   let hoveredTool = $state<ToolbarControlId | null>(null);
   let lastHoveredTool = $state<ToolbarControlId | null>(null);
   let isToolbarHovered = $state(false);
-  let errorMessageValue = $state<string | null>(null);
-  let successMessageValue = $state<string | null>(null);
-  let showUnsupportedBrowserBanner = $state(false);
-  let showFirefoxExperimentalBanner = $state(false);
-  let showUserscriptEnableBanner = $state(false);
-  let showUserscriptReloadBanner = $state(false);
-  let userscriptEnableWithFirefoxPermissions = $state(false);
-  let userscriptReloadBannerDismissed = $state(false);
-  let showHelpBanner = $state(true);
   let toolPanelHeightPx = $state<number | null>(null);
   let toolPanelLayout = $state<HTMLDivElement | null>(null);
   let toolPanelSection = $state<HTMLElement | null>(null);
@@ -67,16 +51,11 @@
 
   const minToolPanelHeightPx = 300;
   const maxToolPanelHeightPx = 600;
-  const chromeUserscriptEnableInstructionsUrl =
-    "https://developer.chrome.com/docs/extensions/reference/api/userScripts#" +
-    "chrome_versions_138_and_newer_allow_user_scripts_toggle";
   const toolPanelResizeHandleClass =
     "h-2 w-full shrink-0 cursor-row-resize bg-[#282824] transition-colors hover:bg-[#4a4b45] active:bg-accent-500/40";
   const codeEditorFocusSelector =
     ".monaco-editor textarea.inputarea:focus, .monaco-diff-editor textarea.inputarea:focus";
 
-  let unsubscribeErrorMessage = () => {};
-  let unsubscribeSuccessMessage = () => {};
   let unsubscribeActiveToolState = () => {};
 
   const activeToolLabel = $derived(toolLabels[activeTool]);
@@ -317,27 +296,6 @@
   };
 
   onMount(() => {
-    void detectBrowserSupport().then(({ browser: supportedBrowser, supported }) => {
-      showUnsupportedBrowserBanner = !supported;
-      showFirefoxExperimentalBanner = supportedBrowser === "firefox";
-      userscriptEnableWithFirefoxPermissions = supportedBrowser === "firefox";
-    });
-    void Promise.all([ensureCodeRunnerUserscript(), readUserscriptReloadBannerDismissedSetting()]).then(
-      ([status, reloadBannerDismissed]) => {
-        userscriptReloadBannerDismissed = reloadBannerDismissed;
-        if (!status.ok && status.needsEnablement) {
-          showUserscriptEnableBanner = true;
-          return;
-        }
-
-        showUserscriptReloadBanner = status.ok && !reloadBannerDismissed;
-      },
-    );
-
-    void readHelpBannerDismissedSetting().then((dismissed) => {
-      showHelpBanner = !dismissed;
-    });
-
     toolPanelHeightPx = minToolPanelHeightPx;
     void readToolPanelHeightSetting().then((storedHeight) => {
       if (storedHeight === null) {
@@ -347,12 +305,6 @@
       toolPanelHeightPx = storedHeight;
     });
 
-    unsubscribeErrorMessage = errorMessage.subscribe((value) => {
-      errorMessageValue = value;
-    });
-    unsubscribeSuccessMessage = successMessage.subscribe((value) => {
-      successMessageValue = value;
-    });
     unsubscribeActiveToolState = activeToolState.subscribe((tool) => {
       if (tool === activeTool) {
         return;
@@ -424,8 +376,6 @@
       window.removeEventListener("keydown", onKeyDown, { capture: true });
       browser.runtime.onMessage.removeListener(handleRuntimeMessage);
       sendSelectionToggle(false);
-      unsubscribeErrorMessage();
-      unsubscribeSuccessMessage();
       unsubscribeActiveToolState();
     };
   });
@@ -434,241 +384,163 @@
     "w-8 h-8 !p-0 rounded-lg text-white dark:text-white " +
     (selected ? "bg-accent-500 hover:!opacity-100" : "bg-[#55503E] hover:opacity-55 active:opacity-40");
   const iconSize = "w-5 h-5";
-
-  const dismissFirefoxExperimentalBanner = () => {
-    showFirefoxExperimentalBanner = false;
-  };
-
-  const dismissUserscriptEnableBanner = () => {
-    showUserscriptEnableBanner = false;
-  };
-
-  const dismissUserscriptReloadBanner = () => {
-    showUserscriptReloadBanner = false;
-    userscriptReloadBannerDismissed = true;
-    void saveUserscriptReloadBannerDismissedSetting(true);
-  };
-
-  const requestFirefoxUserscriptPermission = (event: MouseEvent) => {
-    event.preventDefault();
-    void browser.permissions
-      .request({ permissions: ["userScripts"] })
-      .then((granted) => {
-        if (!granted) {
-          setErrorMessage("Userscripts API permission was not granted.");
-          return;
-        }
-
-        return ensureCodeRunnerUserscript().then((status) => {
-          if (!status.ok) {
-            setErrorMessage(status.message);
-            return;
-          }
-
-          showUserscriptEnableBanner = false;
-          showUserscriptReloadBanner = !userscriptReloadBannerDismissed;
-          setErrorMessage(null);
-          setSuccessMessage("Userscripts API enabled.");
-        });
-      })
-      .catch(() => {
-        setErrorMessage("Unable to request Userscripts API permission.");
-      });
-  };
-
-  const dismissUnsupportedBrowserBanner = () => {
-    showUnsupportedBrowserBanner = false;
-  };
-
-  const dismissHelpBanner = () => {
-    showHelpBanner = false;
-    void saveHelpBannerDismissedSetting(true);
-  };
-
-  const dismissStatusBanner = () => {
-    setErrorMessage(null);
-    setSuccessMessage(null);
-  };
 </script>
 
 <Tooltip.Provider>
   <main class="flex h-full w-full overflow-hidden bg-[#222121] text-white">
     <div class="h-full w-full min-h-0 min-w-full">
-      <div class="flex h-full w-full min-h-0 flex-col" bind:this={toolPanelLayout}>
-        <BannerContainer
-          {chromeUserscriptEnableInstructionsUrl}
-          {showFirefoxExperimentalBanner}
-          {showHelpBanner}
-          {showUnsupportedBrowserBanner}
-          {showUserscriptEnableBanner}
-          {showUserscriptReloadBanner}
-          {userscriptEnableWithFirefoxPermissions}
-          onDismissFirefoxExperimentalBanner={dismissFirefoxExperimentalBanner}
-          onDismissHelpBanner={dismissHelpBanner}
-          onDismissUnsupportedBrowserBanner={dismissUnsupportedBrowserBanner}
-          onDismissUserscriptEnableBanner={dismissUserscriptEnableBanner}
-          onDismissUserscriptReloadBanner={dismissUserscriptReloadBanner}
-          onRequestFirefoxUserscriptPermission={requestFirefoxUserscriptPermission}
-        />
+      <BannerContainer>
+        <div class="flex h-full w-full min-h-0 flex-col" bind:this={toolPanelLayout}>
 
-        <section
-          class="relative flex w-full shrink-0 flex-col bg-[#282824]"
-          aria-label="Tool panel"
-          bind:this={toolPanelSection}
-          style={toolPanelStyle}
-        >
+          <section
+            class="relative flex w-full shrink-0 flex-col bg-[#282824]"
+            aria-label="Tool panel"
+            bind:this={toolPanelSection}
+            style={toolPanelStyle}
+          >
+            <div
+              class="flex justify-between h-12 px-3 py-2 bg-[#393a34]"
+              role="toolbar"
+              aria-label="Tool actions"
+              tabindex="0"
+              onmouseenter={() => {
+                isToolbarHovered = true;
+              }}
+              onmouseleave={() => {
+                isToolbarHovered = false;
+                hoveredTool = null;
+                lastHoveredTool = null;
+              }}
+            >
+              <!-- Left side -->
+              <div class="h-full min-w-0 flex flex-1 flex-row gap-3 place-items-center">
+                <Button
+                  class={toolButtonClasses(activeTool === "select")}
+                  variant="outline"
+                  aria-label="Toggle selection mode"
+                  aria-pressed={isSelectToolActive}
+                  onmouseenter={() => {
+                    hoveredTool = "select";
+                    lastHoveredTool = "select";
+                  }}
+                  onmouseleave={() => {
+                    hoveredTool = null;
+                  }}
+                  onclick={activateSelectTool}
+                >
+                  <MousePointer class={iconSize} />
+                </Button>
+                <Button
+                  class={toolButtonClasses(activeTool === "create")}
+                  variant="outline"
+                  aria-label="Create tool"
+                  onmouseenter={() => {
+                    hoveredTool = "create";
+                    lastHoveredTool = "create";
+                  }}
+                  onmouseleave={() => {
+                    hoveredTool = null;
+                  }}
+                  onclick={() => setActiveTool("create")}
+                >
+                  <Plus class={iconSize} />
+                </Button>
+                <Button
+                  class="{toolButtonClasses(activeTool === 'selectors')} text-sm"
+                  variant="outline"
+                  aria-label="Selectors tool"
+                  onmouseenter={() => {
+                    hoveredTool = "selectors";
+                    lastHoveredTool = "selectors";
+                  }}
+                  onmouseleave={() => {
+                    hoveredTool = null;
+                  }}
+                  onclick={() => setActiveTool("selectors")}
+                >
+                  $0
+                </Button>
+                <span
+                  class="min-w-0 max-w-full flex-1 truncate transition duration-300 {showHoveredToolLabel
+                    ? 'text-gray-600 dark:text-gray-400'
+                    : ''}"
+                >
+                  {toolLabelText}
+                </span>
+              </div>
+              <!-- Right side -->
+              <div class="h-full flex flex-row gap-4 place-items-center">
+                <Button
+                  class={toolButtonClasses(activeTool === "help")}
+                  variant="outline"
+                  aria-label="Help"
+                  onmouseenter={() => {
+                    hoveredTool = "help";
+                    lastHoveredTool = "help";
+                  }}
+                  onmouseleave={() => {
+                    hoveredTool = null;
+                  }}
+                  onclick={() => setActiveTool("help")}
+                >
+                  <CircleQuestionMark class={iconSize} />
+                </Button>
+                <Button
+                  class="{toolButtonClasses(activeTool === 'share')} bg-secondary-500"
+                  variant="outline"
+                  aria-label="Export tool"
+                  onmouseenter={() => {
+                    hoveredTool = "share";
+                    lastHoveredTool = "share";
+                  }}
+                  onmouseleave={() => {
+                    hoveredTool = null;
+                  }}
+                  onclick={() => setActiveTool("share")}
+                >
+                  <Share class={iconSize} />
+                </Button>
+              </div>
+            </div>
+
+            {#if activeTool === "select"}
+              <SelectTool />
+            {:else if activeTool === "create"}
+              <CreateTool />
+            {:else if activeTool === "selectors"}
+              <SelectorsTool />
+            {:else if activeTool === "help"}
+              <HelpTool />
+            {:else if activeTool === "share"}
+              <ExportTool />
+            {:else if activeTool === "none"}
+              <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4 justify-center place-items-center">
+                <p class="text-caption text-gray-500 dark:text-gray-400">Select a tool from the top bar</p>
+              </div>
+            {:else}
+              <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4">
+                <p class="text-body">
+                  Unknown tool: {activeTool}
+                </p>
+              </div>
+            {/if}
+          </section>
+
           <div
-            class="flex justify-between h-12 px-3 py-2 bg-[#393a34]"
-            role="toolbar"
-            aria-label="Tool actions"
-            tabindex="0"
-            onmouseenter={() => {
-              isToolbarHovered = true;
-            }}
-            onmouseleave={() => {
-              isToolbarHovered = false;
-              hoveredTool = null;
-              lastHoveredTool = null;
-            }}
-          >
-            <!-- Left side -->
-            <div class="h-full min-w-0 flex flex-1 flex-row gap-3 place-items-center">
-              <Button
-                class={toolButtonClasses(activeTool === "select")}
-                variant="outline"
-                aria-label="Toggle selection mode"
-                aria-pressed={isSelectToolActive}
-                onmouseenter={() => {
-                  hoveredTool = "select";
-                  lastHoveredTool = "select";
-                }}
-                onmouseleave={() => {
-                  hoveredTool = null;
-                }}
-                onclick={activateSelectTool}
-              >
-                <MousePointer class={iconSize} />
-              </Button>
-              <Button
-                class={toolButtonClasses(activeTool === "create")}
-                variant="outline"
-                aria-label="Create tool"
-                onmouseenter={() => {
-                  hoveredTool = "create";
-                  lastHoveredTool = "create";
-                }}
-                onmouseleave={() => {
-                  hoveredTool = null;
-                }}
-                onclick={() => setActiveTool("create")}
-              >
-                <Plus class={iconSize} />
-              </Button>
-              <Button
-                class="{toolButtonClasses(activeTool === 'selectors')} text-sm"
-                variant="outline"
-                aria-label="Selectors tool"
-                onmouseenter={() => {
-                  hoveredTool = "selectors";
-                  lastHoveredTool = "selectors";
-                }}
-                onmouseleave={() => {
-                  hoveredTool = null;
-                }}
-                onclick={() => setActiveTool("selectors")}
-              >
-                $0
-              </Button>
-              <span
-                class="min-w-0 max-w-full flex-1 truncate transition duration-300 {showHoveredToolLabel
-                  ? 'text-gray-600 dark:text-gray-400'
-                  : ''}"
-              >
-                {toolLabelText}
-              </span>
-            </div>
-            <!-- Right side -->
-            <div class="h-full flex flex-row gap-4 place-items-center">
-              <Button
-                class={toolButtonClasses(activeTool === "help")}
-                variant="outline"
-                aria-label="Help"
-                onmouseenter={() => {
-                  hoveredTool = "help";
-                  lastHoveredTool = "help";
-                }}
-                onmouseleave={() => {
-                  hoveredTool = null;
-                }}
-                onclick={() => setActiveTool("help")}
-              >
-                <CircleQuestionMark class={iconSize} />
-              </Button>
-              <Button
-                class="{toolButtonClasses(activeTool === 'share')} bg-secondary-500"
-                variant="outline"
-                aria-label="Export tool"
-                onmouseenter={() => {
-                  hoveredTool = "share";
-                  lastHoveredTool = "share";
-                }}
-                onmouseleave={() => {
-                  hoveredTool = null;
-                }}
-                onclick={() => setActiveTool("share")}
-              >
-                <Share class={iconSize} />
-              </Button>
-            </div>
-          </div>
+            class={toolPanelResizeHandleClass}
+            role="separator"
+            aria-label="Resize tool panel"
+            aria-orientation="horizontal"
+            bind:this={toolPanelResizeHandle}
+            onpointerdown={startToolPanelResize}
+            onpointermove={updateToolPanelResize}
+            onpointerup={finishToolPanelResize}
+            onpointercancel={finishToolPanelResize}
+          ></div>
 
-          {#if activeTool === "select"}
-            <SelectTool />
-          {:else if activeTool === "create"}
-            <CreateTool />
-          {:else if activeTool === "selectors"}
-            <SelectorsTool />
-          {:else if activeTool === "help"}
-            <HelpTool />
-          {:else if activeTool === "share"}
-            <ExportTool />
-          {:else if activeTool === "none"}
-            <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4 justify-center place-items-center">
-              <p class="text-caption text-gray-500 dark:text-gray-400">Select a tool from the top bar</p>
-            </div>
-          {:else}
-            <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4">
-              <p class="text-body">
-                Unknown tool: {activeTool}
-              </p>
-            </div>
-          {/if}
-        </section>
-
-        <div
-          class={toolPanelResizeHandleClass}
-          role="separator"
-          aria-label="Resize tool panel"
-          aria-orientation="horizontal"
-          bind:this={toolPanelResizeHandle}
-          onpointerdown={startToolPanelResize}
-          onpointermove={updateToolPanelResize}
-          onpointerup={finishToolPanelResize}
-          onpointercancel={finishToolPanelResize}
-        ></div>
-
-        <CodeEditorTool />
-
-        {#if errorMessageValue || successMessageValue}
-          <Banner
-            variant={successMessageValue ? "success" : "error"}
-            dismissAriaLabel="Dismiss status message"
-            onDismiss={dismissStatusBanner}
-          >
-            <span>{successMessageValue ?? errorMessageValue}</span>
-          </Banner>
-        {/if}
-      </div>
+          <CodeEditorTool />
+        </div>
+      </BannerContainer>
     </div>
   </main>
 </Tooltip.Provider>
