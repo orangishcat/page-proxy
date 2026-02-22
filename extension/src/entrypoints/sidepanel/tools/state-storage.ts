@@ -3,6 +3,7 @@ import { browser } from "wxt/browser";
 
 import { coerceScriptGrantValues, type ScriptGrantValue } from "@/lib/grants";
 import { matchWebsiteGlob } from "@/lib/utils/website-glob";
+import { createSidepanelBannerManager, type BannerDefinition } from "../banners/banner-manager";
 
 export type ToolId = "select" | "create" | "selectors" | "help" | "share" | "none";
 
@@ -31,6 +32,15 @@ const storageKeyPrefix = "pageproxy:";
 const toolPanelHeightStorageKey = "sidepanel:toolPanelHeightPx";
 const helpBannerDismissedStorageKey = "sidepanel:helpBannerDismissed";
 const userscriptReloadBannerDismissedStorageKey = "sidepanel:userscriptReloadBannerDismissed";
+const sidepanelBannerManager = createSidepanelBannerManager();
+const helpBanner: BannerDefinition = {
+  id: "helpBannerDismissed",
+  storageKey: helpBannerDismissedStorageKey,
+};
+const userscriptReloadBanner: BannerDefinition = {
+  id: "userscriptReloadBannerDismissed",
+  storageKey: userscriptReloadBannerDismissedStorageKey,
+};
 
 const isToolId = (value: unknown): value is ToolId =>
   value === "select" ||
@@ -202,33 +212,29 @@ export const saveToolPanelHeightSetting = async (height: number) => {
 };
 
 export const readHelpBannerDismissedSetting = async () => {
-  return browser.storage.local
-    .get(helpBannerDismissedStorageKey)
-    .then((stored) => stored[helpBannerDismissedStorageKey] === true)
-    .catch(() => false);
+  return sidepanelBannerManager.isDismissed(helpBanner);
 };
 
 export const saveHelpBannerDismissedSetting = async (dismissed: boolean) => {
-  await browser.storage.local
-    .set({
-      [helpBannerDismissedStorageKey]: dismissed,
-    })
-    .catch(() => undefined);
+  if (dismissed) {
+    await sidepanelBannerManager.dismiss(helpBanner);
+    return;
+  }
+
+  await sidepanelBannerManager.reset(helpBanner);
 };
 
 export const readUserscriptReloadBannerDismissedSetting = async () => {
-  return browser.storage.local
-    .get(userscriptReloadBannerDismissedStorageKey)
-    .then((stored) => stored[userscriptReloadBannerDismissedStorageKey] === true)
-    .catch(() => false);
+  return sidepanelBannerManager.isDismissed(userscriptReloadBanner);
 };
 
 export const saveUserscriptReloadBannerDismissedSetting = async (dismissed: boolean) => {
-  await browser.storage.local
-    .set({
-      [userscriptReloadBannerDismissedStorageKey]: dismissed,
-    })
-    .catch(() => undefined);
+  if (dismissed) {
+    await sidepanelBannerManager.dismiss(userscriptReloadBanner);
+    return;
+  }
+
+  await sidepanelBannerManager.reset(userscriptReloadBanner);
 };
 
 export const findStoredToolStateForUrl = async (url: string) => {

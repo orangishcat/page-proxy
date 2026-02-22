@@ -11,6 +11,7 @@
   import HelpTool from "./tools/HelpTool.svelte";
   import SelectorsTool from "./tools/SelectorsTool.svelte";
   import CodeEditorTool from "./tools/CodeEditorTool.svelte";
+  import SidepanelBanner from "./banners/SidepanelBanner.svelte";
   import Button from "@/lib/components/Button.svelte";
   import { detectBrowserSupport } from "@/lib/utils/browser-support";
   import { attachSelectionListener, sendSelectionToggle } from "./tools/select-tool/actions";
@@ -60,12 +61,18 @@
   let toolPanelLayout = $state<HTMLDivElement | null>(null);
   let toolPanelSection = $state<HTMLElement | null>(null);
   let toolPanelResizeHandle = $state<HTMLDivElement | null>(null);
-  let errorBannerElement = $state<HTMLDivElement | null>(null);
   let resizePointerId = $state<number | null>(null);
   let isResizingToolPanel = $state(false);
 
   const minToolPanelHeightPx = 300;
   const maxToolPanelHeightPx = 600;
+  const chromeUserscriptEnableInstructionsUrl =
+    "https://developer.chrome.com/docs/extensions/reference/api/userScripts#" +
+    "chrome_versions_138_and_newer_allow_user_scripts_toggle";
+  const toolPanelResizeHandleClass =
+    "h-2 w-full shrink-0 cursor-row-resize bg-[#282824] transition-colors hover:bg-[#4a4b45] active:bg-accent-500/40";
+  const codeEditorFocusSelector =
+    ".monaco-editor textarea.inputarea:focus, .monaco-diff-editor textarea.inputarea:focus";
 
   let unsubscribeErrorMessage = () => {};
   let unsubscribeSuccessMessage = () => {};
@@ -149,8 +156,7 @@
     }
 
     return (
-      document.querySelector(".monaco-editor textarea.inputarea:focus, .monaco-diff-editor textarea.inputarea:focus") !==
-      null
+      document.querySelector(codeEditorFocusSelector) !== null
     );
   };
 
@@ -489,120 +495,84 @@
     <div class="h-full w-full min-h-0 min-w-full">
       <div class="flex h-full w-full min-h-0 flex-col" bind:this={toolPanelLayout}>
         {#if showUnsupportedBrowserBanner}
-          <div
-            class="flex w-full max-w-none shrink-0 items-center gap-2 bg-red-700 px-4 py-2 text-caption text-red-100"
+          <SidepanelBanner
+            variant="danger"
+            dismissAriaLabel="Dismiss unsupported browser notice"
+            onDismiss={dismissUnsupportedBrowserBanner}
           >
-            <span class="flex-1"
-              >Your browser is not supported. Please use Chrome, Brave, or Firefox to avoid unexpected issues.</span
-            >
-            <button
-              type="button"
-              class="rounded border border-red-200 px-2 py-0.5 text-caption text-red-100 hover:bg-red-800"
-              aria-label="Dismiss unsupported browser notice"
-              onclick={dismissUnsupportedBrowserBanner}
-            >
-              Dismiss
-            </button>
-          </div>
+            <span>Your browser is not supported. Please use Chrome, Brave, or Firefox to avoid unexpected issues.</span>
+          </SidepanelBanner>
         {/if}
 
         {#if showFirefoxExperimentalBanner}
-          <div
-            class="flex w-full max-w-none shrink-0 items-center gap-2 bg-[#3d341d] px-4 py-2 text-caption text-[#f4de9e]"
+          <SidepanelBanner
+            variant="warning"
+            dismissAriaLabel="Dismiss Firefox experimental notice"
+            onDismiss={dismissFirefoxExperimentalBanner}
           >
-            <span class="flex-1">Firefox support is experimental.</span>
-            <button
-              type="button"
-              class="rounded border border-[#8f7a3c] px-2 py-0.5 text-caption text-[#f4de9e] hover:bg-[#5c4f28]"
-              aria-label="Dismiss Firefox experimental notice"
-              onclick={dismissFirefoxExperimentalBanner}
-            >
-              Dismiss
-            </button>
-          </div>
+            <span>Firefox support is experimental.</span>
+          </SidepanelBanner>
         {/if}
 
         {#if showUserscriptEnableBanner}
-          <div
-            class="flex w-full max-w-none shrink-0 items-center gap-2 bg-[#4a2a0f] px-4 py-2 text-caption text-[#ffd8b0]"
+          <SidepanelBanner
+            variant="caution"
+            dismissAriaLabel="Dismiss Userscripts API notice"
+            onDismiss={dismissUserscriptEnableBanner}
           >
-            <span class="flex w-full flex-1 flex-wrap items-center gap-1">
-              <span>Page Proxy needs the Userscripts API to run untrusted scripts.</span>
-              {#if userscriptEnableWithFirefoxPermissions}
-                <a
-                  href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/permissions/request"
-                  target="_blank"
-                  rel="noreferrer"
-                  class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
-                  onclick={requestFirefoxUserscriptPermission}
-                >
-                  Enable it here.
-                </a>
-              {:else}
-                <a
-                  href="https://developer.chrome.com/docs/extensions/reference/api/userScripts#chrome_versions_138_and_newer_allow_user_scripts_toggle"
-                  target="_blank"
-                  rel="noreferrer"
-                  class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
-                >
-                  Instructions to enable
-                </a>
-              {/if}
-            </span>
-            <button
-              type="button"
-              class="rounded border border-[#8f5f31] px-2 py-0.5 text-caption text-[#ffd8b0] hover:bg-[#5f3918]"
-              aria-label="Dismiss Userscripts API notice"
-              onclick={dismissUserscriptEnableBanner}
-            >
-              Dismiss
-            </button>
-          </div>
+            <span>Page Proxy needs the Userscripts API to run untrusted scripts.</span>
+            {#if userscriptEnableWithFirefoxPermissions}
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/permissions/request"
+                target="_blank"
+                rel="noreferrer"
+                class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
+                onclick={requestFirefoxUserscriptPermission}
+              >
+                Enable it here.
+              </a>
+            {:else}
+              <a
+                href={chromeUserscriptEnableInstructionsUrl}
+                target="_blank"
+                rel="noreferrer"
+                class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
+              >
+                Instructions to enable
+              </a>
+            {/if}
+          </SidepanelBanner>
         {/if}
 
         {#if !showUserscriptEnableBanner && showUserscriptReloadBanner}
-          <div
-            class="flex w-full max-w-none shrink-0 items-center gap-2 bg-[#1e2f46] px-4 py-2 text-caption text-[#d4e9ff]"
+          <SidepanelBanner
+            variant="info"
+            dismissAriaLabel="Dismiss Userscript reload notice"
+            onDismiss={dismissUserscriptReloadBanner}
           >
-            <span class="flex-1">Note: you may need to reload all your tabs for the Userscript API to take effect.</span>
-            <button
-              type="button"
-              class="rounded border border-[#4c6f98] px-2 py-0.5 text-caption text-[#d4e9ff] hover:bg-[#27405f]"
-              aria-label="Dismiss Userscript reload notice"
-              onclick={dismissUserscriptReloadBanner}
-            >
-              Dismiss
-            </button>
-          </div>
+            <span>Note: you may need to reload all your tabs for the Userscript API to take effect.</span>
+          </SidepanelBanner>
         {/if}
 
         {#if !showUnsupportedBrowserBanner && showHelpBanner}
-          <div
-            class="flex w-full max-w-none shrink-0 items-center gap-2 bg-[#1e2f46] px-4 py-2 text-caption text-[#d4e9ff]"
+          <SidepanelBanner
+            variant="info"
+            dismissAriaLabel="Dismiss help notice"
+            onDismiss={dismissHelpBanner}
           >
-            <span class="flex w-full flex-1 flex-wrap items-center gap-1">
-              <span>Something not working? Check the Help tool</span>
-              <CircleQuestionMark class="h-4 w-4" aria-hidden="true" />
-              <span>for troubleshooting or</span>
-              <a
-                href="https://github.com/orangishcat/page-proxy"
-                target="_blank"
-                rel="noreferrer"
-                class="font-semibold text-[#d4e9ff] underline underline-offset-2 hover:opacity-80"
-              >
-                report a bug
-              </a>
-              <span>.</span>
-            </span>
-            <button
-              type="button"
-              class="rounded border border-[#4c6f98] px-2 py-0.5 text-caption text-[#d4e9ff] hover:bg-[#27405f]"
-              aria-label="Dismiss help notice"
-              onclick={dismissHelpBanner}
+            <span>Something not working? Check the Help tool</span>
+            <CircleQuestionMark class="h-4 w-4" aria-hidden="true" />
+            <span>for troubleshooting or</span>
+            <a
+              href="https://github.com/orangishcat/page-proxy"
+              target="_blank"
+              rel="noreferrer"
+              class="font-semibold text-[#d4e9ff] underline underline-offset-2 hover:opacity-80"
             >
-              Dismiss
-            </button>
-          </div>
+              report a bug
+            </a>
+            <span>.</span>
+          </SidepanelBanner>
         {/if}
 
         <section
@@ -740,7 +710,7 @@
         </section>
 
         <div
-          class="h-2 w-full shrink-0 cursor-row-resize bg-[#282824] transition-colors hover:bg-[#4a4b45] active:bg-accent-500/40"
+          class={toolPanelResizeHandleClass}
           role="separator"
           aria-label="Resize tool panel"
           aria-orientation="horizontal"
@@ -754,24 +724,13 @@
         <CodeEditorTool />
 
         {#if errorMessageValue || successMessageValue}
-          <div
-            class={`w-full shrink-0 px-4 py-2 text-caption ${
-              successMessageValue ? "bg-[#1f3a22] text-[#b8f3bf]" : "bg-[#3b1d1d] text-[#f5b1b1]"
-            }`}
-            bind:this={errorBannerElement}
+          <SidepanelBanner
+            variant={successMessageValue ? "success" : "error"}
+            dismissAriaLabel="Dismiss status message"
+            onDismiss={dismissStatusBanner}
           >
-            <div class="flex items-center gap-2">
-              <span class="flex-1">{successMessageValue ?? errorMessageValue}</span>
-              <button
-                type="button"
-                class="rounded border border-current px-2 py-0.5 text-caption hover:bg-black/10"
-                aria-label="Dismiss status message"
-                onclick={dismissStatusBanner}
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
+            <span>{successMessageValue ?? errorMessageValue}</span>
+          </SidepanelBanner>
         {/if}
       </div>
     </div>
