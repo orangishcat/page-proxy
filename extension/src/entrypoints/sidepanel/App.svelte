@@ -11,7 +11,8 @@
   import HelpTool from "./tools/HelpTool.svelte";
   import SelectorsTool from "./tools/SelectorsTool.svelte";
   import CodeEditorTool from "./tools/CodeEditorTool.svelte";
-  import SidepanelBanner from "./banners/SidepanelBanner.svelte";
+  import Banner from "./banners/Banner.svelte";
+  import BannerContainer from "./banners/BannerContainer.svelte";
   import Button from "@/lib/components/Button.svelte";
   import { detectBrowserSupport } from "@/lib/utils/browser-support";
   import { attachSelectionListener, sendSelectionToggle } from "./tools/select-tool/actions";
@@ -494,86 +495,21 @@
   <main class="flex h-full w-full overflow-hidden bg-[#222121] text-white">
     <div class="h-full w-full min-h-0 min-w-full">
       <div class="flex h-full w-full min-h-0 flex-col" bind:this={toolPanelLayout}>
-        {#if showUnsupportedBrowserBanner}
-          <SidepanelBanner
-            variant="danger"
-            dismissAriaLabel="Dismiss unsupported browser notice"
-            onDismiss={dismissUnsupportedBrowserBanner}
-          >
-            <span>Your browser is not supported. Please use Chrome, Brave, or Firefox to avoid unexpected issues.</span>
-          </SidepanelBanner>
-        {/if}
-
-        {#if showFirefoxExperimentalBanner}
-          <SidepanelBanner
-            variant="warning"
-            dismissAriaLabel="Dismiss Firefox experimental notice"
-            onDismiss={dismissFirefoxExperimentalBanner}
-          >
-            <span>Firefox support is experimental.</span>
-          </SidepanelBanner>
-        {/if}
-
-        {#if showUserscriptEnableBanner}
-          <SidepanelBanner
-            variant="caution"
-            dismissAriaLabel="Dismiss Userscripts API notice"
-            onDismiss={dismissUserscriptEnableBanner}
-          >
-            <span>Page Proxy needs the Userscripts API to run untrusted scripts.</span>
-            {#if userscriptEnableWithFirefoxPermissions}
-              <a
-                href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/permissions/request"
-                target="_blank"
-                rel="noreferrer"
-                class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
-                onclick={requestFirefoxUserscriptPermission}
-              >
-                Enable it here.
-              </a>
-            {:else}
-              <a
-                href={chromeUserscriptEnableInstructionsUrl}
-                target="_blank"
-                rel="noreferrer"
-                class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
-              >
-                Instructions to enable
-              </a>
-            {/if}
-          </SidepanelBanner>
-        {/if}
-
-        {#if !showUserscriptEnableBanner && showUserscriptReloadBanner}
-          <SidepanelBanner
-            variant="info"
-            dismissAriaLabel="Dismiss Userscript reload notice"
-            onDismiss={dismissUserscriptReloadBanner}
-          >
-            <span>Note: you may need to reload all your tabs for the Userscript API to take effect.</span>
-          </SidepanelBanner>
-        {/if}
-
-        {#if !showUnsupportedBrowserBanner && showHelpBanner}
-          <SidepanelBanner
-            variant="info"
-            dismissAriaLabel="Dismiss help notice"
-            onDismiss={dismissHelpBanner}
-          >
-            <span>Something not working? Check the Help tool</span>
-            <CircleQuestionMark class="h-4 w-4" aria-hidden="true" />
-            <span>for troubleshooting or</span>
-            <a
-              href="https://github.com/orangishcat/page-proxy"
-              target="_blank"
-              rel="noreferrer"
-              class="font-semibold text-[#d4e9ff] underline underline-offset-2 hover:opacity-80"
-            >
-              report a bug
-            </a>
-            <span>.</span>
-          </SidepanelBanner>
-        {/if}
+        <BannerContainer
+          {chromeUserscriptEnableInstructionsUrl}
+          {showFirefoxExperimentalBanner}
+          {showHelpBanner}
+          {showUnsupportedBrowserBanner}
+          {showUserscriptEnableBanner}
+          {showUserscriptReloadBanner}
+          {userscriptEnableWithFirefoxPermissions}
+          onDismissFirefoxExperimentalBanner={dismissFirefoxExperimentalBanner}
+          onDismissHelpBanner={dismissHelpBanner}
+          onDismissUnsupportedBrowserBanner={dismissUnsupportedBrowserBanner}
+          onDismissUserscriptEnableBanner={dismissUserscriptEnableBanner}
+          onDismissUserscriptReloadBanner={dismissUserscriptReloadBanner}
+          onRequestFirefoxUserscriptPermission={requestFirefoxUserscriptPermission}
+        />
 
         <section
           class="relative flex w-full shrink-0 flex-col bg-[#282824]"
@@ -724,13 +660,13 @@
         <CodeEditorTool />
 
         {#if errorMessageValue || successMessageValue}
-          <SidepanelBanner
+          <Banner
             variant={successMessageValue ? "success" : "error"}
             dismissAriaLabel="Dismiss status message"
             onDismiss={dismissStatusBanner}
           >
             <span>{successMessageValue ?? errorMessageValue}</span>
-          </SidepanelBanner>
+          </Banner>
         {/if}
       </div>
     </div>
