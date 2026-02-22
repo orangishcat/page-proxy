@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { ElementInfo, SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
+  import { onDestroy, onMount } from "svelte";
   import SelectorPopup from "./SelectorPopup.svelte";
-  import { onMount, onDestroy } from "svelte";
+  import CssInspector from "./CssInspector.svelte";
 
   type PropertyItem = {
     key: string;
@@ -10,6 +11,8 @@
     rawValue: string | ElementInfo["boundingBox"];
     primary: boolean;
   };
+
+  type PopupMode = "pp-api" | "css";
 
   type Props = {
     info: ElementInfo;
@@ -27,6 +30,9 @@
   let arrowOffset = $state({ left: "50%", top: "50%" });
   let visible = $state(false);
   let popupHidden = $state(false);
+  let popupMode = $state<PopupMode>("pp-api");
+  let baseSelector = $state(info.selector);
+
   const uiBaseFontSizePx = 16;
 
   const updatePosition = () => {
@@ -61,10 +67,10 @@
       { key: "right" as const, space: spaces.right },
     ];
 
-    const candidate = ordered.filter((e) => fits[e.key]).sort((a, b) => b.space - a.space)[0];
+    const candidate = ordered.filter((entry) => fits[entry.key]).sort((left, right) => right.space - left.space)[0];
     direction = candidate?.key || "center";
 
-    const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
+    const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
     let top = 0;
     let left = 0;
@@ -115,6 +121,30 @@
     });
   };
 
+  const arrowClasses = $derived({
+    top: "bottom-0 translate-y-1/2 -translate-x-1/2 border-t-0 border-l-0",
+    bottom: "top-0 -translate-y-1/2 -translate-x-1/2 border-b-0 border-r-0",
+    left: "right-0 translate-x-1/2 -translate-y-1/2 border-l-0 border-b-0",
+    right: "left-0 -translate-x-1/2 -translate-y-1/2 border-r-0 border-t-0",
+    center: "hidden",
+  });
+
+  const stopKeyPropagation = (event: KeyboardEvent) => {
+    event.stopPropagation();
+  };
+
+  const handlePopupVisibilityChange = (hidden: boolean) => {
+    popupHidden = hidden;
+  };
+
+  const handleBaseSelectorChange = (nextSelector: string) => {
+    const normalizedSelector = nextSelector.trim();
+    if (!normalizedSelector) {
+      return;
+    }
+    baseSelector = normalizedSelector;
+  };
+
   onMount(() => {
     scheduleUpdate();
     window.addEventListener("scroll", scheduleUpdate, { capture: true });
@@ -134,24 +164,16 @@
   });
 
   $effect(() => {
-    if (targetElement) scheduleUpdate();
+    if (targetElement) {
+      scheduleUpdate();
+    }
   });
 
-  const arrowClasses = $derived({
-    top: "bottom-0 translate-y-1/2 -translate-x-1/2 border-t-0 border-l-0",
-    bottom: "top-0 -translate-y-1/2 -translate-x-1/2 border-b-0 border-r-0",
-    left: "right-0 translate-x-1/2 -translate-y-1/2 border-l-0 border-b-0",
-    right: "left-0 -translate-x-1/2 -translate-y-1/2 border-r-0 border-t-0",
-    center: "hidden",
+  $effect(() => {
+    if (popupMode !== "css") {
+      popupHidden = false;
+    }
   });
-
-  const stopKeyPropagation = (event: KeyboardEvent) => {
-    event.stopPropagation();
-  };
-
-  const handlePopupVisibilityChange = (hidden: boolean) => {
-    popupHidden = hidden;
-  };
 </script>
 
 <div
@@ -162,19 +184,77 @@
     ? 'visible'
     : 'hidden'};"
 >
-  <!-- Arrow -->
   {#if direction !== "center"}
     <div
       class="absolute w-3 h-3 bg-gray-950 border border-gray-800 rotate-45 {arrowClasses[direction]}"
       style={direction === "top" || direction === "bottom" ? `left: ${arrowOffset.left}` : `top: ${arrowOffset.top}`}
     ></div>
   {/if}
-  <SelectorPopup
-    {info}
-    {propertyItems}
-    {targetElement}
-    {onSave}
-    {onCancel}
-    onVisibilityChange={handlePopupVisibilityChange}
-  />
+
+  <div
+    class="flex flex-col w-full h-full overflow-hidden rounded-lg border border-gray-800 bg-gray-950 text-gray-100 font-sans text-sm shadow-2xl pp-content-ui-root"
+    style={`color-scheme: dark; ${popupMode === "css" ? "font-size: 16px !important;" : ""}`}
+  >
+    <div class="flex items-center h-12 px-4 gap-2.5 bg-gray-900 border-b border-gray-800">
+      <span class="text-lead">{popupMode === "pp-api" ? "Selector editor" : "CSS inspector"}</span>
+      {#if popupMode === "pp-api"}
+        <a
+          href="https://orangishcat.github.io/page-proxy/docs/pp/pq-query#pqselectordefinition"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-caption text-accent-400 hover:text-accent-300 hover:underline">Selector documentation</a
+        >
+      {:else}
+        <a
+          href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_selectors"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-caption text-accent-400 hover:text-accent-300 hover:underline">CSS selector reference</a
+        >
+      {/if}
+      <div class="flex-1"></div>
+      <select
+        value={popupMode}
+        onchange={(event) => (popupMode = event.currentTarget.value as PopupMode)}
+        class="rounded border border-white/15 bg-white/10 py-1 px-2 text-caption text-white cursor-pointer"
+        aria-label="Inspector mode"
+      >
+        <option value="pp-api">pp-api</option>
+        <option value="css">CSS</option>
+      </select>
+      <button
+        type="button"
+        onclick={onCancel}
+        class="p-1 rounded text-gray-500 hover:bg-white/10 hover:text-white"
+        aria-label="Close popup">×</button
+      >
+    </div>
+
+    <div class="flex-1 min-h-0 overflow-hidden">
+      <div class={`h-full ${popupMode === "pp-api" ? "" : "hidden"}`}>
+        <SelectorPopup
+          {info}
+          {propertyItems}
+          {onSave}
+          {onCancel}
+          {baseSelector}
+          onBaseSelectorChange={handleBaseSelectorChange}
+        />
+      </div>
+
+      <div class={`h-full ${popupMode === "css" ? "" : "hidden"}`}>
+        <CssInspector
+          {info}
+          {propertyItems}
+          {targetElement}
+          {onSave}
+          {onCancel}
+          {baseSelector}
+          active={popupMode === "css"}
+          onBaseSelectorChange={handleBaseSelectorChange}
+          onVisibilityChange={handlePopupVisibilityChange}
+        />
+      </div>
+    </div>
+  </div>
 </div>
