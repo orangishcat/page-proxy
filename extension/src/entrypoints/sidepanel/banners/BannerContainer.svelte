@@ -126,95 +126,99 @@
   };
 </script>
 
-{#if showUnsupportedBrowserBanner}
-  <Banner
-    variant="danger"
-    dismissAriaLabel="Dismiss unsupported browser notice"
-    onDismiss={dismissUnsupportedBrowserBanner}
-  >
-    <span>Your browser is not supported. Please use Chrome, Brave, or Firefox to avoid unexpected issues.</span>
-  </Banner>
-{/if}
-
-{#if showFirefoxExperimentalBanner}
-  <Banner
-    variant="warning"
-    dismissAriaLabel="Dismiss Firefox experimental notice"
-    onDismiss={dismissFirefoxExperimentalBanner}
-  >
-    <span>Firefox support is experimental.</span>
-  </Banner>
-{/if}
-
-{#if showUserscriptEnableBanner}
-  <Banner
-    variant="caution"
-    dismissAriaLabel="Dismiss Userscripts API notice"
-    onDismiss={dismissUserscriptEnableBanner}
-  >
-    <span>Page Proxy needs the Userscripts API to run untrusted scripts.</span>
-    {#if userscriptEnableWithFirefoxPermissions}
-      <a
-        href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/permissions/request"
-        target="_blank"
-        rel="noreferrer"
-        class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
-        onclick={requestFirefoxUserscriptPermission}
-      >
-        Enable it here.
-      </a>
-    {:else}
-      <a
-        href={chromeUserscriptEnableInstructionsUrl}
-        target="_blank"
-        rel="noreferrer"
-        class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
-      >
-        Instructions to enable
-      </a>
-    {/if}
-  </Banner>
-{/if}
-
-{#if !showUserscriptEnableBanner && showUserscriptReloadBanner}
-  <Banner
-    variant="info"
-    dismissAriaLabel="Dismiss Userscript reload notice"
-    onDismiss={dismissUserscriptReloadBanner}
-  >
-    <span>Note: you may need to reload all your tabs for the Userscript API to take effect.</span>
-  </Banner>
-{/if}
-
-{#if !showUnsupportedBrowserBanner && showHelpBanner}
-  <Banner
-    variant="info"
-    dismissAriaLabel="Dismiss help notice"
-    onDismiss={dismissHelpBanner}
-  >
-    <span>Something not working? Check the Help tool</span>
-    <CircleQuestionMark class="h-4 w-4" aria-hidden="true" />
-    <span>for troubleshooting or</span>
-    <a
-      href="https://github.com/orangishcat/page-proxy"
-      target="_blank"
-      rel="noreferrer"
-      class="font-semibold text-[#d4e9ff] underline underline-offset-2 hover:opacity-80"
+<div class="flex h-full min-h-0 w-full flex-col overflow-hidden">
+  {#if showUnsupportedBrowserBanner}
+    <Banner
+      variant="danger"
+      dismissAriaLabel="Dismiss unsupported browser notice"
+      onDismiss={dismissUnsupportedBrowserBanner}
     >
-      report a bug
-    </a>
-    <span>.</span>
-  </Banner>
-{/if}
+      <span>Your browser is not supported. Please use Chrome, Brave, or Firefox to avoid unexpected issues.</span>
+    </Banner>
+  {/if}
 
-{@render children?.()}
+  {#if showFirefoxExperimentalBanner}
+    <Banner
+      variant="warning"
+      dismissAriaLabel="Dismiss Firefox experimental notice"
+      onDismiss={dismissFirefoxExperimentalBanner}
+    >
+      <span>Firefox support is experimental.</span>
+    </Banner>
+  {/if}
 
-{#if errorMessageValue || successMessageValue}
-  <Banner
-    variant={successMessageValue ? "success" : "error"}
-    dismissAriaLabel="Dismiss status message"
-    onDismiss={dismissStatusBanner}
-  >
-    <span>{successMessageValue ?? errorMessageValue}</span>
-  </Banner>
-{/if}
+  {#if showUserscriptEnableBanner}
+    <Banner
+      variant="caution"
+      dismissAriaLabel="Dismiss Userscripts API notice"
+      onDismiss={dismissUserscriptEnableBanner}
+    >
+      <span>Page Proxy needs the Userscripts API to run untrusted scripts.</span>
+      {#if userscriptEnableWithFirefoxPermissions}
+        <a
+          href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/permissions/request"
+          target="_blank"
+          rel="noreferrer"
+          class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
+          onclick={requestFirefoxUserscriptPermission}
+        >
+          Enable it here.
+        </a>
+      {:else}
+        <a
+          href={chromeUserscriptEnableInstructionsUrl}
+          target="_blank"
+          rel="noreferrer"
+          class="font-semibold text-[#ffd8b0] underline underline-offset-2 hover:opacity-80"
+        >
+          Instructions to enable
+        </a>
+      {/if}
+    </Banner>
+  {/if}
+
+  {#if !showUserscriptEnableBanner && showUserscriptReloadBanner}
+    <Banner
+      variant="info"
+      dismissAriaLabel="Dismiss Userscript reload notice"
+      onDismiss={dismissUserscriptReloadBanner}
+    >
+      <span>Note: you may need to reload all your tabs for the Userscript API to take effect.</span>
+    </Banner>
+  {/if}
+
+  {#if !showUnsupportedBrowserBanner && showHelpBanner}
+    <Banner
+      variant="info"
+      dismissAriaLabel="Dismiss help notice"
+      onDismiss={dismissHelpBanner}
+    >
+      <span>Something not working? Check the Help tool</span>
+      <CircleQuestionMark class="h-4 w-4" aria-hidden="true" />
+      <span>for troubleshooting or</span>
+      <a
+        href="https://github.com/orangishcat/page-proxy"
+        target="_blank"
+        rel="noreferrer"
+        class="font-semibold text-[#d4e9ff] underline underline-offset-2 hover:opacity-80"
+      >
+        report a bug
+      </a>
+      <span>.</span>
+    </Banner>
+  {/if}
+
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+    {@render children?.()}
+  </div>
+
+  {#if errorMessageValue || successMessageValue}
+    <Banner
+      variant={successMessageValue ? "success" : "error"}
+      dismissAriaLabel="Dismiss status message"
+      onDismiss={dismissStatusBanner}
+    >
+      <span>{successMessageValue ?? errorMessageValue}</span>
+    </Banner>
+  {/if}
+</div>
