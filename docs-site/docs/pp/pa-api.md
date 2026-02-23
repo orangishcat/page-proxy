@@ -27,10 +27,18 @@ pa.notification("User synced", { id: "u_42", plan: "pro" });
 pa.notification("Primary button", document.querySelector(".btn-primary"));
 ```
 
-## API alias
+## `renderMarkdown(content, options)`
 
-`pa.pp` is the same API object used by the legacy global `pp` alias.
+Renders markdown to sanitized HTML.
+
+Options:
+
+- `breaks?: boolean` (default `true`)
+- `linkTarget?: string` (default `"_blank"`)
+- `linkRel?: string` (default `"noreferrer noopener"`)
+- `linkReferrerPolicy?: string` (default `"no-referrer"`)
 
 ```js
-pa.pp.notification("hello from pp");
+const html = pa.renderMarkdown("See [docs](https://orangishcat.github.io/page-proxy/docs)");
+document.querySelector("#help")?.insertAdjacentHTML("beforeend", html);
 ```

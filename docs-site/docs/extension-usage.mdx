@@ -86,13 +86,20 @@ Flow:
 2. Click an element on the page.
 3. Review captured properties in the Select panel.
 4. Use the parent button (up arrow) to move one level up in the DOM.
-5. Click **Save selector** to open the selector popup.
+5. Click **Selector** to open selector editing, or **CSS** to open CSS editing.
+
+DevTools integration:
+
+- When browser DevTools is open on the active tab, a wrench button appears in Select.
+- Toggle the wrench button to follow the element selected in DevTools Elements panel.
+- Parent selection and selector/CSS opening use that DevTools-backed selection while follow mode is enabled.
 
 </div>
 
 <div className="col col--6 margin-bottom--xl">
 
 <img src={useBaseUrl('/img/editor_usage/select_tool.png', {absolute: true})} alt="Page Proxy Select tool" />
+<img src={useBaseUrl('/img/editor_usage/select_tool_2.png', {absolute: true})} alt="Page Proxy Select tool with DevTools integration" />
 
 </div>
 
@@ -104,7 +111,7 @@ Flow:
 
 ## Selector popup
 
-The selector popup opens from **Select -> Save selector**.
+The selector popup opens from **Select -> Selector**.
 
 What you do:
 
@@ -137,7 +144,7 @@ What happens on save:
 
 ## CSS inspector
 
-The CSS inspector is available from the popup mode switch (`pp-api` -> `CSS`).
+The CSS inspector opens from **Select -> CSS** and is also available from the popup mode switch (`pp-api` -> `CSS`).
 
 What you do:
 
@@ -212,6 +219,7 @@ Help contains quick project references:
 - Permission request flow for `@grant` values (for example `run-on-page-load`).
 - Known issues list.
 - Planned features and roadmap links.
+- Content fetched from [`extension/HELP.md`](https://github.com/orangishcat/page-proxy/blob/main/extension/HELP.md), rendered as markdown.
 
 Use it as the first stop when behavior seems unexpected.
 

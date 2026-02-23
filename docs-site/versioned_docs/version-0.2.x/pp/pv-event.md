@@ -4,7 +4,7 @@ title: pv (Event API)
 
 # pv module (v0.2.x)
 
-`pv` handles DOM creation events.
+`pv` handles DOM creation and keyboard events.
 
 ```js
 import { pv } from "@page-proxy/pp";
@@ -41,6 +41,32 @@ const observer = pv.onElementCreated((el) => {
 ```js
 observer.runOnTargetNode();
 observer.disconnect();
+```
+
+## `onKeyPressed(keys, func, options)`
+
+Runs `func` when a key combo matches.
+
+Options:
+
+- `keyAction?: ("press" | "release")[]` (default `["press"]`)
+- `cancel?: boolean` (default `true`, prevents default browser behavior)
+
+Returns a cleanup function that removes the event listeners.
+
+```js
+const stop = pv.onKeyPressed(
+  "shift+x",
+  () => {
+    console.log("Shift+X pressed");
+  },
+  {
+    keyAction: ["press", "release"],
+  },
+);
+
+// Later:
+stop();
 ```
 
 For notifications, use `pa.notification(...)`.

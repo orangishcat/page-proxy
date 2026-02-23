@@ -55,3 +55,15 @@ These call `pn.fetch` with the corresponding HTTP method:
 const response = await pn.get("https://api.example.com/items", { cache: true });
 const data = await response.json();
 ```
+
+## `pn.invalidateCache(key)`
+
+Deletes cached response entries for a cache key (or URL).
+
+- Returns `true` if at least one cache entry was removed.
+- Returns `false` if no matching cache entry exists.
+
+```js
+pn.invalidateCache("items:list");
+pn.invalidateCache("https://api.example.com/items");
+```
