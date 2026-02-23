@@ -12,7 +12,7 @@ export default defineConfig({
   entrypointsDir: "entrypoints",
   manifestVersion: 3,
   modules: ["@wxt-dev/module-svelte"],
-  vite: (env) => ({
+  vite: () => ({
     resolve: {
       dedupe: ["svelte", "monaco-editor", "monaco-editor-core"],
       alias: [
@@ -35,7 +35,7 @@ export default defineConfig({
     },
     build: {
       assetsInlineLimit: 0,
-      sourcemap: env.command === "serve" ? true : false,
+      sourcemap: false,
     },
   }),
   manifest: ({ browser }) => ({
