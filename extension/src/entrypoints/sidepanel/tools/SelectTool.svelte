@@ -3,11 +3,19 @@
   import { Tooltip } from "bits-ui";
   import Button from "@/lib/components/Button.svelte";
   import type { PropertyItem } from "./select-tool/state";
-  import { sendSelectParent, sendSelectorPopup } from "./select-tool/actions";
-  import { hasSelection, propertyItems, selectModeEnabled } from "./select-tool/state";
-  import { ArrowUpIcon } from "lucide-svelte";
+  import { sendSelectParent, sendSelectorPopup, toggleFollowDevtoolsSelection } from "./select-tool/actions";
+  import {
+    devtoolsIntegrationDetected,
+    followDevtoolsSelection,
+    hasSelection,
+    propertyItems,
+    selectModeEnabled,
+  } from "./select-tool/state";
+  import { ArrowUpIcon, Wrench } from "lucide-svelte";
   let hasSelectionValue = $state(false);
   let selectModeEnabledValue = $state(false);
+  let devtoolsIntegrationDetectedValue = $state(false);
+  let followDevtoolsSelectionValue = $state(false);
   let propertyItemsValue = $state<PropertyItem[]>([]);
 
   const unsubscribeHasSelection = hasSelection.subscribe((value) => {
@@ -16,6 +24,12 @@
   const unsubscribeSelectModeEnabled = selectModeEnabled.subscribe((value) => {
     selectModeEnabledValue = value;
   });
+  const unsubscribeDevtoolsIntegrationDetected = devtoolsIntegrationDetected.subscribe((value) => {
+    devtoolsIntegrationDetectedValue = value;
+  });
+  const unsubscribeFollowDevtoolsSelection = followDevtoolsSelection.subscribe((value) => {
+    followDevtoolsSelectionValue = value;
+  });
   const unsubscribePropertyItems = propertyItems.subscribe((value) => {
     propertyItemsValue = value;
   });
@@ -23,6 +37,8 @@
   onDestroy(() => {
     unsubscribeHasSelection();
     unsubscribeSelectModeEnabled();
+    unsubscribeDevtoolsIntegrationDetected();
+    unsubscribeFollowDevtoolsSelection();
     unsubscribePropertyItems();
   });
 </script>
@@ -45,6 +61,11 @@
       </div>
     {/if}
   </div>
+  {#if devtoolsIntegrationDetectedValue && followDevtoolsSelectionValue}
+    <div class="mt-2 text-center text-caption text-gray-500 dark:text-gray-400">
+      Currently matching the DevTools panel's selected element
+    </div>
+  {/if}
   <div class="relative mt-4 flex w-full items-center justify-center">
     <Tooltip.Root>
       <Tooltip.Trigger>
@@ -71,13 +92,50 @@
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
-    <Button
-      class={`w-36 text-sm ${hasSelectionValue ? "" : "hidden"}`}
-      variant="primary"
-      onclick={sendSelectorPopup}
-      disabled={!hasSelectionValue}
-    >
-      Save selector
-    </Button>
+    <div class={`w-full max-w-56 gap-2 ${hasSelectionValue ? "flex" : "hidden"}`}>
+      <Button
+        class="flex-1 text-sm"
+        variant="primary"
+        onclick={() => sendSelectorPopup("pp-api")}
+        disabled={!hasSelectionValue}
+      >
+        Selector
+      </Button>
+      <Button
+        class="flex-1 text-sm"
+        variant="secondary"
+        onclick={() => sendSelectorPopup("css")}
+        disabled={!hasSelectionValue}
+      >
+        CSS
+      </Button>
+    </div>
+    {#if devtoolsIntegrationDetectedValue}
+      <Tooltip.Root>
+        <Tooltip.Trigger>
+          {#snippet child({ props })}
+            <Button
+              {...props}
+              class={`absolute right-0 h-8 w-8 p-0! rounded-lg !border-accent-500 !bg-accent-500 !from-accent-500 !to-accent-500 text-gray-950 dark:text-gray-950 ${followDevtoolsSelectionValue ? "opacity-100" : "opacity-45 hover:opacity-70"}`}
+              variant="primary"
+              aria-label="Toggle follow DevTools selected element"
+              aria-pressed={followDevtoolsSelectionValue}
+              onclick={toggleFollowDevtoolsSelection}
+            >
+              <Wrench class="h-4 w-4" />
+            </Button>
+          {/snippet}
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            sideOffset={6}
+            class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+          >
+            Follow DevTools selected element
+            <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    {/if}
   </div>
 </div>

@@ -20,9 +20,10 @@
     targetElement: Element | null;
     onSave: (payload: SelectorSavePayload) => Promise<SelectorSaveResult>;
     onCancel: () => void;
+    mode?: PopupMode;
   };
 
-  let { info, propertyItems, targetElement, onSave, onCancel }: Props = $props();
+  let { info, propertyItems, targetElement, onSave, onCancel, mode = "pp-api" }: Props = $props();
 
   let containerEl: HTMLDivElement | undefined = $state();
   let position = $state({ top: 0, left: 0 });
@@ -146,6 +147,7 @@
   };
 
   onMount(() => {
+    popupMode = mode;
     scheduleUpdate();
     window.addEventListener("scroll", scheduleUpdate, { capture: true });
     window.addEventListener("resize", scheduleUpdate);

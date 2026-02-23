@@ -9,6 +9,7 @@ declare module "wxt/browser" {
     | "/code-runner-main-world.js"
     | "/content-scripts/select-tool.js"
     | "/dashboard.html"
+    | "/devtools.html"
     | "/icon.png"
     | "/logo_filled.png"
     | "/sidepanel.html"

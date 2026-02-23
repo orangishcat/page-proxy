@@ -11,6 +11,7 @@ import { parseScriptMetadata } from "@/lib/utils/script-metadata";
 import { isRestrictedUrl, matchWebsiteGlob } from "@/lib/utils/website-glob";
 import { isScriptRunResponse, type ScriptRunRequest } from "@/lib/script-runner";
 import { createTabBadgeUpdater } from "@/lib/background/tab-badge";
+import { createDevtoolsSelectionRuntimeHandler } from "@/lib/background/devtools-selection";
 import { buildDefaultScript } from "@/lib/default-script";
 import { ensureCodeRunnerUserscript } from "@/lib/userscript-runner";
 import log from "loglevel";
@@ -396,6 +397,7 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
 
 export default defineBackground(() => {
   const tabsWithPendingInitialLoad = new Set<number>();
+  const devtoolsSelectionRuntime = createDevtoolsSelectionRuntimeHandler();
 
   void ensureCodeRunnerUserscript().then((status) => {
     if (!status.ok) {
@@ -405,7 +407,11 @@ export default defineBackground(() => {
 
   browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
     if (!isGrantPermissionResolveMessage(message)) {
-      return false;
+      return devtoolsSelectionRuntime.handleRuntimeMessage(
+        message,
+        _sender as chrome.runtime.MessageSender,
+        sendResponse,
+      );
     }
 
     void resolveGrantPermissions(message.payload.websiteGlob, message.payload.grants, message.payload.allow)

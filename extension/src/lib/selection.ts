@@ -14,11 +14,22 @@ export type ElementInfo = {
   };
 };
 
+export type ElementSelectionSource = "content" | "devtools";
+
+export type ElementSelectionContext = {
+  source: ElementSelectionSource;
+  tabId: number | null;
+  frameId: number | null;
+  frameUrl: string | null;
+};
+
 export type SelectorSavePayload = {
   name: string | null;
   code: string;
   baseSelector?: string;
 };
+
+export type SelectorPopupMode = "pp-api" | "css";
 
 export type SelectorSaveResult =
   | {
@@ -28,6 +39,10 @@ export type SelectorSaveResult =
       ok: false;
       error: string;
     };
+
+export type SelectorOpenResult = {
+  opened: boolean;
+};
 
 export type SelectToolMessage =
   | {
@@ -44,6 +59,7 @@ export type SelectToolMessage =
   | {
       type: 'selector:open';
       payload: ElementInfo | null;
+      mode?: SelectorPopupMode;
     }
   | {
       type: 'selector:save';

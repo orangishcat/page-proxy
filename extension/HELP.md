@@ -21,3 +21,5 @@ Refer to the [extension usage guide](https://orangishcat.github.io/page-proxy/do
 - Multi-file scripts.
 
 [Roadmap](https://github.com/orangishcat/page-proxy/blob/main/ROADMAP.md)
+
+This file was fetched from [HELP.md](https://github.com/orangishcat/page-proxy/blob/main/extension/HELP.md)
