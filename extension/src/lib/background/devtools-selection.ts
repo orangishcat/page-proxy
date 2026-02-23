@@ -57,7 +57,7 @@ const resolveFrameIdForSelection = (tabId: number, selection: DevtoolsElementSel
   return browser.webNavigation
     .getAllFrames({ tabId })
     .then((frames) => {
-      const matchingFrame = frames.find((frame) => frame.url === selection.frameUrl);
+      const matchingFrame = (frames ?? []).find((frame) => frame.url === selection.frameUrl);
       if (!matchingFrame) {
         return selection;
       }
@@ -170,7 +170,7 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
       action,
     };
 
-    return new Promise((resolve) => {
+    return new Promise<DevtoolsSelectionResponseMessage>((resolve) => {
       const timeoutId = globalThis.setTimeout(() => {
         pendingCommands.delete(requestId);
         resolve({
@@ -192,7 +192,7 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
           error: "Unable to send command to DevTools bridge.",
         });
       }
-    }).then((response) =>
+    }).then((response: DevtoolsSelectionResponseMessage) =>
       resolveFrameIdForSelection(tabId, response.selection).then((selection) => ({
         ...response,
         selection,

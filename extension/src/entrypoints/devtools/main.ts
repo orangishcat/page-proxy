@@ -157,9 +157,6 @@ const selectionEvalSource = (selectParent: boolean) => `(() => {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
-const hasType = <T extends string>(value: unknown, type: T): value is { type: T } =>
-  isRecord(value) && value.type === type;
-
 const isEvalSelectionResult = (value: unknown): value is EvalSelectionResult =>
   isRecord(value) &&
   typeof value.ok === "boolean" &&
@@ -167,7 +164,8 @@ const isEvalSelectionResult = (value: unknown): value is EvalSelectionResult =>
   (value.selection === null || isRecord(value.selection));
 
 const isCommandMessage = (message: unknown): message is DevtoolsSelectionCommandMessage =>
-  hasType(message, "devtools:command") &&
+  isRecord(message) &&
+  message.type === "devtools:command" &&
   typeof message.requestId === "string" &&
   (message.action === "get-selected" || message.action === "select-parent");
 

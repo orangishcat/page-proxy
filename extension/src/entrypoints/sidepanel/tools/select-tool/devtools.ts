@@ -23,7 +23,7 @@ export const isDevtoolsStatusChangedMessage = (value: unknown): value is Devtool
   isRecord(value) && value.type === "devtools:status:changed" && typeof value.tabId === "number" && typeof value.open === "boolean";
 
 export const requestDevtoolsStatus = async (tabId: number) => {
-  const response = await browser.runtime
+  const response: unknown = await browser.runtime
     .sendMessage({
       type: "devtools:status:get",
       tabId,
@@ -41,7 +41,7 @@ export const requestDevtoolsSelection = async (
   tabId: number,
   type: "devtools:selection:get" | "devtools:selection:parent",
 ) => {
-  const response = await browser.runtime
+  const response: unknown = await browser.runtime
     .sendMessage({
       type,
       tabId,

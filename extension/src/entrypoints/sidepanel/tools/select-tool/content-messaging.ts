@@ -30,6 +30,15 @@ const injectSelectTool = (tabId: number) =>
     files: ["content-scripts/select-tool.js"],
   });
 
+const sendMessageToTab = async (
+  tabId: number,
+  message: SelectToolMessage,
+  options?: { frameId: number },
+): Promise<unknown> => {
+  const response: unknown = await browser.tabs.sendMessage(tabId, message, options);
+  return response;
+};
+
 export const readActiveTabContext = async (): Promise<ActiveTabContext | null> => {
   const tabs = await browser.tabs.query({ active: true, currentWindow: true });
   const activeTab = tabs[0];
@@ -49,18 +58,18 @@ export const sendSelectToolMessage = async (
   message: SelectToolMessage,
   frameId: number | null,
   allowInjectRetry = true,
-) => {
+): Promise<unknown> => {
   const options = frameId === null ? undefined : ({ frameId } as { frameId: number });
 
   try {
-    return await browser.tabs.sendMessage(tabId, message, options);
+    return await sendMessageToTab(tabId, message, options);
   } catch (error) {
     if (!allowInjectRetry) {
       throw error;
     }
 
     await injectSelectTool(tabId);
-    return browser.tabs.sendMessage(tabId, message, options);
+    return sendMessageToTab(tabId, message, options);
   }
 };
 
@@ -74,4 +83,3 @@ export const runContentSelectionToggle = async (tabId: number, enabled: boolean)
     0,
   );
 };
-

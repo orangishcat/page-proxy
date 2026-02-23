@@ -216,7 +216,7 @@ export const sendSelectorPopup = (mode: SelectorPopupMode = "pp-api") => {
         return;
       }
 
-      const response = await sendSelectToolMessage(
+      const response: unknown = await sendSelectToolMessage(
         tabContext.tabId,
         {
           type: "selector:open",
