@@ -36,6 +36,16 @@ const buildRequestId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+const getMessageType = (message: unknown) => {
+  if (message === null || typeof message !== "object" || Array.isArray(message)) {
+    return "unknown";
+  }
+
+  const messageRecord = message as Record<string, unknown>;
+  return typeof messageRecord.type === "string" ? messageRecord.type : "unknown";
+};
+
 const cloneSelection = (selection: DevtoolsElementSelection | null): DevtoolsElementSelection | null => {
   if (!selection) {
     return null;
@@ -76,6 +86,7 @@ const notifySelectionChanged = (tabId: number, selection: DevtoolsElementSelecti
     tabId,
     selection: cloneSelection(selection),
   };
+  logger.debug("runtime message sent", { type: message.type, tabId });
   void browser.runtime.sendMessage(message satisfies DevtoolsSelectionRuntimeMessage).catch(() => undefined);
 };
 
@@ -85,6 +96,7 @@ const notifyStatusChanged = (tabId: number, open: boolean) => {
     tabId,
     open,
   };
+  logger.debug("runtime message sent", { type: message.type, tabId, open });
   void browser.runtime.sendMessage(message satisfies DevtoolsSelectionRuntimeMessage).catch(() => undefined);
 };
 
@@ -182,6 +194,7 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
 
       pendingCommands.set(requestId, { resolve, timeoutId });
       try {
+        logger.debug("port message sent", { type: message.type, tabId, action, requestId });
         port.postMessage(message);
       } catch {
         pendingCommands.delete(requestId);
@@ -229,6 +242,8 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
     logger.debug("DevTools port connected");
 
     port.onMessage.addListener((message: unknown) => {
+      const messageType = getMessageType(message);
+      logger.debug("port message received", { type: messageType });
       const tabIdFromPort = portTabIdByPort.get(port);
 
       if (isSelectionUpdateMessage(message)) {
@@ -251,6 +266,7 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
 
   const handleRuntimeMessage: RuntimeMessageHandler = (message, _sender, sendResponse) => {
     if (isStatusRequestMessage(message)) {
+      logger.debug("runtime message received", { type: message.type, tabId: message.tabId });
       const response: DevtoolsSelectionStatusResponseMessage = {
         open: getAnyPortForTab(message.tabId) !== null,
       };
@@ -259,6 +275,7 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
     }
 
     if (isSelectionGetRequestMessage(message)) {
+      logger.debug("runtime message received", { type: message.type, tabId: message.tabId });
       void sendCommandToTab(message.tabId, "get-selected")
         .then((response) => {
           if (response.selection) {
@@ -278,6 +295,7 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
     }
 
     if (isSelectionParentRequestMessage(message)) {
+      logger.debug("runtime message received", { type: message.type, tabId: message.tabId });
       void sendCommandToTab(message.tabId, "select-parent")
         .then((response) => {
           if (response.selection) {

@@ -335,7 +335,8 @@ export default defineContentScript({
       logger.debug("selection stopped", { reason });
     };
 
-    const sendRuntimeMessage = (message: SelectToolMessage | SidepanelShortcutMessage) =>
+    const sendRuntimeMessage = (message: SelectToolMessage | SidepanelShortcutMessage) => {
+      logger.debug("runtime message sent", { type: message.type });
       void browser.runtime.sendMessage(message).catch((error: unknown) => {
         if (isNoReceiverError(error)) {
           stopSelection("receiver-missing");
@@ -343,6 +344,7 @@ export default defineContentScript({
         }
         logger.error("select tool message failed", { type: message.type, error });
       });
+    };
 
     const postMessage = (message: SelectToolMessage) => sendRuntimeMessage(message);
 
@@ -358,6 +360,7 @@ export default defineContentScript({
         selector: info.selector,
       });
 
+      logger.debug("runtime message sent", { type: "selector:save" });
       const response: unknown = await browser.runtime
         .sendMessage({ type: "selector:save", payload } satisfies SelectToolMessage)
         .catch((error: unknown) => {
@@ -430,7 +433,7 @@ export default defineContentScript({
       clearSelectorPopup({ resumeSelection: false });
       if (selectionEnabled) {
         resumeSelectionAfterPopup = true;
-        setSelectionEnabled(false);
+        setSelectionEnabled(false, { clearSelection: false });
       } else {
         resumeSelectionAfterPopup = false;
         postMessage({ type: "select:mode", enabled: false });
@@ -553,7 +556,8 @@ export default defineContentScript({
       event.stopImmediatePropagation();
     };
 
-    const setSelectionEnabled = (enabled: boolean) => {
+    const setSelectionEnabled = (enabled: boolean, options: { clearSelection?: boolean } = {}) => {
+      const clearSelection = options.clearSelection ?? true;
       if (enabled === selectionEnabled) return;
       selectionEnabled = enabled;
       postMessage({ type: "select:mode", enabled: selectionEnabled });
@@ -565,7 +569,9 @@ export default defineContentScript({
       }
       detachListeners();
       postMessage({ type: "select:hover", payload: null });
-      postMessage({ type: "select:selected", payload: null });
+      if (clearSelection) {
+        postMessage({ type: "select:selected", payload: null });
+      }
       logger.debug("selection disabled");
     };
 
@@ -710,6 +716,7 @@ export default defineContentScript({
           return;
         }
 
+        logger.debug("window message received", { type: event.data.type, requestId: event.data.requestId });
         respond(event.data);
       };
 
@@ -718,6 +725,7 @@ export default defineContentScript({
         respond(buildScriptRunResponse(request.requestId, "Script runner did not respond. Reload the page and try again."));
       }, scriptRunBridgeTimeoutMs);
 
+      logger.debug("window message sent", { type: request.type, requestId: request.requestId });
       window.postMessage(request, targetOrigin);
       return true;
     };

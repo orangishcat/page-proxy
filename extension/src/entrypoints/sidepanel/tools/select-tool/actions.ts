@@ -1,4 +1,5 @@
 import { browser } from "wxt/browser";
+import log from "loglevel";
 import { get } from "svelte/store";
 
 import type { SelectToolMessage, SelectorOpenResult, SelectorPopupMode } from "@/lib/selection";
@@ -29,6 +30,9 @@ import {
   requestDevtoolsSelection,
   requestDevtoolsStatus,
 } from "./devtools";
+
+const logger = log.getLogger("select-tool-sidepanel");
+logger.setLevel("debug", false);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -111,6 +115,7 @@ const refreshDevtoolsIntegrationForActiveTab = () => {
 };
 
 export const sendSelectionToggle = (enabled: boolean) => {
+  logger.debug("toggle selection mode requested", { enabled });
   const shouldReportError = enabled;
   setErrorMessage(null);
   setSelectModeEnabled(enabled);
@@ -161,6 +166,7 @@ export const sendSelectionToggle = (enabled: boolean) => {
 };
 
 export const sendSelectParent = () => {
+  logger.debug("request select parent");
   setErrorMessage(null);
 
   void readActiveTabContext()
@@ -200,6 +206,7 @@ export const sendSelectParent = () => {
 };
 
 export const sendSelectorPopup = (mode: SelectorPopupMode = "pp-api") => {
+  logger.debug("request selector popup open", { mode });
   setErrorMessage(null);
   const selection = get(selectedInfo);
   const context = getSelectionContext();
@@ -242,6 +249,7 @@ export const sendSelectorPopup = (mode: SelectorPopupMode = "pp-api") => {
 
 export const toggleFollowDevtoolsSelection = () => {
   const nextEnabled = !isFollowingDevtoolsSelection();
+  logger.debug("toggle follow devtools selection", { enabled: nextEnabled });
   setFollowDevtoolsSelection(nextEnabled);
 
   if (!nextEnabled) {
@@ -313,6 +321,9 @@ const updateDevtoolsStatusForActiveTab = (message: DevtoolsSelectionStatusChange
 
 export const attachSelectionListener = () => {
   const listener = (message: unknown) => {
+    const messageType = isRecord(message) && typeof message.type === "string" ? message.type : "unknown";
+    logger.debug("runtime message received", { type: messageType });
+
     if (isDevtoolsStatusChangedMessage(message)) {
       updateDevtoolsStatusForActiveTab(message);
       return;

@@ -1,11 +1,10 @@
 <script lang="ts">
   import type { ElementInfo, SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
   import { Tooltip } from "bits-ui";
-  import { GripVertical, RotateCw } from "lucide-svelte";
+  import { RotateCw } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
   import { SvelteMap } from "svelte/reactivity";
   import { createMonacoEditor, type MonacoCodeEditorHandle, updateMonacoEditorValue } from "@/lib/code-editor";
-  import { buildPreviewCode, type FilterOperator } from "./preview-code";
   import { parseCssSelectorParts, type CssSelectorPart } from "./css-inspector";
   import {
     buildCssDocument,
@@ -76,20 +75,11 @@
   let disposeCssFocus: (() => void) | null = null;
   let disposeCssBlur: (() => void) | null = null;
 
-  let previewHost = $state<HTMLDivElement | null>(null);
-  let previewHandle = $state<MonacoCodeEditorHandle | null>(null);
-  let previewValue = $state("");
-
-  let filterOperator = $state<FilterOperator>("matches");
-  let selectedPropertyKey = $state<string | null>(null);
   let propertySearchTerm = $state("");
   let errorMessage = $state("");
 
   let computedValueDrafts = $state<Record<string, string>>({});
   const computedInputRefs = new SvelteMap<string, HTMLInputElement>();
-
-  const transparentDragImage = new Image();
-  transparentDragImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
 
   const hoveredPreviewClass = "pp-hovered";
 
@@ -113,21 +103,6 @@
   };
 
   const truncate = (value: string, max: number) => (value.length > max ? `${value.slice(0, max)}…` : value);
-
-  const activePropertyKey = $derived.by(() => {
-    if (selectedPropertyKey && propertyItems.some((item) => item.key === selectedPropertyKey)) {
-      return selectedPropertyKey;
-    }
-    return propertyItems[0]?.key ?? null;
-  });
-
-  const activePropertyItem = $derived.by(() => {
-    const key = activePropertyKey;
-    if (!key) {
-      return null;
-    }
-    return propertyItems.find((property) => property.key === key) ?? null;
-  });
 
   const cssSelectorSource = $derived.by(() => readSelectorSourceFromCssEditor(cssEditorValue));
   const cssSelectorParts = $derived.by(() => parseCssSelectorParts(cssSelectorSource));
@@ -191,8 +166,6 @@
 
     return cssSelectorParts.find((part) => currentOffset >= part.startOffset && currentOffset < part.endOffset) ?? null;
   });
-
-  const previewCode = $derived.by(() => buildPreviewCode(activePropertyItem, filterOperator));
 
   const normalizedSearchTerm = $derived.by(() => propertySearchTerm.trim().toLowerCase());
 
@@ -582,43 +555,6 @@
     isCssEditorFocused = cssEditorHandle.editor.hasTextFocus();
   };
 
-  const setupPreview = () => {
-    if (!previewHost || previewHandle) {
-      return;
-    }
-
-    previewHandle = createMonacoEditor(previewHost, previewCode, {
-      lineNumbers: "off",
-      modelUri: "inmemory://page-proxy/css-inspector-preview.js",
-      className: "pp-monaco-editor pp-monaco-preview scrollbar-stable",
-      padding: { top: 4, bottom: 4 },
-      editorOptions: {
-        glyphMargin: false,
-        folding: false,
-        lineDecorationsWidth: 0,
-        lineNumbersMinChars: 0,
-        overviewRulerLanes: 0,
-        renderLineHighlight: "none",
-        scrollBeyondLastLine: false,
-        fixedOverflowWidgets: true,
-      },
-    });
-
-    previewValue = previewCode;
-  };
-
-  const handlePreviewDragStart = (event: DragEvent) => {
-    if (!event.dataTransfer) {
-      return;
-    }
-
-    const code = previewHandle?.editor.getValue() ?? previewValue ?? previewCode;
-    event.dataTransfer.setData("application/x-pp-selector-snippet", code);
-    event.dataTransfer.setData("text/plain", code);
-    event.dataTransfer.effectAllowed = "copy";
-    event.dataTransfer.setDragImage(transparentDragImage, 0, 0);
-  };
-
   const handleSave = async () => {
     const currentCssDocument = cssEditorHandle?.editor.getValue() ?? cssEditorValue;
     const selectorValue = normalizeSelectorFromCssEditor(currentCssDocument);
@@ -653,7 +589,6 @@
 
   onMount(() => {
     setupCssEditor();
-    setupPreview();
     window.addEventListener("keydown", handleWindowKeyDown, { capture: true });
     window.addEventListener("keyup", handleWindowKeyUp, { capture: true });
     window.addEventListener("blur", handleWindowBlur, { capture: true });
@@ -666,11 +601,6 @@
     stopPreviewModes();
     removeHighlightNotice();
     onVisibilityChange?.(false);
-
-    if (previewHandle) {
-      previewHandle.dispose();
-      previewHandle = null;
-    }
 
     if (disposeCssCursorChange) {
       disposeCssCursorChange();
@@ -685,20 +615,6 @@
       cssEditorHandle.dispose();
       cssEditorHandle = null;
     }
-  });
-
-  $effect(() => {
-    if (!previewHandle) {
-      return;
-    }
-
-    const currentValue = previewHandle.editor.getValue();
-    if (previewCode === currentValue) {
-      return;
-    }
-
-    updateMonacoEditorValue(previewHandle, previewCode);
-    previewValue = previewCode;
   });
 
   $effect(() => {
@@ -798,40 +714,6 @@
     </div>
 
     <div class="flex flex-col w-64 max-w-64 min-w-0 border-l border-gray-800 bg-black/20 p-3 gap-3">
-      <div class="w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden">
-        <div class="flex h-12 w-full bg-gray-900">
-          <div class="h-full min-w-0 flex-1 pl-2" bind:this={previewHost}></div>
-          <div class="flex h-full w-8 shrink-0 items-center justify-center border-l border-gray-700/80">
-            <Tooltip.Root>
-              <Tooltip.Trigger>
-                {#snippet child({ props })}
-                  <div
-                    {...props}
-                    class="flex h-full w-full cursor-grab items-center justify-center text-accent-400 hover:bg-white/5 active:cursor-grabbing"
-                    draggable="true"
-                    ondragstart={handlePreviewDragStart}
-                    role="button"
-                    tabindex="0"
-                    aria-label="Drag the selector snippet into the selector editor."
-                  >
-                    <GripVertical class="h-4 w-4" />
-                  </div>
-                {/snippet}
-              </Tooltip.Trigger>
-              <Tooltip.Portal>
-                <Tooltip.Content
-                  sideOffset={6}
-                  class="rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-caption text-gray-100 shadow-lg"
-                >
-                  Drag this snippet into the selector editor.
-                  <Tooltip.Arrow class="fill-gray-900" />
-                </Tooltip.Content>
-              </Tooltip.Portal>
-            </Tooltip.Root>
-          </div>
-        </div>
-      </div>
-
       {#if activeCssPart}
         <div class="space-y-1">
           <div class="flex items-center justify-between gap-2">

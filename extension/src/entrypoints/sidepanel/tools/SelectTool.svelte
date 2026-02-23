@@ -92,7 +92,7 @@
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
-    <div class={`w-full max-w-56 gap-2 ${hasSelectionValue ? "flex" : "hidden"}`}>
+    <div class={`w-full max-w-40 gap-2 ${hasSelectionValue ? "flex" : "hidden"}`}>
       <Button
         class="flex-1 text-sm"
         variant="primary"

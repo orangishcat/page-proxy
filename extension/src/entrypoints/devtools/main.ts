@@ -157,6 +157,14 @@ const selectionEvalSource = (selectParent: boolean) => `(() => {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
+const getMessageType = (message: unknown) => {
+  if (!isRecord(message)) {
+    return "unknown";
+  }
+
+  return typeof message.type === "string" ? message.type : "unknown";
+};
+
 const isEvalSelectionResult = (value: unknown): value is EvalSelectionResult =>
   isRecord(value) &&
   typeof value.ok === "boolean" &&
@@ -208,6 +216,7 @@ const postSelectionUpdate = (selection: DevtoolsElementSelection | null) => {
     selection,
   };
 
+  logger.debug("port message sent", { type: message.type, tabId: inspectedTabId });
   selectionPort.postMessage(message);
 };
 
@@ -224,6 +233,9 @@ const publishCurrentSelection = () => {
 };
 
 selectionPort.onMessage.addListener((message: unknown) => {
+  const messageType = getMessageType(message);
+  logger.debug("port message received", { type: messageType });
+
   if (!isCommandMessage(message)) {
     return;
   }
@@ -237,6 +249,11 @@ selectionPort.onMessage.addListener((message: unknown) => {
       selection: result.selection,
       error: result.error,
     };
+    logger.debug("port message sent", {
+      type: response.type,
+      requestId: response.requestId,
+      ok: response.ok,
+    });
     selectionPort.postMessage(response);
 
     if (result.ok) {

@@ -1,4 +1,5 @@
 import { browser } from "wxt/browser";
+import log from "loglevel";
 
 import type {
   DevtoolsSelectionChangedRuntimeMessage,
@@ -6,6 +7,9 @@ import type {
   DevtoolsSelectionStatusChangedRuntimeMessage,
   DevtoolsSelectionStatusResponseMessage,
 } from "@/lib/devtools-selection";
+
+const logger = log.getLogger("select-tool-devtools");
+logger.setLevel("debug", false);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -23,6 +27,7 @@ export const isDevtoolsStatusChangedMessage = (value: unknown): value is Devtool
   isRecord(value) && value.type === "devtools:status:changed" && typeof value.tabId === "number" && typeof value.open === "boolean";
 
 export const requestDevtoolsStatus = async (tabId: number) => {
+  logger.debug("request devtools status", { tabId });
   const response: unknown = await browser.runtime
     .sendMessage({
       type: "devtools:status:get",
@@ -31,9 +36,11 @@ export const requestDevtoolsStatus = async (tabId: number) => {
     .catch(() => null);
 
   if (!isStatusResponse(response)) {
+    logger.debug("invalid devtools status response", { tabId });
     return false;
   }
 
+  logger.debug("received devtools status", { tabId, open: response.open });
   return response.open;
 };
 
@@ -41,6 +48,7 @@ export const requestDevtoolsSelection = async (
   tabId: number,
   type: "devtools:selection:get" | "devtools:selection:parent",
 ) => {
+  logger.debug("request devtools selection", { tabId, type });
   const response: unknown = await browser.runtime
     .sendMessage({
       type,
@@ -49,8 +57,10 @@ export const requestDevtoolsSelection = async (
     .catch(() => null);
 
   if (!isDevtoolsSelectionResponse(response)) {
+    logger.debug("invalid devtools selection response", { tabId, type });
     return null;
   }
 
+  logger.debug("received devtools selection response", { tabId, type, ok: response.ok });
   return response;
 };

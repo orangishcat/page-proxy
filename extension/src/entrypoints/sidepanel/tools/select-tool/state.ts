@@ -122,7 +122,7 @@ export const propertyItems = derived(selectedInfo, (info) => buildPropertyList(i
 export const hasSelection = derived(selectedInfo, (info) => Boolean(info));
 export const selectModeEnabled = writable(false);
 export const devtoolsIntegrationDetected = writable(false);
-export const followDevtoolsSelection = writable(true);
+export const followDevtoolsSelection = writable(false);
 export const selectionContext = writable<ElementSelectionContext>(defaultSelectionContext);
 
 export const setSelection = (info: ElementInfo | null, context: ElementSelectionContext = defaultSelectionContext) => {
