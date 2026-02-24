@@ -36,6 +36,7 @@
   const ppImportLines = ['import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";'];
   const protectedComment =
     "// This page is protected. Either switch to a different page or allow the extension access to this page to run scripts.";
+  const unsavedTabSwitchWarning = "Unsaved changes! Please manually save (Ctrl/Cmd+S) to continue.";
   const scriptFormatConfig: ScriptFormatConfig = {
     ppImportLines,
     defineBlockStart,
@@ -57,6 +58,8 @@
   let isProgrammaticUpdate = false;
   let canPersistEditorChanges = false;
   let hasUnsavedChanges = $state(false);
+  let requiresManualSaveToContinue = $state(false);
+  let hasPendingTabRefresh = false;
   let editorDomNode: HTMLElement | null = null;
   let scriptMetadataValue = $state<ScriptMetadataState>({
     title: "Page Proxy",
@@ -110,7 +113,13 @@
         },
       });
       hasUnsavedChanges = false;
+      requiresManualSaveToContinue = false;
+      const shouldRefreshPendingTab = hasPendingTabRefresh;
+      hasPendingTabRefresh = false;
       setErrorMessage(null);
+      if (shouldRefreshPendingTab) {
+        refreshActiveTab();
+      }
     } catch (e: unknown) {
       setErrorMessage(`Saving failed: ${e instanceof Error ? e.message : e}`);
     }
@@ -238,6 +247,9 @@
   const saveToStorage = (content: string) => {
     hasUnsavedChanges = true;
     pendingAutosaveContent = content;
+    if (requiresManualSaveToContinue) {
+      return;
+    }
 
     if (saveTimer) {
       window.clearTimeout(saveTimer);
@@ -254,6 +266,22 @@
       return;
     }
     saveNow(editorValue);
+  };
+
+  const queuePendingTabRefresh = () => {
+    if (!hasUnsavedChanges || isProgrammaticUpdate) {
+      return false;
+    }
+
+    requiresManualSaveToContinue = true;
+    hasPendingTabRefresh = true;
+    pendingAutosaveContent = editorValue;
+    if (saveTimer) {
+      window.clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+    setErrorMessage(unsavedTabSwitchWarning);
+    return true;
   };
 
   const resetScriptToDefault = async () => {
@@ -402,6 +430,10 @@
   };
 
   const handleTabActivated = (activeInfo: { tabId: number }) => {
+    if (queuePendingTabRefresh()) {
+      return;
+    }
+
     void browser.tabs
       .get(activeInfo.tabId)
       .then((tab) => {
@@ -414,6 +446,9 @@
 
   const handleTabUpdated = (tabId: number, changeInfo: { url?: string; status?: string }, tab: ActiveTab) => {
     if (!shouldHandleTabUpdate(activeTabId, tabId, changeInfo)) {
+      return;
+    }
+    if (queuePendingTabRefresh()) {
       return;
     }
     applyActiveTab(tab ?? null);
