@@ -14,6 +14,9 @@ export default [
     files: ["**/*.ts", "**/*.js"],
     languageOptions: {
       parser: tseslint.parser,
+      parserOptions: {
+        tsconfigRootDir: process.cwd(),
+      },
       globals: {
         ...globals.browser,
         ...globals.node,

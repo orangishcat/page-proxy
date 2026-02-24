@@ -8,7 +8,8 @@
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig tsconfig.json",
     "lint": "eslint .",
-    "test": "playwright test"
+    "test": "bun test tests/unit",
+    "test:e2e": "bunx playwright test"
   },
   "dependencies": {
     "@page-proxy/pp": "workspace:*",

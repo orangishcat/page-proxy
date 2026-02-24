@@ -2,6 +2,9 @@
   "name": "@page-proxy/pp",
   "private": true,
   "type": "module",
+  "scripts": {
+    "test": "bun test --preload ./tests/setup-dom.ts tests"
+  },
   "dependencies": {
     "dompurify": "3.2.7",
     "marked": "14.0.0"
