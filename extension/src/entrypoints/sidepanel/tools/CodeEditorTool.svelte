@@ -89,9 +89,9 @@
     }
   };
 
-  const saveToolState = (content: string) => {
+  const saveToolState = async (content: string) => {
     try {
-      void saveState({
+      await saveState({
         content,
         selectorEntries: get(selectorEntries),
         allowedGrants: get(allowedScriptGrantsState),
@@ -128,7 +128,7 @@
 
     const content = pendingAutosaveContent;
     pendingAutosaveContent = null;
-    saveToolState(content);
+    void saveToolState(content);
   };
 
   const saveNow = (content: string) => {
@@ -137,7 +137,7 @@
       saveTimer = null;
     }
     pendingAutosaveContent = null;
-    saveToolState(content);
+    void saveToolState(content);
   };
 
   let lastRunError = $state<string | null>(null);
@@ -266,7 +266,9 @@
     const metadataScriptName = scriptMetadataValue.title.trim();
     const metadataWebsite = scriptMetadataValue.website.trim();
     const websiteGlob = activeWebsite || metadataWebsite;
-    const scriptNamesToRemove = Array.from(new Set([activeScript, metadataScriptName].filter((name) => name.length > 0)));
+    const scriptNamesToRemove = Array.from(
+      new Set([activeScript, metadataScriptName].filter((name) => name.length > 0)),
+    );
 
     if (scriptNamesToRemove.length > 0) {
       await Promise.all(scriptNamesToRemove.map((name) => removeStoredToolState(name))).catch((error: unknown) => {
