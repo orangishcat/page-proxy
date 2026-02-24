@@ -44,6 +44,17 @@ export type SelectorOpenResult = {
   opened: boolean;
 };
 
+export type SelectElementAction = "copy" | "cut" | "paste" | "delete";
+
+export type SelectElementActionResult =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
 export type SelectToolMessage =
   | {
       type: 'select:toggle';
@@ -55,6 +66,10 @@ export type SelectToolMessage =
     }
   | {
       type: 'select:parent';
+    }
+  | {
+      type: "select:action";
+      action: SelectElementAction;
     }
   | {
       type: 'selector:open';

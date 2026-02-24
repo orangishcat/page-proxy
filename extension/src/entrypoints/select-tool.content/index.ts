@@ -6,6 +6,8 @@ import log from "loglevel";
 
 import type {
   ElementInfo,
+  SelectElementAction,
+  SelectElementActionResult,
   SelectorOpenResult,
   SelectorPopupMode,
   SelectorSavePayload,
@@ -578,6 +580,93 @@ export default defineContentScript({
       logger.debug("element selected", { target: describeElementCompact(target), selector: info.selector });
     };
 
+    const readClipboardText = async (): Promise<string | null> => {
+      if (!window.isSecureContext || typeof navigator.clipboard?.readText !== "function") {
+        return null;
+      }
+      return navigator.clipboard.readText();
+    };
+
+    const writeClipboardText = async (value: string): Promise<boolean> => {
+      if (!window.isSecureContext || typeof navigator.clipboard?.writeText !== "function") {
+        return false;
+      }
+      await navigator.clipboard.writeText(value);
+      return true;
+    };
+
+    const clearSelectedAndNotify = () => {
+      clearSelected();
+      postMessage({ type: "select:selected", payload: null });
+    };
+
+    const runSelectElementAction = async (action: SelectElementAction): Promise<SelectElementActionResult> => {
+      const target = selectedTarget;
+      if (!target?.isConnected) {
+        return {
+          ok: false,
+          error: "Select an element first.",
+        };
+      }
+
+      if (action === "copy") {
+        const copied = await writeClipboardText(target.outerHTML);
+        if (!copied) {
+          return {
+            ok: false,
+            error: "Copy is unavailable on this page.",
+          };
+        }
+
+        return { ok: true };
+      }
+
+      if (action === "cut") {
+        const copied = await writeClipboardText(target.outerHTML);
+        if (!copied) {
+          return {
+            ok: false,
+            error: "Cut is unavailable on this page.",
+          };
+        }
+
+        target.remove();
+        clearSelectedAndNotify();
+        return { ok: true };
+      }
+
+      if (action === "paste") {
+        const pasted = (await readClipboardText())?.trim();
+        if (!pasted) {
+          return {
+            ok: false,
+            error: "Clipboard is empty or unavailable.",
+          };
+        }
+
+        if (!target.parentElement) {
+          return {
+            ok: false,
+            error: "Selected element has no parent element.",
+          };
+        }
+
+        target.insertAdjacentHTML("afterend", pasted);
+        return { ok: true };
+      }
+
+      if (action === "delete") {
+        target.remove();
+        clearSelectedAndNotify();
+        return { ok: true };
+      }
+
+      return {
+        ok: false,
+        error: "Unsupported action.",
+      };
+    };
+
     const scheduleLabelUpdate = (target: Element | null) => {
       queuedLabelTarget = target;
       if (labelFrame !== null) return;
@@ -843,6 +932,20 @@ export default defineContentScript({
         clearHoverAndNotify();
         applySelection(parent);
         return false;
+      }
+      if (selectMessage.type === "select:action") {
+        void runSelectElementAction(selectMessage.action)
+          .then((result) => {
+            sendResponse(result);
+          })
+          .catch((error: unknown) => {
+            const message = error instanceof Error ? error.message : "Unable to update the selected element.";
+            sendResponse({
+              ok: false,
+              error: message,
+            } satisfies SelectElementActionResult);
+          });
+        return true;
       }
       if (selectMessage.type === "select:toggle") {
         if (shadowUi) {

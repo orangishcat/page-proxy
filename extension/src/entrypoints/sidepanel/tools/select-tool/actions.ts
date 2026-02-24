@@ -2,7 +2,13 @@ import { browser } from "wxt/browser";
 import log from "loglevel";
 import { get } from "svelte/store";
 
-import type { SelectToolMessage, SelectorOpenResult, SelectorPopupMode } from "@/lib/selection";
+import type {
+  SelectElementAction,
+  SelectElementActionResult,
+  SelectToolMessage,
+  SelectorOpenResult,
+  SelectorPopupMode,
+} from "@/lib/selection";
 import type {
   DevtoolsSelectionChangedRuntimeMessage,
   DevtoolsSelectionStatusChangedRuntimeMessage,
@@ -43,6 +49,11 @@ const hasType = <T extends string>(value: unknown, type: T): value is { type: T 
 const isSelectorOpenResult = (value: unknown): value is SelectorOpenResult =>
   isRecord(value) && typeof value.opened === "boolean";
 
+const isSelectElementActionResult = (value: unknown): value is SelectElementActionResult =>
+  isRecord(value) &&
+  typeof value.ok === "boolean" &&
+  (value.ok === true || (typeof value.error === "string" && value.error.length > 0));
+
 const isSelectToolMessage = (value: unknown): value is SelectToolMessage =>
   hasType(value, "select:mode") ||
   hasType(value, "select:hover") ||
@@ -50,6 +61,7 @@ const isSelectToolMessage = (value: unknown): value is SelectToolMessage =>
   hasType(value, "selectors:hover") ||
   hasType(value, "select:toggle") ||
   hasType(value, "select:parent") ||
+  hasType(value, "select:action") ||
   hasType(value, "selector:open");
 
 const applyDevtoolsSelection = (tabId: number, response: DevtoolsSelectionResponseMessage) => {
@@ -246,6 +258,78 @@ export const sendSelectorPopup = (mode: SelectorPopupMode = "pp-api") => {
     .catch(() => {
       setErrorMessage("Unable to connect to the active tab.");
     });
+};
+
+const sendSelectionAction = (action: SelectElementAction) => {
+  logger.debug("request selected element action", { action });
+  setErrorMessage(null);
+
+  const selection = get(selectedInfo);
+  if (!selection) {
+    setErrorMessage("Select an element first.");
+    return;
+  }
+
+  void readActiveTabContext()
+    .then(async (tabContext) => {
+      if (!tabContext) {
+        setErrorMessage("No active tab found.");
+        return;
+      }
+
+      if (isRestrictedUrl(tabContext.url)) {
+        setErrorMessage("Selection is unavailable on this page.");
+        return;
+      }
+
+      const context = getSelectionContext();
+      if (context.source === "devtools") {
+        setErrorMessage("This action is only available for page selections.");
+        return;
+      }
+
+      const response: unknown = await sendSelectToolMessage(
+        tabContext.tabId,
+        {
+          type: "select:action",
+          action,
+        } satisfies SelectToolMessage,
+        context.frameId ?? 0,
+      ).catch(() => null);
+
+      if (response === null) {
+        setErrorMessage("Unable to connect to the active tab.");
+        return;
+      }
+
+      if (!isSelectElementActionResult(response)) {
+        setErrorMessage("Unable to update the selected element.");
+        return;
+      }
+
+      if (!response.ok) {
+        setErrorMessage(response.error);
+      }
+    })
+    .catch(() => {
+      setErrorMessage("Unable to connect to the active tab.");
+    });
+};
+
+export const sendCopySelection = () => {
+  sendSelectionAction("copy");
+};
+
+export const sendCutSelection = () => {
+  sendSelectionAction("cut");
+};
+
+export const sendPasteSelection = () => {
+  sendSelectionAction("paste");
+};
+
+export const sendDeleteSelection = () => {
+  sendSelectionAction("delete");
 };
 
 export const toggleFollowDevtoolsSelection = () => {

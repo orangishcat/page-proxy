@@ -3,7 +3,15 @@
   import { Tooltip } from "bits-ui";
   import Button from "@/lib/components/Button.svelte";
   import type { PropertyItem } from "./select-tool/state";
-  import { sendSelectParent, sendSelectorPopup, toggleFollowDevtoolsSelection } from "./select-tool/actions";
+  import {
+    sendCopySelection,
+    sendCutSelection,
+    sendDeleteSelection,
+    sendPasteSelection,
+    sendSelectParent,
+    sendSelectorPopup,
+    toggleFollowDevtoolsSelection,
+  } from "./select-tool/actions";
   import {
     devtoolsIntegrationDetected,
     followDevtoolsSelection,
@@ -11,7 +19,11 @@
     propertyItems,
     selectModeEnabled,
   } from "./select-tool/state";
-  import { ArrowUpIcon, Wrench } from "lucide-svelte";
+  import { ArrowUpIcon, ClipboardPaste, Copy, Scissors, Trash2, Wrench } from "lucide-svelte";
+
+  const iconActionButtonClass =
+    "h-8 w-8 rounded-lg p-0! bg-[#55503E] text-white dark:text-white hover:opacity-55 active:opacity-40";
+
   let hasSelectionValue = $state(false);
   let selectModeEnabledValue = $state(false);
   let devtoolsIntegrationDetectedValue = $state(false);
@@ -66,13 +78,13 @@
       Currently matching the DevTools panel's selected element
     </div>
   {/if}
-  <div class="relative mt-4 flex w-full items-center justify-center">
+  <div class="mt-4 grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
     <Tooltip.Root>
       <Tooltip.Trigger>
         {#snippet child({ props })}
           <Button
             {...props}
-            class={`left-0 h-8 w-8 p-0! rounded-lg text-white dark:text-white bg-[#55503E] hover:opacity-55 active:opacity-40 ${hasSelectionValue ? "absolute" : "hidden"}`}
+            class={`${iconActionButtonClass} ${hasSelectionValue ? "" : "hidden"}`}
             variant="outline"
             aria-label="Select parent element"
             onclick={sendSelectParent}
@@ -92,7 +104,7 @@
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
-    <div class={`w-full max-w-40 gap-2 ${hasSelectionValue ? "flex" : "hidden"}`}>
+    <div class={`w-full max-w-40 justify-self-center gap-2 ${hasSelectionValue ? "flex" : "hidden"}`}>
       <Button
         class="flex-1 text-sm"
         variant="primary"
@@ -110,32 +122,138 @@
         CSS
       </Button>
     </div>
-    {#if devtoolsIntegrationDetectedValue}
-      <Tooltip.Root>
-        <Tooltip.Trigger>
-          {#snippet child({ props })}
-            <Button
-              {...props}
-              class={`absolute right-0 h-8 w-8 p-0! rounded-lg !border-accent-500 !bg-accent-500 !from-accent-500 !to-accent-500 text-gray-950 dark:text-gray-950 ${followDevtoolsSelectionValue ? "opacity-100" : "opacity-45 hover:opacity-70"}`}
-              variant="primary"
-              aria-label="Toggle follow DevTools selected element"
-              aria-pressed={followDevtoolsSelectionValue}
-              onclick={toggleFollowDevtoolsSelection}
-            >
-              <Wrench class="h-4 w-4" />
-            </Button>
-          {/snippet}
-        </Tooltip.Trigger>
-        <Tooltip.Portal>
-          <Tooltip.Content
-            sideOffset={6}
-            class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
-          >
-            Follow DevTools selected element
-            <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
-          </Tooltip.Content>
-        </Tooltip.Portal>
-      </Tooltip.Root>
+    {#if hasSelectionValue || devtoolsIntegrationDetectedValue}
+      <div class="flex items-center justify-self-end gap-1">
+        {#if hasSelectionValue}
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <Button
+                  {...props}
+                  class={iconActionButtonClass}
+                  variant="outline"
+                  aria-label="Copy selected element"
+                  onclick={sendCopySelection}
+                >
+                  <Copy class="h-4 w-4" />
+                </Button>
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                sideOffset={6}
+                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+              >
+                Copy selected element
+                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <Button
+                  {...props}
+                  class={iconActionButtonClass}
+                  variant="outline"
+                  aria-label="Cut selected element"
+                  onclick={sendCutSelection}
+                >
+                  <Scissors class="h-4 w-4" />
+                </Button>
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                sideOffset={6}
+                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+              >
+                Cut selected element
+                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <Button
+                  {...props}
+                  class={iconActionButtonClass}
+                  variant="outline"
+                  aria-label="Paste after selected element"
+                  onclick={sendPasteSelection}
+                >
+                  <ClipboardPaste class="h-4 w-4" />
+                </Button>
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                sideOffset={6}
+                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+              >
+                Paste after selected element
+                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <Button
+                  {...props}
+                  class={iconActionButtonClass}
+                  variant="outline"
+                  aria-label="Delete selected element"
+                  onclick={sendDeleteSelection}
+                >
+                  <Trash2 class="h-4 w-4" />
+                </Button>
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                sideOffset={6}
+                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+              >
+                Delete selected element
+                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        {/if}
+
+        {#if devtoolsIntegrationDetectedValue}
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <Button
+                  {...props}
+                  class={`${iconActionButtonClass} ${followDevtoolsSelectionValue ? "text-accent-500 opacity-100" : "opacity-55 hover:opacity-80"}`}
+                  variant="outline"
+                  aria-label="Toggle follow DevTools selected element"
+                  aria-pressed={followDevtoolsSelectionValue}
+                  onclick={toggleFollowDevtoolsSelection}
+                >
+                  <Wrench class="h-4 w-4" />
+                </Button>
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                sideOffset={6}
+                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+              >
+                Follow DevTools selected element
+                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        {/if}
+      </div>
     {/if}
   </div>
 </div>
