@@ -33,10 +33,10 @@ Renders markdown to sanitized HTML.
 
 Options:
 
-- `breaks?: boolean` (default `true`)
-- `linkTarget?: string` (default `"_blank"`)
-- `linkRel?: string` (default `"noreferrer noopener"`)
-- `linkReferrerPolicy?: string` (default `"no-referrer"`)
+- `breaks?: boolean` (default `true`): Controls line-break handling while parsing markdown. When `true`, single newlines become `<br>`; when `false`, markdown uses stricter paragraph rules.
+- `linkTarget?: string` (default `"_blank"`): Applied to every rendered `<a href="...">` as its `target` attribute. Use `"_self"` to open links in the current tab.
+- `linkRel?: string` (default `"noreferrer noopener"`): Applied to every rendered link as its `rel` attribute. This is useful for security when links open in a new tab.
+- `linkReferrerPolicy?: string` (default `"no-referrer"`): Applied to every rendered link as `referrerpolicy`, controlling whether browser referrer information is sent on navigation.
 
 ```js
 const html = pa.renderMarkdown("See [docs](https://orangishcat.github.io/page-proxy/docs)");
