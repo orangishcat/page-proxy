@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy } from "svelte";
   import { Tooltip } from "bits-ui";
   import Button from "@/lib/components/Button.svelte";
-  import type { SelectPasteLocation } from "@/lib/selection";
   import type { PropertyItem } from "./select-tool/state";
   import {
     sendCopySelection,
+    sendCutSelection,
     sendDeleteSelection,
     sendPasteSelection,
     sendSelectParent,
@@ -13,24 +13,22 @@
     toggleFollowDevtoolsSelection,
   } from "./select-tool/actions";
   import {
-    copiedElementCopyId,
     devtoolsIntegrationDetected,
     followDevtoolsSelection,
     hasSelection,
     propertyItems,
     selectModeEnabled,
   } from "./select-tool/state";
-  import { ArrowUpIcon, Wrench } from "lucide-svelte";
+  import { ArrowUpIcon, ClipboardPaste, Copy, Scissors, Trash2, Wrench } from "lucide-svelte";
+
+  const iconActionButtonClass =
+    "h-8 w-8 rounded-lg p-0! bg-[#55503E] text-white dark:text-white hover:opacity-55 active:opacity-40";
+
   let hasSelectionValue = $state(false);
   let selectModeEnabledValue = $state(false);
   let devtoolsIntegrationDetectedValue = $state(false);
   let followDevtoolsSelectionValue = $state(false);
   let propertyItemsValue = $state<PropertyItem[]>([]);
-  let copiedElementCopyIdValue = $state<string | null>(null);
-  let copyActionIsCut = $state(false);
-  let pasteOptionsExpanded = $state(false);
-  let pasteChildPosition = $state(1);
-  let pasteLocation = $state<SelectPasteLocation>("child");
 
   const unsubscribeHasSelection = hasSelection.subscribe((value) => {
     hasSelectionValue = value;
@@ -47,12 +45,6 @@
   const unsubscribePropertyItems = propertyItems.subscribe((value) => {
     propertyItemsValue = value;
   });
-  const unsubscribeCopiedElementCopyId = copiedElementCopyId.subscribe((value) => {
-    copiedElementCopyIdValue = value;
-    if (!value) {
-      pasteOptionsExpanded = false;
-    }
-  });
 
   onDestroy(() => {
     unsubscribeHasSelection();
@@ -60,32 +52,7 @@
     unsubscribeDevtoolsIntegrationDetected();
     unsubscribeFollowDevtoolsSelection();
     unsubscribePropertyItems();
-    unsubscribeCopiedElementCopyId();
   });
-
-  onMount(() => {
-    const updateCopyActionMode = (event: KeyboardEvent) => {
-      copyActionIsCut = event.shiftKey;
-    };
-    const clearCopyActionMode = () => {
-      copyActionIsCut = false;
-    };
-
-    window.addEventListener("keydown", updateCopyActionMode, { capture: true });
-    window.addEventListener("keyup", updateCopyActionMode, { capture: true });
-    window.addEventListener("blur", clearCopyActionMode);
-
-    return () => {
-      window.removeEventListener("keydown", updateCopyActionMode, { capture: true });
-      window.removeEventListener("keyup", updateCopyActionMode, { capture: true });
-      window.removeEventListener("blur", clearCopyActionMode);
-    };
-  });
-
-  const runPaste = (location: SelectPasteLocation) => {
-    pasteLocation = location;
-    sendPasteSelection(location, pasteChildPosition);
-  };
 </script>
 
 <div class="flex w-full min-h-0 shrink-0 flex-1 flex-col px-4 py-4">
@@ -111,139 +78,181 @@
       Currently matching the DevTools panel's selected element
     </div>
   {/if}
-  <div class="mt-4 flex w-full flex-col items-center gap-2">
-    <div class="relative flex w-full items-center justify-center">
-      <Tooltip.Root>
-        <Tooltip.Trigger>
-          {#snippet child({ props })}
-            <Button
-              {...props}
-              class={`left-0 h-8 w-8 p-0! rounded-lg text-white dark:text-white bg-[#55503E] hover:opacity-55 active:opacity-40 ${hasSelectionValue ? "absolute" : "hidden"}`}
-              variant="outline"
-              aria-label="Select parent element"
-              onclick={sendSelectParent}
-              disabled={!hasSelectionValue}
-            >
-              <ArrowUpIcon class="h-5 w-5" />
-            </Button>
-          {/snippet}
-        </Tooltip.Trigger>
-        <Tooltip.Portal>
-          <Tooltip.Content
-            sideOffset={6}
-            class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
-          >
-            Select parent element
-            <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
-          </Tooltip.Content>
-        </Tooltip.Portal>
-      </Tooltip.Root>
-      <div class={`w-full max-w-80 gap-2 ${hasSelectionValue ? "flex" : "hidden"}`}>
-        <Button
-          class="flex-1 text-sm"
-          variant="primary"
-          onclick={() => sendSelectorPopup("pp-api")}
-          disabled={!hasSelectionValue}
-        >
-          Selector
-        </Button>
-        <Button
-          class="flex-1 text-sm"
-          variant="secondary"
-          onclick={() => sendSelectorPopup("css")}
-          disabled={!hasSelectionValue}
-        >
-          CSS
-        </Button>
-        <Button
-          class="flex-1 text-sm"
-          variant="secondary"
-          onclick={(event) => sendCopySelection(event.shiftKey || copyActionIsCut)}
-          disabled={!hasSelectionValue}
-        >
-          {copyActionIsCut ? "Cut" : "Copy"}
-        </Button>
-        {#if copiedElementCopyIdValue}
+  <div class="mt-4 grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
+    <Tooltip.Root>
+      <Tooltip.Trigger>
+        {#snippet child({ props })}
           <Button
-            class="flex-1 text-sm"
-            variant={pasteOptionsExpanded ? "primary" : "secondary"}
-            onclick={() => {
-              pasteOptionsExpanded = !pasteOptionsExpanded;
-            }}
+            {...props}
+            class={`${iconActionButtonClass} ${hasSelectionValue ? "" : "hidden"}`}
+            variant="outline"
+            aria-label="Select parent element"
+            onclick={sendSelectParent}
             disabled={!hasSelectionValue}
           >
-            Paste
+            <ArrowUpIcon class="h-5 w-5" />
           </Button>
-        {/if}
-        <Button
-          class="flex-1 text-sm"
-          variant="secondary"
-          onclick={sendDeleteSelection}
-          disabled={!hasSelectionValue}
+        {/snippet}
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content
+          sideOffset={6}
+          class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
         >
-          Delete
-        </Button>
-      </div>
-      {#if devtoolsIntegrationDetectedValue}
-        <Tooltip.Root>
-          <Tooltip.Trigger>
-            {#snippet child({ props })}
-              <Button
-                {...props}
-                class={`absolute right-0 h-8 w-8 p-0! rounded-lg !border-accent-500 !bg-accent-500 !from-accent-500 !to-accent-500 text-gray-950 dark:text-gray-950 ${followDevtoolsSelectionValue ? "opacity-100" : "opacity-45 hover:opacity-70"}`}
-                variant="primary"
-                aria-label="Toggle follow DevTools selected element"
-                aria-pressed={followDevtoolsSelectionValue}
-                onclick={toggleFollowDevtoolsSelection}
-              >
-                <Wrench class="h-4 w-4" />
-              </Button>
-            {/snippet}
-          </Tooltip.Trigger>
-          <Tooltip.Portal>
-            <Tooltip.Content
-              sideOffset={6}
-              class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
-            >
-              Follow DevTools selected element
-              <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
-            </Tooltip.Content>
-          </Tooltip.Portal>
-        </Tooltip.Root>
-      {/if}
+          Select parent element
+          <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+    <div class={`w-full max-w-40 justify-self-center gap-2 ${hasSelectionValue ? "flex" : "hidden"}`}>
+      <Button
+        class="flex-1 text-sm"
+        variant="primary"
+        onclick={() => sendSelectorPopup("pp-api")}
+        disabled={!hasSelectionValue}
+      >
+        Selector
+      </Button>
+      <Button
+        class="flex-1 text-sm"
+        variant="secondary"
+        onclick={() => sendSelectorPopup("css")}
+        disabled={!hasSelectionValue}
+      >
+        CSS
+      </Button>
     </div>
-    {#if hasSelectionValue && copiedElementCopyIdValue && pasteOptionsExpanded}
-      <div class="flex w-full max-w-80 items-center gap-2">
-        <input
-          type="number"
-          min={1}
-          step={1}
-          bind:value={pasteChildPosition}
-          disabled={pasteLocation !== "child"}
-          class="h-8 w-16 rounded-xl border border-[#5b5542] bg-[#2a2924] px-2 text-center text-body text-gray-100 outline-none focus:border-accent-500 disabled:opacity-40"
-          aria-label="Child position"
-        />
-        <Button
-          class="flex-1 text-xs"
-          variant={pasteLocation === "child" ? "primary" : "secondary"}
-          onclick={() => runPaste("child")}
-        >
-          Child
-        </Button>
-        <Button
-          class="flex-1 text-xs"
-          variant={pasteLocation === "before" ? "primary" : "secondary"}
-          onclick={() => runPaste("before")}
-        >
-          Before
-        </Button>
-        <Button
-          class="flex-1 text-xs"
-          variant={pasteLocation === "after" ? "primary" : "secondary"}
-          onclick={() => runPaste("after")}
-        >
-          After
-        </Button>
+    {#if hasSelectionValue || devtoolsIntegrationDetectedValue}
+      <div class="flex items-center justify-self-end gap-1">
+        {#if hasSelectionValue}
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <Button
+                  {...props}
+                  class={iconActionButtonClass}
+                  variant="outline"
+                  aria-label="Copy selected element"
+                  onclick={sendCopySelection}
+                >
+                  <Copy class="h-4 w-4" />
+                </Button>
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                sideOffset={6}
+                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+              >
+                Copy selected element
+                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <Button
+                  {...props}
+                  class={iconActionButtonClass}
+                  variant="outline"
+                  aria-label="Cut selected element"
+                  onclick={sendCutSelection}
+                >
+                  <Scissors class="h-4 w-4" />
+                </Button>
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                sideOffset={6}
+                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+              >
+                Cut selected element
+                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <Button
+                  {...props}
+                  class={iconActionButtonClass}
+                  variant="outline"
+                  aria-label="Paste after selected element"
+                  onclick={sendPasteSelection}
+                >
+                  <ClipboardPaste class="h-4 w-4" />
+                </Button>
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                sideOffset={6}
+                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+              >
+                Paste after selected element
+                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <Button
+                  {...props}
+                  class={iconActionButtonClass}
+                  variant="outline"
+                  aria-label="Delete selected element"
+                  onclick={sendDeleteSelection}
+                >
+                  <Trash2 class="h-4 w-4" />
+                </Button>
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                sideOffset={6}
+                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+              >
+                Delete selected element
+                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        {/if}
+
+        {#if devtoolsIntegrationDetectedValue}
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <Button
+                  {...props}
+                  class={`${iconActionButtonClass} ${followDevtoolsSelectionValue ? "text-accent-500 opacity-100" : "opacity-55 hover:opacity-80"}`}
+                  variant="outline"
+                  aria-label="Toggle follow DevTools selected element"
+                  aria-pressed={followDevtoolsSelectionValue}
+                  onclick={toggleFollowDevtoolsSelection}
+                >
+                  <Wrench class="h-4 w-4" />
+                </Button>
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                sideOffset={6}
+                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+              >
+                Follow DevTools selected element
+                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        {/if}
       </div>
     {/if}
   </div>

@@ -3,14 +3,11 @@ import { defineContentScript } from "wxt/utils/define-content-script";
 import { createShadowRootUi } from "wxt/utils/content-script-ui/shadow-root";
 import { mount, unmount } from "svelte";
 import log from "loglevel";
-import { pa } from "@page-proxy/pp";
 
 import type {
   ElementInfo,
-  SelectCopyResult,
-  SelectDeleteResult,
-  SelectPasteLocation,
-  SelectPasteResult,
+  SelectElementAction,
+  SelectElementActionResult,
   SelectorOpenResult,
   SelectorPopupMode,
   SelectorSavePayload,
@@ -37,8 +34,6 @@ const hoveredPreviewClass = "pp-hovered";
 const contentUiRootClass = "pp-content-ui-root";
 const styleId = "page-proxy-selection-styles";
 const selectorLabelId = "page-proxy-selector-label";
-const copyIdAttribute = "data-copy-id";
-const copyIdPrefix = "pp-copy-";
 const filteredSelectionClasses = new Set([hoverClass, selectedClass, hoveredPreviewClass]);
 const uiBaseFontSizePx = 16;
 const scriptRunBridgeTimeoutMs = 1800;
@@ -229,8 +224,6 @@ const getShortcutTool = (event: KeyboardEvent): SidepanelShortcutId | null => {
       return "help";
     case "Digit5":
       return "share";
-    case "Digit6":
-      return "record";
     default:
       return null;
   }
@@ -292,9 +285,6 @@ export default defineContentScript({
     let shadowUi: Awaited<ReturnType<typeof createShadowRootUi>> | null = null;
     let resumeSelectionAfterPopup = false;
     let hoveredSelectorElements: Element[] = [];
-    let copiedTarget: Element | null = null;
-    let copiedTargetHadCopyId = false;
-    let copiedTargetOriginalCopyId: string | null = null;
 
     logger.debug("select tool content script initialized", { href: window.location.href });
 
@@ -477,41 +467,7 @@ export default defineContentScript({
 
     const noSelectClass = "pp-no-select-tool";
 
-    const clearCopiedTarget = () => {
-      if (!copiedTarget) {
-        return;
-      }
-
-      if (copiedTarget.isConnected) {
-        if (copiedTargetHadCopyId && copiedTargetOriginalCopyId !== null) {
-          copiedTarget.setAttribute(copyIdAttribute, copiedTargetOriginalCopyId);
-        } else if (!copiedTargetHadCopyId) {
-          copiedTarget.removeAttribute(copyIdAttribute);
-        }
-      }
-
-      copiedTarget = null;
-      copiedTargetHadCopyId = false;
-      copiedTargetOriginalCopyId = null;
-    };
-
-    const assignCopyId = (target: Element) => {
-      clearCopiedTarget();
-      Array.from(document.querySelectorAll(`[${copyIdAttribute}]`)).forEach((element) => {
-        const marker = element.getAttribute(copyIdAttribute);
-        if (marker?.startsWith(copyIdPrefix)) {
-          element.removeAttribute(copyIdAttribute);
-        }
-      });
-      copiedTarget = target;
-      copiedTargetHadCopyId = target.hasAttribute(copyIdAttribute);
-      copiedTargetOriginalCopyId = target.getAttribute(copyIdAttribute);
-      const copyId = `${copyIdPrefix}${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-      target.setAttribute(copyIdAttribute, copyId);
-      return copyId;
-    };
-
-    const resolveSelectionTarget = (requestedInfo: ElementInfo | null) => {
+    const resolvePopupTarget = (requestedInfo: ElementInfo | null) => {
       if (selectedTarget?.isConnected) {
         return selectedTarget;
       }
@@ -541,178 +497,8 @@ export default defineContentScript({
       return null;
     };
 
-    const handleCopySelection = (requestedInfo: ElementInfo | null, cut: boolean): SelectCopyResult => {
-      const target = resolveSelectionTarget(requestedInfo);
-      if (!target) {
-        return {
-          ok: false,
-          error: "Selected element is no longer available.",
-        };
-      }
-
-      const copyId = assignCopyId(target);
-      logger.debug("selection copied", {
-        target: describeElementCompact(target),
-        copyId,
-        cut,
-      });
-
-      return {
-        ok: true,
-        copyId,
-        cut,
-      };
-    };
-
-    const resolveCopiedTarget = (copyId: string) => {
-      if (copiedTarget?.isConnected && copiedTarget.getAttribute(copyIdAttribute) === copyId) {
-        return copiedTarget;
-      }
-
-      const byCopyId = document.querySelector(`[${copyIdAttribute}="${escapeSelector(copyId)}"]`);
-      if (byCopyId?.isConnected) {
-        copiedTarget = byCopyId;
-        copiedTargetHadCopyId = false;
-        copiedTargetOriginalCopyId = null;
-        return byCopyId;
-      }
-
-      return null;
-    };
-
-    const handlePasteSelection = (
-      requestedInfo: ElementInfo | null,
-      options: {
-        copyId: string;
-        cut: boolean;
-        childPosition: number;
-        pasteLocation: SelectPasteLocation;
-      },
-    ): SelectPasteResult => {
-      const target = resolveSelectionTarget(requestedInfo);
-      if (!target) {
-        return {
-          ok: false,
-          error: "Selected target element is no longer available.",
-        };
-      }
-
-      const source = resolveCopiedTarget(options.copyId);
-      if (!source) {
-        return {
-          ok: false,
-          error: "Copied element is no longer available.",
-        };
-      }
-
-      if (!options.copyId.startsWith(copyIdPrefix)) {
-        return {
-          ok: false,
-          error: "Invalid copied element reference.",
-        };
-      }
-
-      if (options.cut && source === target && options.pasteLocation === "child") {
-        return {
-          ok: false,
-          error: "Cannot paste an element into itself.",
-        };
-      }
-
-      if (options.cut && source.contains(target)) {
-        return {
-          ok: false,
-          error: "Cannot paste an element into its own descendant.",
-        };
-      }
-
-      if ((options.pasteLocation === "before" || options.pasteLocation === "after") && !target.parentElement) {
-        return {
-          ok: false,
-          error: "Cannot paste before or after the root element.",
-        };
-      }
-
-      const normalizedChildPosition = Number.isFinite(options.childPosition)
-        ? Math.max(1, Math.floor(options.childPosition))
-        : 1;
-      const result = pa.moveNode(source, normalizedChildPosition - 1, target, {
-        pasteLocation: options.pasteLocation,
-        copy: !options.cut,
-      });
-
-      if (!options.cut && result.getAttribute(copyIdAttribute) === options.copyId) {
-        result.removeAttribute(copyIdAttribute);
-      }
-
-      if (options.cut) {
-        copiedTarget = result;
-      }
-
-      logger.debug("selection pasted", {
-        source: describeElementCompact(source),
-        target: describeElementCompact(target),
-        pasteLocation: options.pasteLocation,
-        childPosition: normalizedChildPosition,
-        cut: options.cut,
-      });
-
-      return {
-        ok: true,
-        copyId: options.copyId,
-        cut: options.cut,
-      };
-    };
-
-    const handleDeleteSelection = (requestedInfo: ElementInfo | null): SelectDeleteResult => {
-      const target = resolveSelectionTarget(requestedInfo);
-      if (!target) {
-        return {
-          ok: false,
-          error: "Selected element is no longer available.",
-        };
-      }
-
-      if (target === document.documentElement || target === document.body) {
-        return {
-          ok: false,
-          error: "Cannot delete the root page element.",
-        };
-      }
-
-      const shouldClearHoverTarget =
-        hoverTarget !== null && (hoverTarget === target || target.contains(hoverTarget));
-      if (shouldClearHoverTarget) {
-        clearHover();
-        postMessage({ type: "select:hover", payload: null });
-      }
-
-      const shouldClosePopup = popupTarget !== null && (popupTarget === target || target.contains(popupTarget));
-      if (shouldClosePopup) {
-        clearSelectorPopup({ resumeSelection: false });
-      }
-
-      const shouldClearCopiedTarget =
-        copiedTarget !== null && (copiedTarget === target || target.contains(copiedTarget));
-      if (shouldClearCopiedTarget) {
-        clearCopiedTarget();
-      }
-
-      clearSelected();
-      target.remove();
-      postMessage({ type: "select:selected", payload: null });
-
-      logger.debug("selection deleted", {
-        target: describeElementCompact(target),
-      });
-
-      return {
-        ok: true,
-      };
-    };
-
     const openSelectorPopup = async (requestedInfo: ElementInfo | null, mode: SelectorPopupMode = "pp-api") => {
-      const target = resolveSelectionTarget(requestedInfo);
+      const target = resolvePopupTarget(requestedInfo);
       if (!target) {
         logger.debug("selector popup open skipped", {
           reason: "no-target",
@@ -792,6 +578,93 @@ export default defineContentScript({
       const info = getElementInfo(target);
       postMessage({ type: "select:selected", payload: info });
       logger.debug("element selected", { target: describeElementCompact(target), selector: info.selector });
+    };
+
+    const readClipboardText = async (): Promise<string | null> => {
+      if (!window.isSecureContext || typeof navigator.clipboard?.readText !== "function") {
+        return null;
+      }
+      return navigator.clipboard.readText();
+    };
+
+    const writeClipboardText = async (value: string): Promise<boolean> => {
+      if (!window.isSecureContext || typeof navigator.clipboard?.writeText !== "function") {
+        return false;
+      }
+      await navigator.clipboard.writeText(value);
+      return true;
+    };
+
+    const clearSelectedAndNotify = () => {
+      clearSelected();
+      postMessage({ type: "select:selected", payload: null });
+    };
+
+    const runSelectElementAction = async (action: SelectElementAction): Promise<SelectElementActionResult> => {
+      const target = selectedTarget;
+      if (!target?.isConnected) {
+        return {
+          ok: false,
+          error: "Select an element first.",
+        };
+      }
+
+      if (action === "copy") {
+        const copied = await writeClipboardText(target.outerHTML);
+        if (!copied) {
+          return {
+            ok: false,
+            error: "Copy is unavailable on this page.",
+          };
+        }
+
+        return { ok: true };
+      }
+
+      if (action === "cut") {
+        const copied = await writeClipboardText(target.outerHTML);
+        if (!copied) {
+          return {
+            ok: false,
+            error: "Cut is unavailable on this page.",
+          };
+        }
+
+        target.remove();
+        clearSelectedAndNotify();
+        return { ok: true };
+      }
+
+      if (action === "paste") {
+        const pasted = (await readClipboardText())?.trim();
+        if (!pasted) {
+          return {
+            ok: false,
+            error: "Clipboard is empty or unavailable.",
+          };
+        }
+
+        if (!target.parentElement) {
+          return {
+            ok: false,
+            error: "Selected element has no parent element.",
+          };
+        }
+
+        target.insertAdjacentHTML("afterend", pasted);
+        return { ok: true };
+      }
+
+      if (action === "delete") {
+        target.remove();
+        clearSelectedAndNotify();
+        return { ok: true };
+      }
+
+      return {
+        ok: false,
+        error: "Unsupported action.",
+      };
     };
 
     const scheduleLabelUpdate = (target: Element | null) => {
@@ -1047,25 +920,6 @@ export default defineContentScript({
         });
         return true;
       }
-      if (selectMessage.type === "select:copy") {
-        sendResponse(handleCopySelection(selectMessage.payload, selectMessage.cut));
-        return false;
-      }
-      if (selectMessage.type === "select:paste") {
-        sendResponse(
-          handlePasteSelection(selectMessage.payload, {
-            copyId: selectMessage.copyId,
-            cut: selectMessage.cut,
-            childPosition: selectMessage.childPosition,
-            pasteLocation: selectMessage.pasteLocation,
-          }),
-        );
-        return false;
-      }
-      if (selectMessage.type === "select:delete") {
-        sendResponse(handleDeleteSelection(selectMessage.payload));
-        return false;
-      }
       if (selectMessage.type === "select:parent") {
         if (!selectionEnabled) {
           return false;
@@ -1078,6 +932,20 @@ export default defineContentScript({
         clearHoverAndNotify();
         applySelection(parent);
         return false;
+      }
+      if (selectMessage.type === "select:action") {
+        void runSelectElementAction(selectMessage.action)
+          .then((result) => {
+            sendResponse(result);
+          })
+          .catch((error: unknown) => {
+            const message = error instanceof Error ? error.message : "Unable to update the selected element.";
+            sendResponse({
+              ok: false,
+              error: message,
+            } satisfies SelectElementActionResult);
+          });
+        return true;
       }
       if (selectMessage.type === "select:toggle") {
         if (shadowUi) {
