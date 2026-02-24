@@ -1,6 +1,5 @@
 export type OnElementCreatedHandler = (element: Element) => void;
 export type KeyAction = "press" | "release";
-export type OnKeyPressedHandler = (event: KeyboardEvent) => void;
 export type OnKeyPressedOptions = {
   keyAction?: KeyAction[];
   cancel?: boolean;
@@ -23,7 +22,11 @@ const defaultCreateObserverOptions: MutationObserverInit = {
   subtree: true,
 };
 const defaultKeyActions: KeyAction[] = ["press"];
-const keyActionEventType: Record<KeyAction, "keydown" | "keyup"> = {
+type ResolvedKeyAction = {
+  action: KeyAction;
+  eventType: "keydown" | "keyup";
+};
+const keyActionEventType: Record<KeyAction, ResolvedKeyAction["eventType"]> = {
   press: "keydown",
   release: "keyup",
 };
@@ -163,7 +166,7 @@ const parseKeyCombo = (keys: string): KeyCombo => {
   return combo;
 };
 
-const resolveKeyActions = (value: KeyAction[] | undefined): KeyAction[] => {
+const resolveKeyActions = (value: KeyAction[] | undefined): ResolvedKeyAction[] => {
   const actions = value && value.length > 0 ? value : defaultKeyActions;
   actions.forEach((action) => {
     if (action !== "press" && action !== "release") {
@@ -171,7 +174,10 @@ const resolveKeyActions = (value: KeyAction[] | undefined): KeyAction[] => {
     }
   });
 
-  return Array.from(new Set(actions));
+  return Array.from(new Set(actions)).map((action) => ({
+    action,
+    eventType: keyActionEventType[action],
+  }));
 };
 
 const resolveEffectiveModifierState = (event: KeyboardEvent, normalizedEventKey: string, action: KeyAction) => {
@@ -204,6 +210,137 @@ const doesKeyboardEventMatchCombo = (event: KeyboardEvent, combo: KeyCombo, acti
     modifierState.meta === combo.modifiers.meta
   );
 };
+
+const runKeyHandler = (
+  event: KeyboardEvent,
+  combo: KeyCombo,
+  action: KeyAction,
+  func: (event: KeyboardEvent) => void,
+  cancel: boolean | undefined,
+) => {
+  if (!doesKeyboardEventMatchCombo(event, combo, action)) {
+    return;
+  }
+
+  if (cancel) {
+    event.preventDefault();
+  }
+
+  func(event);
+};
+
+type SyntheticKeyEventPayload = {
+  key: string;
+  code: string;
+  keyCode: number;
+  which: number;
+};
+
+const keyTokenEventPayloadMap: Record<string, SyntheticKeyEventPayload> = {
+  escape: { key: "Escape", code: "Escape", keyCode: 27, which: 27 },
+  tab: { key: "Tab", code: "Tab", keyCode: 9, which: 9 },
+  enter: { key: "Enter", code: "Enter", keyCode: 13, which: 13 },
+  backspace: { key: "Backspace", code: "Backspace", keyCode: 8, which: 8 },
+  delete: { key: "Delete", code: "Delete", keyCode: 46, which: 46 },
+  space: { key: " ", code: "Space", keyCode: 32, which: 32 },
+  arrowup: { key: "ArrowUp", code: "ArrowUp", keyCode: 38, which: 38 },
+  arrowdown: { key: "ArrowDown", code: "ArrowDown", keyCode: 40, which: 40 },
+  arrowleft: { key: "ArrowLeft", code: "ArrowLeft", keyCode: 37, which: 37 },
+  arrowright: { key: "ArrowRight", code: "ArrowRight", keyCode: 39, which: 39 },
+  control: { key: "Control", code: "ControlLeft", keyCode: 17, which: 17 },
+  shift: { key: "Shift", code: "ShiftLeft", keyCode: 16, which: 16 },
+  alt: { key: "Alt", code: "AltLeft", keyCode: 18, which: 18 },
+  meta: { key: "Meta", code: "MetaLeft", keyCode: 91, which: 91 },
+};
+
+const toSyntheticKeyToken = (keys: string, combo: KeyCombo) => {
+  const normalizedTokens = parseKeyTokens(keys).map(normalizeKeyToken);
+  let keyFromInput: string | null = null;
+  for (let index = normalizedTokens.length - 1; index >= 0; index -= 1) {
+    const token = normalizedTokens[index];
+    if (!modifierKeyToName[token]) {
+      keyFromInput = token;
+      break;
+    }
+  }
+
+  if (keyFromInput === null) {
+    keyFromInput = normalizedTokens.length > 0 ? normalizedTokens[normalizedTokens.length - 1] : combo.key;
+  }
+
+  if (keyFromInput === null) {
+    keyFromInput = "meta";
+  }
+
+  return keyFromInput;
+};
+
+const createSyntheticKeyboardEvent = (keys: string, combo: KeyCombo, keyAction: ResolvedKeyAction) =>
+  (() => {
+    const keyToken = toSyntheticKeyToken(keys, combo);
+    const mappedPayload = keyTokenEventPayloadMap[keyToken];
+    const fKeyMatch = /^f(\d{1,2})$/.exec(keyToken);
+    const functionKeyNumber = fKeyMatch ? Number.parseInt(fKeyMatch[1], 10) : null;
+    const functionKeyPayload =
+      functionKeyNumber && functionKeyNumber >= 1 && functionKeyNumber <= 24
+        ? {
+            key: `F${functionKeyNumber}`,
+            code: `F${functionKeyNumber}`,
+            keyCode: 111 + functionKeyNumber,
+            which: 111 + functionKeyNumber,
+          }
+        : null;
+
+    const alphanumericPayload =
+      keyToken.length === 1 && /^[a-z0-9]$/.test(keyToken)
+        ? {
+            key: keyToken,
+            code: /^[a-z]$/.test(keyToken) ? `Key${keyToken.toUpperCase()}` : `Digit${keyToken}`,
+            keyCode: keyToken.toUpperCase().charCodeAt(0),
+            which: keyToken.toUpperCase().charCodeAt(0),
+          }
+        : null;
+
+    const symbolPayload =
+      keyToken === "+"
+        ? {
+            key: "+",
+            code: "Equal",
+            keyCode: 187,
+            which: 187,
+          }
+        : null;
+
+    const payload =
+      mappedPayload ??
+      functionKeyPayload ??
+      alphanumericPayload ??
+      symbolPayload ?? {
+        key: keyToken,
+        code: keyToken,
+        keyCode: 0,
+        which: 0,
+      };
+
+    const event = new KeyboardEvent(
+      keyAction.eventType,
+      {
+        key: payload.key,
+        code: payload.code,
+        keyCode: payload.keyCode,
+        which: payload.which,
+        ctrlKey: combo.modifiers.ctrl,
+        shiftKey: combo.modifiers.shift,
+        altKey: combo.modifiers.alt,
+        metaKey: combo.modifiers.meta,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      } as KeyboardEventInit & { keyCode: number; which: number },
+    );
+
+    return event;
+  })();
 
 const getNodeCreatedElements = (node: Node): Element[] => {
   if (node instanceof Element) {
@@ -257,47 +394,57 @@ export const onElementCreated = (
   return observer;
 };
 
-export const onKeyPressed = (keys: string, func: OnKeyPressedHandler, options: OnKeyPressedOptions = {}) => {
+export const onKeyPressed = (keys: string, func: (event: KeyboardEvent) => void, options: OnKeyPressedOptions = {}) => {
   if (typeof window === "undefined") {
     return () => undefined;
   }
 
   const combo = parseKeyCombo(keys);
   const keyActions = resolveKeyActions(options.keyAction);
-  const cancel = options.cancel !== false;
+  const pressAction = keyActions.find((entry) => entry.action === "press");
+  const releaseAction = keyActions.find((entry) => entry.action === "release");
 
-  const handleKeyEvent = (event: KeyboardEvent, action: KeyAction) => {
-    if (!doesKeyboardEventMatchCombo(event, combo, action)) {
-      return;
-    }
+  const handleKeyEvent = (event: KeyboardEvent, action: KeyAction) =>
+    runKeyHandler(event, combo, action, func, options.cancel);
 
-    if (cancel) {
-      event.preventDefault();
-    }
-
-    func(event);
-  };
-
-  const handleKeyDown = (event: KeyboardEvent) => handleKeyEvent(event, "press");
+  const handleKeyPress = (event: KeyboardEvent) => handleKeyEvent(event, "press");
   const handleKeyUp = (event: KeyboardEvent) => handleKeyEvent(event, "release");
 
-  if (keyActions.includes("press")) {
-    window.addEventListener(keyActionEventType.press, handleKeyDown);
+  if (pressAction) {
+    window.addEventListener(pressAction.eventType, handleKeyPress);
   }
 
-  if (keyActions.includes("release")) {
-    window.addEventListener(keyActionEventType.release, handleKeyUp);
+  if (releaseAction) {
+    window.addEventListener(releaseAction.eventType, handleKeyUp);
   }
 
   return () => {
-    if (keyActions.includes("press")) {
-      window.removeEventListener(keyActionEventType.press, handleKeyDown);
+    if (pressAction) {
+      window.removeEventListener(pressAction.eventType, handleKeyPress);
     }
 
-    if (keyActions.includes("release")) {
-      window.removeEventListener(keyActionEventType.release, handleKeyUp);
+    if (releaseAction) {
+      window.removeEventListener(releaseAction.eventType, handleKeyUp);
     }
   };
+};
+
+export const pressKey = (keys: string, options: OnKeyPressedOptions = {}) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const combo = parseKeyCombo(keys);
+  const keyActions = resolveKeyActions(options.keyAction);
+  const target: EventTarget = document.activeElement ?? document;
+
+  keyActions.forEach((keyAction) => {
+    const event = createSyntheticKeyboardEvent(keys, combo, keyAction);
+    if (options.cancel) {
+      event.preventDefault();
+    }
+    target.dispatchEvent(event);
+  });
 };
 
 export const pageModificationFunctions = [
@@ -306,6 +453,7 @@ export const pageModificationFunctions = [
   "pt.getItem",
   "pv.onElementCreated",
   "pv.onKeyPressed",
+  "pv.pressKey",
   "pn.fetch",
   "pn.invalidateCache",
   "pn.get",

@@ -50,7 +50,7 @@ Runs `func` when a key combo matches.
 Options:
 
 - `keyAction?: ("press" | "release")[]` (default `["press"]`)
-- `cancel?: boolean` (default `true`, prevents default browser behavior)
+- `cancel?: boolean` (default `false`, truthy values prevent default browser behavior)
 
 Returns a cleanup function that removes the event listeners.
 
@@ -67,6 +67,24 @@ const stop = pv.onKeyPressed(
 
 // Later:
 stop();
+```
+
+## `pressKey(keys, options)`
+
+Simulates keyboard events immediately instead of waiting for user input.
+
+Options:
+
+- `keyAction?: ("press" | "release")[]` (default `["press"]`)
+- `cancel?: boolean` (default `false`, truthy values call `preventDefault()` on the simulated event)
+
+```js
+pv.pressKey(
+  "shift+x",
+  {
+    keyAction: ["press", "release"],
+  },
+);
 ```
 
 For notifications, use `pa.notification(...)`.

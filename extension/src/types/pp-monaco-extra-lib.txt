@@ -151,7 +151,6 @@ declare module "@page-proxy/pp/pp-style" {
 declare module "@page-proxy/pp/pp-event" {
   export type OnElementCreatedHandler = (element: Element) => void;
   export type KeyAction = "press" | "release";
-  export type OnKeyPressedHandler = (event: KeyboardEvent) => void;
   export type OnKeyPressedOptions = {
       keyAction?: KeyAction[];
       cancel?: boolean;
@@ -163,6 +162,7 @@ declare module "@page-proxy/pp/pp-event" {
       runOnTargetNode(): void;
   }
   export declare const onElementCreated: (func: OnElementCreatedHandler, targetNode?: Node, observerOptions?: MutationObserverInit) => ElementCreatedObserver;
-  export declare const onKeyPressed: (keys: string, func: OnKeyPressedHandler, options?: OnKeyPressedOptions) => () => void;
+  export declare const onKeyPressed: (keys: string, func: (event: KeyboardEvent) => void, options?: OnKeyPressedOptions) => () => void;
+  export declare const pressKey: (keys: string, options?: OnKeyPressedOptions) => void;
   export declare const pageModificationFunctions: string[];
 }
