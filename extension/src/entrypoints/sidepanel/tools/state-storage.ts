@@ -6,7 +6,7 @@ import { parseScriptMetadata } from "@/lib/utils/script-metadata";
 import { matchWebsiteGlob } from "@/lib/utils/website-glob";
 import { createSidepanelBannerManager, type BannerDefinition } from "../banners/banner-manager";
 
-export type ToolId = "select" | "create" | "selectors" | "help" | "share" | "none";
+export type ToolId = "select" | "create" | "selectors" | "record" | "help" | "share" | "none";
 
 export type StoredSelectorEntry = {
   name: string;
@@ -30,6 +30,19 @@ export type StoredToolState = {
   updatedAt: number;
 };
 
+export type RecordTimelineEntry = {
+  id: string;
+  action: string;
+  detail: string;
+  timestamp: number;
+};
+
+export type RecordPanelState = {
+  isRecording: boolean;
+  timeline: RecordTimelineEntry[];
+  updatedAt: number;
+};
+
 type StoredStateMatch = {
   scriptName: string;
   matchedWebsiteGlob: string;
@@ -37,6 +50,7 @@ type StoredStateMatch = {
 };
 
 const storageKeyPrefix = "pageproxy:";
+const recordPanelStorageKeyPrefix = "sidepanel:recordPanel:";
 const toolPanelHeightStorageKey = "sidepanel:toolPanelHeightPx";
 const helpBannerDismissedStorageKey = "sidepanel:helpBannerDismissed";
 const userscriptReloadBannerDismissedStorageKey = "sidepanel:userscriptReloadBannerDismissed";
@@ -54,6 +68,7 @@ const isToolId = (value: unknown): value is ToolId =>
   value === "select" ||
   value === "create" ||
   value === "selectors" ||
+  value === "record" ||
   value === "help" ||
   value === "share" ||
   value === "none";
@@ -92,6 +107,74 @@ const coerceStoredSelectorEntries = (value: unknown): StoredSelectorEntry[] => {
 
   return entries;
 };
+
+const coerceRecordTimelineEntries = (value: unknown): RecordTimelineEntry[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const entries: RecordTimelineEntry[] = [];
+  value.forEach((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      return;
+    }
+
+    const data = entry as {
+      id?: unknown;
+      action?: unknown;
+      detail?: unknown;
+      timestamp?: unknown;
+    };
+
+    if (
+      typeof data.id !== "string" ||
+      typeof data.action !== "string" ||
+      typeof data.detail !== "string" ||
+      typeof data.timestamp !== "number"
+    ) {
+      return;
+    }
+
+    entries.push({
+      id: data.id,
+      action: data.action,
+      detail: data.detail,
+      timestamp: data.timestamp,
+    });
+  });
+
+  return entries;
+};
+
+const coerceRecordPanelState = (value: unknown): RecordPanelState | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const data = value as {
+    isRecording?: unknown;
+    timeline?: unknown;
+    updatedAt?: unknown;
+  };
+
+  if (typeof data.isRecording !== "boolean") {
+    return null;
+  }
+
+  return {
+    isRecording: data.isRecording,
+    timeline: coerceRecordTimelineEntries(data.timeline),
+    updatedAt: typeof data.updatedAt === "number" ? data.updatedAt : Date.now(),
+  };
+};
+
+const buildRecordPanelStorageKey = (tabId: number) => `${recordPanelStorageKeyPrefix}${tabId}`;
+
+export const buildDefaultRecordPanelState = (): RecordPanelState => ({
+  isRecording: true,
+  timeline: [],
+  updatedAt: Date.now(),
+});
 
 export const toStorageKey = (scriptName: string) => `${storageKeyPrefix}${scriptName.trim()}`;
 
@@ -233,6 +316,33 @@ export const removeStoredToolState = async (scriptName: string) => {
   }
 
   await browser.storage.local.remove(toStorageKey(normalized));
+};
+
+export const readRecordPanelStateForTab = async (tabId: number) => {
+  if (!Number.isInteger(tabId) || tabId < 0) {
+    return buildDefaultRecordPanelState();
+  }
+
+  const storageKey = buildRecordPanelStorageKey(tabId);
+  return browser.storage.local
+    .get(storageKey)
+    .then((stored) => coerceRecordPanelState(stored[storageKey]) ?? buildDefaultRecordPanelState())
+    .catch(() => buildDefaultRecordPanelState());
+};
+
+export const saveRecordPanelStateForTab = async (tabId: number, state: RecordPanelState) => {
+  if (!Number.isInteger(tabId) || tabId < 0) {
+    return;
+  }
+
+  const storageKey = buildRecordPanelStorageKey(tabId);
+  await browser.storage.local.set({
+    [storageKey]: {
+      isRecording: state.isRecording,
+      timeline: state.timeline,
+      updatedAt: state.updatedAt,
+    },
+  });
 };
 
 const coerceToolPanelHeight = (value: unknown) => {

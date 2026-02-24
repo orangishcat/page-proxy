@@ -2,14 +2,26 @@ import { browser } from "wxt/browser";
 import log from "loglevel";
 import { get } from "svelte/store";
 
-import type { SelectToolMessage, SelectorOpenResult, SelectorPopupMode } from "@/lib/selection";
+import type {
+  SelectCopyResult,
+  SelectDeleteResult,
+  SelectPasteLocation,
+  SelectPasteResult,
+  SelectToolMessage,
+  SelectorOpenResult,
+  SelectorPopupMode,
+} from "@/lib/selection";
 import type {
   DevtoolsSelectionChangedRuntimeMessage,
   DevtoolsSelectionStatusChangedRuntimeMessage,
   DevtoolsSelectionResponseMessage,
 } from "@/lib/devtools-selection";
-import { setErrorMessage } from "../tool-errors";
+import { recordSidepanelAction } from "../record/state";
+import { setErrorMessage, setSuccessMessage } from "../tool-errors";
 import {
+  copiedElementCopyId,
+  copiedElementCut,
+  setCopiedElementState,
   followDevtoolsSelection,
   getSelectionContext,
   selectedInfo,
@@ -43,6 +55,42 @@ const hasType = <T extends string>(value: unknown, type: T): value is { type: T 
 const isSelectorOpenResult = (value: unknown): value is SelectorOpenResult =>
   isRecord(value) && typeof value.opened === "boolean";
 
+const isSelectCopyResult = (value: unknown): value is SelectCopyResult => {
+  if (!isRecord(value) || typeof value.ok !== "boolean") {
+    return false;
+  }
+
+  if (value.ok) {
+    return typeof value.copyId === "string" && typeof value.cut === "boolean";
+  }
+
+  return typeof value.error === "string";
+};
+
+const isSelectPasteResult = (value: unknown): value is SelectPasteResult => {
+  if (!isRecord(value) || typeof value.ok !== "boolean") {
+    return false;
+  }
+
+  if (value.ok) {
+    return typeof value.copyId === "string" && typeof value.cut === "boolean";
+  }
+
+  return typeof value.error === "string";
+};
+
+const isSelectDeleteResult = (value: unknown): value is SelectDeleteResult => {
+  if (!isRecord(value) || typeof value.ok !== "boolean") {
+    return false;
+  }
+
+  if (value.ok) {
+    return true;
+  }
+
+  return typeof value.error === "string";
+};
+
 const isSelectToolMessage = (value: unknown): value is SelectToolMessage =>
   hasType(value, "select:mode") ||
   hasType(value, "select:hover") ||
@@ -50,6 +98,9 @@ const isSelectToolMessage = (value: unknown): value is SelectToolMessage =>
   hasType(value, "selectors:hover") ||
   hasType(value, "select:toggle") ||
   hasType(value, "select:parent") ||
+  hasType(value, "select:copy") ||
+  hasType(value, "select:paste") ||
+  hasType(value, "select:delete") ||
   hasType(value, "selector:open");
 
 const applyDevtoolsSelection = (tabId: number, response: DevtoolsSelectionResponseMessage) => {
@@ -187,19 +238,24 @@ export const sendSelectParent = () => {
         const response = await requestDevtoolsSelection(tabContext.tabId, "devtools:selection:parent");
         if (!response || !applyDevtoolsSelection(tabContext.tabId, response)) {
           setErrorMessage(response?.error ?? "Unable to select parent element.");
+          return;
         }
+        recordSidepanelAction("Selected parent element");
         return;
       }
 
-      await sendSelectToolMessage(
+      const response = await sendSelectToolMessage(
         tabContext.tabId,
         {
           type: "select:parent",
         } satisfies SelectToolMessage,
         context.frameId ?? 0,
-      ).catch(() => {
+      ).catch(() => null);
+      if (response === null) {
         setErrorMessage("Unable to connect to the active tab.");
-      });
+        return;
+      }
+      recordSidepanelAction("Selected parent element");
     })
     .catch(() => {
       setErrorMessage("Unable to connect to the active tab.");
@@ -241,7 +297,203 @@ export const sendSelectorPopup = (mode: SelectorPopupMode = "pp-api") => {
 
       if (isSelectorOpenResult(response) && !response.opened) {
         setErrorMessage("Unable to open selector details for the selected element.");
+        return;
       }
+
+      recordSidepanelAction(
+        mode === "css" ? "Opened CSS inspector" : "Opened selector popup",
+        mode === "css" ? "Mode: css" : "Mode: pp-api",
+      );
+    })
+    .catch(() => {
+      setErrorMessage("Unable to connect to the active tab.");
+    });
+};
+
+export const sendCopySelection = (cut: boolean) => {
+  logger.debug("request copy selection", { cut });
+  setErrorMessage(null);
+  setSuccessMessage(null);
+  const selection = get(selectedInfo);
+  const context = getSelectionContext();
+
+  if (!selection) {
+    setErrorMessage("Select an element before copying.");
+    return;
+  }
+
+  void readActiveTabContext()
+    .then(async (tabContext) => {
+      if (!tabContext) {
+        setErrorMessage("No active tab found.");
+        return;
+      }
+
+      if (isRestrictedUrl(tabContext.url)) {
+        setErrorMessage("Selection is unavailable on this page.");
+        return;
+      }
+
+      const response: unknown = await sendSelectToolMessage(
+        tabContext.tabId,
+        {
+          type: "select:copy",
+          payload: selection,
+          cut,
+        } satisfies SelectToolMessage,
+        context.frameId ?? 0,
+      ).catch(() => null);
+
+      if (response === null) {
+        setErrorMessage("Unable to connect to the active tab.");
+        return;
+      }
+
+      if (!isSelectCopyResult(response)) {
+        setErrorMessage("Unable to copy selected element.");
+        return;
+      }
+
+      if (!response.ok) {
+        setErrorMessage(response.error || "Unable to copy selected element.");
+        return;
+      }
+
+      setCopiedElementState(response.copyId, response.cut);
+      setSuccessMessage(`${response.cut ? "Cut" : "Copied"} element. Select another element to paste.`);
+      recordSidepanelAction(response.cut ? "Cut selected element" : "Copied selected element");
+    })
+    .catch(() => {
+      setErrorMessage("Unable to connect to the active tab.");
+    });
+};
+
+export const sendPasteSelection = (pasteLocation: SelectPasteLocation, childPosition: number) => {
+  logger.debug("request paste selection", { pasteLocation, childPosition });
+  setErrorMessage(null);
+  setSuccessMessage(null);
+  const copyId = get(copiedElementCopyId);
+  const cut = get(copiedElementCut);
+  const selection = get(selectedInfo);
+  const context = getSelectionContext();
+
+  if (!copyId) {
+    setErrorMessage("Copy or cut an element before pasting.");
+    return;
+  }
+
+  if (!selection) {
+    setErrorMessage("Select a target element before pasting.");
+    return;
+  }
+
+  const normalizedChildPosition = Number.isFinite(childPosition)
+    ? Math.max(1, Math.floor(childPosition))
+    : 1;
+
+  void readActiveTabContext()
+    .then(async (tabContext) => {
+      if (!tabContext) {
+        setErrorMessage("No active tab found.");
+        return;
+      }
+
+      if (isRestrictedUrl(tabContext.url)) {
+        setErrorMessage("Selection is unavailable on this page.");
+        return;
+      }
+
+      const response: unknown = await sendSelectToolMessage(
+        tabContext.tabId,
+        {
+          type: "select:paste",
+          payload: selection,
+          copyId,
+          cut,
+          childPosition: normalizedChildPosition,
+          pasteLocation,
+        } satisfies SelectToolMessage,
+        context.frameId ?? 0,
+      ).catch(() => null);
+
+      if (response === null) {
+        setErrorMessage("Unable to connect to the active tab.");
+        return;
+      }
+
+      if (!isSelectPasteResult(response)) {
+        setErrorMessage("Unable to paste copied element.");
+        return;
+      }
+
+      if (!response.ok) {
+        setErrorMessage(response.error || "Unable to paste copied element.");
+        return;
+      }
+
+      setCopiedElementState(response.copyId, response.cut);
+      setSuccessMessage(`Pasted ${response.cut ? "cut" : "copied"} element.`);
+      recordSidepanelAction(
+        response.cut ? "Moved selected element" : "Pasted copied element",
+        pasteLocation === "child" ? `Location: child #${normalizedChildPosition}` : `Location: ${pasteLocation}`,
+      );
+    })
+    .catch(() => {
+      setErrorMessage("Unable to connect to the active tab.");
+    });
+};
+
+export const sendDeleteSelection = () => {
+  logger.debug("request delete selection");
+  setErrorMessage(null);
+  setSuccessMessage(null);
+  const selection = get(selectedInfo);
+  const context = getSelectionContext();
+
+  if (!selection) {
+    setErrorMessage("Select an element before deleting.");
+    return;
+  }
+
+  void readActiveTabContext()
+    .then(async (tabContext) => {
+      if (!tabContext) {
+        setErrorMessage("No active tab found.");
+        return;
+      }
+
+      if (isRestrictedUrl(tabContext.url)) {
+        setErrorMessage("Selection is unavailable on this page.");
+        return;
+      }
+
+      const response: unknown = await sendSelectToolMessage(
+        tabContext.tabId,
+        {
+          type: "select:delete",
+          payload: selection,
+        } satisfies SelectToolMessage,
+        context.frameId ?? 0,
+      ).catch(() => null);
+
+      if (response === null) {
+        setErrorMessage("Unable to connect to the active tab.");
+        return;
+      }
+
+      if (!isSelectDeleteResult(response)) {
+        setErrorMessage("Unable to delete selected element.");
+        return;
+      }
+
+      if (!response.ok) {
+        setErrorMessage(response.error || "Unable to delete selected element.");
+        return;
+      }
+
+      setSelection(null);
+      setSuccessMessage("Deleted selected element.");
+      recordSidepanelAction("Deleted selected element");
     })
     .catch(() => {
       setErrorMessage("Unable to connect to the active tab.");
@@ -252,6 +504,7 @@ export const toggleFollowDevtoolsSelection = () => {
   const nextEnabled = !isFollowingDevtoolsSelection();
   logger.debug("toggle follow devtools selection", { enabled: nextEnabled });
   setFollowDevtoolsSelection(nextEnabled);
+  recordSidepanelAction(nextEnabled ? "Enabled DevTools follow mode" : "Disabled DevTools follow mode");
 
   if (!nextEnabled) {
     return;

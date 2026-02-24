@@ -44,6 +44,39 @@ export type SelectorOpenResult = {
   opened: boolean;
 };
 
+export type SelectCopyResult =
+  | {
+      ok: true;
+      copyId: string;
+      cut: boolean;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+export type SelectPasteLocation = "child" | "before" | "after";
+
+export type SelectPasteResult =
+  | {
+      ok: true;
+      copyId: string;
+      cut: boolean;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+export type SelectDeleteResult =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
 export type SelectToolMessage =
   | {
       type: 'select:toggle';
@@ -55,6 +88,23 @@ export type SelectToolMessage =
     }
   | {
       type: 'select:parent';
+    }
+  | {
+      type: 'select:copy';
+      payload: ElementInfo | null;
+      cut: boolean;
+    }
+  | {
+      type: "select:paste";
+      payload: ElementInfo | null;
+      copyId: string;
+      cut: boolean;
+      childPosition: number;
+      pasteLocation: SelectPasteLocation;
+    }
+  | {
+      type: "select:delete";
+      payload: ElementInfo | null;
     }
   | {
       type: 'selector:open';

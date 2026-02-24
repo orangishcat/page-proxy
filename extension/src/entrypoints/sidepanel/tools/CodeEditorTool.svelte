@@ -28,6 +28,7 @@
   import { getTabUrl, resolveActiveTab, shouldHandleTabUpdate, type ActiveTab } from "./code-editor/tabs";
   import type { ScriptMetadataState } from "./code-editor/state";
   import { activeToolState, allowedScriptGrantsState, removeStoredToolState } from "./state-storage";
+  import { recordSidepanelAction, setRecordPanelActiveTab } from "./record/state";
   import {
     buildDefaultScript,
     buildProtectedDisplay,
@@ -317,6 +318,7 @@
     }
 
     isRunning = true;
+    recordSidepanelAction("Ran script");
     saveNow(editorValue);
     const formattedScript = formatIndentation(editorValue);
     void requestScriptRun(formattedScript)
@@ -379,6 +381,7 @@
     if (!canPersistEditorChanges || isProtectedPage) {
       return;
     }
+    recordSidepanelAction("Saved script", "Triggered from keyboard shortcut");
     saveNow(editorValue);
   };
 
@@ -497,6 +500,7 @@
 
     activeTabId = nextTabId;
     activeTabUrl = nextTabUrl;
+    setRecordPanelActiveTab(nextTabId);
     isProtectedPage = isRestrictedUrl(activeTabUrl ?? undefined);
 
     if (isProtectedPage) {

@@ -2,13 +2,14 @@
   import { onMount } from "svelte";
   import { Tooltip } from "bits-ui";
   import { browser } from "wxt/browser";
-  import { CircleQuestionMark, MousePointer, Plus, Share } from "lucide-svelte";
+  import { CircleQuestionMark, Disc, MousePointer, Plus, Share } from "lucide-svelte";
 
   import { get } from "svelte/store";
   import SelectTool from "./tools/SelectTool.svelte";
   import CreateTool from "./tools/CreateTool.svelte";
   import ExportTool from "./tools/ExportTool.svelte";
   import HelpTool from "./tools/HelpTool.svelte";
+  import RecordTool from "./tools/RecordTool.svelte";
   import SelectorsTool from "./tools/SelectorsTool.svelte";
   import CodeEditorTool from "./tools/CodeEditorTool.svelte";
   import BannerContainer from "./banners/BannerContainer.svelte";
@@ -26,13 +27,16 @@
     saveToolPanelHeightSetting,
     type ToolId,
   } from "./tools/state-storage";
+  import { recordSidepanelAction } from "./tools/record/state";
 
   type ToolbarControlId = SidepanelShortcutId;
+  type ToolActivationSource = "toolbar" | "shortcut";
 
   const toolLabels: Record<ToolId, string> = {
     select: "Select",
     create: "Create",
     selectors: "Selectors",
+    record: "Record",
     share: "Export",
     help: "Help",
     none: "",
@@ -65,11 +69,14 @@
     selectors: "⇧3",
     help: "⇧4",
     share: "⇧5",
+    record: "⇧6",
   };
   const hoverCandidate = $derived(hoveredTool ?? lastHoveredTool);
   const hoveredShortcutLabel = $derived(hoverCandidate ? shortcutLabels[hoverCandidate] : "");
   const hoveredToolLabel = $derived(hoverCandidate ? toolLabels[hoverCandidate] : "");
-  const hoveredToolText = $derived(hoverCandidate ? `${hoveredToolLabel} (${hoveredShortcutLabel})` : "");
+  const hoveredToolText = $derived(
+    hoverCandidate ? `${hoveredToolLabel}${hoveredShortcutLabel ? ` (${hoveredShortcutLabel})` : ""}` : "",
+  );
   const showHoveredToolLabel = $derived(Boolean(isToolbarHovered && hoverCandidate));
   const toolLabelText = $derived(showHoveredToolLabel ? hoveredToolText : activeToolLabel);
   const isSelectToolActive = $derived(activeTool === "select");
@@ -79,7 +86,7 @@
       : `height: ${toolPanelHeightPx}px; min-height: ${minToolPanelHeightPx}px; max-height: ${maxToolPanelHeightPx}px;`,
   );
 
-  const setActiveTool = (tool: ToolId) => {
+  const setActiveTool = (tool: ToolId, source?: ToolActivationSource) => {
     if (tool === activeTool) {
       return;
     }
@@ -91,15 +98,21 @@
       sendSelectionToggle(false);
     }
     activeToolState.set(tool);
+    if (tool !== "none" && source) {
+      recordSidepanelAction(`Opened ${toolLabels[tool]} tool`, `Triggered from ${source}`);
+    }
   };
 
-  const activateSelectTool = () => {
+  const activateSelectTool = (source?: ToolActivationSource) => {
     sendSelectionToggle(true);
     if (activeTool === "select") {
+      if (source) {
+        recordSidepanelAction("Selection mode enabled", `Triggered from ${source}`);
+      }
       return;
     }
 
-    setActiveTool("select");
+    setActiveTool("select", source);
   };
 
   const isEditableTarget = (target: EventTarget | null) => {
@@ -156,6 +169,8 @@
         return "help";
       case "Digit5":
         return "share";
+      case "Digit6":
+        return "record";
       default:
         return null;
     }
@@ -163,16 +178,16 @@
 
   const handleShortcut = (tool: ToolbarControlId) => {
     if (tool === "select") {
-      activateSelectTool();
+      activateSelectTool("shortcut");
       return;
     }
 
     if (tool === "share") {
-      setActiveTool("share");
+      setActiveTool("share", "shortcut");
       return;
     }
 
-    setActiveTool(tool === "help" ? "help" : tool);
+    setActiveTool(tool, "shortcut");
   };
 
   const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -426,7 +441,7 @@
                   onmouseleave={() => {
                     hoveredTool = null;
                   }}
-                  onclick={activateSelectTool}
+                  onclick={() => activateSelectTool("toolbar")}
                 >
                   <MousePointer class={iconSize} />
                 </Button>
@@ -441,7 +456,7 @@
                   onmouseleave={() => {
                     hoveredTool = null;
                   }}
-                  onclick={() => setActiveTool("create")}
+                  onclick={() => setActiveTool("create", "toolbar")}
                 >
                   <Plus class={iconSize} />
                 </Button>
@@ -456,9 +471,24 @@
                   onmouseleave={() => {
                     hoveredTool = null;
                   }}
-                  onclick={() => setActiveTool("selectors")}
+                  onclick={() => setActiveTool("selectors", "toolbar")}
                 >
                   $0
+                </Button>
+                <Button
+                  class={toolButtonClasses(activeTool === "record")}
+                  variant="outline"
+                  aria-label="Record tool"
+                  onmouseenter={() => {
+                    hoveredTool = "record";
+                    lastHoveredTool = "record";
+                  }}
+                  onmouseleave={() => {
+                    hoveredTool = null;
+                  }}
+                  onclick={() => setActiveTool("record", "toolbar")}
+                >
+                  <Disc class={iconSize} />
                 </Button>
                 <span
                   class="min-w-0 max-w-full flex-1 truncate transition duration-300 {showHoveredToolLabel
@@ -481,7 +511,7 @@
                   onmouseleave={() => {
                     hoveredTool = null;
                   }}
-                  onclick={() => setActiveTool("help")}
+                  onclick={() => setActiveTool("help", "toolbar")}
                 >
                   <CircleQuestionMark class={iconSize} />
                 </Button>
@@ -496,7 +526,7 @@
                   onmouseleave={() => {
                     hoveredTool = null;
                   }}
-                  onclick={() => setActiveTool("share")}
+                  onclick={() => setActiveTool("share", "toolbar")}
                 >
                   <Share class={iconSize} />
                 </Button>
@@ -509,6 +539,8 @@
               <CreateTool />
             {:else if activeTool === "selectors"}
               <SelectorsTool />
+            {:else if activeTool === "record"}
+              <RecordTool />
             {:else if activeTool === "help"}
               <HelpTool />
             {:else if activeTool === "share"}

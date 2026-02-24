@@ -124,6 +124,8 @@ export const selectModeEnabled = writable(false);
 export const devtoolsIntegrationDetected = writable(false);
 export const followDevtoolsSelection = writable(false);
 export const selectionContext = writable<ElementSelectionContext>(defaultSelectionContext);
+export const copiedElementCopyId = writable<string | null>(null);
+export const copiedElementCut = writable(false);
 
 export const setSelection = (info: ElementInfo | null, context: ElementSelectionContext = defaultSelectionContext) => {
   selectedInfo.set(info);
@@ -140,6 +142,11 @@ export const setDevtoolsIntegrationDetected = (detected: boolean) => {
 
 export const setFollowDevtoolsSelection = (enabled: boolean) => {
   followDevtoolsSelection.set(enabled);
+};
+
+export const setCopiedElementState = (copyId: string | null, cut: boolean) => {
+  copiedElementCopyId.set(copyId);
+  copiedElementCut.set(Boolean(copyId) && cut);
 };
 
 export const getSelectionContext = () => get(selectionContext);
