@@ -162,9 +162,31 @@ export const renderMarkdown = (content: string, options: MarkdownRenderOptions =
   return template.innerHTML;
 };
 
+export const moveNode = (
+  node: Element,
+  position = -1,
+  parent: Element | null = node.parentElement,
+) => {
+  if (!parent) {
+    return node;
+  }
+
+  const siblings = Array.from(parent.children).filter((child) => child !== node);
+  const siblingCount = siblings.length;
+  const normalizedPosition = Math.min(
+    Math.max(position < 0 ? siblingCount + position + 1 : position, 0),
+    siblingCount,
+  );
+  const target = siblings[normalizedPosition] ?? null;
+
+  parent.insertBefore(node, target);
+  return node;
+};
+
 export const createApi = () => ({
   notification,
   renderMarkdown,
+  moveNode,
 });
 
 export const pp = createApi();

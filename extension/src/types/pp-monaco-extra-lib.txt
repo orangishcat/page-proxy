@@ -26,13 +26,16 @@ declare module "@page-proxy/pp/pp-api" {
   export declare const notificationSinkGlobalKey = "__pageProxyNotificationSink__";
   export declare const notification: (...values: unknown[]) => void;
   export declare const renderMarkdown: (content: string, options?: MarkdownRenderOptions) => string;
+  export declare const moveNode: (node: Element, position?: number, parent?: Element | null) => Element;
   export declare const createApi: () => {
       notification: (...values: unknown[]) => void;
       renderMarkdown: (content: string, options?: MarkdownRenderOptions) => string;
+      moveNode: (node: Element, position?: number, parent?: Element | null) => Element;
   };
   export declare const pp: {
       notification: (...values: unknown[]) => void;
       renderMarkdown: (content: string, options?: MarkdownRenderOptions) => string;
+      moveNode: (node: Element, position?: number, parent?: Element | null) => Element;
   };
 }
 declare module "@page-proxy/pp/pp-network" {
