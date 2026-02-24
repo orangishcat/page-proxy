@@ -4,12 +4,16 @@ title: ps (Style API)
 
 # ps module (next)
 
-`applyStyle(elements, values)` applies CSS style properties on all target elements in a list.
+`applyStyle(target, values)` applies CSS style properties on a single element or all elements in a list.
 
 ```ts
 ps.applyStyle(Array.from(document.querySelectorAll(".target")), {
     color: "#fff",
     background: "#111",
+});
+
+ps.applyStyle(document.querySelector(".target")!, {
+    outline: "0.1em solid #59C2FF",
 });
 ```
 

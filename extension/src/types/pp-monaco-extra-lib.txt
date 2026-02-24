@@ -145,7 +145,8 @@ declare module "@page-proxy/pp/pp-query" {
 }
 declare module "@page-proxy/pp/pp-style" {
   export type StyleValues = Record<string, string>;
-  export declare const applyStyle: (elements: Element[], values: StyleValues) => void;
+  export type StyleTarget = Element | Element[];
+  export declare const applyStyle: (elements: StyleTarget, values: StyleValues) => void;
   export declare const injectCSS: (styleText: string) => boolean;
 }
 declare module "@page-proxy/pp/pp-event" {

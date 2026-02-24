@@ -1,4 +1,5 @@
 export type StyleValues = Record<string, string>;
+export type StyleTarget = Element | Element[];
 
 const psHashAttributeName = 'data-ps-hash';
 
@@ -13,13 +14,15 @@ const hashCssString = (value: string) => {
   return (hash >>> 0).toString(16).padStart(8, '0');
 };
 
-export const applyStyle = (elements: Element[], values: StyleValues) => {
+export const applyStyle = (elements: StyleTarget, values: StyleValues) => {
   const entries = Object.entries(values);
   if (entries.length === 0) {
     return;
   }
 
-  elements.forEach((element) => {
+  const targetElements = Array.isArray(elements) ? elements : [elements];
+
+  targetElements.forEach((element) => {
     if (!('style' in element)) {
       return;
     }
