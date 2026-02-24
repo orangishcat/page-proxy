@@ -5,7 +5,14 @@
   import { Play } from "lucide-svelte";
   import { Tooltip } from "bits-ui";
 
-  import { createMonacoEditor, updateMonacoEditorValue, type MonacoCodeEditorHandle } from "@/lib/code-editor";
+  import {
+    clearMonacoEditorMarkers,
+    createMonacoEditor,
+    setMonacoEditorMarkers,
+    updateMonacoEditorValue,
+    type MonacoCodeEditorHandle,
+    type MonacoEditorMarker,
+  } from "@/lib/code-editor";
   import Button from "@/lib/components/Button.svelte";
   import { parseScriptMetadata } from "@/lib/utils/script-metadata";
   import { isRestrictedUrl } from "@/lib/utils/website-glob";
@@ -29,7 +36,7 @@
     resolveStoredToolStateForUrl,
     type ScriptFormatConfig,
   } from "./state-loading";
-  import { errorMessage, setErrorMessage, setSuccessMessage } from "./tool-errors";
+  import { errorMessage, setErrorFromUnknown, setErrorMessage, setSuccessMessage } from "./tool-errors";
 
   const defineBlockStart = "// ==Selectors==";
   const defineBlockEnd = "// ==/Selectors==";
@@ -43,6 +50,8 @@
     defineBlockEnd,
     protectedComment,
   };
+  const scriptRunErrorMarkerOwner = "script-run-error";
+  const scriptLocationPattern = /(?:<script>|blob:[^\s)]+):(\d+)(?::(\d+))?/;
   const saveFailurePrefix = "Saving failed:";
 
   let editorHost = $state<HTMLDivElement | null>(null);
@@ -71,6 +80,8 @@
   });
 
   let unsubscribeScriptMetadata = () => {};
+  let unsubscribeErrorMessageStore = () => {};
+  let lastRunErrorStack = $state<string | null>(null);
 
   const shouldClearErrorOnSuccessfulSave = (message: string | null) => {
     if (!message) {
@@ -99,6 +110,80 @@
         credits: "",
       });
     }
+  };
+
+  const clearScriptRunErrorMarker = () => {
+    if (!editorHandle) {
+      return;
+    }
+
+    clearMonacoEditorMarkers(editorHandle, scriptRunErrorMarkerOwner);
+  };
+
+  const getScriptLocation = (text: string | null) => {
+    if (!text) {
+      return null;
+    }
+
+    const match = text.match(scriptLocationPattern);
+    if (!match) {
+      return null;
+    }
+
+    const lineNumber = Number.parseInt(match[1] ?? "", 10);
+    if (Number.isNaN(lineNumber) || lineNumber < 1) {
+      return null;
+    }
+
+    const column = Number.parseInt(match[2] ?? "1", 10);
+    if (Number.isNaN(column) || column < 1) {
+      return null;
+    }
+
+    return {
+      lineNumber,
+      column,
+    };
+  };
+
+  const buildScriptRunErrorMarker = (message: string, stackTrace: string | null): MonacoEditorMarker | null => {
+    if (!editorHandle || editorHandle.model.isDisposed()) {
+      return null;
+    }
+
+    const location = getScriptLocation(stackTrace) ?? getScriptLocation(message);
+    if (!location) {
+      return null;
+    }
+
+    const lineCount = editorHandle.model.getLineCount();
+    const startLineNumber = Math.min(Math.max(location.lineNumber, 1), lineCount);
+    const lineMaxColumn = editorHandle.model.getLineMaxColumn(startLineNumber);
+    const startColumn = Math.min(Math.max(location.column, 1), lineMaxColumn);
+    const endColumn = lineMaxColumn > startColumn ? startColumn + 1 : startColumn;
+
+    return {
+      message,
+      startLineNumber,
+      startColumn,
+      endLineNumber: startLineNumber,
+      endColumn,
+      severity: "error",
+    };
+  };
+
+  const applyScriptRunErrorMarker = (message: string, stackTrace: string | null) => {
+    if (!editorHandle) {
+      return;
+    }
+
+    const marker = buildScriptRunErrorMarker(message, stackTrace);
+    if (!marker) {
+      clearScriptRunErrorMarker();
+      return;
+    }
+
+    setMonacoEditorMarkers(editorHandle, scriptRunErrorMarkerOwner, [marker]);
   };
 
   const saveToolState = async (content: string) => {
@@ -132,7 +217,11 @@
         refreshActiveTab();
       }
     } catch (e: unknown) {
-      setErrorMessage(`${saveFailurePrefix} ${e instanceof Error ? e.message : e}`);
+      if (e instanceof Error) {
+        setErrorMessage(`${saveFailurePrefix} ${e.message}`, typeof e.stack === "string" ? e.stack : null);
+      } else {
+        setErrorMessage(`${saveFailurePrefix} ${e}`);
+      }
     }
   };
 
@@ -180,25 +269,31 @@
 
   const formatIndentation = (content: string) => content;
 
-  const updateRunError = (errors: string[]) => {
+  const updateRunError = (errors: string[], errorStacks: string[] = []) => {
     if (errors.length === 0) {
       if (lastRunError && get(errorMessage) === lastRunError) {
         setErrorMessage(null);
       }
       lastRunError = null;
+      lastRunErrorStack = null;
+      clearScriptRunErrorMarker();
       setSuccessMessage("Script execution succeeded");
       return;
     }
 
     const message = errors.find((value) => value.trim().length > 0) ?? "Script execution failed.";
+    const stackTrace = errorStacks.find((value) => value.trim().length > 0) ?? null;
     lastRunError = message;
+    lastRunErrorStack = stackTrace;
     setSuccessMessage(null);
-    setErrorMessage(message);
+    setErrorMessage(message, stackTrace);
+    applyScriptRunErrorMarker(message, stackTrace);
   };
 
   const handleRunFailure = (error: unknown) => {
     const message = error instanceof Error ? error.message.trim() : String(error).trim();
-    updateRunError([message || "Script execution failed."]);
+    const errorStack = error instanceof Error && typeof error.stack === "string" ? error.stack : null;
+    updateRunError([message || "Script execution failed."], errorStack ? [errorStack] : []);
   };
 
   const runScript = () => {
@@ -217,7 +312,7 @@
       parseScriptMetadata(editorValue);
       getDefinitionBlock(editorValue);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Invalid script metadata or selector block.");
+      setErrorFromUnknown(error, "Invalid script metadata or selector block.");
       return;
     }
 
@@ -228,7 +323,7 @@
       .then((result) => {
         selectorEntries.set(result.selectors);
         saveNow(editorValue);
-        updateRunError(result.errors);
+        updateRunError(result.errors, result.errorStacks);
       })
       .catch((error: unknown) => {
         handleRunFailure(error);
@@ -351,7 +446,7 @@
     try {
       content = ensureDefineBlock(editorValue, scriptFormatConfig);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Invalid selector definition block.");
+      setErrorFromUnknown(error, "Invalid selector definition block.");
       return;
     }
 
@@ -428,7 +523,7 @@
 
     void loadStateForUrl(activeTabUrl)
       .catch((error) => {
-        setErrorMessage(error instanceof Error ? error.message : "Unable to load saved script state.");
+        setErrorFromUnknown(error, "Unable to load saved script state.");
       })
       .finally(() => {
         canPersistEditorChanges = true;
@@ -502,6 +597,18 @@
     unsubscribeScriptMetadata = scriptMetadata.subscribe((value) => {
       scriptMetadataValue = value;
     });
+    unsubscribeErrorMessageStore = errorMessage.subscribe((value) => {
+      if (value === lastRunError && lastRunError) {
+        applyScriptRunErrorMarker(lastRunError, lastRunErrorStack);
+        return;
+      }
+
+      if (value !== lastRunError) {
+        lastRunError = null;
+        lastRunErrorStack = null;
+      }
+      clearScriptRunErrorMarker();
+    });
 
     canPersistEditorChanges = false;
     editorValue = buildDefaultScript("", scriptFormatConfig);
@@ -535,6 +642,8 @@
       }
 
       unsubscribeScriptMetadata();
+      unsubscribeErrorMessageStore();
+      clearScriptRunErrorMarker();
     };
   });
 </script>

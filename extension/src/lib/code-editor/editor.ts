@@ -2,7 +2,7 @@ import * as monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 import "monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution.js";
 import "monaco-editor/esm/vs/basic-languages/css/css.contribution.js";
 import "monaco-editor/esm/vs/editor/edcore.main.js";
-import type { CreateMonacoEditorOptions, MonacoCodeEditorHandle } from "./types";
+import type { CreateMonacoEditorOptions, MonacoCodeEditorHandle, MonacoEditorMarker } from "./types";
 import { ensureMonacoEnvironment } from "./environment";
 import { configureJavaScriptLanguageService } from "./language-service";
 import { ensureCodeEditorTheme, pageProxyMonacoThemeName } from "./theme";
@@ -117,3 +117,33 @@ export const getMonacoEditorValue = (handle: MonacoCodeEditorHandle) =>
   handle.model.isDisposed() ? "" : handle.model.getValue();
 
 export const MonacoRange = monaco.Range;
+
+const markerSeverityMap: Record<MonacoEditorMarker["severity"], monaco.MarkerSeverity> = {
+  error: monaco.MarkerSeverity.Error,
+  warning: monaco.MarkerSeverity.Warning,
+  info: monaco.MarkerSeverity.Info,
+  hint: monaco.MarkerSeverity.Hint,
+};
+
+export const setMonacoEditorMarkers = (
+  handle: MonacoCodeEditorHandle,
+  owner: string,
+  markers: MonacoEditorMarker[],
+) => {
+  if (handle.model.isDisposed()) {
+    return;
+  }
+
+  monaco.editor.setModelMarkers(
+    handle.model,
+    owner,
+    markers.map((marker) => ({
+      ...marker,
+      severity: markerSeverityMap[marker.severity],
+    })),
+  );
+};
+
+export const clearMonacoEditorMarkers = (handle: MonacoCodeEditorHandle, owner: string) => {
+  setMonacoEditorMarkers(handle, owner, []);
+};

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ScriptRunLogValue } from "@/lib/script-runner";
+  import StackTraceView from "../StackTraceView.svelte";
   import Self from "./ConsoleObjectViewer.svelte";
 
   type Props = {
@@ -104,7 +105,7 @@
         </div>
         {#if value.stack}
           <div class="py-0.5">
-            <Self value={asStringValue(value.stack)} propertyName="stack" />
+            <StackTraceView stackTrace={value.stack} />
           </div>
         {/if}
       {/if}

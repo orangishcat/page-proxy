@@ -38,12 +38,14 @@ export type ScriptRunResponse = {
   type: 'script:result';
   requestId: string;
   error: string | null;
+  errorStack?: string | null;
   logs: ScriptRunLogEntry[];
   selectors: ScriptRunSelectorEntry[];
 };
 
 export type ScriptRunResult = {
   errors: string[];
+  errorStacks: string[];
   logs: ScriptRunLogEntry[];
   selectors: ScriptRunSelectorEntry[];
 };
@@ -104,6 +106,7 @@ export const isScriptRunResponse = (value: unknown): value is ScriptRunResponse 
     value.type === 'script:result' &&
     typeof value.requestId === 'string' &&
     (value.error === null || typeof value.error === 'string') &&
+    (value.errorStack === undefined || value.errorStack === null || typeof value.errorStack === 'string') &&
     hasValidLogs &&
     hasValidSelectors
   );
@@ -113,11 +116,13 @@ export const buildScriptRunResponse = (
   requestId: string,
   error: string | null,
   logs: ScriptRunLogEntry[] = [],
-  selectors: ScriptRunSelectorEntry[] = []
+  selectors: ScriptRunSelectorEntry[] = [],
+  errorStack: string | null = null
 ): ScriptRunResponse => ({
   type: 'script:result',
   requestId,
   error,
+  errorStack,
   logs,
   selectors
 });

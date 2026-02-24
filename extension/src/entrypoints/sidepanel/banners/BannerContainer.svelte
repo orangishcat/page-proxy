@@ -12,7 +12,14 @@
     saveHelpBannerDismissedSetting,
     saveUserscriptReloadBannerDismissedSetting,
   } from "../tools/state-storage";
-  import { errorMessage, setErrorMessage, setSuccessMessage, successMessage } from "../tools/tool-errors";
+  import StackTraceView from "../tools/StackTraceView.svelte";
+  import {
+    errorMessage,
+    errorStackTrace,
+    setErrorMessage,
+    setSuccessMessage,
+    successMessage,
+  } from "../tools/tool-errors";
   import Banner from "./Banner.svelte";
 
   const chromeUserscriptEnableInstructionsUrl =
@@ -29,9 +36,11 @@
   let userscriptReloadBannerDismissed = $state(false);
   let showHelpBanner = $state(true);
   let errorMessageValue = $state<string | null>(null);
+  let errorStackTraceValue = $state<string | null>(null);
   let successMessageValue = $state<string | null>(null);
 
   let unsubscribeErrorMessage = () => {};
+  let unsubscribeErrorStackTrace = () => {};
   let unsubscribeSuccessMessage = () => {};
 
   onMount(() => {
@@ -60,12 +69,16 @@
     unsubscribeErrorMessage = errorMessage.subscribe((value) => {
       errorMessageValue = value;
     });
+    unsubscribeErrorStackTrace = errorStackTrace.subscribe((value) => {
+      errorStackTraceValue = value;
+    });
     unsubscribeSuccessMessage = successMessage.subscribe((value) => {
       successMessageValue = value;
     });
 
     return () => {
       unsubscribeErrorMessage();
+      unsubscribeErrorStackTrace();
       unsubscribeSuccessMessage();
     };
   });
@@ -218,7 +231,16 @@
       dismissAriaLabel="Dismiss status message"
       onDismiss={dismissStatusBanner}
     >
-      <span>{successMessageValue ?? errorMessageValue}</span>
+      {#if successMessageValue}
+        <span>{successMessageValue}</span>
+      {:else}
+        <div class="w-full">
+          <span>{errorMessageValue}</span>
+          {#if errorStackTraceValue}
+            <StackTraceView stackTrace={errorStackTraceValue} />
+          {/if}
+        </div>
+      {/if}
     </Banner>
   {/if}
 </div>

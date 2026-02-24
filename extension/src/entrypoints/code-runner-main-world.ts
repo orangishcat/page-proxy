@@ -39,54 +39,77 @@ const ensurePpModules = (): PpModuleBindings => {
   return target.__pageProxyPpModules__;
 };
 
-const stripPpImportText = (code: string) =>
-  code
-    .split('\n')
-    .filter((line) => {
-      const trimmed = line.trim();
-      if (trimmed === 'import * as pq from "@page-proxy/pp/pp-query";') {
-        return false;
-      }
-      if (trimmed === 'import * as ps from "@page-proxy/pp/pp-style";') {
-        return false;
-      }
-      if (/^import\s*\{[^}]+\}\s*from\s*["']@page-proxy\/pp["'];?$/.test(trimmed)) {
-        return false;
-      }
-      if (trimmed === 'import * as pa from "@page-proxy/pp/pp-api";') {
-        return false;
-      }
-      if (trimmed === 'import * as pn from "@page-proxy/pp/pp-network";') {
-        return false;
-      }
-      if (trimmed === 'import * as pt from "@page-proxy/pp/pp-storage";') {
-        return false;
-      }
-      if (trimmed === 'import * as pv from "@page-proxy/pp/pp-event";') {
-        return false;
-      }
-      if (trimmed === 'const pp = pa.pp;' || trimmed === 'const pp = pv.pp;') {
-        return false;
-      }
-      return true;
-    })
-    .join('\n');
+const globalBindingsLine = 'const { pa, pn, pq, ps, pt, pv, pp } = globalThis;';
+const ppImportLinePattern = /^import\s*\{[^}]+\}\s*from\s*["']@page-proxy\/pp["'];?$/;
 
-const wrapExecutableCode = (code: string) =>
-  [
-    'const pa = globalThis.pa;',
-    'const pn = globalThis.pn;',
-    'const pq = globalThis.pq;',
-    'const ps = globalThis.ps;',
-    'const pt = globalThis.pt;',
-    'const pv = globalThis.pv;',
-    'const pp = globalThis.pp;',
-    code
-  ].join('\n');
+const shouldReplaceWithGlobalBindings = (line: string) => {
+  const trimmed = line.trim();
+  if (trimmed === 'import * as pq from "@page-proxy/pp/pp-query";') {
+    return true;
+  }
+  if (trimmed === 'import * as ps from "@page-proxy/pp/pp-style";') {
+    return true;
+  }
+  if (ppImportLinePattern.test(trimmed)) {
+    return true;
+  }
+  if (trimmed === 'import * as pa from "@page-proxy/pp/pp-api";') {
+    return true;
+  }
+  if (trimmed === 'import * as pn from "@page-proxy/pp/pp-network";') {
+    return true;
+  }
+  if (trimmed === 'import * as pt from "@page-proxy/pp/pp-storage";') {
+    return true;
+  }
+  if (trimmed === 'import * as pv from "@page-proxy/pp/pp-event";') {
+    return true;
+  }
+  if (trimmed === 'const pp = pa.pp;' || trimmed === 'const pp = pv.pp;') {
+    return true;
+  }
+  return false;
+};
+
+const replacePpImportsWithGlobalBindings = (code: string) => {
+  const lines = code.split('\n');
+  let replacedAny = false;
+  const replacedLines = lines.map((line) => {
+    if (!shouldReplaceWithGlobalBindings(line)) {
+      return line;
+    }
+
+    if (!replacedAny) {
+      replacedAny = true;
+      return globalBindingsLine;
+    }
+
+    // Keep line numbers stable even when multiple import variants exist.
+    return '';
+  });
+
+  if (!replacedAny) {
+    if (replacedLines.length === 0) {
+      return globalBindingsLine;
+    }
+
+    replacedLines[0] = `${globalBindingsLine} ${replacedLines[0]}`;
+  }
+
+  return replacedLines.join('\n');
+};
 
 const maxLogDepth = 5;
 const maxLogEntries = 50;
 const maxSelectorRules = 24;
+const blobSourcePattern = /blob:[^\s)]+/g;
+
+const replaceBlobSources = (value: string) =>
+  value.replace(blobSourcePattern, (sourceRef) => {
+    const locationSuffixMatch = sourceRef.match(/(:\d+(?::\d+)?)$/);
+    const locationSuffix = locationSuffixMatch ? locationSuffixMatch[1] : "";
+    return `<script>${locationSuffix}`;
+  });
 
 const getConstructorName = (value: object) => {
   const constructor = (value as {constructor?: {name?: unknown}}).constructor;
@@ -148,7 +171,7 @@ const serializeScriptRunValue = (
       kind: 'error',
       name: value.name,
       message: value.message,
-      stack: typeof value.stack === 'string' ? value.stack : null
+      stack: typeof value.stack === 'string' ? replaceBlobSources(value.stack) : null
     };
   }
 
@@ -238,9 +261,22 @@ const createNotificationCapture = () => {
 
 const toExecutionErrorMessage = (error: unknown) => {
   if (error instanceof Error && error.message) {
-    return error.message;
+    return replaceBlobSources(error.message);
   }
-  return String(error);
+  return replaceBlobSources(String(error));
+};
+
+const toExecutionErrorStack = (error: unknown) => {
+  if (error instanceof Error && typeof error.stack === 'string') {
+    return replaceBlobSources(error.stack);
+  }
+
+  if (typeof error === 'object' && error !== null && 'stack' in error) {
+    const stack = (error as {stack?: unknown}).stack;
+    return typeof stack === 'string' ? replaceBlobSources(stack) : null;
+  }
+
+  return null;
 };
 
 const normalizeRuleText = (value: string) => value.replace(/\s+/g, ' ').trim();
@@ -304,7 +340,7 @@ const toSelectorEntry = (definition: pq.SelectorDefinition<unknown>): ScriptRunS
 };
 
 const runScriptCode = (code: string) => {
-  const executableCode = wrapExecutableCode(stripPpImportText(code));
+  const executableCode = replacePpImportsWithGlobalBindings(code);
   const blob = new Blob([executableCode], {type: 'text/javascript'});
   const blobUrl = URL.createObjectURL(blob);
 
@@ -385,22 +421,27 @@ const runScriptRequest = (
     delete (globalThis as Record<string, unknown>)[notificationSinkKey];
   };
 
-  const respond = (error: string | null) => {
+  const respond = (error: string | null, errorStack: string | null = null) => {
     if (hasResponded) {
       return;
     }
 
     hasResponded = true;
     cleanup();
-    sendResult(buildScriptRunResponse(requestId, error, logs, Array.from(selectorsByName.values())));
+    sendResult(buildScriptRunResponse(requestId, error, logs, Array.from(selectorsByName.values()), errorStack));
   };
 
   const onError = (errorEvent: ErrorEvent) => {
-    respond(`Script execution failed: ${errorEvent.message || 'Unknown error.'}`);
+    const errorMessage =
+      errorEvent.message || toExecutionErrorMessage(errorEvent.error) || 'Unknown error.';
+    respond(`Script execution failed: ${errorMessage}`, toExecutionErrorStack(errorEvent.error));
   };
 
   const onRejection = (rejection: PromiseRejectionEvent) => {
-    respond(`Script execution failed: ${toExecutionErrorMessage(rejection.reason)}`);
+    respond(
+      `Script execution failed: ${toExecutionErrorMessage(rejection.reason)}`,
+      toExecutionErrorStack(rejection.reason)
+    );
   };
 
   window.addEventListener('error', onError);
@@ -422,7 +463,7 @@ const runScriptRequest = (
       respond(null);
     })
     .catch((error: unknown) => {
-      respond(`Script execution failed: ${toExecutionErrorMessage(error)}`);
+      respond(`Script execution failed: ${toExecutionErrorMessage(error)}`, toExecutionErrorStack(error));
     });
 };
 

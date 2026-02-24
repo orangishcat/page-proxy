@@ -1,2 +1,16 @@
-export type { CreateMonacoEditorOptions, MonacoCodeEditorHandle, MonacoEditor } from "./types";
-export { createMonacoEditor, ensureMonacoEditor, getMonacoEditorValue, MonacoRange, updateMonacoEditorValue } from "./editor";
+export type {
+  CreateMonacoEditorOptions,
+  MonacoCodeEditorHandle,
+  MonacoEditor,
+  MonacoEditorMarker,
+  MonacoMarkerSeverity,
+} from "./types";
+export {
+  clearMonacoEditorMarkers,
+  createMonacoEditor,
+  ensureMonacoEditor,
+  getMonacoEditorValue,
+  MonacoRange,
+  setMonacoEditorMarkers,
+  updateMonacoEditorValue,
+} from "./editor";

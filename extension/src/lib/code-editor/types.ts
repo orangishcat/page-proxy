@@ -2,6 +2,17 @@ import type * as monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 
 export type MonacoEditor = monaco.editor.IStandaloneCodeEditor;
 
+export type MonacoMarkerSeverity = "error" | "warning" | "info" | "hint";
+
+export type MonacoEditorMarker = {
+  message: string;
+  startLineNumber: number;
+  startColumn: number;
+  endLineNumber: number;
+  endColumn: number;
+  severity: MonacoMarkerSeverity;
+};
+
 export type MonacoCodeEditorHandle = {
   editor: MonacoEditor;
   model: monaco.editor.ITextModel;

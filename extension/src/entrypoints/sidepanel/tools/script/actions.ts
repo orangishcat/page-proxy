@@ -10,7 +10,7 @@ import {
 import { ensureCodeRunnerUserscript, getUserscriptEnableMessage } from "@/lib/userscript-runner";
 import { isRestrictedUrl } from "@/lib/utils/website-glob";
 
-const emptyRunResult: ScriptRunResult = { errors: [], logs: [], selectors: [] };
+const emptyRunResult: ScriptRunResult = { errors: [], errorStacks: [], logs: [], selectors: [] };
 const responseTimeoutMs = 1800;
 const maxScriptRunAttempts = 3;
 const scriptRunRetryDelayMs = 200;
@@ -18,7 +18,12 @@ const scriptRunBroadcastWaitTimeoutMs = 1500;
 const logger = log.getLogger("script-actions");
 logger.setLevel("debug", false);
 
-const toRunResult = (message: string): ScriptRunResult => ({ errors: [message], logs: [], selectors: [] });
+const toRunResult = (message: string, errorStack: string | null = null): ScriptRunResult => ({
+  errors: [message],
+  errorStacks: errorStack ? [errorStack] : [],
+  logs: [],
+  selectors: [],
+});
 
 const buildRequestId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -154,6 +159,7 @@ const toScriptRunResultFromResponse = (requestId: string, response: unknown): Sc
 
   return {
     errors: response.error ? [response.error] : [],
+    errorStacks: response.errorStack ? [response.errorStack] : [],
     logs: response.logs ?? [],
     selectors: response.selectors ?? [],
   };
@@ -224,6 +230,7 @@ const requestScriptRunAttempt = (
       });
     })
     .catch((error: unknown) => {
+      const normalizedError = toError(error);
       if (isClosedMessageChannelError(error)) {
         logger.warn("script:run response channel closed", { requestId, error, attempt });
         return broadcastWaiter.promise.then((broadcastResponse) => {
@@ -245,7 +252,7 @@ const requestScriptRunAttempt = (
       if (isNoReceiverError(error)) {
         return toRunResult(`${getUserscriptEnableMessage()} If already enabled, reload this tab and run again.`);
       }
-      return toRunResult("Unable to connect to the active tab.");
+      return toRunResult("Unable to connect to the active tab.", normalizedError.stack ?? null);
     });
 };
 
