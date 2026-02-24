@@ -447,25 +447,6 @@ export const pressKey = (keys: string, options: OnKeyPressedOptions = {}) => {
   });
 };
 
-export const sleep = (ms: number) =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, ms);
-  });
-
-export const awaitAnimation = () =>
-  new Promise<void>((resolve) => {
-    if (typeof requestAnimationFrame === "undefined") {
-      setTimeout(resolve, 16);
-      return;
-    }
-
-    requestAnimationFrame(() => {
-      resolve();
-    });
-  });
-
-export const awaitMicrotask = () => Promise.resolve();
-
 export const pageModificationFunctions = [
   "pa.notification",
   "pt.setItem",
@@ -473,9 +454,6 @@ export const pageModificationFunctions = [
   "pv.onElementCreated",
   "pv.onKeyPressed",
   "pv.pressKey",
-  "pv.sleep",
-  "pv.awaitAnimation",
-  "pv.awaitMicrotask",
   "pn.fetch",
   "pn.invalidateCache",
   "pn.get",
