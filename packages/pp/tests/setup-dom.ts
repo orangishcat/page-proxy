@@ -7,6 +7,7 @@ const { window } = dom;
 (globalThis as unknown as Record<string, unknown>).document = window.document;
 (globalThis as unknown as Record<string, unknown>).Element = window.Element;
 (globalThis as unknown as Record<string, unknown>).Node = window.Node;
+(globalThis as unknown as Record<string, unknown>).MutationObserver = window.MutationObserver;
 (globalThis as unknown as Record<string, unknown>).HTMLElement = window.HTMLElement;
 (globalThis as unknown as Record<string, unknown>).HTMLDivElement = window.HTMLDivElement;
 (globalThis as unknown as Record<string, unknown>).HTMLTemplateElement = window.HTMLTemplateElement;

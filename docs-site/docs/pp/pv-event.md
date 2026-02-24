@@ -84,4 +84,30 @@ pv.pressKey("shift+x", {
 });
 ```
 
+## `sleep(ms)`
+
+Returns a Promise that resolves after `ms` milliseconds.
+
+```js
+await pv.sleep(250);
+```
+
+## `awaitAnimation()`
+
+Returns a Promise that resolves on the next animation frame.
+
+```js
+await pv.awaitAnimation();
+```
+
+## `awaitMicrotask()`
+
+Returns a Promise that resolves in the next microtask.
+
+```js
+await pv.awaitMicrotask();
+```
+
+Always use `await` when calling these Promise-returning helpers.
+
 For notifications, use `pa.notification(...)`.

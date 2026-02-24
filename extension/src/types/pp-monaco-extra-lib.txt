@@ -165,5 +165,8 @@ declare module "@page-proxy/pp/pp-event" {
   export declare const onElementCreated: (func: OnElementCreatedHandler, targetNode?: Node, observerOptions?: MutationObserverInit) => ElementCreatedObserver;
   export declare const onKeyPressed: (keys: string, func: (event: KeyboardEvent) => void, options?: OnKeyPressedOptions) => () => void;
   export declare const pressKey: (keys: string, options?: OnKeyPressedOptions) => void;
+  export declare const sleep: (ms: number) => Promise<void>;
+  export declare const awaitAnimation: () => Promise<void>;
+  export declare const awaitMicrotask: () => Promise<void>;
   export declare const pageModificationFunctions: string[];
 }

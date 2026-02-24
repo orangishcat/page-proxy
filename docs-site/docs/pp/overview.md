@@ -11,7 +11,7 @@ title: pp Library Overview
 - `pq`: DOM querying and matching.
 - `ps`: style application helpers (`applyStyle`, `injectCSS`).
 - `pt`: script-scoped storage helpers.
-- `pv`: mutation observers and key-combo listeners.
+- `pv`: mutation observers, key-combo listeners, and async timing helpers.
 
 ## Quick example
 
