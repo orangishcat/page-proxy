@@ -63,6 +63,21 @@ Deletes cached response entries for a cache key (or URL).
 - Returns `true` if at least one cache entry was removed.
 - Returns `false` if no matching cache entry exists.
 
+Storage key matching follows the same identity rules used by `pn.fetch` caching:
+
+1. `pn.fetch` cache identity:
+   - If `options.cacheKey?.trim()` is non-empty, that trimmed value is used.
+   - Otherwise the identity is `request.url` from `new Request(input, options)` (absolute, normalized URL).
+2. Local storage key format:
+   - `pp-network-cache:<scope>:<identity>`
+   - `<scope>` is the current script storage scope (for example `global`).
+3. `pn.invalidateCache(key)` matching:
+   - Trims `key`; empty string does nothing (`false`).
+   - Always checks/removes the direct key: `pp-network-cache:<scope>:<trimmed key>`.
+   - If `key` can be parsed as a URL (including relative URLs with `location.href` as base), it also checks/removes the normalized URL identity key used by `pn.fetch`.
+
+This means invalidation works for both custom `cacheKey` values and URL-based cache entries created without `cacheKey`.
+
 ```js
 pn.invalidateCache("items:list");
 pn.invalidateCache("https://api.example.com/items");
