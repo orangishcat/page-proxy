@@ -72,4 +72,11 @@ export type SelectToolMessage =
   | {
       type: 'select:selected';
       payload: ElementInfo | null;
+    }
+  | {
+      type: "selectors:hover";
+      payload: {
+        selectorName: string;
+        rules: string[];
+      } | null;
     };

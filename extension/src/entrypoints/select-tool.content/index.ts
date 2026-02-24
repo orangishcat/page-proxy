@@ -227,6 +227,41 @@ const getShortcutTool = (event: KeyboardEvent): SidepanelShortcutId | null => {
   }
 };
 
+const selectorRulePrefixPattern = /^(?:selector|baseSelector):\s*(.+)$/i;
+const selectorsHoverExclusionClass = "pp-no-select-tool";
+
+const normalizeCssSelector = (value: string) => value.trim().replace(/\s+/g, " ");
+
+const toPreviewCssSelectors = (selectorName: string, rules: string[]) => {
+  const candidates: string[] = [selectorName];
+  rules.forEach((rule) => {
+    const match = rule.match(selectorRulePrefixPattern);
+    if (match?.[1]) {
+      candidates.push(match[1]);
+    }
+  });
+
+  const uniqueSelectors = new Set<string>();
+  candidates.forEach((candidate) => {
+    const normalized = normalizeCssSelector(candidate);
+    if (!normalized) {
+      return;
+    }
+
+    if (typeof CSS === "undefined" || typeof CSS.supports !== "function") {
+      return;
+    }
+
+    if (!CSS.supports(`selector(${normalized})`)) {
+      return;
+    }
+
+    uniqueSelectors.add(normalized);
+  });
+
+  return Array.from(uniqueSelectors);
+};
+
 export default defineContentScript({
   matches: ["<all_urls>"],
   cssInjectionMode: "ui",
@@ -247,6 +282,7 @@ export default defineContentScript({
     let popupApp: ReturnType<typeof mount> | null = null;
     let shadowUi: Awaited<ReturnType<typeof createShadowRootUi>> | null = null;
     let resumeSelectionAfterPopup = false;
+    let hoveredSelectorElements: Element[] = [];
 
     logger.debug("select tool content script initialized", { href: window.location.href });
 
@@ -309,6 +345,46 @@ export default defineContentScript({
           setSelectionEnabled(true);
         }
       }
+    };
+
+    const clearHoveredSelectorElements = () => {
+      hoveredSelectorElements.forEach((element) => {
+        element.classList.remove(hoveredPreviewClass);
+      });
+      hoveredSelectorElements = [];
+    };
+
+    const applyHoveredSelectorElements = (
+      payload: Extract<SelectToolMessage, { type: "selectors:hover" }>["payload"],
+    ) => {
+      clearHoveredSelectorElements();
+      if (!payload) {
+        return;
+      }
+
+      const selectors = toPreviewCssSelectors(payload.selectorName, payload.rules);
+      if (selectors.length === 0) {
+        return;
+      }
+
+      const matchingElements = new Set<Element>();
+      selectors.forEach((selectorText) => {
+        Array.from(document.querySelectorAll(selectorText))
+          .filter((element) => !element.closest(`.${selectorsHoverExclusionClass}`))
+          .forEach((element) => {
+            matchingElements.add(element);
+          });
+      });
+
+      if (matchingElements.size === 0) {
+        return;
+      }
+
+      ensureSelectionStyles();
+      hoveredSelectorElements = Array.from(matchingElements);
+      hoveredSelectorElements.forEach((element) => {
+        element.classList.add(hoveredPreviewClass);
+      });
     };
 
     const isNoReceiverError = (error: unknown) => {
@@ -674,6 +750,7 @@ export default defineContentScript({
         window.cancelAnimationFrame(popupFrame);
         popupFrame = null;
       }
+      clearHoveredSelectorElements();
       logger.debug("select tool listeners detached");
     };
 
@@ -781,6 +858,9 @@ export default defineContentScript({
           resumeSelectionAfterPopup = false;
         }
         setSelectionEnabled(selectMessage.enabled);
+      }
+      if (selectMessage.type === "selectors:hover") {
+        applyHoveredSelectorElements(selectMessage.payload);
       }
       return false;
     });

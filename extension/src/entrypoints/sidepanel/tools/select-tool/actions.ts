@@ -47,6 +47,7 @@ const isSelectToolMessage = (value: unknown): value is SelectToolMessage =>
   hasType(value, "select:mode") ||
   hasType(value, "select:hover") ||
   hasType(value, "select:selected") ||
+  hasType(value, "selectors:hover") ||
   hasType(value, "select:toggle") ||
   hasType(value, "select:parent") ||
   hasType(value, "selector:open");

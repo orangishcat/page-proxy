@@ -1,12 +1,24 @@
 <script lang="ts">
   import { Collapsible } from "bits-ui";
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
+  import { sendSelectorsHover } from "./selectors/actions";
   import type { SelectorsToolEntry } from "./selectors/state";
   import { selectorEntriesDisplay } from "./selectors/state";
 
   let selectorEntriesValue = $state<SelectorsToolEntry[]>([]);
 
   const formatRuleCount = (ruleCount: number) => `${ruleCount} ${ruleCount === 1 ? "rule" : "rules"}`;
+
+  const handleSelectorMouseEnter = (entry: SelectorsToolEntry) => {
+    sendSelectorsHover({
+      selectorName: entry.name,
+      rules: entry.rules,
+    });
+  };
+
+  const handleSelectorMouseLeave = () => {
+    sendSelectorsHover(null);
+  };
 
   onMount(() => {
     const unsubscribeSelectorEntries = selectorEntriesDisplay.subscribe((value) => {
@@ -16,6 +28,10 @@
     return () => {
       unsubscribeSelectorEntries();
     };
+  });
+
+  onDestroy(() => {
+    sendSelectorsHover(null);
   });
 </script>
 
@@ -28,7 +44,11 @@
     {:else}
       <div class="min-h-0 h-full space-y-2 overflow-y-auto">
         {#each selectorEntriesValue as entry (entry.name)}
-          <Collapsible.Root class="rounded-lg border border-[#4f4a38] bg-[#2d2b25] text-gray-100 group">
+          <Collapsible.Root
+            class="rounded-lg border border-[#4f4a38] bg-[#2d2b25] text-gray-100 group"
+            onmouseenter={() => handleSelectorMouseEnter(entry)}
+            onmouseleave={handleSelectorMouseLeave}
+          >
             <Collapsible.Trigger
               class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-[#37332c]"
             >
