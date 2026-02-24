@@ -397,12 +397,10 @@ const runScriptRequest = (
 
   const onError = (errorEvent: ErrorEvent) => {
     respond(`Script execution failed: ${errorEvent.message || 'Unknown error.'}`);
-    errorEvent.preventDefault();
   };
 
   const onRejection = (rejection: PromiseRejectionEvent) => {
     respond(`Script execution failed: ${toExecutionErrorMessage(rejection.reason)}`);
-    rejection.preventDefault();
   };
 
   window.addEventListener('error', onError);

@@ -43,6 +43,7 @@
     defineBlockEnd,
     protectedComment,
   };
+  const saveFailurePrefix = "Saving failed:";
 
   let editorHost = $state<HTMLDivElement | null>(null);
   let editorHandle = $state<MonacoCodeEditorHandle | null>(null);
@@ -70,6 +71,14 @@
   });
 
   let unsubscribeScriptMetadata = () => {};
+
+  const shouldClearErrorOnSuccessfulSave = (message: string | null) => {
+    if (!message) {
+      return false;
+    }
+
+    return message === unsavedTabSwitchWarning || message.startsWith(saveFailurePrefix);
+  };
 
   const updateScriptMetadata = (content: string) => {
     try {
@@ -116,12 +125,14 @@
       requiresManualSaveToContinue = false;
       const shouldRefreshPendingTab = hasPendingTabRefresh;
       hasPendingTabRefresh = false;
-      setErrorMessage(null);
+      if (shouldClearErrorOnSuccessfulSave(get(errorMessage))) {
+        setErrorMessage(null);
+      }
       if (shouldRefreshPendingTab) {
         refreshActiveTab();
       }
     } catch (e: unknown) {
-      setErrorMessage(`Saving failed: ${e instanceof Error ? e.message : e}`);
+      setErrorMessage(`${saveFailurePrefix} ${e instanceof Error ? e.message : e}`);
     }
   };
 
@@ -179,10 +190,15 @@
       return;
     }
 
-    const message = errors[0];
+    const message = errors.find((value) => value.trim().length > 0) ?? "Script execution failed.";
     lastRunError = message;
     setSuccessMessage(null);
     setErrorMessage(message);
+  };
+
+  const handleRunFailure = (error: unknown) => {
+    const message = error instanceof Error ? error.message.trim() : String(error).trim();
+    updateRunError([message || "Script execution failed."]);
   };
 
   const runScript = () => {
@@ -213,6 +229,9 @@
         selectorEntries.set(result.selectors);
         saveNow(editorValue);
         updateRunError(result.errors);
+      })
+      .catch((error: unknown) => {
+        handleRunFailure(error);
       })
       .finally(() => {
         isRunning = false;

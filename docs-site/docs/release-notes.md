@@ -4,6 +4,20 @@ title: Release notes
 
 # Release notes (next)
 
+## New in v0.2.2
+
+- Added new APIs in `@page-proxy/pp`:
+  - `pa.moveNode` to move an existing node relative to a target node.
+  - `pv.pressKey` to dispatch keyboard interactions programmatically.
+- Improved editor safety and persistence behavior:
+  - Prevents saving over unsaved script edits.
+  - Uses script-name storage keys instead of website-based keys.
+- Improved Selectors tool feedback:
+  - Hovering selector entries now highlights matching elements on the page.
+- Fixed reliability issues:
+  - Async errors are surfaced instead of being silently swallowed.
+  - Input-registration issues around key handling were corrected.
+
 ## New in v0.2.1
 
 - Added Select tool integration with browser DevTools selection:

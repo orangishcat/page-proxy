@@ -56,13 +56,13 @@ Returns a cleanup function that removes the event listeners.
 
 ```js
 const stop = pv.onKeyPressed(
-  "shift+x",
-  () => {
-    console.log("Shift+X pressed");
-  },
-  {
-    keyAction: ["press", "release"],
-  },
+    "shift+x",
+    () => {
+        console.log("Shift+X pressed");
+    },
+    {
+        keyAction: ["press", "release"],
+    },
 );
 
 // Later:
@@ -71,7 +71,7 @@ stop();
 
 ## `pressKey(keys, options)`
 
-Simulates keyboard events immediately instead of waiting for user input.
+Simulates keyboard events programatically.
 
 Options:
 
@@ -79,12 +79,9 @@ Options:
 - `cancel?: boolean` (default `false`, truthy values call `preventDefault()` on the simulated event)
 
 ```js
-pv.pressKey(
-  "shift+x",
-  {
+pv.pressKey("shift+x", {
     keyAction: ["press", "release"],
-  },
-);
+});
 ```
 
 For notifications, use `pa.notification(...)`.

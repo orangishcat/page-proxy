@@ -40,7 +40,7 @@ export default defineConfig({
   }),
   manifest: ({ browser }) => ({
     name: "Page Proxy",
-    version: "0.2.1",
+    version: "0.2.2",
     description: "Proxy and restyle pages with an extension-based UI.",
     action: {
       default_title: "Page Proxy",

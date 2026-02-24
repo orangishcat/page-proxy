@@ -4,7 +4,7 @@ title: ps (Style API)
 
 # ps module (v0.2.x)
 
-`applyStyle(elements, values)` applies CSS style properties on each target element.
+`applyStyle(elements, values)` applies CSS style properties on all target elements in a list.
 
 ```ts
 ps.applyStyle(Array.from(document.querySelectorAll(".target")), {
@@ -13,7 +13,18 @@ ps.applyStyle(Array.from(document.querySelectorAll(".target")), {
 });
 ```
 
-It safely ignores elements that do not expose a `style` property.
+For single element:
+
+```ts
+ps.applyStyle([document.querySelector(".target")], {
+    color: "#fff",
+    background: "#111",
+});
+```
+
+Don't forget to wrap the element in a list!
+
+The function safely ignores elements that do not expose a `style` property.
 
 ## `injectCSS(styleText)`
 

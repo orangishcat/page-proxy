@@ -273,7 +273,6 @@ const normalizeContentForStorage = (content: string) => ensureDefineBlock(conten
 
 const isDefaultScriptState = (state: StoredToolState) => {
   const defaultContent = normalizeContentForStorage(buildDefaultScript(state.websiteGlob, defaultScriptConfig));
-  logger.debug(`Default content: ${defaultContent}, code editor content: ${state.codeEditor.content}`);
   return state.codeEditor.content === defaultContent;
 };
 
