@@ -1,5 +1,5 @@
 import { parseScriptMetadata } from "@/lib/utils/script-metadata";
-import { buildWebsiteGlobForUrl } from "@/lib/utils/website-glob";
+import { buildWebsiteGlobForUrl, matchWebsiteGlob } from "@/lib/utils/website-glob";
 import { buildDefaultScript, type DefaultScriptConfig } from "@/lib/default-script";
 
 import { findStoredToolStateForUrl, type StoredToolState } from "./state-storage";
@@ -104,8 +104,23 @@ export const ensureWebsiteMetadata = (content: string, websiteGlob: string) => {
 
 export const resolveWebsiteGlob = (content: string, activeTabUrl: string | null, activeWebsiteGlob: string | null) => {
   const metadata = parseScriptMetadata(content);
+  const websitesFromMetadata = metadata.websites.map((website) => website.trim()).filter((website) => website.length > 0);
+
+  if (websitesFromMetadata.length > 0) {
+    if (activeTabUrl) {
+      const matchingWebsite = websitesFromMetadata
+        .filter((websiteGlob) => matchWebsiteGlob(websiteGlob, activeTabUrl))
+        .sort((left, right) => right.length - left.length)[0];
+      if (matchingWebsite) {
+        return matchingWebsite;
+      }
+    }
+
+    return websitesFromMetadata[0];
+  }
+
   const fromMetadata = metadata.website.trim();
-  if (fromMetadata) {
+  if (fromMetadata.length > 0) {
     return fromMetadata;
   }
 
@@ -117,6 +132,7 @@ export const resolveWebsiteGlob = (content: string, activeTabUrl: string | null,
 };
 
 export const buildDefaultToolState = (websiteGlob: string, config: ScriptFormatConfig): StoredToolState => ({
+  scriptName: "Page Proxy",
   activeTool: "none",
   codeEditor: {
     content: normalizeContentForStorage(buildDefaultScript(websiteGlob, config), false, config),
@@ -141,7 +157,8 @@ export const resolveStoredToolStateForUrl = async (url: string, config: ScriptFo
   const fallbackWebsiteGlob = buildWebsiteGlobForUrl(url);
   const state = matched?.state ?? buildDefaultToolState(fallbackWebsiteGlob, config);
   return {
-    websiteGlob: matched?.websiteGlob ?? fallbackWebsiteGlob,
+    scriptName: matched?.scriptName ?? state.scriptName,
+    websiteGlob: matched?.matchedWebsiteGlob ?? fallbackWebsiteGlob,
     state,
   };
 };

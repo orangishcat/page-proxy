@@ -47,7 +47,7 @@
     isResolvingGrantRequest = true;
     void resolveGrantPermissionRequest(
       {
-        websiteGlob: grantRequest.websiteGlob,
+        scriptName: grantRequest.scriptName,
         grants: grantRequest.grants,
       },
       allow,
@@ -91,7 +91,7 @@
       <h2 class="text-title text-gray-100">Grant permissions</h2>
       <p class="text-body text-gray-300">The script is requesting the following permissions:</p>
       <ul class="list-disc pl-4 space-y-1.5 text-gray-200">
-        {#each grantRequest.grants as grant (`${grantRequest.websiteGlob}-${grant}`)}
+        {#each grantRequest.grants as grant (`${grantRequest.scriptName}-${grant}`)}
           <li>
             {#if grant === "run-on-page-load"}
               <a

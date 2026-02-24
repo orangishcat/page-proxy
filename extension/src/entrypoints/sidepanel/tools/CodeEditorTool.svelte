@@ -52,6 +52,7 @@
   let activeTabId = $state<number | null>(null);
   let activeTabUrl = $state<string | null>(null);
   let activeWebsiteGlob = $state<string | null>(null);
+  let activeScriptName = $state<string | null>(null);
   let isProtectedPage = $state(false);
   let isProgrammaticUpdate = false;
   let canPersistEditorChanges = false;
@@ -98,10 +99,14 @@
         scriptFormatConfig,
         activeTabUrl,
         activeWebsiteGlob,
+        activeScriptName,
         activeTool: get(activeToolState),
         getDefinitionBlock,
         setActiveWebsiteGlob: (websiteGlob) => {
           activeWebsiteGlob = websiteGlob;
+        },
+        setActiveScriptName: (scriptName) => {
+          activeScriptName = scriptName;
         },
       });
       hasUnsavedChanges = false;
@@ -257,12 +262,14 @@
     }
 
     const activeWebsite = activeWebsiteGlob?.trim() ?? "";
+    const activeScript = activeScriptName?.trim() ?? "";
+    const metadataScriptName = scriptMetadataValue.title.trim();
     const metadataWebsite = scriptMetadataValue.website.trim();
     const websiteGlob = activeWebsite || metadataWebsite;
-    const websiteGlobsToRemove = Array.from(new Set([activeWebsite, metadataWebsite].filter((glob) => glob.length > 0)));
+    const scriptNamesToRemove = Array.from(new Set([activeScript, metadataScriptName].filter((name) => name.length > 0)));
 
-    if (websiteGlobsToRemove.length > 0) {
-      await Promise.all(websiteGlobsToRemove.map((glob) => removeStoredToolState(glob))).catch((error: unknown) => {
+    if (scriptNamesToRemove.length > 0) {
+      await Promise.all(scriptNamesToRemove.map((name) => removeStoredToolState(name))).catch((error: unknown) => {
         const message = error instanceof Error ? error.message : "Unknown storage error.";
         throw new Error(`Unable to delete script from extension storage: ${message}`);
       });
@@ -272,6 +279,7 @@
     const normalizedContent = ensureWebsiteMetadata(ensureDefineBlock(defaultContent, scriptFormatConfig), websiteGlob);
 
     activeWebsiteGlob = websiteGlob || null;
+    activeScriptName = null;
     updateEditorContent(normalizedContent, { persist: false });
     setErrorMessage(null);
   };
@@ -313,6 +321,7 @@
   const loadStateForUrl = async (url: string | null) => {
     const normalizedUrl = url?.trim() ?? "";
     if (!normalizedUrl) {
+      activeScriptName = null;
       activeWebsiteGlob = null;
       activeToolState.set("none");
       selectorEntries.set([]);
@@ -324,6 +333,7 @@
     }
 
     const resolvedState = await resolveStoredToolStateForUrl(normalizedUrl, scriptFormatConfig);
+    activeScriptName = resolvedState.scriptName;
     activeWebsiteGlob = resolvedState.websiteGlob;
     activeToolState.set(resolvedState.state.activeTool);
     selectorEntries.set(resolvedState.state.selectorPanel.entries);
@@ -351,6 +361,7 @@
       allowedScriptGrantsState.set([]);
 
       activeWebsiteGlob = null;
+      activeScriptName = null;
       activeToolState.set("none");
       const protectedContent = buildProtectedDisplay(buildDefaultScript("", scriptFormatConfig), scriptFormatConfig);
       updateEditorContent(protectedContent, { persist: false });

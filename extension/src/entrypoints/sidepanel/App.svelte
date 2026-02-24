@@ -330,7 +330,7 @@
 
       if (isGrantPermissionRequestMessage(message)) {
         grantPermissionRequest.set({
-          websiteGlob: message.payload.websiteGlob,
+          scriptName: message.payload.scriptName,
           grants: message.payload.grants,
         });
         setActiveTool("help");

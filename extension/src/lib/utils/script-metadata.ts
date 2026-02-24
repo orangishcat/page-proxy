@@ -3,6 +3,7 @@ import { parseScriptGrantValues, type ScriptGrantValue } from "@/lib/grants";
 export type ScriptMetadata = {
   title: string;
   website: string;
+  websites: string[];
   description: string;
   author: string;
   credits: string;
@@ -38,6 +39,7 @@ export const parseScriptMetadata = (content: string): ScriptMetadata => {
     credits: "",
     grant: "",
   };
+  const parsedWebsites: string[] = [];
   let parsedGrants: ScriptGrantValue[] = [];
   const seen = new Set<(typeof supportedMetadataFields)[number]>();
   let activeMultilineField: (typeof multilineMetadataFields)[number] | null = null;
@@ -59,6 +61,22 @@ export const parseScriptMetadata = (content: string): ScriptMetadata => {
         }
 
         const typedKey = key as (typeof supportedMetadataFields)[number];
+
+        if (typedKey === "website") {
+          const normalizedWebsite = value.trim();
+          if (normalizedWebsite.length > 0 && !parsedWebsites.includes(normalizedWebsite)) {
+            parsedWebsites.push(normalizedWebsite);
+          }
+
+          if (!seen.has(typedKey)) {
+            seen.add(typedKey);
+            parsed[typedKey] = normalizedWebsite;
+          }
+
+          activeMultilineField = null;
+          return;
+        }
+
         if (seen.has(typedKey)) {
           throw new Error(`Duplicate @${typedKey} metadata field.`);
         }
@@ -100,7 +118,8 @@ export const parseScriptMetadata = (content: string): ScriptMetadata => {
 
   return {
     title: parsed.title,
-    website: parsed.website,
+    website: parsedWebsites[0] ?? parsed.website,
+    websites: parsedWebsites,
     description: parsed.description,
     author: parsed.author,
     credits: parsed.credits,

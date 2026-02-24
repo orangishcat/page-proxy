@@ -19,6 +19,7 @@ import log from "loglevel";
 type ToolId = "select" | "create" | "selectors" | "help" | "share" | "none";
 
 type StoredToolState = {
+  scriptName: string;
   activeTool: ToolId;
   codeEditor: {
     content: string;
@@ -35,6 +36,12 @@ type StoredToolState = {
   };
   websiteGlob: string;
   updatedAt: number;
+};
+
+type StoredStateMatch = {
+  scriptName: string;
+  matchedWebsiteGlob: string;
+  state: StoredToolState;
 };
 
 const storageKeyPrefix = "pageproxy:";
@@ -98,16 +105,45 @@ const fromStorageKey = (key: string) => {
     return null;
   }
 
-  const websiteGlob = key.slice(storageKeyPrefix.length).trim();
-  return websiteGlob.length > 0 ? websiteGlob : null;
+  const scriptName = key.slice(storageKeyPrefix.length).trim();
+  return scriptName.length > 0 ? scriptName : null;
 };
 
-const coerceStoredToolState = (value: unknown, websiteGlob: string): StoredToolState | null => {
+const resolveMetadataFallback = (content: string) => {
+  try {
+    return parseScriptMetadata(content);
+  } catch {
+    return null;
+  }
+};
+
+const getWebsiteGlobsFromContent = (content: string) => {
+  const metadata = resolveMetadataFallback(content);
+  if (!metadata) {
+    return [];
+  }
+
+  const websites = metadata.websites.map((website) => website.trim()).filter((website) => website.length > 0);
+  if (websites.length > 0) {
+    return websites;
+  }
+
+  const website = metadata.website.trim();
+  return website.length > 0 ? [website] : [];
+};
+
+const findBestMatchingWebsiteGlob = (websiteGlobs: string[], url: string) =>
+  websiteGlobs
+    .filter((websiteGlob) => matchWebsiteGlob(websiteGlob, url))
+    .sort((left, right) => right.length - left.length)[0] ?? null;
+
+const coerceStoredToolState = (value: unknown, scriptNameFromKey: string): StoredToolState | null => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
 
   const data = value as {
+    scriptName?: unknown;
     activeTool?: unknown;
     codeEditor?: unknown;
     selectorPanel?: unknown;
@@ -127,8 +163,20 @@ const coerceStoredToolState = (value: unknown, websiteGlob: string): StoredToolS
 
   const selectorPanel = data.selectorPanel as { entries?: unknown } | undefined;
   const permissions = data.permissions as { allowedGrants?: unknown } | undefined;
+  const metadata = resolveMetadataFallback(codeEditor.content);
+  const metadataScriptName = metadata?.title.trim() ?? "";
+  const resolvedScriptName =
+    typeof data.scriptName === "string" && data.scriptName.trim().length > 0
+      ? data.scriptName.trim()
+      : metadataScriptName.length > 0
+        ? metadataScriptName
+        : scriptNameFromKey;
+  const metadataWebsites = metadata?.websites.map((website) => website.trim()).filter((website) => website.length > 0) ?? [];
+  const metadataWebsite = metadata?.website.trim() ?? "";
+  const fallbackWebsiteGlob = metadataWebsites[0] ?? metadataWebsite;
 
   return {
+    scriptName: resolvedScriptName,
     activeTool: data.activeTool,
     codeEditor: {
       content: codeEditor.content,
@@ -140,50 +188,72 @@ const coerceStoredToolState = (value: unknown, websiteGlob: string): StoredToolS
       allowedGrants: coerceScriptGrantValues(permissions?.allowedGrants),
     },
     websiteGlob:
-      typeof data.websiteGlob === "string" && data.websiteGlob.trim().length > 0 ? data.websiteGlob : websiteGlob,
+      typeof data.websiteGlob === "string" && data.websiteGlob.trim().length > 0 ? data.websiteGlob : fallbackWebsiteGlob,
     updatedAt: typeof data.updatedAt === "number" ? data.updatedAt : Date.now(),
   };
 };
 
 const listStoredToolStates = async () => {
   const allValues = await browser.storage.local.get(null);
-  const states: Array<{ websiteGlob: string; state: StoredToolState }> = [];
+  const dedupedStates = new Map<string, { scriptName: string; state: StoredToolState }>();
 
   Object.entries(allValues).forEach(([key, value]) => {
-    const websiteGlob = fromStorageKey(key);
-    if (!websiteGlob) {
+    const scriptName = fromStorageKey(key);
+    if (!scriptName) {
       return;
     }
 
-    const state = coerceStoredToolState(value, websiteGlob);
+    const state = coerceStoredToolState(value, scriptName);
     if (!state) {
       return;
     }
 
-    states.push({ websiteGlob, state });
+    const existing = dedupedStates.get(state.scriptName);
+    if (!existing || state.updatedAt >= existing.state.updatedAt) {
+      dedupedStates.set(state.scriptName, { scriptName: state.scriptName, state });
+    }
   });
 
-  return states;
+  return Array.from(dedupedStates.values());
 };
 
 const findStoredToolStatesForUrl = async (url: string) => {
   const states = await listStoredToolStates();
-  return states
-    .filter((entry) => matchWebsiteGlob(entry.websiteGlob, url))
-    .sort((left, right) => right.websiteGlob.length - left.websiteGlob.length);
+  const matches: StoredStateMatch[] = [];
+  states.forEach((entry) => {
+    const websiteGlobs = getWebsiteGlobsFromContent(entry.state.codeEditor.content);
+    const matchedWebsiteGlob = findBestMatchingWebsiteGlob(websiteGlobs, url);
+    if (!matchedWebsiteGlob) {
+      return;
+    }
+
+    matches.push({
+      scriptName: entry.state.scriptName,
+      matchedWebsiteGlob,
+      state: entry.state,
+    });
+  });
+
+  return matches.sort((left, right) => {
+    const byGlobLength = right.matchedWebsiteGlob.length - left.matchedWebsiteGlob.length;
+    if (byGlobLength !== 0) {
+      return byGlobLength;
+    }
+    return right.state.updatedAt - left.state.updatedAt;
+  });
 };
 
-const toStorageKey = (websiteGlob: string) => `${storageKeyPrefix}${websiteGlob.trim()}`;
+const toStorageKey = (scriptName: string) => `${storageKeyPrefix}${scriptName.trim()}`;
 
-const readStoredToolState = async (websiteGlob: string) => {
-  const key = toStorageKey(websiteGlob);
+const readStoredToolState = async (scriptName: string) => {
+  const key = toStorageKey(scriptName);
   const stored = await browser.storage.local.get(key);
-  return coerceStoredToolState(stored[key], websiteGlob);
+  return coerceStoredToolState(stored[key], scriptName);
 };
 
 const saveStoredToolState = async (state: StoredToolState) => {
   await browser.storage.local.set({
-    [toStorageKey(state.websiteGlob)]: state,
+    [toStorageKey(state.scriptName)]: state,
   });
 };
 
@@ -307,13 +377,13 @@ const requestGrantPermissions = (payload: GrantPermissionRequestMessage["payload
   } satisfies GrantPermissionRequestMessage);
 
 const resolveGrantPermissions = async (
-  websiteGlob: string,
+  scriptName: string,
   requestedGrants: ScriptGrantValue[],
   allow: boolean,
 ): Promise<GrantPermissionResolveResult> => {
-  const normalizedWebsiteGlob = websiteGlob.trim();
-  if (!normalizedWebsiteGlob) {
-    return { ok: false, error: "Missing website glob for permission request." };
+  const normalizedScriptName = scriptName.trim();
+  if (!normalizedScriptName) {
+    return { ok: false, error: "Missing script name for permission request." };
   }
 
   const grants = coerceScriptGrantValues(requestedGrants);
@@ -321,9 +391,9 @@ const resolveGrantPermissions = async (
     return { ok: false, error: "No supported grants were requested." };
   }
 
-  const state = await readStoredToolState(normalizedWebsiteGlob);
+  const state = await readStoredToolState(normalizedScriptName);
   if (!state) {
-    return { ok: false, error: `No script state found for website glob "${normalizedWebsiteGlob}".` };
+    return { ok: false, error: `No script state found for script "${normalizedScriptName}".` };
   }
 
   if (!allow) {
@@ -366,11 +436,11 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
 
     const missingGrants = getMissingAllowedGrants(entry.state, scriptGrants);
     if (missingGrants.length > 0) {
-      if (!permissionRequests.has(entry.websiteGlob)) {
-        permissionRequests.set(entry.websiteGlob, new Set<ScriptGrantValue>());
+      if (!permissionRequests.has(entry.scriptName)) {
+        permissionRequests.set(entry.scriptName, new Set<ScriptGrantValue>());
       }
       missingGrants.forEach((grant) => {
-        permissionRequests.get(entry.websiteGlob)?.add(grant);
+        permissionRequests.get(entry.scriptName)?.add(grant);
       });
       return;
     }
@@ -378,12 +448,12 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
     scripts.push(content);
   });
 
-  permissionRequests.forEach((grants, websiteGlob) => {
+  permissionRequests.forEach((grants, scriptName) => {
     void requestGrantPermissions({
-      websiteGlob,
+      scriptName,
       grants: Array.from(grants),
     }).catch(() => {
-      logger.debug("No open sidepanel receiver for grant request.", { websiteGlob });
+      logger.debug("No open sidepanel receiver for grant request.", { scriptName });
     });
   });
 
@@ -414,7 +484,7 @@ export default defineBackground(() => {
       );
     }
 
-    void resolveGrantPermissions(message.payload.websiteGlob, message.payload.grants, message.payload.allow)
+    void resolveGrantPermissions(message.payload.scriptName, message.payload.grants, message.payload.allow)
       .then((result) => {
         sendResponse(result);
       })

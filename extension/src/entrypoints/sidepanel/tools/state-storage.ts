@@ -2,6 +2,7 @@ import { writable } from "svelte/store";
 import { browser } from "wxt/browser";
 
 import { coerceScriptGrantValues, type ScriptGrantValue } from "@/lib/grants";
+import { parseScriptMetadata } from "@/lib/utils/script-metadata";
 import { matchWebsiteGlob } from "@/lib/utils/website-glob";
 import { createSidepanelBannerManager, type BannerDefinition } from "../banners/banner-manager";
 
@@ -14,6 +15,7 @@ export type StoredSelectorEntry = {
 };
 
 export type StoredToolState = {
+  scriptName: string;
   activeTool: ToolId;
   codeEditor: {
     content: string;
@@ -26,6 +28,12 @@ export type StoredToolState = {
   };
   websiteGlob: string;
   updatedAt: number;
+};
+
+type StoredStateMatch = {
+  scriptName: string;
+  matchedWebsiteGlob: string;
+  state: StoredToolState;
 };
 
 const storageKeyPrefix = "pageproxy:";
@@ -85,23 +93,55 @@ const coerceStoredSelectorEntries = (value: unknown): StoredSelectorEntry[] => {
   return entries;
 };
 
-export const toStorageKey = (websiteGlob: string) => `${storageKeyPrefix}${websiteGlob.trim()}`;
+export const toStorageKey = (scriptName: string) => `${storageKeyPrefix}${scriptName.trim()}`;
 
 export const fromStorageKey = (key: string) => {
   if (!key.startsWith(storageKeyPrefix)) {
     return null;
   }
 
-  const websiteGlob = key.slice(storageKeyPrefix.length).trim();
-  return websiteGlob.length > 0 ? websiteGlob : null;
+  const scriptName = key.slice(storageKeyPrefix.length).trim();
+  return scriptName.length > 0 ? scriptName : null;
 };
 
-const coerceStoredToolState = (value: unknown, websiteGlob: string): StoredToolState | null => {
+const resolveMetadataFallback = (content: string) => {
+  try {
+    return parseScriptMetadata(content);
+  } catch {
+    return null;
+  }
+};
+
+const getWebsiteGlobsFromContent = (content: string) => {
+  const metadata = resolveMetadataFallback(content);
+  if (!metadata) {
+    return [];
+  }
+
+  const websites = metadata.websites
+    .map((website) => website.trim())
+    .filter((website) => website.length > 0);
+  if (websites.length > 0) {
+    return websites;
+  }
+
+  const website = metadata.website.trim();
+  return website.length > 0 ? [website] : [];
+};
+
+const findBestMatchingWebsiteGlob = (websiteGlobs: string[], url: string) => {
+  return websiteGlobs
+    .filter((websiteGlob) => matchWebsiteGlob(websiteGlob, url))
+    .sort((left, right) => right.length - left.length)[0] ?? null;
+};
+
+const coerceStoredToolState = (value: unknown, scriptNameFromKey: string): StoredToolState | null => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
 
   const data = value as {
+    scriptName?: unknown;
     activeTool?: unknown;
     codeEditor?: unknown;
     selectorPanel?: unknown;
@@ -121,8 +161,21 @@ const coerceStoredToolState = (value: unknown, websiteGlob: string): StoredToolS
 
   const selectorPanel = data.selectorPanel as { entries?: unknown } | undefined;
   const permissions = data.permissions as { allowedGrants?: unknown } | undefined;
+  const metadata = resolveMetadataFallback(codeEditor.content);
+  const metadataScriptName = metadata?.title?.trim() ?? "";
+  const resolvedScriptName =
+    typeof data.scriptName === "string" && data.scriptName.trim().length > 0
+      ? data.scriptName.trim()
+      : metadataScriptName.length > 0
+        ? metadataScriptName
+        : scriptNameFromKey;
+
+  const metadataWebsites = metadata?.websites.map((website) => website.trim()).filter((website) => website.length > 0) ?? [];
+  const metadataWebsite = metadata?.website?.trim() ?? "";
+  const fallbackWebsiteGlob = metadataWebsites[0] ?? metadataWebsite;
 
   return {
+    scriptName: resolvedScriptName,
     activeTool: data.activeTool,
     codeEditor: {
       content: codeEditor.content,
@@ -134,7 +187,7 @@ const coerceStoredToolState = (value: unknown, websiteGlob: string): StoredToolS
       allowedGrants: coerceScriptGrantValues(permissions?.allowedGrants),
     },
     websiteGlob:
-      typeof data.websiteGlob === "string" && data.websiteGlob.trim().length > 0 ? data.websiteGlob : websiteGlob,
+      typeof data.websiteGlob === "string" && data.websiteGlob.trim().length > 0 ? data.websiteGlob : fallbackWebsiteGlob,
     updatedAt: typeof data.updatedAt === "number" ? data.updatedAt : Date.now(),
   };
 };
@@ -144,34 +197,37 @@ export const allowedScriptGrantsState = writable<ScriptGrantValue[]>([]);
 
 export const listStoredToolStates = async () => {
   const allValues = await browser.storage.local.get(null);
-  const states: Array<{ websiteGlob: string; state: StoredToolState }> = [];
+  const dedupedStates = new Map<string, { scriptName: string; state: StoredToolState }>();
 
   Object.entries(allValues).forEach(([key, value]) => {
-    const websiteGlob = fromStorageKey(key);
-    if (!websiteGlob) {
+    const scriptName = fromStorageKey(key);
+    if (!scriptName) {
       return;
     }
 
-    const state = coerceStoredToolState(value, websiteGlob);
+    const state = coerceStoredToolState(value, scriptName);
     if (!state) {
       return;
     }
 
-    states.push({ websiteGlob, state });
+    const existing = dedupedStates.get(state.scriptName);
+    if (!existing || state.updatedAt >= existing.state.updatedAt) {
+      dedupedStates.set(state.scriptName, { scriptName: state.scriptName, state });
+    }
   });
 
-  return states;
+  return Array.from(dedupedStates.values());
 };
 
 export const saveStoredToolState = async (state: StoredToolState) => {
-  const key = toStorageKey(state.websiteGlob);
+  const key = toStorageKey(state.scriptName);
   await browser.storage.local.set({
     [key]: state,
   });
 };
 
-export const removeStoredToolState = async (websiteGlob: string) => {
-  const normalized = websiteGlob.trim();
+export const removeStoredToolState = async (scriptName: string) => {
+  const normalized = scriptName.trim();
   if (!normalized) {
     return;
   }
@@ -239,9 +295,30 @@ export const saveUserscriptReloadBannerDismissedSetting = async (dismissed: bool
 
 export const findStoredToolStateForUrl = async (url: string) => {
   const states = await listStoredToolStates();
-  const matches = states
-    .filter((entry) => matchWebsiteGlob(entry.websiteGlob, url))
-    .sort((left, right) => right.websiteGlob.length - left.websiteGlob.length);
+  const matches: StoredStateMatch[] = [];
 
-  return matches[0] ?? null;
+  states.forEach((entry) => {
+    const websiteGlobs = getWebsiteGlobsFromContent(entry.state.codeEditor.content);
+    const matchedWebsiteGlob = findBestMatchingWebsiteGlob(websiteGlobs, url);
+    if (!matchedWebsiteGlob) {
+      return;
+    }
+
+    matches.push({
+      scriptName: entry.state.scriptName,
+      matchedWebsiteGlob,
+      state: entry.state,
+    });
+  });
+
+  return (
+    matches.sort((left, right) => {
+      const byGlobLength = right.matchedWebsiteGlob.length - left.matchedWebsiteGlob.length;
+      if (byGlobLength !== 0) {
+        return byGlobLength;
+      }
+
+      return right.state.updatedAt - left.state.updatedAt;
+    })[0] ?? null
+  );
 };

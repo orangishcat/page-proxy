@@ -1,7 +1,7 @@
 import { supportedScriptGrants, type ScriptGrantValue } from "@/lib/grants";
 
 export type GrantPermissionRequestPayload = {
-  websiteGlob: string;
+  scriptName: string;
   grants: ScriptGrantValue[];
 };
 
@@ -46,7 +46,7 @@ export const isGrantPermissionRequestMessage = (value: unknown): value is GrantP
     return false;
   }
 
-  return typeof payload.websiteGlob === "string" && payload.websiteGlob.trim().length > 0 && isScriptGrantArray(payload.grants);
+  return typeof payload.scriptName === "string" && payload.scriptName.trim().length > 0 && isScriptGrantArray(payload.grants);
 };
 
 export const isGrantPermissionResolveMessage = (value: unknown): value is GrantPermissionResolveMessage => {
@@ -60,8 +60,8 @@ export const isGrantPermissionResolveMessage = (value: unknown): value is GrantP
   }
 
   return (
-    typeof payload.websiteGlob === "string" &&
-    payload.websiteGlob.trim().length > 0 &&
+    typeof payload.scriptName === "string" &&
+    payload.scriptName.trim().length > 0 &&
     isScriptGrantArray(payload.grants) &&
     typeof payload.allow === "boolean"
   );
