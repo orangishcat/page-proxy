@@ -6,6 +6,9 @@ import log from "loglevel";
 
 import type {
   ElementInfo,
+  RecordConverterOpenPayload,
+  RecordConverterOpenResult,
+  RecordConverterSaveResult,
   SelectElementAction,
   SelectElementActionResult,
   SelectorOpenResult,
@@ -23,6 +26,7 @@ import {
 } from "@/lib/script-runner";
 import type { SidepanelShortcutId, SidepanelShortcutMessage } from "@/lib/sidepanel-shortcuts";
 import PopupContainer from "./PopupContainer.svelte";
+import RecordConverterPopup from "./RecordConverterPopup.svelte";
 import "@/styles/app.css";
 
 const logger = log.getLogger("select-tool");
@@ -285,6 +289,8 @@ export default defineContentScript({
     let popupTarget: Element | null = null;
     let popupApp: ReturnType<typeof mount> | null = null;
     let shadowUi: Awaited<ReturnType<typeof createShadowRootUi>> | null = null;
+    let recordConverterPopupApp: ReturnType<typeof mount> | null = null;
+    let recordConverterShadowUi: Awaited<ReturnType<typeof createShadowRootUi>> | null = null;
     let resumeSelectionAfterPopup = false;
     let hoveredSelectorElements: Element[] = [];
 
@@ -469,6 +475,119 @@ export default defineContentScript({
 
     const noSelectClass = "pp-no-select-tool";
 
+    const clearRecordConverterPopup = () => {
+      if (recordConverterPopupApp) {
+        void unmount(recordConverterPopupApp);
+        recordConverterPopupApp = null;
+      }
+      if (recordConverterShadowUi) {
+        recordConverterShadowUi.remove();
+        recordConverterShadowUi = null;
+      }
+      logger.debug("record converter popup closed");
+    };
+
+    const handleRecordConverterSave = async (reviewedCode: string): Promise<RecordConverterSaveResult> => {
+      logger.debug("record converter save requested", {
+        codeLength: reviewedCode.length,
+      });
+
+      const response: unknown = await browser.runtime
+        .sendMessage({
+          type: "record:converter:save",
+          payload: {
+            code: reviewedCode,
+          },
+        } satisfies SelectToolMessage)
+        .catch((error: unknown) => {
+          logger.error("Failed to save record converter code", { error });
+          return null;
+        });
+
+      if (response === null) {
+        return {
+          ok: false,
+          error: "Unable to save record converter code to the editor.",
+        };
+      }
+
+      const result = response as Partial<RecordConverterSaveResult> | null;
+      if (!result || typeof result.ok !== "boolean") {
+        logger.error("Invalid record converter save response", {
+          codeLength: reviewedCode.length,
+          rawResponse: response,
+        });
+        return {
+          ok: false,
+          error: "Unable to save record converter code to the editor.",
+        };
+      }
+
+      if (result.ok) {
+        clearRecordConverterPopup();
+        return result as RecordConverterSaveResult;
+      }
+
+      const errorMessage = typeof result.error === "string" ? result.error : undefined;
+      logger.error("Unexpected record converter save failure response", {
+        codeLength: reviewedCode.length,
+        error: errorMessage,
+        rawResponse: response,
+      });
+
+      return {
+        ok: false,
+        error: errorMessage ?? "Unable to save record converter code to the editor.",
+      };
+    };
+
+    const openRecordConverterPopup = async (payload: RecordConverterOpenPayload): Promise<RecordConverterOpenResult> => {
+      if (selectionEnabled) {
+        setSelectionEnabled(false, { clearSelection: false });
+      }
+
+      clearSelectorPopup({ resumeSelection: false });
+      clearRecordConverterPopup();
+
+      try {
+        recordConverterShadowUi = await createShadowRootUi(ctx, {
+          name: "pp-record-converter-popup",
+          position: "overlay",
+          anchor: "body",
+          zIndex: 2147483647,
+          onMount(container: HTMLElement) {
+            const app = mount(RecordConverterPopup, {
+              target: container,
+              props: {
+                payload,
+                onCancel: clearRecordConverterPopup,
+                onSave: handleRecordConverterSave,
+              },
+            });
+            recordConverterPopupApp = app;
+            return app;
+          },
+        });
+
+        recordConverterShadowUi.mount();
+        recordConverterShadowUi.shadowHost.classList.add(noSelectClass);
+        recordConverterShadowUi.shadowHost.classList.add(contentUiRootClass);
+        logger.debug("record converter popup opened", {
+          timelineSize: payload.timeline.length,
+        });
+        return {
+          opened: true,
+        };
+      } catch (error: unknown) {
+        logger.error("Failed to open record converter popup", { error });
+        clearRecordConverterPopup();
+        return {
+          opened: false,
+          error: "Unable to open record converter popup.",
+        };
+      }
+    };
+
     const resolvePopupTarget = (requestedInfo: ElementInfo | null) => {
       if (selectedTarget?.isConnected) {
         return selectedTarget;
@@ -510,6 +629,7 @@ export default defineContentScript({
       }
 
       ensureSelectionStyles();
+      clearRecordConverterPopup();
       clearSelectorPopup({ resumeSelection: false });
       if (selectionEnabled) {
         resumeSelectionAfterPopup = true;
@@ -828,6 +948,7 @@ export default defineContentScript({
       clearHover();
       clearSelected();
       clearSelectorPopup({ resumeSelection: false });
+      clearRecordConverterPopup();
       queuedHoverTarget = null;
       if (hoverFrame !== null) {
         window.cancelAnimationFrame(hoverFrame);
@@ -922,6 +1043,49 @@ export default defineContentScript({
         });
         return true;
       }
+      if (selectMessage.type === "record:converter:open") {
+        let hasResponded = false;
+        const responseTimeoutId = globalThis.setTimeout(() => {
+          if (hasResponded) {
+            return;
+          }
+
+          hasResponded = true;
+          logger.error("Record converter open timed out before responding", {
+            payload: selectMessage.payload,
+          });
+          sendResponse({
+            opened: false,
+            error: "Timed out while opening record converter popup.",
+          } satisfies RecordConverterOpenResult);
+        }, 4000);
+
+        const reply = (result: RecordConverterOpenResult) => {
+          if (hasResponded) {
+            return;
+          }
+
+          hasResponded = true;
+          globalThis.clearTimeout(responseTimeoutId);
+          sendResponse(result);
+        };
+
+        void openRecordConverterPopup(selectMessage.payload)
+          .then((result) => {
+            reply(result);
+          })
+          .catch((error: unknown) => {
+            logger.error("Failed to handle record converter open request", {
+              error,
+              payload: selectMessage.payload,
+            });
+            reply({
+              opened: false,
+              error: "Unable to open record converter popup.",
+            });
+          });
+        return true;
+      }
       if (selectMessage.type === "select:parent") {
         if (!selectionEnabled) {
           return false;
@@ -972,6 +1136,8 @@ export default defineContentScript({
 
     window.addEventListener("unload", () => {
       window.removeEventListener("keydown", onShortcutKeyDown, { capture: true });
+      clearSelectorPopup({ resumeSelection: false });
+      clearRecordConverterPopup();
     });
   },
 });

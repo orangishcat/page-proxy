@@ -18,8 +18,20 @@
   import { setErrorMessage } from "./tools/tool-errors";
   import { isGrantPermissionRequestMessage } from "@/lib/grant-permissions";
   import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
-  import type { SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
-  import { elementEntries, insertDefinitions, sanitizeVariableName, selectorEntries } from "./tools/code-editor/state";
+  import type {
+    RecordConverterSavePayload,
+    RecordConverterSaveResult,
+    SelectorSavePayload,
+    SelectorSaveResult,
+  } from "@/lib/selection";
+  import { resolveRecordConverterCollisions } from "../select-tool.content/record-converter/collision";
+  import {
+    codeEditorContent,
+    elementEntries,
+    insertDefinitions,
+    sanitizeVariableName,
+    selectorEntries,
+  } from "./tools/code-editor/state";
   import { grantPermissionRequest } from "./tools/grant-permissions/state";
   import {
     activeToolState,
@@ -242,6 +254,48 @@
     return { ok: true };
   };
 
+  const isRecord = (value: unknown): value is Record<string, unknown> =>
+    value !== null && typeof value === "object" && !Array.isArray(value);
+
+  const saveRecordConverterDefinition = (
+    payload: RecordConverterSavePayload,
+  ): Promise<RecordConverterSaveResult> => {
+    const rawCode = payload.code.trim();
+    if (!rawCode) {
+      const error = "Record converter code is empty.";
+      setErrorMessage(error);
+      return Promise.resolve({ ok: false, error });
+    }
+
+    const existingCode = get(codeEditorContent);
+    return Promise.resolve(resolveRecordConverterCollisions({ code: rawCode, existingCode }))
+      .then(({ finalCode, renameMap }) => {
+        if (!insertDefinitions([finalCode])) {
+          const error = "Unable to save record converter code.";
+          setErrorMessage(error);
+          return { ok: false, error };
+        }
+
+        setErrorMessage(null);
+        return {
+          ok: true,
+          finalCode,
+          renameMap,
+        };
+      })
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error && error.message.trim().length > 0
+            ? error.message
+            : "Unable to resolve record converter collisions.";
+        setErrorMessage(message);
+        return {
+          ok: false,
+          error: message,
+        };
+      });
+  };
+
   const isSelectorSaveMessage = (
     message: unknown,
   ): message is { type: "selector:save"; payload: SelectorSavePayload } => {
@@ -255,6 +309,21 @@
     }
 
     return (message as { type?: string }).type === "selector:save";
+  };
+
+  const isRecordConverterSaveMessage = (
+    message: unknown,
+  ): message is { type: "record:converter:save"; payload: RecordConverterSavePayload } => {
+    if (!isRecord(message)) {
+      return false;
+    }
+
+    if (message.type !== "record:converter:save") {
+      return false;
+    }
+
+    const payload = message.payload;
+    return isRecord(payload) && typeof payload.code === "string";
   };
 
   const setToolPanelHeightFromClientY = (clientY: number) => {
@@ -332,6 +401,13 @@
     const handleRuntimeMessage = (message: unknown, _sender: unknown, sendResponse: (response?: unknown) => void) => {
       if (isSelectorSaveMessage(message)) {
         sendResponse(saveSelectorDefinition(message.payload));
+        return true;
+      }
+
+      if (isRecordConverterSaveMessage(message)) {
+        void saveRecordConverterDefinition(message.payload).then((result) => {
+          sendResponse(result);
+        });
         return true;
       }
 

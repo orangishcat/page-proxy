@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
-  import { Disc, Trash2 } from "lucide-svelte";
+  import { Disc, Trash2, X } from "lucide-svelte";
 
   import Button from "@/lib/components/Button.svelte";
+  import { openRecordConverter } from "./record/actions";
   import { clearRecordPanelState, recordPanelState, toggleRecordPanelRecording } from "./record/state";
   import type { RecordPanelState, RecordTimelineEntry } from "./state-storage";
 
@@ -12,12 +13,29 @@
     updatedAt: Date.now(),
   });
   let timelineContainer = $state<HTMLDivElement | null>(null);
+  let selectedEntryIds = $state<string[]>([]);
+  let isModifierDragSelecting = $state(false);
+  let dragVisitedEntryIds = $state<string[]>([]);
 
   const timelineEntries = $derived(recordState.timeline);
   const isRecording = $derived(recordState.isRecording);
+  const selectedEntryIdSet = $derived(new Set(selectedEntryIds));
+  const selectedEntries = $derived.by(() => {
+    return timelineEntries.filter((entry) => selectedEntryIdSet.has(entry.id));
+  });
+  const hasSelectedEntries = $derived(selectedEntries.length > 0);
+
+  const pruneSelectionToTimeline = (timeline: RecordTimelineEntry[]) => {
+    const timelineIdSet = new Set(timeline.map((entry) => entry.id));
+    const prunedSelection = selectedEntryIds.filter((id) => timelineIdSet.has(id));
+    if (prunedSelection.length !== selectedEntryIds.length) {
+      selectedEntryIds = prunedSelection;
+    }
+  };
 
   const unsubscribeRecordPanelState = recordPanelState.subscribe((value) => {
     recordState = value;
+    pruneSelectionToTimeline(value.timeline);
   });
 
   onDestroy(() => {
@@ -33,7 +51,52 @@
   };
 
   onMount(() => {
+    const handleWindowPointerMove = (event: PointerEvent) => {
+      if (!isModifierDragSelecting) {
+        return;
+      }
+
+      if ((event.buttons & 1) !== 1) {
+        endModifierDragSelection();
+        return;
+      }
+
+      const hoveredElement = document.elementFromPoint(event.clientX, event.clientY);
+      if (!(hoveredElement instanceof Element)) {
+        return;
+      }
+
+      const targetWithId = hoveredElement.closest("[data-record-entry-id]");
+      if (!(targetWithId instanceof HTMLElement)) {
+        return;
+      }
+
+      const entryId = targetWithId.dataset.recordEntryId;
+      if (!entryId || dragVisitedEntryIds.includes(entryId)) {
+        return;
+      }
+
+      dragVisitedEntryIds = [...dragVisitedEntryIds, entryId];
+      toggleEntrySelection(entryId);
+    };
+
+    const handleWindowPointerUp = () => {
+      endModifierDragSelection();
+    };
+    const handleWindowBlur = () => {
+      endModifierDragSelection();
+    };
+
+    window.addEventListener("pointermove", handleWindowPointerMove);
+    window.addEventListener("pointerup", handleWindowPointerUp);
+    window.addEventListener("blur", handleWindowBlur);
     void tick().then(scrollTimelineToBottom);
+
+    return () => {
+      window.removeEventListener("pointermove", handleWindowPointerMove);
+      window.removeEventListener("pointerup", handleWindowPointerUp);
+      window.removeEventListener("blur", handleWindowBlur);
+    };
   });
 
   const formatTimestamp = (value: number) =>
@@ -46,6 +109,61 @@
   const getEntryDetail = (entry: RecordTimelineEntry) => {
     const normalized = entry.detail.trim();
     return normalized.length > 0 ? normalized : null;
+  };
+
+  const isModifierHeld = (event: MouseEvent | PointerEvent | KeyboardEvent) => event.metaKey || event.ctrlKey;
+
+  const isEntrySelected = (entryId: string) => selectedEntryIdSet.has(entryId);
+
+  const toggleEntrySelection = (entryId: string) => {
+    selectedEntryIds = isEntrySelected(entryId)
+      ? selectedEntryIds.filter((id) => id !== entryId)
+      : [...selectedEntryIds, entryId];
+  };
+
+  const selectSingleEntry = (entryId: string) => {
+    selectedEntryIds = [entryId];
+  };
+
+  const clearSelection = () => {
+    selectedEntryIds = [];
+  };
+
+  const endModifierDragSelection = () => {
+    isModifierDragSelecting = false;
+    dragVisitedEntryIds = [];
+  };
+
+  const handleEntryPointerDown = (event: PointerEvent, entryId: string) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    if (isModifierHeld(event)) {
+      event.preventDefault();
+      isModifierDragSelecting = true;
+      dragVisitedEntryIds = [entryId];
+      toggleEntrySelection(entryId);
+      return;
+    }
+
+    endModifierDragSelection();
+    selectSingleEntry(entryId);
+  };
+
+  const handleEntryKeyDown = (event: KeyboardEvent, entryId: string) => {
+    if ((event.key === "Enter" || event.key === " ") && isModifierHeld(event)) {
+      event.preventDefault();
+      toggleEntrySelection(entryId);
+    }
+  };
+
+  const convertSelectionToCode = () => {
+    if (!hasSelectedEntries) {
+      return;
+    }
+
+    openRecordConverter(selectedEntries);
   };
 </script>
 
@@ -60,15 +178,22 @@
         {/if}
       </div>
     {:else}
-      <div class="relative pl-6">
-        <div
-          class="pointer-events-none absolute bottom-1 left-[0.4em] top-1 w-px bg-[#d5d0c0] dark:bg-[#4f4a38]"
-          aria-hidden="true"
-        ></div>
-        <ul class="space-y-4">
+      <div>
+        <ul>
           {#each timelineEntries as entry (entry.id)}
-            <li class="relative min-w-0">
-              <div class="min-w-0">
+            <li class="min-w-0">
+              <button
+                data-record-entry-id={entry.id}
+                class={`w-full rounded-xl border px-2 py-1.5 text-left transition ${
+                  isEntrySelected(entry.id)
+                    ? "border-accent-500/40 bg-accent-500/10"
+                    : "border-transparent bg-transparent hover:border-accent-500/30 hover:bg-accent-500/10"
+                }`}
+                type="button"
+                aria-pressed={isEntrySelected(entry.id)}
+                onpointerdown={(event) => handleEntryPointerDown(event, entry.id)}
+                onkeydown={(event) => handleEntryKeyDown(event, entry.id)}
+              >
                 <div class="flex items-start justify-between gap-3">
                   <span class="min-w-0 text-body text-gray-800 dark:text-gray-100">{entry.action}</span>
                   <span class="shrink-0 text-caption text-gray-500 dark:text-gray-400">
@@ -78,7 +203,7 @@
                 {#if getEntryDetail(entry)}
                   <p class="mt-1 text-caption text-gray-600 dark:text-gray-400">{entry.detail}</p>
                 {/if}
-              </div>
+              </button>
             </li>
           {/each}
         </ul>
@@ -86,35 +211,50 @@
     {/if}
   </div>
 
-  <div class="mt-4 flex items-center justify-between">
-    <div class="flex items-center gap-2">
-      <Button
-        class={`h-8 w-8 rounded-full p-0! ${
-          isRecording
-            ? "!border-red-400 !bg-red-500/85 text-red-50 hover:opacity-100"
-            : "border-[#5b5542] bg-[#55503E] text-gray-200"
-        }`}
-        variant="outline"
-        aria-label={isRecording ? "Pause recording" : "Resume recording"}
-        aria-pressed={isRecording}
-        onclick={toggleRecordPanelRecording}
-      >
-        <Disc class="h-4 w-4" />
-      </Button>
-      <span class={`text-caption ${isRecording ? "text-red-300" : "text-gray-500 dark:text-gray-400"}`}>
-        {isRecording ? "Recording" : "Paused"}
+  <div class="mt-4 grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
+    {#if hasSelectedEntries}
+      <span class="justify-self-start text-caption text-gray-500 dark:text-gray-400">
+        {selectedEntries.length} selected
       </span>
-    </div>
-    <div class="flex items-center gap-2">
-      <span class="text-caption text-gray-500 dark:text-gray-400">{timelineEntries.length} events</span>
+      <Button class="w-full max-w-40 justify-self-center text-sm" variant="primary" onclick={convertSelectionToCode}>
+        Convert to code
+      </Button>
       <Button
-        class="h-8 w-8 rounded-lg border border-[#5b5542] bg-transparent p-0! text-gray-500 hover:text-gray-300 dark:border-[#4f4a38] dark:text-gray-400 dark:hover:text-gray-200"
+        class="h-8 w-8 justify-self-end rounded-lg border border-gray-700 bg-transparent p-0! text-gray-500 hover:text-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        variant="outline"
+        aria-label="Clear selection"
+        onclick={clearSelection}
+      >
+        <X class="h-4 w-4" />
+      </Button>
+    {:else}
+      <div class="flex items-center gap-2">
+        <Button
+          class={`h-8 w-8 rounded-full p-0! ${
+            isRecording
+              ? "!border-red-400 !bg-red-500/85 text-red-50 hover:opacity-100"
+              : "border-gray-700 bg-gray-700 text-gray-200"
+          }`}
+          variant="outline"
+          aria-label={isRecording ? "Pause recording" : "Resume recording"}
+          aria-pressed={isRecording}
+          onclick={toggleRecordPanelRecording}
+        >
+          <Disc class="h-4 w-4" />
+        </Button>
+        <span class={`text-caption ${isRecording ? "text-red-300" : "text-gray-500 dark:text-gray-400"}`}>
+          {isRecording ? "Recording" : "Paused"}
+        </span>
+      </div>
+      <span class="justify-self-center text-caption text-gray-500 dark:text-gray-400">{timelineEntries.length} events</span>
+      <Button
+        class="h-8 w-8 justify-self-end rounded-lg border border-gray-700 bg-transparent p-0! text-gray-500 hover:text-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         variant="outline"
         aria-label="Clear recording storage"
         onclick={clearRecordPanelState}
       >
         <Trash2 class="h-4 w-4" />
       </Button>
-    </div>
+    {/if}
   </div>
 </div>

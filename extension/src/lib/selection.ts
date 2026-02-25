@@ -44,6 +44,34 @@ export type SelectorOpenResult = {
   opened: boolean;
 };
 
+export type RecordTimelineEntry = {
+  id: string;
+  action: string;
+  detail: string;
+  timestamp: number;
+};
+
+export type RecordConverterOpenPayload = {
+  timeline: RecordTimelineEntry[];
+  existingCode: string;
+};
+
+export type RecordConverterOpenResult = {
+  opened: boolean;
+  error?: string;
+};
+
+export type RecordConverterSavePayload = {
+  code: string;
+};
+
+export type RecordConverterSaveResult = {
+  ok: boolean;
+  error?: string;
+  finalCode?: string;
+  renameMap?: Record<string, string>;
+};
+
 export type SelectElementAction = "copy" | "cut" | "paste" | "delete";
 
 export type SelectElementActionResult =
@@ -76,6 +104,14 @@ export type SelectToolMessage =
       type: 'selector:open';
       payload: ElementInfo | null;
       mode?: SelectorPopupMode;
+    }
+  | {
+      type: "record:converter:open";
+      payload: RecordConverterOpenPayload;
+    }
+  | {
+      type: "record:converter:save";
+      payload: RecordConverterSavePayload;
     }
   | {
       type: 'selector:save';
