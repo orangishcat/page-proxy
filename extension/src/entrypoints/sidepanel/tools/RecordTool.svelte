@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
-  import { Disc } from "lucide-svelte";
+  import { onDestroy, onMount, tick } from "svelte";
+  import { Disc, Trash2 } from "lucide-svelte";
 
   import Button from "@/lib/components/Button.svelte";
-  import { recordPanelState, toggleRecordPanelRecording } from "./record/state";
+  import { clearRecordPanelState, recordPanelState, toggleRecordPanelRecording } from "./record/state";
   import type { RecordPanelState, RecordTimelineEntry } from "./state-storage";
 
   let recordState = $state<RecordPanelState>({
@@ -11,6 +11,7 @@
     timeline: [],
     updatedAt: Date.now(),
   });
+  let timelineContainer = $state<HTMLDivElement | null>(null);
 
   const timelineEntries = $derived(recordState.timeline);
   const isRecording = $derived(recordState.isRecording);
@@ -21,6 +22,18 @@
 
   onDestroy(() => {
     unsubscribeRecordPanelState();
+  });
+
+  const scrollTimelineToBottom = () => {
+    if (!timelineContainer) {
+      return;
+    }
+
+    timelineContainer.scrollTop = timelineContainer.scrollHeight;
+  };
+
+  onMount(() => {
+    void tick().then(scrollTimelineToBottom);
   });
 
   const formatTimestamp = (value: number) =>
@@ -37,7 +50,7 @@
 </script>
 
 <div class="flex w-full min-h-0 flex-1 flex-col px-4 py-4">
-  <div class="min-h-0 flex-1 overflow-y-auto pr-1">
+  <div class="min-h-0 flex-1 overflow-y-auto pr-1" bind:this={timelineContainer}>
     {#if timelineEntries.length === 0}
       <div class="flex h-full items-center justify-center text-caption text-gray-500 dark:text-gray-400">
         {#if isRecording}
@@ -47,19 +60,29 @@
         {/if}
       </div>
     {:else}
-      <ul class="space-y-2">
-        {#each timelineEntries as entry (entry.id)}
-          <li class="rounded-lg border border-[#4f4a38] bg-[#2d2b25] px-3 py-2">
-            <div class="flex items-start justify-between gap-3">
-              <span class="text-body text-gray-100">{entry.action}</span>
-              <span class="shrink-0 text-caption text-gray-500">{formatTimestamp(entry.timestamp)}</span>
-            </div>
-            {#if getEntryDetail(entry)}
-              <p class="mt-1 text-caption text-gray-400">{entry.detail}</p>
-            {/if}
-          </li>
-        {/each}
-      </ul>
+      <div class="relative pl-6">
+        <div
+          class="pointer-events-none absolute bottom-1 left-[0.4em] top-1 w-px bg-[#d5d0c0] dark:bg-[#4f4a38]"
+          aria-hidden="true"
+        ></div>
+        <ul class="space-y-4">
+          {#each timelineEntries as entry (entry.id)}
+            <li class="relative min-w-0">
+              <div class="min-w-0">
+                <div class="flex items-start justify-between gap-3">
+                  <span class="min-w-0 text-body text-gray-800 dark:text-gray-100">{entry.action}</span>
+                  <span class="shrink-0 text-caption text-gray-500 dark:text-gray-400">
+                    {formatTimestamp(entry.timestamp)}
+                  </span>
+                </div>
+                {#if getEntryDetail(entry)}
+                  <p class="mt-1 text-caption text-gray-600 dark:text-gray-400">{entry.detail}</p>
+                {/if}
+              </div>
+            </li>
+          {/each}
+        </ul>
+      </div>
     {/if}
   </div>
 
@@ -82,6 +105,16 @@
         {isRecording ? "Recording" : "Paused"}
       </span>
     </div>
-    <span class="text-caption text-gray-500 dark:text-gray-400">{timelineEntries.length} events</span>
+    <div class="flex items-center gap-2">
+      <span class="text-caption text-gray-500 dark:text-gray-400">{timelineEntries.length} events</span>
+      <Button
+        class="h-8 w-8 rounded-lg border border-[#5b5542] bg-transparent p-0! text-gray-500 hover:text-gray-300 dark:border-[#4f4a38] dark:text-gray-400 dark:hover:text-gray-200"
+        variant="outline"
+        aria-label="Clear recording storage"
+        onclick={clearRecordPanelState}
+      >
+        <Trash2 class="h-4 w-4" />
+      </Button>
+    </div>
   </div>
 </div>

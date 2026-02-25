@@ -94,12 +94,17 @@ export const sendSelectToolMessage = async (
   }
 };
 
-export const runContentSelectionToggle = async (tabId: number, enabled: boolean) => {
+export const runContentSelectionToggle = async (
+  tabId: number,
+  enabled: boolean,
+  options: { clearSelection?: boolean } = {},
+) => {
   await sendSelectToolMessage(
     tabId,
     {
       type: "select:toggle",
       enabled,
+      ...(enabled ? {} : { clearSelection: options.clearSelection }),
     } satisfies SelectToolMessage,
     0,
   );

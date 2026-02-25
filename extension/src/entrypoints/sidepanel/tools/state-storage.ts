@@ -345,6 +345,15 @@ export const saveRecordPanelStateForTab = async (tabId: number, state: RecordPan
   });
 };
 
+export const removeRecordPanelStateForTab = async (tabId: number) => {
+  if (!Number.isInteger(tabId) || tabId < 0) {
+    return;
+  }
+
+  const storageKey = buildRecordPanelStorageKey(tabId);
+  await browser.storage.local.remove(storageKey);
+};
+
 const coerceToolPanelHeight = (value: unknown) => {
   if (typeof value !== "number" || Number.isNaN(value) || !Number.isFinite(value)) {
     return null;

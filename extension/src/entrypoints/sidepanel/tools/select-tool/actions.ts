@@ -14,6 +14,7 @@ import type {
   DevtoolsSelectionStatusChangedRuntimeMessage,
   DevtoolsSelectionResponseMessage,
 } from "@/lib/devtools-selection";
+import { recordSidepanelAction } from "../record/state";
 import { setErrorMessage } from "../tool-errors";
 import {
   followDevtoolsSelection,
@@ -39,6 +40,8 @@ import {
 
 const logger = log.getLogger("select-tool-sidepanel");
 logger.setLevel("debug", false);
+const selectedElementRecordSuppressionMs = 1000;
+let suppressSelectedElementRecordUntil = 0;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -127,7 +130,13 @@ const refreshDevtoolsIntegrationForActiveTab = () => {
     });
 };
 
-export const sendSelectionToggle = (enabled: boolean) => {
+const recordSelectedParentElement = () => {
+  suppressSelectedElementRecordUntil = Date.now() + selectedElementRecordSuppressionMs;
+  recordSidepanelAction("Selected parent element");
+};
+
+export const sendSelectionToggle = (enabled: boolean, options: { clearSelection?: boolean } = {}) => {
+  const clearSelection = options.clearSelection ?? true;
   logger.debug("toggle selection mode requested", { enabled });
   const shouldReportError = enabled;
   setErrorMessage(null);
@@ -152,8 +161,10 @@ export const sendSelectionToggle = (enabled: boolean) => {
       }
 
       if (!enabled) {
-        setSelection(null);
-        await runContentSelectionToggle(tabContext.tabId, false).catch(() => undefined);
+        if (clearSelection) {
+          setSelection(null);
+        }
+        await runContentSelectionToggle(tabContext.tabId, false, { clearSelection }).catch(() => undefined);
         return;
       }
 
@@ -199,19 +210,24 @@ export const sendSelectParent = () => {
         const response = await requestDevtoolsSelection(tabContext.tabId, "devtools:selection:parent");
         if (!response || !applyDevtoolsSelection(tabContext.tabId, response)) {
           setErrorMessage(response?.error ?? "Unable to select parent element.");
+          return;
         }
+        recordSelectedParentElement();
         return;
       }
 
-      await sendSelectToolMessage(
+      const response = await sendSelectToolMessage(
         tabContext.tabId,
         {
           type: "select:parent",
         } satisfies SelectToolMessage,
         context.frameId ?? 0,
-      ).catch(() => {
+      ).catch(() => null);
+      if (response === null) {
         setErrorMessage("Unable to connect to the active tab.");
-      });
+        return;
+      }
+      recordSelectedParentElement();
     })
     .catch(() => {
       setErrorMessage("Unable to connect to the active tab.");
@@ -309,6 +325,21 @@ const sendSelectionAction = (action: SelectElementAction) => {
 
       if (!response.ok) {
         setErrorMessage(response.error);
+        return;
+      }
+
+      if (action === "copy") {
+        recordSidepanelAction("Copied element");
+        return;
+      }
+
+      if (action === "paste") {
+        recordSidepanelAction("Pasted element");
+        return;
+      }
+
+      if (action === "delete") {
+        recordSidepanelAction("Deleted element");
       }
     })
     .catch(() => {
@@ -439,6 +470,13 @@ export const attachSelectionListener = () => {
         frameId: 0,
         frameUrl: null,
       });
+      if (message.payload) {
+        if (Date.now() <= suppressSelectedElementRecordUntil) {
+          suppressSelectedElementRecordUntil = 0;
+        } else {
+          recordSidepanelAction("Selected element");
+        }
+      }
       setErrorMessage(null);
     }
   };

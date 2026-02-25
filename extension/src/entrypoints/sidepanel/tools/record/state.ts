@@ -4,6 +4,7 @@ import { get, writable } from "svelte/store";
 import {
   buildDefaultRecordPanelState,
   readRecordPanelStateForTab,
+  removeRecordPanelStateForTab,
   saveRecordPanelStateForTab,
   type RecordPanelState,
   type RecordTimelineEntry,
@@ -29,7 +30,15 @@ const createTimelineEntry = (action: string, detail: string): RecordTimelineEntr
   };
 };
 
-const trimTimeline = (timeline: RecordTimelineEntry[]) => timeline.slice(0, timelineLimit);
+const trimTimeline = (timeline: RecordTimelineEntry[]) => timeline.slice(-timelineLimit);
+const normalizeTimeline = (timeline: RecordTimelineEntry[]) =>
+  [...timeline].sort((left, right) => {
+    if (left.timestamp !== right.timestamp) {
+      return left.timestamp - right.timestamp;
+    }
+
+    return left.id.localeCompare(right.id);
+  });
 
 const persistRecordPanelState = () => {
   if (activeTabId === null) {
@@ -72,7 +81,10 @@ export const setRecordPanelActiveTab = (tabId: number | null) => {
         return;
       }
 
-      recordPanelState.set(state);
+      recordPanelState.set({
+        ...state,
+        timeline: trimTimeline(normalizeTimeline(state.timeline)),
+      });
     })
     .catch((error: unknown) => {
       if (currentLoadVersion !== loadVersion) {
@@ -105,7 +117,7 @@ export const recordSidepanelAction = (action: string, detail = "") => {
     shouldPersist = true;
     return {
       ...state,
-      timeline: trimTimeline([createTimelineEntry(normalizedAction, normalizedDetail), ...state.timeline]),
+      timeline: trimTimeline([...state.timeline, createTimelineEntry(normalizedAction, normalizedDetail)]),
       updatedAt: Date.now(),
     };
   });
@@ -117,15 +129,24 @@ export const recordSidepanelAction = (action: string, detail = "") => {
 
 export const toggleRecordPanelRecording = () => {
   recordPanelState.update((state) => {
-    const nextIsRecording = !state.isRecording;
-    const eventLabel = nextIsRecording ? "Recording resumed" : "Recording paused";
     return {
       ...state,
-      isRecording: nextIsRecording,
-      timeline: trimTimeline([createTimelineEntry(eventLabel, ""), ...state.timeline]),
+      isRecording: !state.isRecording,
       updatedAt: Date.now(),
     };
   });
 
   persistRecordPanelState();
+};
+
+export const clearRecordPanelState = () => {
+  if (activeTabId === null) {
+    return;
+  }
+
+  const tabId = activeTabId;
+  recordPanelState.set(buildDefaultRecordPanelState());
+  void removeRecordPanelStateForTab(tabId).catch((error: unknown) => {
+    logger.warn("Unable to clear record tool state.", { tabId, error });
+  });
 };

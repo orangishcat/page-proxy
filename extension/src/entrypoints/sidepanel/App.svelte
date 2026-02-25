@@ -27,10 +27,8 @@
     saveToolPanelHeightSetting,
     type ToolId,
   } from "./tools/state-storage";
-  import { recordSidepanelAction } from "./tools/record/state";
 
   type ToolbarControlId = SidepanelShortcutId;
-  type ToolActivationSource = "toolbar" | "shortcut";
 
   const toolLabels: Record<ToolId, string> = {
     select: "Select",
@@ -67,9 +65,9 @@
     select: "⇧1",
     create: "⇧2",
     selectors: "⇧3",
-    help: "⇧4",
-    share: "⇧5",
-    record: "⇧6",
+    record: "⇧4",
+    help: "⇧5",
+    share: "⇧6",
   };
   const hoverCandidate = $derived(hoveredTool ?? lastHoveredTool);
   const hoveredShortcutLabel = $derived(hoverCandidate ? shortcutLabels[hoverCandidate] : "");
@@ -86,7 +84,7 @@
       : `height: ${toolPanelHeightPx}px; min-height: ${minToolPanelHeightPx}px; max-height: ${maxToolPanelHeightPx}px;`,
   );
 
-  const setActiveTool = (tool: ToolId, source?: ToolActivationSource) => {
+  const setActiveTool = (tool: ToolId) => {
     if (tool === activeTool) {
       return;
     }
@@ -95,24 +93,18 @@
     activeTool = tool;
     const isSelectTool = tool === "select";
     if (wasSelectTool && !isSelectTool) {
-      sendSelectionToggle(false);
+      sendSelectionToggle(false, { clearSelection: false });
     }
     activeToolState.set(tool);
-    if (tool !== "none" && source) {
-      recordSidepanelAction(`Opened ${toolLabels[tool]} tool`, `Triggered from ${source}`);
-    }
   };
 
-  const activateSelectTool = (source?: ToolActivationSource) => {
+  const activateSelectTool = () => {
     sendSelectionToggle(true);
     if (activeTool === "select") {
-      if (source) {
-        recordSidepanelAction("Selection mode enabled", `Triggered from ${source}`);
-      }
       return;
     }
 
-    setActiveTool("select", source);
+    setActiveTool("select");
   };
 
   const isEditableTarget = (target: EventTarget | null) => {
@@ -166,11 +158,11 @@
       case "Digit3":
         return "selectors";
       case "Digit4":
-        return "help";
-      case "Digit5":
-        return "share";
-      case "Digit6":
         return "record";
+      case "Digit5":
+        return "help";
+      case "Digit6":
+        return "share";
       default:
         return null;
     }
@@ -178,16 +170,16 @@
 
   const handleShortcut = (tool: ToolbarControlId) => {
     if (tool === "select") {
-      activateSelectTool("shortcut");
+      activateSelectTool();
       return;
     }
 
     if (tool === "share") {
-      setActiveTool("share", "shortcut");
+      setActiveTool("share");
       return;
     }
 
-    setActiveTool(tool, "shortcut");
+    setActiveTool(tool);
   };
 
   const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -329,7 +321,7 @@
       activeTool = tool;
       const isSelectTool = tool === "select";
       if (wasSelectTool && !isSelectTool) {
-        sendSelectionToggle(false);
+        sendSelectionToggle(false, { clearSelection: false });
       }
     });
 
@@ -371,7 +363,7 @@
 
       if (event.key === "Escape" && activeTool === "select") {
         event.preventDefault();
-        sendSelectionToggle(false);
+        sendSelectionToggle(false, { clearSelection: false });
         return;
       }
 
@@ -441,7 +433,7 @@
                   onmouseleave={() => {
                     hoveredTool = null;
                   }}
-                  onclick={() => activateSelectTool("toolbar")}
+                  onclick={activateSelectTool}
                 >
                   <MousePointer class={iconSize} />
                 </Button>
@@ -456,7 +448,7 @@
                   onmouseleave={() => {
                     hoveredTool = null;
                   }}
-                  onclick={() => setActiveTool("create", "toolbar")}
+                  onclick={() => setActiveTool("create")}
                 >
                   <Plus class={iconSize} />
                 </Button>
@@ -471,7 +463,7 @@
                   onmouseleave={() => {
                     hoveredTool = null;
                   }}
-                  onclick={() => setActiveTool("selectors", "toolbar")}
+                  onclick={() => setActiveTool("selectors")}
                 >
                   $0
                 </Button>
@@ -486,7 +478,7 @@
                   onmouseleave={() => {
                     hoveredTool = null;
                   }}
-                  onclick={() => setActiveTool("record", "toolbar")}
+                  onclick={() => setActiveTool("record")}
                 >
                   <Disc class={iconSize} />
                 </Button>
@@ -511,7 +503,7 @@
                   onmouseleave={() => {
                     hoveredTool = null;
                   }}
-                  onclick={() => setActiveTool("help", "toolbar")}
+                  onclick={() => setActiveTool("help")}
                 >
                   <CircleQuestionMark class={iconSize} />
                 </Button>
@@ -526,7 +518,7 @@
                   onmouseleave={() => {
                     hoveredTool = null;
                   }}
-                  onclick={() => setActiveTool("share", "toolbar")}
+                  onclick={() => setActiveTool("share")}
                 >
                   <Share class={iconSize} />
                 </Button>

@@ -221,8 +221,10 @@ const getShortcutTool = (event: KeyboardEvent): SidepanelShortcutId | null => {
     case "Digit3":
       return "selectors";
     case "Digit4":
-      return "help";
+      return "record";
     case "Digit5":
+      return "help";
+    case "Digit6":
       return "share";
     default:
       return null;
@@ -960,7 +962,7 @@ export default defineContentScript({
           }
           resumeSelectionAfterPopup = false;
         }
-        setSelectionEnabled(selectMessage.enabled);
+        setSelectionEnabled(selectMessage.enabled, { clearSelection: selectMessage.clearSelection });
       }
       if (selectMessage.type === "selectors:hover") {
         applyHoveredSelectorElements(selectMessage.payload);

@@ -59,6 +59,7 @@ export type SelectToolMessage =
   | {
       type: 'select:toggle';
       enabled: boolean;
+      clearSelection?: boolean;
     }
   | {
       type: 'select:mode';
