@@ -14,7 +14,7 @@
   });
   let timelineContainer = $state<HTMLDivElement | null>(null);
   let selectedEntryIds = $state<string[]>([]);
-  let isModifierDragSelecting = $state(false);
+  let dragSelectionMode = $state<"none" | "replace" | "toggle">("none");
   let dragVisitedEntryIds = $state<string[]>([]);
 
   const timelineEntries = $derived(recordState.timeline);
@@ -52,12 +52,12 @@
 
   onMount(() => {
     const handleWindowPointerMove = (event: PointerEvent) => {
-      if (!isModifierDragSelecting) {
+      if (dragSelectionMode === "none") {
         return;
       }
 
       if ((event.buttons & 1) !== 1) {
-        endModifierDragSelection();
+        endDragSelection();
         return;
       }
 
@@ -77,14 +77,21 @@
       }
 
       dragVisitedEntryIds = [...dragVisitedEntryIds, entryId];
-      toggleEntrySelection(entryId);
+      if (dragSelectionMode === "toggle") {
+        toggleEntrySelection(entryId);
+        return;
+      }
+
+      if (!isEntrySelected(entryId)) {
+        selectedEntryIds = [...selectedEntryIds, entryId];
+      }
     };
 
     const handleWindowPointerUp = () => {
-      endModifierDragSelection();
+      endDragSelection();
     };
     const handleWindowBlur = () => {
-      endModifierDragSelection();
+      endDragSelection();
     };
 
     window.addEventListener("pointermove", handleWindowPointerMove);
@@ -121,17 +128,23 @@
       : [...selectedEntryIds, entryId];
   };
 
-  const selectSingleEntry = (entryId: string) => {
-    selectedEntryIds = [entryId];
-  };
-
   const clearSelection = () => {
     selectedEntryIds = [];
   };
 
-  const endModifierDragSelection = () => {
-    isModifierDragSelecting = false;
+  const endDragSelection = () => {
+    dragSelectionMode = "none";
     dragVisitedEntryIds = [];
+  };
+
+  const beginDragSelection = (entryId: string, mode: "replace" | "toggle") => {
+    dragSelectionMode = mode;
+    dragVisitedEntryIds = [entryId];
+    if (mode === "toggle") {
+      toggleEntrySelection(entryId);
+      return;
+    }
+    selectedEntryIds = [entryId];
   };
 
   const handleEntryPointerDown = (event: PointerEvent, entryId: string) => {
@@ -139,16 +152,14 @@
       return;
     }
 
+    event.preventDefault();
+
     if (isModifierHeld(event)) {
-      event.preventDefault();
-      isModifierDragSelecting = true;
-      dragVisitedEntryIds = [entryId];
-      toggleEntrySelection(entryId);
+      beginDragSelection(entryId, "toggle");
       return;
     }
 
-    endModifierDragSelection();
-    selectSingleEntry(entryId);
+    beginDragSelection(entryId, "replace");
   };
 
   const handleEntryKeyDown = (event: KeyboardEvent, entryId: string) => {
@@ -184,7 +195,7 @@
             <li class="min-w-0">
               <button
                 data-record-entry-id={entry.id}
-                class={`w-full rounded-xl border px-2 py-1.5 text-left transition ${
+                class={`w-full rounded-xl border px-1.5 py-1 text-left transition ${
                   isEntrySelected(entry.id)
                     ? "border-accent-500/40 bg-accent-500/10"
                     : "border-transparent bg-transparent hover:border-accent-500/30 hover:bg-accent-500/10"

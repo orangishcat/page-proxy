@@ -10,35 +10,23 @@ export type ParentTraversalOption = {
 };
 
 export type ParentTraversalOptionsByStepId = Record<string, ParentTraversalOption>;
+export type ReviewCodeMode = "combined" | "functions";
 
-export type GeneratedReviewCode = {
+type GeneratedReviewCodeByModeEntry = {
   rawCode: string;
   finalCode: string;
   renameMap: Record<string, string>;
 };
 
-const selectedElementSelectorFallback = "auto-generated selector for the element";
-
-const buildTemplateBlock = ({
-  inputs,
-  codeLines,
-  outputs,
-  configuredOptions,
-}: {
-  inputs: string;
-  codeLines: string[];
-  outputs: string;
-  configuredOptions: string[];
-}) => {
-  return [
-    `// inputs: ${inputs}`,
-    ...codeLines,
-    `// outputs: ${outputs}`,
-    "",
-    "current configured options for the selected step:",
-    ...configuredOptions,
-  ].join("\n");
+export type GeneratedReviewCode = {
+  rawCode: string;
+  finalCode: string;
+  renameMap: Record<string, string>;
+  byMode: Record<ReviewCodeMode, GeneratedReviewCodeByModeEntry>;
 };
+
+const selectedElementSelectorFallback = "auto-generated selector for the element";
+const stepInputOutputName = "selectedElement";
 
 const toStringLiteral = (value: string) => JSON.stringify(value);
 
@@ -48,99 +36,61 @@ const resolveSelectElementSelector = (step: SupportedRecordStep) => {
     : selectedElementSelectorFallback;
 };
 
-const buildPreviewSelectElementCode = (step: SupportedRecordStep) => {
-  const selectorValue = resolveSelectElementSelector(step);
-  return [
-    "const selector = pq.selector({",
-    `    name: ${toStringLiteral("Selector 1")},`,
-    `    baseSelector: ${toStringLiteral(selectorValue)},`,
-    "    matches: e => true",
-    "})",
-  ];
+const normalizeTraversalCount = (count: number) => {
+  return Number.isFinite(count) && count > 0 ? Math.floor(count) : 1;
 };
 
-const buildPreviewTraverseUntilCode = (option: ParentTraversalOption) => {
-  const untilSelector = option.untilSelector.trim().length > 0 ? option.untilSelector.trim() : "auto generated selector";
-  return [
-    "const selectedElement = await selector.waitUntilMatch()",
-    "const traverseUntilSelector = pq.selector({",
-    `    name: ${toStringLiteral("Traverse until selector 1")},`,
-    `    baseSelector: ${toStringLiteral(untilSelector)},`,
-    "    matches: e => true",
-    "})",
-    "const selectedElement2 = pq.traverseParents(selectedElement, e => traverseUntilSelector.matches(e))",
-  ];
+const normalizeUntilSelector = (value: string) => {
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : "auto generated selector";
 };
 
-const buildPreviewTraverseCountCode = (option: ParentTraversalOption) => {
-  const count = Number.isFinite(option.count) && option.count > 0 ? Math.floor(option.count) : 1;
-  return [
-    "const selectedElement = await selector.waitUntilMatch()",
-    `const n = ${count}`,
-    "for (let i = 0; i < n; i++)",
-    "    selectedElement = selectedElement.parentElement",
-  ];
+const parseStepNumber = (stepId: string) => {
+  const parsed = Number.parseInt(stepId.replace("step-", ""), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 };
 
-const toSuffixedName = (base: string, index: number) => (index <= 1 ? base : `${base}${index}`);
+const buildStepFunctionName = (stepNumber: number) => `step${stepNumber}`;
+const toNextSelectedElementName = () => `next${stepInputOutputName[0].toUpperCase()}${stepInputOutputName.slice(1)}`;
 
-const buildReviewSelectElementCode = ({
-  selectorName,
-  selectorValue,
+const buildFunctionParameters = (inputNames: string[]) => {
+  if (inputNames.length === 0) {
+    return "";
+  }
+  return inputNames.join(", ");
+};
+
+type StepOutputBinding = {
+  name: string;
+  expression: string;
+};
+
+const buildReturnLine = (outputs: StepOutputBinding[]) => {
+  if (outputs.length === 0) {
+    return "  return []";
+  }
+
+  const outputExpressions = outputs.map((output) => output.expression);
+  return `  return [${outputExpressions.join(", ")}]`;
+};
+
+const buildStepFunctionCode = ({
+  functionName,
+  inputNames,
+  bodyLines,
+  outputs,
 }: {
-  selectorName: string;
-  selectorValue: string;
+  functionName: string;
+  inputNames: string[];
+  bodyLines: string[];
+  outputs: StepOutputBinding[];
 }) => {
   return [
-    `const ${selectorName} = pq.selector({`,
-    `    name: ${toStringLiteral("Selector 1")},`,
-    `    baseSelector: ${toStringLiteral(selectorValue)},`,
-    "    matches: e => true",
-    "})",
-  ];
-};
-
-const buildReviewTraverseUntilCode = ({
-  selectorName,
-  selectedElementName,
-  traverseUntilSelectorName,
-  outputElementName,
-  untilSelector,
-}: {
-  selectorName: string;
-  selectedElementName: string;
-  traverseUntilSelectorName: string;
-  outputElementName: string;
-  untilSelector: string;
-}) => {
-  return [
-    `const ${selectedElementName} = await ${selectorName}.waitUntilMatch()`,
-    `const ${traverseUntilSelectorName} = pq.selector({`,
-    `    name: ${toStringLiteral("Traverse until selector 1")},`,
-    `    baseSelector: ${toStringLiteral(untilSelector)},`,
-    "    matches: e => true",
-    "})",
-    `const ${outputElementName} = pq.traverseParents(${selectedElementName}, e => ${traverseUntilSelectorName}.matches(e))`,
-  ];
-};
-
-const buildReviewTraverseCountCode = ({
-  selectorName,
-  selectedElementName,
-  nName,
-  count,
-}: {
-  selectorName: string;
-  selectedElementName: string;
-  nName: string;
-  count: number;
-}) => {
-  return [
-    `let ${selectedElementName} = await ${selectorName}.waitUntilMatch()`,
-    `const ${nName} = ${count}`,
-    `for (let i = 0; i < ${nName}; i++)`,
-    `    ${selectedElementName} = ${selectedElementName}.parentElement`,
-  ];
+    `async function ${functionName}(${buildFunctionParameters(inputNames)}) {`,
+    ...bodyLines.map((line) => `  ${line}`),
+    buildReturnLine(outputs),
+    "}",
+  ].join("\n");
 };
 
 export const buildDefaultParentTraversalOption = (count: number): ParentTraversalOption => ({
@@ -149,92 +99,347 @@ export const buildDefaultParentTraversalOption = (count: number): ParentTraversa
   count: Math.max(1, Math.floor(count)),
 });
 
-export const buildStepSnippet = (step: SupportedRecordStep, parentOptions: ParentTraversalOptionsByStepId) => {
+export const describeStepOption = (step: SupportedRecordStep, parentOptions: ParentTraversalOptionsByStepId) => {
   if (step.kind === "select-element") {
-    return buildTemplateBlock({
-      inputs: "variableName1, variableName2, methodName1",
-      codeLines: buildPreviewSelectElementCode(step),
-      outputs: "outputVar1, outputVar2, outputMethod1",
-      configuredOptions: ["select element"],
-    });
+    return "Select element";
+  }
+  if (step.kind === "delete-element") {
+    return "Delete element";
   }
 
   const option = parentOptions[step.id] ?? buildDefaultParentTraversalOption(step.count);
-  const codeLines =
-    option.mode === "traverse-until" ? buildPreviewTraverseUntilCode(option) : buildPreviewTraverseCountCode(option);
+  if (option.mode === "traverse-until") {
+    return `Select parent element: Traverse until (${normalizeUntilSelector(option.untilSelector)})`;
+  }
 
-  return buildTemplateBlock({
-    inputs: "variableName1, variableName2, methodName1",
-    codeLines,
-    outputs: "outputVar1, outputVar2, outputMethod1",
-    configuredOptions: [
-      option.mode === "traverse-until"
-        ? `select parent element: traverse until (${option.untilSelector || "auto generated selector"})`
-        : `select parent element: traverse n times (${Math.max(1, Math.floor(option.count))})`,
-    ],
-  });
+  return `Select parent element: Traverse n times (${normalizeTraversalCount(option.count)})`;
 };
 
-const buildReviewStepSnippet = ({
+type BuiltStepCode = {
+  functionName: string;
+  inputNames: string[];
+  code: string;
+  outputNames: string[];
+};
+
+const buildSelectElementStepCode = ({
   step,
-  parentOption,
-  selectorSequence,
-  parentSequence,
-  selectorName,
+  stepNumber,
+  functionName,
+  inputNames,
 }: {
   step: SupportedRecordStep;
-  parentOption: ParentTraversalOption | null;
-  selectorSequence: number;
-  parentSequence: number;
-  selectorName: string;
-}) => {
+  stepNumber: number;
+  functionName: string;
+  inputNames: string[];
+}): BuiltStepCode => {
+  const selectorValue = resolveSelectElementSelector(step);
+
+  return {
+    functionName,
+    inputNames,
+    code: buildStepFunctionCode({
+      functionName,
+      inputNames,
+      bodyLines: [
+        "const selector = pq.selector({",
+        `  name: ${toStringLiteral(`Selector ${stepNumber}`)},`,
+        `  baseSelector: ${toStringLiteral(selectorValue)},`,
+        "  matches: e => true",
+        "})",
+        `const ${stepInputOutputName} = await selector.waitUntilMatch()`,
+      ],
+      outputs: [{ name: stepInputOutputName, expression: stepInputOutputName }],
+    }),
+    outputNames: [stepInputOutputName],
+  };
+};
+
+const buildTraverseUntilStepCode = ({
+  stepNumber,
+  functionName,
+  inputNames,
+  option,
+}: {
+  stepNumber: number;
+  functionName: string;
+  inputNames: string[];
+  option: ParentTraversalOption;
+}): BuiltStepCode => {
+  const untilSelector = normalizeUntilSelector(option.untilSelector);
+  const selectedElementInput = inputNames.includes(stepInputOutputName) ? stepInputOutputName : "null";
+  const nextElementName = toNextSelectedElementName();
+
+  return {
+    functionName,
+    inputNames,
+    code: buildStepFunctionCode({
+      functionName,
+      inputNames,
+      bodyLines: [
+        "const traverseUntilSelector = pq.selector({",
+        `  name: ${toStringLiteral(`Traverse until selector ${stepNumber}`)},`,
+        `  baseSelector: ${toStringLiteral(untilSelector)},`,
+        "  matches: e => true",
+        "})",
+        `const ${nextElementName} = ${selectedElementInput}`,
+        `  ? pq.traverseParents(${selectedElementInput}, e => traverseUntilSelector.matches(e))`,
+        "  : null",
+      ],
+      outputs: [
+        {
+          name: stepInputOutputName,
+          expression: nextElementName,
+        },
+      ],
+    }),
+    outputNames: [stepInputOutputName],
+  };
+};
+
+const buildTraverseCountStepCode = ({
+  functionName,
+  inputNames,
+  option,
+}: {
+  functionName: string;
+  inputNames: string[];
+  option: ParentTraversalOption;
+}): BuiltStepCode => {
+  const count = normalizeTraversalCount(option.count);
+  const nextElementName = toNextSelectedElementName();
+  const selectedElementInput = inputNames.includes(stepInputOutputName) ? stepInputOutputName : "null";
+
+  return {
+    functionName,
+    inputNames,
+    code: buildStepFunctionCode({
+      functionName,
+      inputNames,
+      bodyLines: [
+        `let ${nextElementName} = ${selectedElementInput}`,
+        `const parentCount = ${count}`,
+        "for (let i = 0; i < parentCount; i += 1) {",
+        `  ${nextElementName} = ${nextElementName}?.parentElement ?? null`,
+        "}",
+      ],
+      outputs: [
+        {
+          name: stepInputOutputName,
+          expression: nextElementName,
+        },
+      ],
+    }),
+    outputNames: [stepInputOutputName],
+  };
+};
+
+const buildDeleteStepCode = ({ functionName, inputNames }: { functionName: string; inputNames: string[] }): BuiltStepCode => {
+  const removableElement = inputNames.includes(stepInputOutputName) ? stepInputOutputName : "null";
+
+  return {
+    functionName,
+    inputNames,
+    code: buildStepFunctionCode({
+      functionName,
+      inputNames,
+      bodyLines: [`${removableElement}?.remove()`],
+      outputs: [],
+    }),
+    outputNames: [],
+  };
+};
+
+const buildStepCode = ({
+  step,
+  stepNumber,
+  parentOption,
+  inputNames,
+}: {
+  step: SupportedRecordStep;
+  stepNumber: number;
+  parentOption: ParentTraversalOption;
+  inputNames: string[];
+}): BuiltStepCode => {
+  const functionName = buildStepFunctionName(stepNumber);
+
   if (step.kind === "select-element") {
-    return buildTemplateBlock({
-      inputs: "variableName1, variableName2, methodName1",
-      codeLines: buildReviewSelectElementCode({
-        selectorName,
-        selectorValue: resolveSelectElementSelector(step),
-      }),
-      outputs: "outputVar1, outputVar2, outputMethod1",
-      configuredOptions: [`select element (${selectorName})`],
+    return buildSelectElementStepCode({
+      step,
+      stepNumber,
+      functionName,
+      inputNames,
     });
   }
 
-  const option = parentOption ?? buildDefaultParentTraversalOption(step.count);
-  const selectedElementName = toSuffixedName("selectedElement", Math.max(1, parentSequence * 2 - 1));
-  const outputElementName = `selectedElement${parentSequence * 2}`;
-  const nName = toSuffixedName("n", parentSequence);
-  const traverseUntilSelectorName = toSuffixedName("traverseUntilSelector", parentSequence);
-  const sanitizedCount = Math.max(1, Math.floor(option.count));
-  const untilSelector = option.untilSelector.trim().length > 0 ? option.untilSelector.trim() : "auto generated selector";
-  const codeLines =
-    option.mode === "traverse-until"
-      ? buildReviewTraverseUntilCode({
-          selectorName,
-          selectedElementName,
-          traverseUntilSelectorName,
-          outputElementName,
-          untilSelector,
-        })
-      : buildReviewTraverseCountCode({
-          selectorName,
-          selectedElementName,
-          nName,
-          count: sanitizedCount,
-        });
+  if (step.kind === "delete-element") {
+    return buildDeleteStepCode({ functionName, inputNames });
+  }
 
-  return buildTemplateBlock({
-    inputs: "variableName1, variableName2, methodName1",
-    codeLines,
-    outputs: "outputVar1, outputVar2, outputMethod1",
-    configuredOptions: [
-      option.mode === "traverse-until"
-        ? `select parent element: traverse until (${untilSelector})`
-        : `select parent element: traverse n times (${sanitizedCount})`,
-      `selector reference: ${selectorName}`,
-      `selector sequence: ${selectorSequence}`,
-    ],
+  if (parentOption.mode === "traverse-until") {
+    return buildTraverseUntilStepCode({
+      stepNumber,
+      functionName,
+      inputNames,
+      option: parentOption,
+    });
+  }
+
+  return buildTraverseCountStepCode({
+    functionName,
+    inputNames,
+    option: parentOption,
   });
+};
+
+export const buildStepSnippet = (step: SupportedRecordStep, parentOptions: ParentTraversalOptionsByStepId) => {
+  const stepNumber = parseStepNumber(step.id);
+  const parentOption = parentOptions[step.id] ?? buildDefaultParentTraversalOption(step.count);
+  const inputNames = stepNumber === 1 ? [] : [stepInputOutputName];
+
+  return buildStepCode({
+    step,
+    stepNumber,
+    parentOption,
+    inputNames,
+  }).code;
+};
+
+const buildFunctionsRawCode = ({
+  steps,
+  parentOptions,
+}: {
+  steps: SupportedRecordStep[];
+  parentOptions: ParentTraversalOptionsByStepId;
+}) => {
+  let previousStepOutputs: string[] = [];
+
+  const builtSteps = steps.map((step, stepIndex) => {
+    const stepNumber = stepIndex + 1;
+    const parentOption = parentOptions[step.id] ?? buildDefaultParentTraversalOption(step.count);
+    const inputNames = stepNumber === 1 ? [] : previousStepOutputs;
+    const builtStep = buildStepCode({
+      step,
+      stepNumber,
+      parentOption,
+      inputNames,
+    });
+    previousStepOutputs = builtStep.outputNames;
+    return builtStep;
+  });
+
+  const functionDefinitions = builtSteps.map((stepCode) => stepCode.code).join("\n\n");
+
+  let previousResultName = "";
+  const invocationLines = builtSteps.map((stepCode) => {
+    const resultName = `${stepCode.functionName}Result`;
+    const invocationLine =
+      stepCode.inputNames.length === 0
+        ? `const ${resultName} = await ${stepCode.functionName}()`
+        : previousResultName.trim().length > 0
+          ? `const ${resultName} = await ${stepCode.functionName}(...${previousResultName})`
+          : `const ${resultName} = await ${stepCode.functionName}()`;
+    previousResultName = resultName;
+    return invocationLine;
+  });
+
+  const invocationCode =
+    invocationLines.length === 0
+      ? ""
+      : ["void (async () => {", ...invocationLines.map((line) => `  ${line}`), "})()"].join("\n");
+
+  return [functionDefinitions, invocationCode].filter((section) => section.trim().length > 0).join("\n\n");
+};
+
+const buildCombinedStepLines = ({
+  step,
+  stepNumber,
+  parentOption,
+}: {
+  step: SupportedRecordStep;
+  stepNumber: number;
+  parentOption: ParentTraversalOption;
+}) => {
+  if (step.kind === "select-element") {
+    const selectorValue = resolveSelectElementSelector(step);
+    const selectorName = `selector${stepNumber}`;
+    return [
+      `  const ${selectorName} = pq.selector({`,
+      `    name: ${toStringLiteral(`Selector ${stepNumber}`)},`,
+      `    baseSelector: ${toStringLiteral(selectorValue)},`,
+      "    matches: e => true",
+      "  })",
+      `  ${stepInputOutputName} = await ${selectorName}.waitUntilMatch()`,
+    ];
+  }
+
+  if (step.kind === "delete-element") {
+    return [`  ${stepInputOutputName}?.remove()`];
+  }
+
+  if (parentOption.mode === "traverse-until") {
+    const untilSelector = normalizeUntilSelector(parentOption.untilSelector);
+    const selectorName = `traverseUntilSelector${stepNumber}`;
+    const nextElementName = `nextSelectedElement${stepNumber}`;
+    return [
+      `  const ${selectorName} = pq.selector({`,
+      `    name: ${toStringLiteral(`Traverse until selector ${stepNumber}`)},`,
+      `    baseSelector: ${toStringLiteral(untilSelector)},`,
+      "    matches: e => true",
+      "  })",
+      `  const ${nextElementName} = ${stepInputOutputName}`,
+      `    ? pq.traverseParents(${stepInputOutputName}, e => ${selectorName}.matches(e))`,
+      "    : null",
+      `  ${stepInputOutputName} = ${nextElementName}`,
+    ];
+  }
+
+  const count = normalizeTraversalCount(parentOption.count);
+  const nextElementName = `nextSelectedElement${stepNumber}`;
+  const parentCountName = `parentCount${stepNumber}`;
+  return [
+    `  let ${nextElementName} = ${stepInputOutputName}`,
+    `  const ${parentCountName} = ${count}`,
+    `  for (let i = 0; i < ${parentCountName}; i += 1) {`,
+    `    ${nextElementName} = ${nextElementName}?.parentElement ?? null`,
+    "  }",
+    `  ${stepInputOutputName} = ${nextElementName}`,
+  ];
+};
+
+const buildCombinedRawCode = ({
+  steps,
+  parentOptions,
+}: {
+  steps: SupportedRecordStep[];
+  parentOptions: ParentTraversalOptionsByStepId;
+}) => {
+  if (steps.length === 0) {
+    return "";
+  }
+
+  const lines = ["void (async () => {", `  let ${stepInputOutputName} = null`];
+  steps.forEach((step, stepIndex) => {
+    const stepNumber = stepIndex + 1;
+    const parentOption = parentOptions[step.id] ?? buildDefaultParentTraversalOption(step.count);
+    lines.push("");
+    lines.push(...buildCombinedStepLines({ step, stepNumber, parentOption }));
+  });
+  lines.push("})()");
+  return lines.join("\n");
+};
+
+const resolveGeneratedCode = (rawCode: string, existingCode: string): GeneratedReviewCodeByModeEntry => {
+  const resolved = resolveRecordConverterCollisions({
+    code: rawCode,
+    existingCode,
+  });
+
+  return {
+    rawCode,
+    finalCode: resolved.finalCode,
+    renameMap: resolved.renameMap,
+  };
 };
 
 export const buildGeneratedReviewCode = ({
@@ -246,43 +451,16 @@ export const buildGeneratedReviewCode = ({
   parentOptions: ParentTraversalOptionsByStepId;
   existingCode: string;
 }): GeneratedReviewCode => {
-  let selectorSequence = 0;
-  let parentSequence = 0;
-  let activeSelectorName = "selector";
-
-  const rawCode = steps
-    .map((step) => {
-      if (step.kind === "select-element") {
-        selectorSequence += 1;
-        activeSelectorName = toSuffixedName("selector", selectorSequence);
-        return buildReviewStepSnippet({
-          step,
-          parentOption: null,
-          selectorSequence,
-          parentSequence,
-          selectorName: activeSelectorName,
-        });
-      }
-
-      parentSequence += 1;
-      return buildReviewStepSnippet({
-        step,
-        parentOption: parentOptions[step.id] ?? buildDefaultParentTraversalOption(step.count),
-        selectorSequence,
-        parentSequence,
-        selectorName: activeSelectorName,
-      });
-    })
-    .join("\n\n");
-
-  const resolved = resolveRecordConverterCollisions({
-    code: rawCode,
-    existingCode,
-  });
+  const byMode: Record<ReviewCodeMode, GeneratedReviewCodeByModeEntry> = {
+    combined: resolveGeneratedCode(buildCombinedRawCode({ steps, parentOptions }), existingCode),
+    functions: resolveGeneratedCode(buildFunctionsRawCode({ steps, parentOptions }), existingCode),
+  };
+  const defaultMode = byMode.combined;
 
   return {
-    rawCode,
-    finalCode: resolved.finalCode,
-    renameMap: resolved.renameMap,
+    rawCode: defaultMode.rawCode,
+    finalCode: defaultMode.finalCode,
+    renameMap: defaultMode.renameMap,
+    byMode,
   };
 };

@@ -1044,7 +1044,41 @@ export default defineContentScript({
         return true;
       }
       if (selectMessage.type === "record:converter:open") {
+        const payload = selectMessage.payload;
+        if (
+          !payload ||
+          typeof payload !== "object" ||
+          !Array.isArray(payload.timeline) ||
+          typeof payload.existingCode !== "string"
+        ) {
+          logger.error("Invalid record converter open payload", {
+            payload,
+          });
+          sendResponse({
+            opened: false,
+            error: "Invalid record converter payload.",
+          } satisfies RecordConverterOpenResult);
+          return false;
+        }
+
         let hasResponded = false;
+        const safeSendResponse = (result: RecordConverterOpenResult, reason: string) => {
+          logger.debug("record converter open response", {
+            reason,
+            opened: result.opened,
+            error: result.error,
+          });
+          try {
+            sendResponse(result);
+          } catch (error: unknown) {
+            logger.error("Failed to send record converter open response", {
+              reason,
+              error,
+              result,
+            });
+          }
+        };
+
         const responseTimeoutId = globalThis.setTimeout(() => {
           if (hasResponded) {
             return;
@@ -1052,12 +1086,13 @@ export default defineContentScript({
 
           hasResponded = true;
           logger.error("Record converter open timed out before responding", {
-            payload: selectMessage.payload,
+            timelineSize: payload.timeline.length,
+            existingCodeLength: payload.existingCode.length,
           });
-          sendResponse({
+          safeSendResponse({
             opened: false,
             error: "Timed out while opening record converter popup.",
-          } satisfies RecordConverterOpenResult);
+          } satisfies RecordConverterOpenResult, "timeout");
         }, 4000);
 
         const reply = (result: RecordConverterOpenResult) => {
@@ -1067,17 +1102,18 @@ export default defineContentScript({
 
           hasResponded = true;
           globalThis.clearTimeout(responseTimeoutId);
-          sendResponse(result);
+          safeSendResponse(result, "resolved");
         };
 
-        void openRecordConverterPopup(selectMessage.payload)
+        void openRecordConverterPopup(payload)
           .then((result) => {
             reply(result);
           })
           .catch((error: unknown) => {
             logger.error("Failed to handle record converter open request", {
               error,
-              payload: selectMessage.payload,
+              timelineSize: payload.timeline.length,
+              existingCodeLength: payload.existingCode.length,
             });
             reply({
               opened: false,

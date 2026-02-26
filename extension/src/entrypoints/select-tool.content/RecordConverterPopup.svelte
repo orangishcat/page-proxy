@@ -8,10 +8,12 @@
   import ConverterStepsSidebar from "./record-converter/ConverterStepsSidebar.svelte";
   import {
     buildDefaultParentTraversalOption,
+    describeStepOption,
     buildGeneratedReviewCode,
     buildStepSnippet,
     type ParentTraversalMode,
     type ParentTraversalOptionsByStepId,
+    type ReviewCodeMode,
   } from "./record-converter/generate";
   import {
     normalizeRecordTimeline,
@@ -37,12 +39,14 @@
   };
 
   let activeStepId = $state(reviewStepId);
+  let reviewCodeMode = $state<ReviewCodeMode>("combined");
   let hasInitializedActiveStep = false;
   let parentOptions = $state<ParentTraversalOptionsByStepId>({});
   let reviewCode = $state("");
   let saveError = $state("");
   let isSaving = $state(false);
-  let hasManualReviewEdits = $state(false);
+  let stepPreviewCodeByStepId = $state<Record<string, string>>({});
+  let stepPreviewHasLocalEditsByStepId = $state<Record<string, boolean>>({});
 
   let reviewEditorHost = $state<HTMLDivElement | null>(null);
   let reviewEditorHandle = $state<MonacoCodeEditorHandle | null>(null);
@@ -72,12 +76,13 @@
       existingCode: payload.existingCode,
     }),
   );
+  const activeGeneratedReview = $derived.by(() => generatedReview.byMode[reviewCodeMode]);
 
-  const readonlyStepPreviewCode = $derived.by(() => {
+  const activeStepPreviewCode = $derived.by(() => {
     if (!activeStep) {
       return "";
     }
-    return buildStepSnippet(activeStep, parentOptions);
+    return stepPreviewCodeByStepId[activeStep.id] ?? buildStepSnippet(activeStep, parentOptions);
   });
   const activeParentOption = $derived.by(() => {
     if (!activeStep || activeStep.kind !== "select-parent") {
@@ -87,9 +92,51 @@
   });
 
   const canSave = $derived.by(() => saveValidationMessage.length === 0 && !isSaving);
+  const selectedOptionsSummary = $derived.by(() =>
+    supportedSteps.map((step) => describeStepOption(step, parentOptions)).join(" | "),
+  );
+  const orderedStepIds = $derived.by(() => [...supportedSteps.map((step) => step.id), reviewStepId]);
+  const activeStepIndex = $derived.by(() => {
+    const index = orderedStepIds.indexOf(activeStepId);
+    return index >= 0 ? index : orderedStepIds.length - 1;
+  });
+  const canGoPrevious = $derived(activeStepIndex > 0);
+  const canGoNext = $derived(activeStepIndex >= 0 && activeStepIndex < orderedStepIds.length - 1);
 
   const selectStep = (stepId: string) => {
     activeStepId = stepId;
+  };
+
+  const goToPreviousStep = () => {
+    if (!canGoPrevious) {
+      return;
+    }
+    activeStepId = orderedStepIds[activeStepIndex - 1] ?? activeStepId;
+  };
+
+  const goToNextStep = () => {
+    if (!canGoNext) {
+      return;
+    }
+    activeStepId = orderedStepIds[activeStepIndex + 1] ?? activeStepId;
+  };
+
+  const areStringMapsEqual = (left: Record<string, string>, right: Record<string, string>) => {
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    if (leftKeys.length !== rightKeys.length) {
+      return false;
+    }
+    return leftKeys.every((key) => left[key] === right[key]);
+  };
+
+  const areBooleanMapsEqual = (left: Record<string, boolean>, right: Record<string, boolean>) => {
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    if (leftKeys.length !== rightKeys.length) {
+      return false;
+    }
+    return leftKeys.every((key) => left[key] === right[key]);
   };
 
   const setupReviewEditor = () => {
@@ -101,7 +148,6 @@
       onChange: (nextValue) => {
         reviewCode = nextValue;
         if (!applyingGeneratedReviewCode) {
-          hasManualReviewEdits = true;
           saveError = "";
         }
       },
@@ -112,8 +158,7 @@
   };
 
   const resetReviewToGenerated = () => {
-    hasManualReviewEdits = false;
-    const generatedCode = generatedReview.finalCode;
+    const generatedCode = activeGeneratedReview.finalCode;
     reviewCode = generatedCode;
     if (!reviewEditorHandle) {
       return;
@@ -125,6 +170,14 @@
     applyingGeneratedReviewCode = true;
     updateMonacoEditorValue(reviewEditorHandle, generatedCode);
     applyingGeneratedReviewCode = false;
+  };
+
+  const updateReviewCodeMode = (nextMode: ReviewCodeMode) => {
+    if (reviewCodeMode === nextMode) {
+      return;
+    }
+    reviewCodeMode = nextMode;
+    saveError = "";
   };
 
   const updateParentMode = (step: SupportedRecordStep, mode: ParentTraversalMode) => {
@@ -162,6 +215,23 @@
     };
   };
 
+  const updateStepPreviewCode = (step: SupportedRecordStep, nextCode: string) => {
+    if (stepPreviewCodeByStepId[step.id] !== nextCode) {
+      stepPreviewCodeByStepId = {
+        ...stepPreviewCodeByStepId,
+        [step.id]: nextCode,
+      };
+    }
+
+    const hasLocalEdit = nextCode !== buildStepSnippet(step, parentOptions);
+    if ((stepPreviewHasLocalEditsByStepId[step.id] ?? false) !== hasLocalEdit) {
+      stepPreviewHasLocalEditsByStepId = {
+        ...stepPreviewHasLocalEditsByStepId,
+        [step.id]: hasLocalEdit,
+      };
+    }
+  };
+
   const handleSave = async () => {
     if (!canSave) {
       return;
@@ -176,7 +246,7 @@
   };
 
   onMount(() => {
-    reviewCode = generatedReview.finalCode;
+    reviewCode = activeGeneratedReview.finalCode;
     setupReviewEditor();
   });
 
@@ -213,14 +283,24 @@
   });
 
   $effect(() => {
-    if (!hasManualReviewEdits) {
-      const generatedCode = generatedReview.finalCode;
-      reviewCode = generatedCode;
-      if (reviewEditorHandle && reviewEditorHandle.editor.getValue() !== generatedCode) {
-        applyingGeneratedReviewCode = true;
-        updateMonacoEditorValue(reviewEditorHandle, generatedCode);
-        applyingGeneratedReviewCode = false;
-      }
+    const nextPreviewCodeByStepId: Record<string, string> = {};
+    const nextPreviewHasLocalEditsByStepId: Record<string, boolean> = {};
+
+    supportedSteps.forEach((step) => {
+      const generatedCode = buildStepSnippet(step, parentOptions);
+      const hasLocalEdit = stepPreviewHasLocalEditsByStepId[step.id] ?? false;
+      nextPreviewHasLocalEditsByStepId[step.id] = hasLocalEdit;
+      nextPreviewCodeByStepId[step.id] = hasLocalEdit
+        ? (stepPreviewCodeByStepId[step.id] ?? generatedCode)
+        : generatedCode;
+    });
+
+    if (!areStringMapsEqual(stepPreviewCodeByStepId, nextPreviewCodeByStepId)) {
+      stepPreviewCodeByStepId = nextPreviewCodeByStepId;
+    }
+
+    if (!areBooleanMapsEqual(stepPreviewHasLocalEditsByStepId, nextPreviewHasLocalEditsByStepId)) {
+      stepPreviewHasLocalEditsByStepId = nextPreviewHasLocalEditsByStepId;
     }
   });
 
@@ -235,6 +315,15 @@
     if (!isReviewStep || !reviewEditorHandle) {
       return;
     }
+
+    const generatedCode = activeGeneratedReview.finalCode;
+    reviewCode = generatedCode;
+    if (reviewEditorHandle.editor.getValue() !== generatedCode) {
+      applyingGeneratedReviewCode = true;
+      updateMonacoEditorValue(reviewEditorHandle, generatedCode);
+      applyingGeneratedReviewCode = false;
+    }
+
     requestAnimationFrame(() => {
       reviewEditorHandle?.editor.layout();
       reviewEditorHandle?.editor.focus();
@@ -244,8 +333,8 @@
 
 <div class="pp-no-select-tool fixed inset-0 z-2147483646 flex items-center justify-center bg-black/60 p-4">
   <section
-    class="pp-no-select-tool flex h-full w-full max-w-6xl min-h-0 flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-900 text-white shadow-2xl"
-    style="color-scheme: dark;"
+    class="pp-no-select-tool flex w-full max-w-7xl min-h-0 max-h-[56em] flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-900 text-white shadow-2xl"
+    style="color-scheme: dark; font-size: 16px !important; --spacing: 0.25em; --text-xs: 0.75em; --text-sm: 0.875em; --text-base: 1em; --text-lg: 1.25em; --radius-sm: 0.25em; --radius-md: 0.375em; --radius-lg: 0.5em; --radius-xl: 0.75em; --radius-2xl: 1em; --radius-3xl: 1.5em;"
     aria-label="Record converter popup"
   >
     <header class="flex items-center gap-3 border-b border-gray-700 bg-gray-850 px-5 py-3">
@@ -262,7 +351,7 @@
       </button>
     </header>
 
-    <div class="flex min-h-0 flex-1">
+    <div class="flex min-h-0">
       <ConverterStepsSidebar
         {supportedSteps}
         skippedCount={skippedEntries.length}
@@ -273,9 +362,17 @@
 
       <section class="flex min-h-0 flex-1 flex-col">
         {#if isReviewStep}
-          <ConverterReviewHeader renameMap={generatedReview.renameMap} onReset={resetReviewToGenerated} />
-          <div class="min-h-0 flex-1 p-4">
-            <div class="h-full min-h-0 overflow-hidden rounded-lg border border-gray-700 bg-gray-950">
+          <ConverterReviewHeader
+            renameMap={activeGeneratedReview.renameMap}
+            mode={reviewCodeMode}
+            onModeChange={updateReviewCodeMode}
+            onReset={resetReviewToGenerated}
+          />
+          <div class="p-4">
+            <div class="mb-2 text-caption text-gray-300">
+              Current selected option(s): {selectedOptionsSummary || "none"}
+            </div>
+            <div class="h-[34em] overflow-hidden rounded-lg border border-gray-700 bg-gray-950">
               <div class="h-full w-full min-h-0" bind:this={reviewEditorHost}></div>
             </div>
           </div>
@@ -283,14 +380,27 @@
           <ConverterStepPreview
             {activeStep}
             parentOption={activeParentOption}
-            {readonlyStepPreviewCode}
+            stepPreviewCode={activeStepPreviewCode}
             onParentModeChange={updateParentMode}
             onParentUntilSelectorChange={updateParentUntilSelector}
             onParentCountChange={updateParentCount}
+            onStepPreviewCodeChange={updateStepPreviewCode}
           />
         {/if}
       </section>
     </div>
-    <ConverterFooter {saveValidationMessage} {saveError} {canSave} {isSaving} {onCancel} onSave={handleSave} />
+    <ConverterFooter
+      {isReviewStep}
+      {canGoPrevious}
+      {canGoNext}
+      {saveValidationMessage}
+      {saveError}
+      {canSave}
+      {isSaving}
+      {onCancel}
+      onPrevious={goToPreviousStep}
+      onNext={goToNextStep}
+      onSave={handleSave}
+    />
   </section>
 </div>

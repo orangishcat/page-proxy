@@ -17,6 +17,7 @@ Page Proxy is an all-in-one userscript manager and creator with custom GUI tools
 - [Installation](https://orangishcat.github.io/page-proxy/install)
 - [Documentation](https://orangishcat.github.io/page-proxy/docs)
 - There's a help button in the extension which contains known issues and usage tips.
+- Back up your scripts often! The extension is still very unstable.
 
 ## Supported browsers
 
