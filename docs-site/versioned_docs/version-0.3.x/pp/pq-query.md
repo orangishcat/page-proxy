@@ -12,7 +12,9 @@ import { pq } from "@page-proxy/pp";
 
 ## `pq.selector(definition)`
 
-Builds reusable selector logic.
+Builds reusable selector logic to identify elements easily and quickly.
+
+Allows for use of other `pq` library methods and also provides multiple useful helper methods to control execution flow.
 
 `definition` parameters:
 

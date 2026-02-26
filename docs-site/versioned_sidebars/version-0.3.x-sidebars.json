@@ -1,0 +1,45 @@
+{
+  "docsSidebar": [
+    "intro",
+    "purpose",
+    {
+      "type": "category",
+      "label": "Basics",
+      "collapsed": false,
+      "items": [
+        {
+          "type": "category",
+          "label": "Extension usage",
+          "collapsed": false,
+          "items": [
+            "extension-usage/index",
+            "extension-usage/select-tool",
+            "extension-usage/create-tool",
+            "extension-usage/selectors-tool",
+            "extension-usage/record-tool",
+            "extension-usage/help-tool",
+            "extension-usage/share-tool"
+          ]
+        },
+        "your-first-script",
+        "auto-metadata",
+        "permissions"
+      ]
+    },
+    {
+      "type": "category",
+      "label": "pp Library",
+      "collapsed": false,
+      "items": [
+        "pp/overview",
+        "pp/pa-api",
+        "pp/pn-network",
+        "pp/pt-storage",
+        "pp/pq-query",
+        "pp/pv-event",
+        "pp/ps-style"
+      ]
+    },
+    "release-notes"
+  ]
+}
