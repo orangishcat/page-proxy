@@ -13,9 +13,9 @@
     "clean": "wxt clean"
   },
   "dependencies": {
-    "@medv/finder": "4.0.2",
     "@page-proxy/pp": "workspace:*",
     "bits-ui": "2.15.4",
+    "css-selector-generator": "^3.8.1",
     "loglevel": "1.9.2",
     "lucide-svelte": "0.562.0",
     "monaco-editor": "0.55.1",

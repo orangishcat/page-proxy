@@ -1,7 +1,8 @@
-import { finder } from "@medv/finder";
+import { cssSelectorGenerator, getCssSelector } from "css-selector-generator";
 
-const ignoredSelectionClasses = new Set(["pp-hover", "pp-selected", "pp-hovered"]);
 const selectorFallback = "body";
+const selectorMatchLimitDefault = 10;
+const selectorBlacklist = [".pp-hover", ".pp-selected", ".pp-hovered", ".pp-no-select-tool", ".pp-*"];
 
 const normalizeSelector = (value: string) => value.trim().replace(/\s+/g, " ");
 
@@ -60,6 +61,16 @@ const normalizeSelectorCandidate = (value: string) => {
   return normalized;
 };
 
+const createSelectorGeneratorOptions = (element: Element) => {
+  const selectorRoot =
+    element.ownerDocument?.documentElement ?? document.documentElement ?? element.ownerDocument?.body ?? null;
+
+  return {
+    ...(selectorRoot ? { root: selectorRoot } : {}),
+    blacklist: selectorBlacklist,
+  };
+};
+
 export const getSelectorFallback = () => selectorFallback;
 
 export const generateElementSelector = (element: Element) => {
@@ -67,15 +78,7 @@ export const generateElementSelector = (element: Element) => {
     return buildDeterministicSelectorPath(element) || selectorFallback;
   }
 
-  const selectorRoot =
-    element.ownerDocument?.documentElement ?? document.documentElement ?? element.ownerDocument?.body ?? null;
-
-  const generated = normalizeSelectorCandidate(
-    finder(element, {
-      ...(selectorRoot ? { root: selectorRoot } : {}),
-      className: (className: string) => !ignoredSelectionClasses.has(className),
-    }),
-  );
+  const generated = normalizeSelectorCandidate(getCssSelector(element, createSelectorGeneratorOptions(element)));
   if (generated) {
     return generated;
   }
@@ -86,6 +89,43 @@ export const generateElementSelector = (element: Element) => {
   }
 
   return selectorFallback;
+};
+
+export const generateElementSelectorMatches = (element: Element, maxResults = selectorMatchLimitDefault) => {
+  const cappedResults = Math.max(1, Math.floor(maxResults));
+  const selectors = new Set<string>();
+
+  if (!element.isConnected) {
+    const fallback = normalizeSelectorCandidate(buildDeterministicSelectorPath(element));
+    return fallback ? [fallback] : [selectorFallback];
+  }
+
+  const options = {
+    ...createSelectorGeneratorOptions(element),
+    maxResults: cappedResults,
+  };
+
+  for (const selector of cssSelectorGenerator(element, options)) {
+    const normalized = normalizeSelectorCandidate(selector);
+    if (!normalized) {
+      continue;
+    }
+
+    if (normalized.includes(".pp-")) {
+      continue;
+    }
+
+    selectors.add(normalized);
+    if (selectors.size >= cappedResults) {
+      break;
+    }
+  }
+
+  if (selectors.size === 0) {
+    selectors.add(generateElementSelector(element));
+  }
+
+  return Array.from(selectors).slice(0, cappedResults);
 };
 
 export const buildSelectorTemplateCode = (selectorValue: string) => {

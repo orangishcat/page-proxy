@@ -6,6 +6,7 @@
   import type { RecordConverterOpenPayload, RecordConverterSaveResult } from "@/lib/selection";
   import ConverterFooter from "./record-converter/ConverterFooter.svelte";
   import ConverterReviewHeader from "./record-converter/ConverterReviewHeader.svelte";
+  import ConverterStepSidebar from "./record-converter/ConverterStepSidebar.svelte";
   import ConverterStepPreview from "./record-converter/ConverterStepPreview.svelte";
   import ConverterStepsSidebar from "./record-converter/ConverterStepsSidebar.svelte";
   import {
@@ -22,6 +23,8 @@
     startsWithSelectedElement,
     type SupportedRecordStep,
   } from "./record-converter/normalize";
+  import { generateElementSelectorMatches } from "./popup/selector";
+  import { readBaseSelectorFromCode, replaceBaseSelectorInCode } from "./popup/base-selector";
   import { attachPopupKeyboardOwnership, POPUP_SHARED_STYLE } from "./popup/container-shared";
   import {
     createSelectorMatchPreviewController,
@@ -53,6 +56,26 @@
   const getParentOption = (step: SupportedRecordStep) => {
     const option = parentOptions[step.id];
     return option ?? buildDefaultParentTraversalOption(step.count, getStepDefaultParentUntilSelector(step));
+  };
+  const supportsSelector = (value: string) => {
+    if (!value) {
+      return false;
+    }
+    if (typeof CSS === "undefined" || typeof CSS.supports !== "function") {
+      return true;
+    }
+    return CSS.supports(`selector(${value})`);
+  };
+
+  const querySelectableElements = (selector: string) => {
+    const normalizedSelector = selector.trim();
+    if (!supportsSelector(normalizedSelector)) {
+      return [] as Element[];
+    }
+
+    return Array.from(document.querySelectorAll(normalizedSelector)).filter(
+      (element) => !element.closest(".pp-no-select-tool"),
+    );
   };
 
   let activeStepId = $state(reviewStepId);
@@ -117,6 +140,36 @@
       return null;
     }
     return getParentOption(activeStep);
+  });
+  const activeSelectElementBaseSelector = $derived.by(() => {
+    if (!activeStep || activeStep.kind !== "select-element") {
+      return "";
+    }
+
+    const fromCode = readBaseSelectorFromCode(activeStepPreviewCode);
+    if (fromCode && fromCode.trim().length > 0) {
+      return fromCode.trim();
+    }
+
+    return activeStep.selectorHint?.trim() ?? "";
+  });
+  const activeSelectElementMatchingElements = $derived.by(() => {
+    if (!activeStep || activeStep.kind !== "select-element") {
+      return [] as Element[];
+    }
+    return querySelectableElements(activeSelectElementBaseSelector);
+  });
+  const activeSelectElementSelectorMatches = $derived.by(() => {
+    if (!activeStep || activeStep.kind !== "select-element") {
+      return [] as string[];
+    }
+
+    const targetElement = activeSelectElementMatchingElements[0];
+    if (!targetElement) {
+      return [] as string[];
+    }
+
+    return generateElementSelectorMatches(targetElement, 10);
   });
 
   const canSave = $derived.by(() => saveValidationMessage.length === 0 && !isSaving);
@@ -257,6 +310,20 @@
         [step.id]: hasLocalEdit,
       };
     }
+  };
+
+  const applySelectElementSelectorMatch = (nextSelector: string) => {
+    if (!activeStep || activeStep.kind !== "select-element") {
+      return;
+    }
+
+    const nextCode = replaceBaseSelectorInCode(activeStepPreviewCode, nextSelector);
+    if (!nextCode) {
+      return;
+    }
+
+    updateStepPreviewCode(activeStep, nextCode);
+    selectElementPreviewError = null;
   };
 
   const handleSave = async () => {
@@ -448,7 +515,7 @@
 >
   <section
     bind:this={popupContainerEl}
-    class="pp-no-select-tool flex w-full h-full max-w-4xl max-h-[40em] min-h-0 flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-900 text-white shadow-2xl"
+    class="pp-no-select-tool flex w-full h-full max-w-5xl max-h-[40em] min-h-0 flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-900 text-white shadow-2xl"
     style={POPUP_SHARED_STYLE}
     aria-label="Record converter popup"
   >
@@ -503,8 +570,9 @@
             onStepPreviewCodeChange={updateStepPreviewCode}
           />
           {#if activeStep?.kind === "select-element"}
+            {@const matchCount = activeSelectElementMatchingElements.length}
             <div class="px-4 pb-2 text-caption text-gray-400">
-              Hold <code>z</code> to highlight selector matches.
+              Hold <code>z</code> to highlight {matchCount} matching element{matchCount === 1 ? "" : "s"}.
             </div>
             {#if selectElementPreviewError}
               <div class="px-4 pb-3 text-caption text-amber-300">{selectElementPreviewError}</div>
@@ -512,6 +580,14 @@
           {/if}
         {/if}
       </section>
+
+      <ConverterStepSidebar
+        {isReviewStep}
+        {activeStep}
+        selectElementCurrentSelector={activeSelectElementBaseSelector}
+        selectElementSelectorMatches={activeSelectElementSelectorMatches}
+        onSelectElementSelectorMatch={applySelectElementSelectorMatch}
+      />
     </div>
     <ConverterFooter
       {isReviewStep}
