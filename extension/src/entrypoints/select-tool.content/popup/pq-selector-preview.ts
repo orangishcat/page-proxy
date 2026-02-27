@@ -1,11 +1,12 @@
 import { pq } from "@page-proxy/pp";
+import { readBaseSelectorFromCode } from "./base-selector";
 
 export type SelectorPreviewState = {
   matchingElements: Element[];
   error: string | null;
 };
 
-const selectorCallPattern = /pq\.selector\s*\(/g;
+const selectorCallPattern = /pq\.selector\s*\(/;
 const invalidSelectorError = "Selector is invalid.";
 const missingSelectorError = "Selector definition must include pq.selector.";
 const noMatchesError = "Selector matches no elements.";
@@ -132,6 +133,19 @@ const buildPreviewSelectorDefinition = (candidate: SelectorDefinitionCandidate):
   };
 };
 
+const buildFallbackPreviewSelectorDefinition = (code: string): pq.SelectorDefinition<Element> | null => {
+  const baseSelector = readBaseSelectorFromCode(code)?.trim();
+  if (!baseSelector) {
+    return null;
+  }
+
+  return {
+    name: "Selector preview",
+    baseSelector,
+    matches: () => true,
+  };
+};
+
 export const getPqSelectorPreviewState = (
   code: string,
   excludedAncestorSelector = ".pp-no-select-tool",
@@ -142,11 +156,10 @@ export const getPqSelectorPreviewState = (
   }
 
   const selectorDefinitionCandidate = evaluateSelectorDefinition(selectorDefinitionSource);
-  if (!selectorDefinitionCandidate) {
-    return { matchingElements: [], error: invalidSelectorError };
-  }
-
-  const previewSelectorDefinition = buildPreviewSelectorDefinition(selectorDefinitionCandidate);
+  const evaluatedPreviewSelectorDefinition = selectorDefinitionCandidate
+    ? buildPreviewSelectorDefinition(selectorDefinitionCandidate)
+    : null;
+  const previewSelectorDefinition = evaluatedPreviewSelectorDefinition ?? buildFallbackPreviewSelectorDefinition(code);
   if (!previewSelectorDefinition) {
     return { matchingElements: [], error: invalidSelectorError };
   }
