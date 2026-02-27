@@ -1,4 +1,5 @@
 <script lang="ts">
+  import log from "loglevel";
   import { onDestroy, onMount } from "svelte";
   import { createMonacoEditor, type MonacoCodeEditorHandle, updateMonacoEditorValue } from "@/lib/code-editor";
   import type { RecordConverterOpenPayload, RecordConverterSaveResult } from "@/lib/selection";
@@ -8,8 +9,8 @@
   import ConverterStepsSidebar from "./record-converter/ConverterStepsSidebar.svelte";
   import {
     buildDefaultParentTraversalOption,
-    describeStepOption,
     buildGeneratedReviewCode,
+    resolveDefaultParentUntilSelector,
     buildStepSnippet,
     type ParentTraversalMode,
     type ParentTraversalOptionsByStepId,
@@ -20,6 +21,12 @@
     startsWithSelectedElement,
     type SupportedRecordStep,
   } from "./record-converter/normalize";
+  import {
+    attachPopupKeyboardOwnership,
+    POPUP_DARK_MODE_STYLE,
+    POPUP_EM_SIZING_STYLE_VARS,
+    POPUP_FONT_SIZE_STYLE,
+  } from "./popup/container-shared";
 
   type Props = {
     payload: RecordConverterOpenPayload;
@@ -28,14 +35,24 @@
   };
 
   let { payload, onCancel, onSave }: Props = $props();
+  const logger = log.getLogger("record-popup");
+  logger.setLevel("debug", false);
+
   const normalized = $derived.by(() => normalizeRecordTimeline(payload.timeline));
   const supportedSteps = $derived.by(() => normalized.supportedSteps);
   const skippedEntries = $derived.by(() => normalized.skippedEntries);
   const reviewStepId = "review";
+  const defaultParentUntilSelector = $derived.by(() => resolveDefaultParentUntilSelector(supportedSteps));
+  const getStepDefaultParentUntilSelector = (step: SupportedRecordStep) => {
+    if (step.selectorHint && step.selectorHint.trim().length > 0) {
+      return step.selectorHint.trim();
+    }
+    return defaultParentUntilSelector;
+  };
 
   const getParentOption = (step: SupportedRecordStep) => {
     const option = parentOptions[step.id];
-    return option ?? buildDefaultParentTraversalOption(step.count);
+    return option ?? buildDefaultParentTraversalOption(step.count, getStepDefaultParentUntilSelector(step));
   };
 
   let activeStepId = $state(reviewStepId);
@@ -43,6 +60,7 @@
   let hasInitializedActiveStep = false;
   let parentOptions = $state<ParentTraversalOptionsByStepId>({});
   let reviewCode = $state("");
+  let reviewEditorError = $state("");
   let saveError = $state("");
   let isSaving = $state(false);
   let stepPreviewCodeByStepId = $state<Record<string, string>>({});
@@ -50,7 +68,9 @@
 
   let reviewEditorHost = $state<HTMLDivElement | null>(null);
   let reviewEditorHandle = $state<MonacoCodeEditorHandle | null>(null);
+  let popupContainerEl = $state<HTMLElement | null>(null);
   let applyingGeneratedReviewCode = false;
+  let releaseKeyboardOwnership = () => {};
 
   const activeStep = $derived.by(() => supportedSteps.find((step) => step.id === activeStepId) ?? null);
   const isReviewStep = $derived.by(() => activeStepId === reviewStepId);
@@ -74,6 +94,7 @@
       steps: supportedSteps,
       parentOptions,
       existingCode: payload.existingCode,
+      defaultParentUntilSelector,
     }),
   );
   const activeGeneratedReview = $derived.by(() => generatedReview.byMode[reviewCodeMode]);
@@ -82,7 +103,10 @@
     if (!activeStep) {
       return "";
     }
-    return stepPreviewCodeByStepId[activeStep.id] ?? buildStepSnippet(activeStep, parentOptions);
+    return (
+      stepPreviewCodeByStepId[activeStep.id] ??
+      buildStepSnippet(activeStep, parentOptions, getStepDefaultParentUntilSelector(activeStep))
+    );
   });
   const activeParentOption = $derived.by(() => {
     if (!activeStep || activeStep.kind !== "select-parent") {
@@ -92,9 +116,6 @@
   });
 
   const canSave = $derived.by(() => saveValidationMessage.length === 0 && !isSaving);
-  const selectedOptionsSummary = $derived.by(() =>
-    supportedSteps.map((step) => describeStepOption(step, parentOptions)).join(" | "),
-  );
   const orderedStepIds = $derived.by(() => [...supportedSteps.map((step) => step.id), reviewStepId]);
   const activeStepIndex = $derived.by(() => {
     const index = orderedStepIds.indexOf(activeStepId);
@@ -143,18 +164,31 @@
     if (!reviewEditorHost || reviewEditorHandle) {
       return;
     }
-    reviewEditorHandle = createMonacoEditor(reviewEditorHost, reviewCode, {
-      modelUri: "inmemory://page-proxy/record-converter-review.js",
-      onChange: (nextValue) => {
-        reviewCode = nextValue;
-        if (!applyingGeneratedReviewCode) {
-          saveError = "";
-        }
-      },
-      editorOptions: {
-        bracketPairColorization: { enabled: true },
-      },
+    logger.debug("creating review editor", {
+      codeLength: reviewCode.length,
     });
+    reviewEditorError = "";
+    try {
+      reviewEditorHandle = createMonacoEditor(reviewEditorHost, reviewCode, {
+        language: "javascript",
+        modelUri: "file:///page-proxy/record-converter-review.js",
+        onChange: (nextValue) => {
+          reviewCode = nextValue;
+          if (!applyingGeneratedReviewCode) {
+            saveError = "";
+            reviewEditorError = "";
+          }
+        },
+        editorOptions: {
+          bracketPairColorization: { enabled: true },
+        },
+      });
+      logger.debug("review editor created");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unable to initialize the review editor.";
+      reviewEditorError = message;
+      logger.error("review editor creation failed", { error });
+    }
   };
 
   const resetReviewToGenerated = () => {
@@ -191,17 +225,6 @@
     };
   };
 
-  const updateParentUntilSelector = (step: SupportedRecordStep, untilSelector: string) => {
-    const currentOption = getParentOption(step);
-    parentOptions = {
-      ...parentOptions,
-      [step.id]: {
-        ...currentOption,
-        untilSelector,
-      },
-    };
-  };
-
   const updateParentCount = (step: SupportedRecordStep, nextCount: string) => {
     const parsedValue = Number.parseInt(nextCount, 10);
     const sanitizedCount = Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : 1;
@@ -223,7 +246,7 @@
       };
     }
 
-    const hasLocalEdit = nextCode !== buildStepSnippet(step, parentOptions);
+    const hasLocalEdit = nextCode !== buildStepSnippet(step, parentOptions, getStepDefaultParentUntilSelector(step));
     if ((stepPreviewHasLocalEditsByStepId[step.id] ?? false) !== hasLocalEdit) {
       stepPreviewHasLocalEditsByStepId = {
         ...stepPreviewHasLocalEditsByStepId,
@@ -238,19 +261,36 @@
     }
     isSaving = true;
     saveError = "";
-    const result = await onSave(reviewCode);
-    if (!result.ok) {
-      saveError = result.error ?? "Unable to save converted code.";
+    try {
+      const result = await onSave(reviewCode);
+      if (!result.ok) {
+        saveError = result.error ?? "Unable to save converted code.";
+        logger.error("record popup save failed", {
+          error: saveError,
+          codeLength: reviewCode.length,
+        });
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unable to save converted code.";
+      saveError = message;
+      logger.error("record popup save threw", { error, codeLength: reviewCode.length });
     }
     isSaving = false;
   };
 
   onMount(() => {
+    logger.debug("record popup mounted", {
+      timelineSize: payload.timeline.length,
+      existingCodeLength: payload.existingCode.length,
+    });
     reviewCode = activeGeneratedReview.finalCode;
     setupReviewEditor();
+    releaseKeyboardOwnership = attachPopupKeyboardOwnership(popupContainerEl);
   });
 
   onDestroy(() => {
+    logger.debug("record popup destroyed");
+    releaseKeyboardOwnership();
     reviewEditorHandle?.dispose();
     reviewEditorHandle = null;
   });
@@ -264,7 +304,7 @@
       if (step.kind !== "select-parent" || nextOptions[step.id]) {
         return;
       }
-      nextOptions[step.id] = buildDefaultParentTraversalOption(step.count);
+      nextOptions[step.id] = buildDefaultParentTraversalOption(step.count, getStepDefaultParentUntilSelector(step));
       hasOptionChanges = true;
     });
 
@@ -287,7 +327,7 @@
     const nextPreviewHasLocalEditsByStepId: Record<string, boolean> = {};
 
     supportedSteps.forEach((step) => {
-      const generatedCode = buildStepSnippet(step, parentOptions);
+      const generatedCode = buildStepSnippet(step, parentOptions, getStepDefaultParentUntilSelector(step));
       const hasLocalEdit = stepPreviewHasLocalEditsByStepId[step.id] ?? false;
       nextPreviewHasLocalEditsByStepId[step.id] = hasLocalEdit;
       nextPreviewCodeByStepId[step.id] = hasLocalEdit
@@ -305,17 +345,38 @@
   });
 
   $effect(() => {
-    if (!reviewEditorHost) {
+    if (!isReviewStep && reviewEditorHandle) {
+      logger.debug("disposing review editor after leaving review step");
+      reviewEditorHandle.dispose();
+      reviewEditorHandle = null;
+      reviewEditorHost = null;
       return;
     }
-    setupReviewEditor();
+
+    if (isReviewStep && reviewEditorHost && !reviewEditorHandle) {
+      setupReviewEditor();
+    }
   });
 
   $effect(() => {
-    if (!isReviewStep || !reviewEditorHandle) {
+    if (!isReviewStep) {
       return;
     }
 
+    if (!reviewEditorHandle) {
+      if (reviewEditorHost) {
+        setupReviewEditor();
+      }
+      if (!reviewEditorHandle) {
+        if (!reviewEditorError) {
+          reviewEditorError = "Review editor is unavailable.";
+          logger.error("review step is active without an editor instance");
+        }
+      }
+      return;
+    }
+
+    reviewEditorError = "";
     const generatedCode = activeGeneratedReview.finalCode;
     reviewCode = generatedCode;
     if (reviewEditorHandle.editor.getValue() !== generatedCode) {
@@ -333,8 +394,9 @@
 
 <div class="pp-no-select-tool fixed inset-0 z-2147483646 flex items-center justify-center bg-black/60 p-4">
   <section
-    class="pp-no-select-tool flex w-full max-w-7xl min-h-0 max-h-[56em] flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-900 text-white shadow-2xl"
-    style="color-scheme: dark; font-size: 16px !important; --spacing: 0.25em; --text-xs: 0.75em; --text-sm: 0.875em; --text-base: 1em; --text-lg: 1.25em; --radius-sm: 0.25em; --radius-md: 0.375em; --radius-lg: 0.5em; --radius-xl: 0.75em; --radius-2xl: 1em; --radius-3xl: 1.5em;"
+    bind:this={popupContainerEl}
+    class="pp-no-select-tool flex w-full min-h-0 flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-900 text-white shadow-2xl"
+    style={`${POPUP_DARK_MODE_STYLE} ${POPUP_FONT_SIZE_STYLE} ${POPUP_EM_SIZING_STYLE_VARS} max-width: 56em; max-height: 42em;`}
     aria-label="Record converter popup"
   >
     <header class="flex items-center gap-3 border-b border-gray-700 bg-gray-850 px-5 py-3">
@@ -351,7 +413,7 @@
       </button>
     </header>
 
-    <div class="flex min-h-0">
+    <div class="flex min-h-0 flex-1">
       <ConverterStepsSidebar
         {supportedSteps}
         skippedCount={skippedEntries.length}
@@ -368,11 +430,13 @@
             onModeChange={updateReviewCodeMode}
             onReset={resetReviewToGenerated}
           />
-          <div class="p-4">
-            <div class="mb-2 text-caption text-gray-300">
-              Current selected option(s): {selectedOptionsSummary || "none"}
-            </div>
-            <div class="h-[34em] overflow-hidden rounded-lg border border-gray-700 bg-gray-950">
+          <div class="flex min-h-0 flex-1 flex-col p-4">
+            {#if reviewEditorError}
+              <div class="mb-2 rounded border border-red-500/50 bg-red-500/10 px-2 py-1 text-caption text-red-300">
+                {reviewEditorError}
+              </div>
+            {/if}
+            <div class="min-h-0 flex-1 overflow-hidden rounded-lg border border-gray-700 bg-gray-950">
               <div class="h-full w-full min-h-0" bind:this={reviewEditorHost}></div>
             </div>
           </div>
@@ -382,7 +446,6 @@
             parentOption={activeParentOption}
             stepPreviewCode={activeStepPreviewCode}
             onParentModeChange={updateParentMode}
-            onParentUntilSelectorChange={updateParentUntilSelector}
             onParentCountChange={updateParentCount}
             onStepPreviewCodeChange={updateStepPreviewCode}
           />

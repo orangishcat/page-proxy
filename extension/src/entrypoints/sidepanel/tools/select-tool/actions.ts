@@ -3,6 +3,7 @@ import log from "loglevel";
 import { get } from "svelte/store";
 
 import type {
+  ElementInfo,
   SelectElementAction,
   SelectElementActionResult,
   SelectToolMessage,
@@ -55,7 +56,33 @@ const isSelectorOpenResult = (value: unknown): value is SelectorOpenResult =>
 const isSelectElementActionResult = (value: unknown): value is SelectElementActionResult =>
   isRecord(value) &&
   typeof value.ok === "boolean" &&
-  (value.ok === true || (typeof value.error === "string" && value.error.length > 0));
+    (value.ok === true || (typeof value.error === "string" && value.error.length > 0));
+
+const isElementInfo = (value: unknown): value is ElementInfo => {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.tag === "string" &&
+    (value.id === null || typeof value.id === "string") &&
+    typeof value.selector === "string" &&
+    isRecord(value.attributes) &&
+    isRecord(value.boundingBox)
+  );
+};
+
+const isSelectParentResponse = (value: unknown): value is { ok: boolean; payload?: ElementInfo; error?: string } => {
+  if (!isRecord(value) || typeof value.ok !== "boolean") {
+    return false;
+  }
+
+  if (value.payload !== undefined && !isElementInfo(value.payload)) {
+    return false;
+  }
+
+  return value.error === undefined || typeof value.error === "string";
+};
 
 const isSelectToolMessage = (value: unknown): value is SelectToolMessage =>
   hasType(value, "select:mode") ||
@@ -130,9 +157,10 @@ const refreshDevtoolsIntegrationForActiveTab = () => {
     });
 };
 
-const recordSelectedParentElement = () => {
+const recordSelectedParentElement = (selectorHint?: string | null) => {
   suppressSelectedElementRecordUntil = Date.now() + selectedElementRecordSuppressionMs;
-  recordSidepanelAction("Selected parent element");
+  const detail = selectorHint && selectorHint.trim().length > 0 ? `selector: ${selectorHint.trim()}` : "";
+  recordSidepanelAction("Selected parent element", detail);
 };
 
 export const sendSelectionToggle = (enabled: boolean, options: { clearSelection?: boolean } = {}) => {
@@ -227,7 +255,22 @@ export const sendSelectParent = () => {
         setErrorMessage("Unable to connect to the active tab.");
         return;
       }
-      recordSelectedParentElement();
+
+      let selectorHint: string | null = null;
+      if (isSelectParentResponse(response)) {
+        if (!response.ok) {
+          setErrorMessage(response.error ?? "Unable to select parent element.");
+          return;
+        }
+        selectorHint = response.payload?.selector ?? null;
+      }
+
+      if (!selectorHint) {
+        const currentSelection = get(selectedInfo);
+        selectorHint = currentSelection?.selector ?? null;
+      }
+
+      recordSelectedParentElement(selectorHint);
     })
     .catch(() => {
       setErrorMessage("Unable to connect to the active tab.");
@@ -474,7 +517,11 @@ export const attachSelectionListener = () => {
         if (Date.now() <= suppressSelectedElementRecordUntil) {
           suppressSelectedElementRecordUntil = 0;
         } else {
-          recordSidepanelAction("Selected element");
+          const selectorDetail = message.payload.selector.trim();
+          recordSidepanelAction(
+            "Selected element",
+            selectorDetail.length > 0 ? `selector: ${selectorDetail}` : "",
+          );
         }
       }
       setErrorMessage(null);

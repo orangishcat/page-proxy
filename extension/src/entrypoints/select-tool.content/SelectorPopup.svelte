@@ -10,6 +10,7 @@
   } from "@/lib/code-editor";
   import { GripVertical } from "lucide-svelte";
   import { buildPreviewCode, isSpecialPropertyKey, type FilterOperator } from "./preview-code";
+  import { buildSelectorTemplateCode } from "./popup/selector";
 
   type PropertyItem = {
     key: string;
@@ -91,16 +92,6 @@
     return code.replace(baseSelectorPattern, (_match, prefix: string, quote: string) => {
       return `${prefix}${quote}${escapeForQuote(nextSelector, quote)}${quote}`;
     });
-  };
-
-  const buildDefaultCode = (selectorValue: string) => {
-    return [
-      `const Style_1 = pq.selector({`,
-      `  ${JSON.stringify("name")}: ${JSON.stringify("Style 1")},`,
-      `  ${JSON.stringify("baseSelector")}: ${JSON.stringify(selectorValue)},`,
-      `  ${JSON.stringify("matches")}: e => true,`,
-      "});",
-    ].join("\n");
   };
 
   const activePropertyKey = $derived.by(() => {
@@ -210,9 +201,10 @@
     }
 
     const initialSelector = baseSelector.trim() || info.selector;
-    editorValue = buildDefaultCode(initialSelector);
+    editorValue = buildSelectorTemplateCode(initialSelector);
 
     editorHandle = createMonacoEditor(editorHost, editorValue, {
+      language: "javascript",
       modelUri: "inmemory://page-proxy/selector-popup-editor.js",
       onChange: (nextValue) => {
         editorValue = nextValue;
@@ -260,6 +252,7 @@
     }
 
     previewHandle = createMonacoEditor(previewHost, previewCode, {
+      language: "javascript",
       lineNumbers: "off",
       modelUri: "inmemory://page-proxy/selector-popup-preview.js",
       className: "pp-monaco-editor pp-monaco-preview scrollbar-stable",

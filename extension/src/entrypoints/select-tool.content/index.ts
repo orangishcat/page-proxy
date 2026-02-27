@@ -26,7 +26,8 @@ import {
 } from "@/lib/script-runner";
 import type { SidepanelShortcutId, SidepanelShortcutMessage } from "@/lib/sidepanel-shortcuts";
 import PopupContainer from "./PopupContainer.svelte";
-import RecordConverterPopup from "./RecordConverterPopup.svelte";
+import RecordPopup from "./RecordPopup.svelte";
+import { generateElementSelector } from "./popup/selector";
 import "@/styles/app.css";
 
 const logger = log.getLogger("select-tool");
@@ -78,33 +79,6 @@ const filterSelectionClasses = (value: string | null) => {
   return tokens.length > 0 ? tokens.join(" ") : null;
 };
 
-const escapeSelector = (value: string) => {
-  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") return CSS.escape(value);
-  return value.replace(/[^a-zA-Z0-9_-]/g, (m) => `\\${m}`);
-};
-
-const getElementSelector = (element: Element) => {
-  if (element.id) return `#${escapeSelector(element.id)}`;
-  const segments: string[] = [];
-  let current: Element | null = element;
-  while (current && segments.length < 4) {
-    let segment = current.tagName.toLowerCase();
-    const classList = Array.from(current.classList)
-      .filter((t) => t && !filteredSelectionClasses.has(t))
-      .slice(0, 2);
-    if (classList.length > 0) segment += `.${classList.map(escapeSelector).join(".")}`;
-    const parent = current.parentElement;
-    if (parent) {
-      const sameTag = Array.from(parent.children).filter((c) => c instanceof Element && c.tagName === current?.tagName);
-      if (sameTag.length > 1) segment += `:nth-of-type(${sameTag.indexOf(current) + 1})`;
-    }
-    segments.unshift(segment);
-    if (current.tagName.toLowerCase() === "body") break;
-    current = current.parentElement;
-  }
-  return segments.join(" > ");
-};
-
 const getElementInfo = (element: Element): ElementInfo => {
   const rect = element.getBoundingClientRect();
   const innerText = element instanceof HTMLElement ? element.innerText.trim() : "";
@@ -125,7 +99,7 @@ const getElementInfo = (element: Element): ElementInfo => {
     name: element.getAttribute("name") ?? element.getAttribute("aria-label") ?? null,
     className: filterSelectionClasses(element.getAttribute("class")),
     innerText: innerText.length > 0 && innerText.length < 500 ? innerText : null,
-    selector: getElementSelector(element),
+    selector: generateElementSelector(element),
     attributes,
     boundingBox: { x: rect.x + window.scrollX, y: rect.y + window.scrollY, width: rect.width, height: rect.height },
   };
@@ -556,7 +530,7 @@ export default defineContentScript({
           anchor: "body",
           zIndex: 2147483647,
           onMount(container: HTMLElement) {
-            const app = mount(RecordConverterPopup, {
+            const app = mount(RecordPopup, {
               target: container,
               props: {
                 payload,
@@ -1124,15 +1098,27 @@ export default defineContentScript({
       }
       if (selectMessage.type === "select:parent") {
         if (!selectionEnabled) {
+          sendResponse({
+            ok: false,
+            error: "Selection mode is disabled.",
+          });
           return false;
         }
         const parent = selectedTarget?.parentElement;
         if (!parent) {
           logger.debug("select parent skipped", { reason: "no-parent" });
+          sendResponse({
+            ok: false,
+            error: "Selected element has no parent.",
+          });
           return false;
         }
         clearHoverAndNotify();
         applySelection(parent);
+        sendResponse({
+          ok: true,
+          payload: getElementInfo(parent),
+        });
         return false;
       }
       if (selectMessage.type === "select:action") {

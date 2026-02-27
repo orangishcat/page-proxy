@@ -82,6 +82,10 @@ export const normalizeRecordTimeline = (timeline: RecordTimelineEntry[]): Normal
     if (kind === "select-parent" && previousStep?.kind === "select-parent" && lastSupportedKind === "select-parent") {
       previousStep.count += 1;
       previousStep.sourceEntries.push(entry);
+      const groupedSelectorHint = readSelectorHint(entry.detail);
+      if (groupedSelectorHint) {
+        previousStep.selectorHint = groupedSelectorHint;
+      }
       previousStep.label = buildStepLabel(previousStep.kind, previousStep.count);
       lastSupportedKind = "select-parent";
       return;
@@ -93,7 +97,7 @@ export const normalizeRecordTimeline = (timeline: RecordTimelineEntry[]): Normal
       kind,
       count: kind === "select-parent" ? 1 : 0,
       label: buildStepLabel(kind, kind === "select-parent" ? 1 : 0),
-      selectorHint: kind === "select-element" ? readSelectorHint(entry.detail) : null,
+      selectorHint: readSelectorHint(entry.detail),
       sourceEntries: [entry],
     });
     lastSupportedKind = kind;

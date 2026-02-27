@@ -3,6 +3,13 @@
   import { onDestroy, onMount } from "svelte";
   import SelectorPopup from "./SelectorPopup.svelte";
   import CssInspector from "./CssInspector.svelte";
+  import {
+    attachPopupKeyboardOwnership,
+    POPUP_BASE_FONT_SIZE_PX,
+    POPUP_DARK_MODE_STYLE,
+    POPUP_EM_SIZING_STYLE_VARS,
+    POPUP_FONT_SIZE_STYLE,
+  } from "./popup/container-shared";
 
   type PropertyItem = {
     key: string;
@@ -34,8 +41,6 @@
   let popupMode = $state<PopupMode>("pp-api");
   let baseSelector = $derived(info.selector);
 
-  const uiBaseFontSizePx = 16;
-
   const updatePosition = () => {
     if (!containerEl || !targetElement?.isConnected) {
       visible = false;
@@ -44,8 +49,8 @@
 
     const popupRect = containerEl.getBoundingClientRect();
     const targetRect = targetElement.getBoundingClientRect();
-    const gap = 0.75 * uiBaseFontSizePx;
-    const arrowSize = 0.75 * uiBaseFontSizePx;
+    const gap = 0.75 * POPUP_BASE_FONT_SIZE_PX;
+    const arrowSize = 0.75 * POPUP_BASE_FONT_SIZE_PX;
 
     const spaces = {
       top: targetRect.top,
@@ -130,9 +135,7 @@
     center: "hidden",
   });
 
-  const stopKeyPropagation = (event: KeyboardEvent) => {
-    event.stopPropagation();
-  };
+  let releaseKeyboardOwnership = () => {};
 
   const handlePopupVisibilityChange = (hidden: boolean) => {
     popupHidden = hidden;
@@ -151,18 +154,14 @@
     scheduleUpdate();
     window.addEventListener("scroll", scheduleUpdate, { capture: true });
     window.addEventListener("resize", scheduleUpdate);
-    containerEl?.addEventListener("keydown", stopKeyPropagation);
-    containerEl?.addEventListener("keyup", stopKeyPropagation);
-    containerEl?.addEventListener("keypress", stopKeyPropagation);
+    releaseKeyboardOwnership = attachPopupKeyboardOwnership(containerEl);
   });
 
   onDestroy(() => {
     if (frameId !== null) cancelAnimationFrame(frameId);
     window.removeEventListener("scroll", scheduleUpdate, { capture: true });
     window.removeEventListener("resize", scheduleUpdate);
-    containerEl?.removeEventListener("keydown", stopKeyPropagation);
-    containerEl?.removeEventListener("keyup", stopKeyPropagation);
-    containerEl?.removeEventListener("keypress", stopKeyPropagation);
+    releaseKeyboardOwnership();
   });
 
   $effect(() => {
@@ -195,7 +194,7 @@
 
   <div
     class="flex flex-col w-full h-full overflow-hidden rounded-lg border border-gray-800 bg-gray-950 text-gray-100 font-sans text-sm shadow-2xl pp-content-ui-root"
-    style={`color-scheme: dark; ${popupMode === "css" ? "font-size: 16px !important;" : ""}`}
+    style={`${POPUP_DARK_MODE_STYLE} ${POPUP_FONT_SIZE_STYLE} ${POPUP_EM_SIZING_STYLE_VARS}`}
   >
     <div class="flex items-center h-12 px-4 gap-2.5 bg-gray-900 border-b border-gray-800">
       <span class="text-lead">{popupMode === "pp-api" ? "Selector editor" : "CSS inspector"}</span>

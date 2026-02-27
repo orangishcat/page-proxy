@@ -1,5 +1,6 @@
 import { resolveRecordConverterCollisions } from "./collision";
 import type { SupportedRecordStep } from "./normalize";
+import { getSelectorFallback } from "../popup/selector";
 
 export type ParentTraversalMode = "traverse-until" | "traverse-n-times";
 
@@ -25,7 +26,6 @@ export type GeneratedReviewCode = {
   byMode: Record<ReviewCodeMode, GeneratedReviewCodeByModeEntry>;
 };
 
-const selectedElementSelectorFallback = "auto-generated selector for the element";
 const stepInputOutputName = "selectedElement";
 
 const toStringLiteral = (value: string) => JSON.stringify(value);
@@ -33,7 +33,7 @@ const toStringLiteral = (value: string) => JSON.stringify(value);
 const resolveSelectElementSelector = (step: SupportedRecordStep) => {
   return step.selectorHint && step.selectorHint.trim().length > 0
     ? step.selectorHint.trim()
-    : selectedElementSelectorFallback;
+    : getSelectorFallback();
 };
 
 const normalizeTraversalCount = (count: number) => {
@@ -42,7 +42,7 @@ const normalizeTraversalCount = (count: number) => {
 
 const normalizeUntilSelector = (value: string) => {
   const normalized = value.trim();
-  return normalized.length > 0 ? normalized : "auto generated selector";
+  return normalized.length > 0 ? normalized : getSelectorFallback();
 };
 
 const parseStepNumber = (stepId: string) => {
@@ -93,11 +93,20 @@ const buildStepFunctionCode = ({
   ].join("\n");
 };
 
-export const buildDefaultParentTraversalOption = (count: number): ParentTraversalOption => ({
-  mode: "traverse-n-times",
-  untilSelector: "auto generated selector",
+export const buildDefaultParentTraversalOption = (count: number, untilSelector = getSelectorFallback()): ParentTraversalOption => ({
+  mode: "traverse-until",
+  untilSelector: normalizeUntilSelector(untilSelector),
   count: Math.max(1, Math.floor(count)),
 });
+
+export const resolveDefaultParentUntilSelector = (steps: SupportedRecordStep[]) => {
+  const selectedElementStep = steps.find((step) => step.kind === "select-element");
+  if (!selectedElementStep) {
+    return getSelectorFallback();
+  }
+
+  return resolveSelectElementSelector(selectedElementStep);
+};
 
 export const describeStepOption = (step: SupportedRecordStep, parentOptions: ParentTraversalOptionsByStepId) => {
   if (step.kind === "select-element") {
@@ -220,7 +229,11 @@ const buildTraverseCountStepCode = ({
         `let ${nextElementName} = ${selectedElementInput}`,
         `const parentCount = ${count}`,
         "for (let i = 0; i < parentCount; i += 1) {",
-        `  ${nextElementName} = ${nextElementName}?.parentElement ?? null`,
+        `  if (!${nextElementName} || !${nextElementName}.parentElement) {`,
+        `    ${nextElementName} = null`,
+        "    break",
+        "  }",
+        `  ${nextElementName} = ${nextElementName}.parentElement`,
         "}",
       ],
       outputs: [
@@ -243,7 +256,7 @@ const buildDeleteStepCode = ({ functionName, inputNames }: { functionName: strin
     code: buildStepFunctionCode({
       functionName,
       inputNames,
-      bodyLines: [`${removableElement}?.remove()`],
+      bodyLines: [`if (${removableElement}) {`, `  ${removableElement}.remove()`, "}"],
       outputs: [],
     }),
     outputNames: [],
@@ -292,9 +305,13 @@ const buildStepCode = ({
   });
 };
 
-export const buildStepSnippet = (step: SupportedRecordStep, parentOptions: ParentTraversalOptionsByStepId) => {
+export const buildStepSnippet = (
+  step: SupportedRecordStep,
+  parentOptions: ParentTraversalOptionsByStepId,
+  defaultParentUntilSelector = getSelectorFallback(),
+) => {
   const stepNumber = parseStepNumber(step.id);
-  const parentOption = parentOptions[step.id] ?? buildDefaultParentTraversalOption(step.count);
+  const parentOption = parentOptions[step.id] ?? buildDefaultParentTraversalOption(step.count, defaultParentUntilSelector);
   const inputNames = stepNumber === 1 ? [] : [stepInputOutputName];
 
   return buildStepCode({
@@ -308,15 +325,18 @@ export const buildStepSnippet = (step: SupportedRecordStep, parentOptions: Paren
 const buildFunctionsRawCode = ({
   steps,
   parentOptions,
+  defaultParentUntilSelector,
 }: {
   steps: SupportedRecordStep[];
   parentOptions: ParentTraversalOptionsByStepId;
+  defaultParentUntilSelector: string;
 }) => {
   let previousStepOutputs: string[] = [];
 
   const builtSteps = steps.map((step, stepIndex) => {
     const stepNumber = stepIndex + 1;
-    const parentOption = parentOptions[step.id] ?? buildDefaultParentTraversalOption(step.count);
+    const parentOption =
+      parentOptions[step.id] ?? buildDefaultParentTraversalOption(step.count, defaultParentUntilSelector);
     const inputNames = stepNumber === 1 ? [] : previousStepOutputs;
     const builtStep = buildStepCode({
       step,
@@ -346,7 +366,7 @@ const buildFunctionsRawCode = ({
   const invocationCode =
     invocationLines.length === 0
       ? ""
-      : ["void (async () => {", ...invocationLines.map((line) => `  ${line}`), "})()"].join("\n");
+      : invocationLines.join("\n");
 
   return [functionDefinitions, invocationCode].filter((section) => section.trim().length > 0).join("\n\n");
 };
@@ -374,7 +394,7 @@ const buildCombinedStepLines = ({
   }
 
   if (step.kind === "delete-element") {
-    return [`  ${stepInputOutputName}?.remove()`];
+    return [`  if (${stepInputOutputName}) {`, `    ${stepInputOutputName}.remove()`, "  }"];
   }
 
   if (parentOption.mode === "traverse-until") {
@@ -401,7 +421,11 @@ const buildCombinedStepLines = ({
     `  let ${nextElementName} = ${stepInputOutputName}`,
     `  const ${parentCountName} = ${count}`,
     `  for (let i = 0; i < ${parentCountName}; i += 1) {`,
-    `    ${nextElementName} = ${nextElementName}?.parentElement ?? null`,
+    `    if (!${nextElementName} || !${nextElementName}.parentElement) {`,
+    `      ${nextElementName} = null`,
+    "      break",
+    "    }",
+    `    ${nextElementName} = ${nextElementName}.parentElement`,
     "  }",
     `  ${stepInputOutputName} = ${nextElementName}`,
   ];
@@ -410,22 +434,23 @@ const buildCombinedStepLines = ({
 const buildCombinedRawCode = ({
   steps,
   parentOptions,
+  defaultParentUntilSelector,
 }: {
   steps: SupportedRecordStep[];
   parentOptions: ParentTraversalOptionsByStepId;
+  defaultParentUntilSelector: string;
 }) => {
   if (steps.length === 0) {
     return "";
   }
 
-  const lines = ["void (async () => {", `  let ${stepInputOutputName} = null`];
+  const lines = [`let ${stepInputOutputName} = null`];
   steps.forEach((step, stepIndex) => {
     const stepNumber = stepIndex + 1;
-    const parentOption = parentOptions[step.id] ?? buildDefaultParentTraversalOption(step.count);
-    lines.push("");
+    const parentOption =
+      parentOptions[step.id] ?? buildDefaultParentTraversalOption(step.count, defaultParentUntilSelector);
     lines.push(...buildCombinedStepLines({ step, stepNumber, parentOption }));
   });
-  lines.push("})()");
   return lines.join("\n");
 };
 
@@ -446,14 +471,23 @@ export const buildGeneratedReviewCode = ({
   steps,
   parentOptions,
   existingCode,
+  defaultParentUntilSelector,
 }: {
   steps: SupportedRecordStep[];
   parentOptions: ParentTraversalOptionsByStepId;
   existingCode: string;
+  defaultParentUntilSelector?: string;
 }): GeneratedReviewCode => {
+  const resolvedDefaultParentUntilSelector = normalizeUntilSelector(defaultParentUntilSelector ?? getSelectorFallback());
   const byMode: Record<ReviewCodeMode, GeneratedReviewCodeByModeEntry> = {
-    combined: resolveGeneratedCode(buildCombinedRawCode({ steps, parentOptions }), existingCode),
-    functions: resolveGeneratedCode(buildFunctionsRawCode({ steps, parentOptions }), existingCode),
+    combined: resolveGeneratedCode(
+      buildCombinedRawCode({ steps, parentOptions, defaultParentUntilSelector: resolvedDefaultParentUntilSelector }),
+      existingCode,
+    ),
+    functions: resolveGeneratedCode(
+      buildFunctionsRawCode({ steps, parentOptions, defaultParentUntilSelector: resolvedDefaultParentUntilSelector }),
+      existingCode,
+    ),
   };
   const defaultMode = byMode.combined;
 
