@@ -384,17 +384,17 @@ const buildCombinedStepLines = ({
     const selectorValue = resolveSelectElementSelector(step);
     const selectorName = `selector${stepNumber}`;
     return [
-      `  const ${selectorName} = pq.selector({`,
-      `    name: ${toStringLiteral(`Selector ${stepNumber}`)},`,
-      `    baseSelector: ${toStringLiteral(selectorValue)},`,
-      "    matches: e => true",
-      "  })",
-      `  ${stepInputOutputName} = await ${selectorName}.waitUntilMatch()`,
+      `const ${selectorName} = pq.selector({`,
+      `  name: ${toStringLiteral(`Selector ${stepNumber}`)},`,
+      `  baseSelector: ${toStringLiteral(selectorValue)},`,
+      "  matches: e => true",
+      "})",
+      `${stepInputOutputName} = await ${selectorName}.waitUntilMatch()`,
     ];
   }
 
   if (step.kind === "delete-element") {
-    return [`  if (${stepInputOutputName}) {`, `    ${stepInputOutputName}.remove()`, "  }"];
+    return [`if (${stepInputOutputName}) {`, `  ${stepInputOutputName}.remove()`, "}"];
   }
 
   if (parentOption.mode === "traverse-until") {
@@ -402,15 +402,15 @@ const buildCombinedStepLines = ({
     const selectorName = `traverseUntilSelector${stepNumber}`;
     const nextElementName = `nextSelectedElement${stepNumber}`;
     return [
-      `  const ${selectorName} = pq.selector({`,
-      `    name: ${toStringLiteral(`Traverse until selector ${stepNumber}`)},`,
-      `    baseSelector: ${toStringLiteral(untilSelector)},`,
-      "    matches: e => true",
-      "  })",
-      `  const ${nextElementName} = ${stepInputOutputName}`,
-      `    ? pq.traverseParents(${stepInputOutputName}, e => ${selectorName}.matches(e))`,
-      "    : null",
-      `  ${stepInputOutputName} = ${nextElementName}`,
+      `const ${selectorName} = pq.selector({`,
+      `  name: ${toStringLiteral(`Traverse until selector ${stepNumber}`)},`,
+      `  baseSelector: ${toStringLiteral(untilSelector)},`,
+      "  matches: e => true",
+      "})",
+      `const ${nextElementName} = ${stepInputOutputName}`,
+      `  ? pq.traverseParents(${stepInputOutputName}, e => ${selectorName}.matches(e))`,
+      "  : null",
+      `${stepInputOutputName} = ${nextElementName}`,
     ];
   }
 
@@ -418,16 +418,16 @@ const buildCombinedStepLines = ({
   const nextElementName = `nextSelectedElement${stepNumber}`;
   const parentCountName = `parentCount${stepNumber}`;
   return [
-    `  let ${nextElementName} = ${stepInputOutputName}`,
-    `  const ${parentCountName} = ${count}`,
-    `  for (let i = 0; i < ${parentCountName}; i += 1) {`,
-    `    if (!${nextElementName} || !${nextElementName}.parentElement) {`,
-    `      ${nextElementName} = null`,
-    "      break",
-    "    }",
-    `    ${nextElementName} = ${nextElementName}.parentElement`,
+    `let ${nextElementName} = ${stepInputOutputName}`,
+    `const ${parentCountName} = ${count}`,
+    `for (let i = 0; i < ${parentCountName}; i += 1) {`,
+    `  if (!${nextElementName} || !${nextElementName}.parentElement) {`,
+    `    ${nextElementName} = null`,
+    "    break",
     "  }",
-    `  ${stepInputOutputName} = ${nextElementName}`,
+    `  ${nextElementName} = ${nextElementName}.parentElement`,
+    "}",
+    `${stepInputOutputName} = ${nextElementName}`,
   ];
 };
 
@@ -449,6 +449,7 @@ const buildCombinedRawCode = ({
     const stepNumber = stepIndex + 1;
     const parentOption =
       parentOptions[step.id] ?? buildDefaultParentTraversalOption(step.count, defaultParentUntilSelector);
+    lines.push("");
     lines.push(...buildCombinedStepLines({ step, stepNumber, parentOption }));
   });
   return lines.join("\n");

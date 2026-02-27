@@ -2,6 +2,7 @@
   import log from "loglevel";
   import { onDestroy, onMount } from "svelte";
   import { createMonacoEditor, type MonacoCodeEditorHandle, updateMonacoEditorValue } from "@/lib/code-editor";
+  import { MONACO_WORKER_ERROR_EVENT } from "@/lib/code-editor/environment";
   import type { RecordConverterOpenPayload, RecordConverterSaveResult } from "@/lib/selection";
   import ConverterFooter from "./record-converter/ConverterFooter.svelte";
   import ConverterReviewHeader from "./record-converter/ConverterReviewHeader.svelte";
@@ -21,12 +22,7 @@
     startsWithSelectedElement,
     type SupportedRecordStep,
   } from "./record-converter/normalize";
-  import {
-    attachPopupKeyboardOwnership,
-    POPUP_DARK_MODE_STYLE,
-    POPUP_EM_SIZING_STYLE_VARS,
-    POPUP_FONT_SIZE_STYLE,
-  } from "./popup/container-shared";
+  import { attachPopupKeyboardOwnership, POPUP_SHARED_STYLE } from "./popup/container-shared";
 
   type Props = {
     payload: RecordConverterOpenPayload;
@@ -71,6 +67,7 @@
   let popupContainerEl = $state<HTMLElement | null>(null);
   let applyingGeneratedReviewCode = false;
   let releaseKeyboardOwnership = () => {};
+  let removeWorkerErrorListener = () => {};
 
   const activeStep = $derived.by(() => supportedSteps.find((step) => step.id === activeStepId) ?? null);
   const isReviewStep = $derived.by(() => activeStepId === reviewStepId);
@@ -286,10 +283,25 @@
     reviewCode = activeGeneratedReview.finalCode;
     setupReviewEditor();
     releaseKeyboardOwnership = attachPopupKeyboardOwnership(popupContainerEl);
+
+    const onMonacoWorkerError = (event: Event) => {
+      const customEvent = event as CustomEvent<{ label?: string; message?: string }>;
+      const message = customEvent.detail?.message?.trim() || "Monaco worker failed to start.";
+      reviewEditorError = message;
+      logger.error("monaco worker error surfaced in record popup", {
+        label: customEvent.detail?.label ?? "unknown",
+        message,
+      });
+    };
+    globalThis.addEventListener(MONACO_WORKER_ERROR_EVENT, onMonacoWorkerError as EventListener);
+    removeWorkerErrorListener = () => {
+      globalThis.removeEventListener(MONACO_WORKER_ERROR_EVENT, onMonacoWorkerError as EventListener);
+    };
   });
 
   onDestroy(() => {
     logger.debug("record popup destroyed");
+    removeWorkerErrorListener();
     releaseKeyboardOwnership();
     reviewEditorHandle?.dispose();
     reviewEditorHandle = null;
@@ -395,8 +407,8 @@
 <div class="pp-no-select-tool fixed inset-0 z-2147483646 flex items-center justify-center bg-black/60 p-4">
   <section
     bind:this={popupContainerEl}
-    class="pp-no-select-tool flex w-full min-h-0 flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-900 text-white shadow-2xl"
-    style={`${POPUP_DARK_MODE_STYLE} ${POPUP_FONT_SIZE_STYLE} ${POPUP_EM_SIZING_STYLE_VARS} max-width: 56em; max-height: 42em;`}
+    class="pp-no-select-tool flex w-full h-full max-w-4xl max-h-[40em] min-h-0 flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-900 text-white shadow-2xl"
+    style={POPUP_SHARED_STYLE}
     aria-label="Record converter popup"
   >
     <header class="flex items-center gap-3 border-b border-gray-700 bg-gray-850 px-5 py-3">

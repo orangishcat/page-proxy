@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Button from "@/lib/components/Button.svelte";
+
   type Props = {
     isReviewStep: boolean;
     canGoPrevious: boolean;
@@ -37,33 +39,33 @@
   {/if}
 
   <div class="mt-3 flex items-center justify-end gap-2">
-    <button
-      type="button"
-      class="rounded-md border border-gray-600 px-4 py-2 text-caption text-gray-200 transition hover:bg-gray-700"
+    <Button
+      variant="outline"
+      class="!rounded-md !border !border-gray-600 !px-4 !py-2 !text-caption !text-gray-200 hover:!bg-gray-700"
       onclick={onCancel}
     >
       Cancel
-    </button>
-    <button
-      type="button"
-      class={`rounded-md border border-gray-600 px-4 py-2 text-caption text-gray-200 transition ${
-        canGoPrevious ? "hover:bg-gray-700" : "cursor-not-allowed opacity-60"
+    </Button>
+    <Button
+      variant="outline"
+      class={`!rounded-md !border !border-gray-600 !px-4 !py-2 !text-caption !text-gray-200 ${
+        canGoPrevious ? "hover:!bg-gray-700" : "!cursor-not-allowed !opacity-60"
       }`}
       disabled={!canGoPrevious || isSaving}
       onclick={onPrevious}
     >
       Previous
-    </button>
-    <button
-      type="button"
-      class={`rounded-md px-4 py-2 text-caption font-medium transition ${
+    </Button>
+    <Button
+      variant="primary"
+      class={`!rounded-md !px-4 !py-2 !text-caption !font-medium ${
         isReviewStep
           ? canSave
-            ? "bg-accent-500 text-white hover:bg-accent-400"
-            : "cursor-not-allowed bg-gray-700 text-gray-400 opacity-70"
+            ? "!bg-accent-500 !text-white hover:!bg-accent-400"
+            : "!cursor-not-allowed !bg-gray-700 !text-gray-400 !opacity-70"
           : canGoNext
-            ? "bg-accent-500 text-white hover:bg-accent-400"
-            : "cursor-not-allowed bg-gray-700 text-gray-400 opacity-70"
+            ? "!bg-accent-500 !text-white hover:!bg-accent-400"
+            : "!cursor-not-allowed !bg-gray-700 !text-gray-400 !opacity-70"
       }`}
       disabled={isReviewStep ? !canSave : !canGoNext}
       onclick={isReviewStep ? onSave : onNext}
@@ -73,6 +75,6 @@
       {:else}
         Next
       {/if}
-    </button>
+    </Button>
   </div>
 </footer>

@@ -12,7 +12,7 @@
   let { supportedSteps, skippedCount, activeStepId, reviewStepId, onStepSelect }: Props = $props();
 </script>
 
-<aside class="flex w-72 shrink-0 flex-col border-r border-gray-700 bg-gray-950">
+<aside class="flex w-40 shrink-0 flex-col border-r border-gray-700 bg-gray-950">
   <div class="border-b border-gray-700 px-4 py-3">
     <p class="text-caption text-gray-300">Supported steps: {supportedSteps.length}</p>
     {#if skippedCount > 0}

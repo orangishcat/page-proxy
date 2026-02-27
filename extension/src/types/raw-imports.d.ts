@@ -9,3 +9,10 @@ declare module "*?worker" {
   };
   export default workerFactory;
 }
+
+declare module "*?worker&inline" {
+  const workerFactory: {
+    new (options?: WorkerOptions): Worker;
+  };
+  export default workerFactory;
+}

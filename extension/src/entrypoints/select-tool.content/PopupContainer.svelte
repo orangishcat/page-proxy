@@ -6,9 +6,7 @@
   import {
     attachPopupKeyboardOwnership,
     POPUP_BASE_FONT_SIZE_PX,
-    POPUP_DARK_MODE_STYLE,
-    POPUP_EM_SIZING_STYLE_VARS,
-    POPUP_FONT_SIZE_STYLE,
+    POPUP_SHARED_STYLE,
   } from "./popup/container-shared";
 
   type PropertyItem = {
@@ -194,7 +192,7 @@
 
   <div
     class="flex flex-col w-full h-full overflow-hidden rounded-lg border border-gray-800 bg-gray-950 text-gray-100 font-sans text-sm shadow-2xl pp-content-ui-root"
-    style={`${POPUP_DARK_MODE_STYLE} ${POPUP_FONT_SIZE_STYLE} ${POPUP_EM_SIZING_STYLE_VARS}`}
+    style={POPUP_SHARED_STYLE}
   >
     <div class="flex items-center h-12 px-4 gap-2.5 bg-gray-900 border-b border-gray-800">
       <span class="text-lead">{popupMode === "pp-api" ? "Selector editor" : "CSS inspector"}</span>
