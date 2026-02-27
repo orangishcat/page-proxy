@@ -17,6 +17,7 @@
     removeCssDeclaration,
     upsertCssDeclaration,
   } from "./css-editor-utils";
+  import { getSelectorPreviewState } from "./popup/css-preview";
 
   type PropertyItem = {
     key: string;
@@ -307,30 +308,6 @@
     });
     highlightedPreviewElements = [];
     highlightedPreviewCount = 0;
-  };
-
-  const getSelectorPreviewState = (selector: string) => {
-    const normalizedSelector = selector.trim();
-    if (!normalizedSelector) {
-      return { matchingElements: [] as Element[], error: "CSS selector is invalid." };
-    }
-
-    if (typeof CSS === "undefined" || typeof CSS.supports !== "function") {
-      return { matchingElements: [] as Element[], error: "CSS selector is invalid." };
-    }
-
-    if (!CSS.supports(`selector(${normalizedSelector})`)) {
-      return { matchingElements: [] as Element[], error: "CSS selector is invalid." };
-    }
-
-    const matchingElements = Array.from(document.querySelectorAll(normalizedSelector)).filter(
-      (element) => !element.closest(".pp-no-select-tool"),
-    );
-    if (matchingElements.length === 0) {
-      return { matchingElements, error: "CSS selector matches no elements." };
-    }
-
-    return { matchingElements, error: null };
   };
 
   const updateCssPreviewErrorMessage = () => {

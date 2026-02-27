@@ -515,7 +515,9 @@ export default defineContentScript({
       };
     };
 
-    const openRecordConverterPopup = async (payload: RecordConverterOpenPayload): Promise<RecordConverterOpenResult> => {
+    const openRecordConverterPopup = async (
+      payload: RecordConverterOpenPayload,
+    ): Promise<RecordConverterOpenResult> => {
       if (selectionEnabled) {
         setSelectionEnabled(false, { clearSelection: false });
       }
@@ -985,7 +987,9 @@ export default defineContentScript({
 
       window.addEventListener("message", onMessage);
       timeoutId = globalThis.setTimeout(() => {
-        respond(buildScriptRunResponse(request.requestId, "Script runner did not respond. Reload the page and try again."));
+        respond(
+          buildScriptRunResponse(request.requestId, "Script runner did not respond. Reload the page and try again."),
+        );
       }, scriptRunBridgeTimeoutMs);
 
       logger.debug("window message sent", { type: request.type, requestId: request.requestId });
@@ -1006,15 +1010,17 @@ export default defineContentScript({
       const selectMessage = message as SelectToolMessage;
       logger.debug("select tool message received", { type: selectMessage.type });
       if (selectMessage.type === "selector:open") {
-        void openSelectorPopup(selectMessage.payload, selectMessage.mode ?? "pp-api").then((opened) => {
-          sendResponse({
-            opened,
-          } satisfies SelectorOpenResult);
-        }).catch(() => {
-          sendResponse({
-            opened: false,
-          } satisfies SelectorOpenResult);
-        });
+        void openSelectorPopup(selectMessage.payload, selectMessage.mode ?? "pp-api")
+          .then((opened) => {
+            sendResponse({
+              opened,
+            } satisfies SelectorOpenResult);
+          })
+          .catch(() => {
+            sendResponse({
+              opened: false,
+            } satisfies SelectorOpenResult);
+          });
         return true;
       }
       if (selectMessage.type === "record:converter:open") {
@@ -1063,10 +1069,13 @@ export default defineContentScript({
             timelineSize: payload.timeline.length,
             existingCodeLength: payload.existingCode.length,
           });
-          safeSendResponse({
-            opened: false,
-            error: "Timed out while opening record converter popup.",
-          } satisfies RecordConverterOpenResult, "timeout");
+          safeSendResponse(
+            {
+              opened: false,
+              error: "Timed out while opening record converter popup.",
+            } satisfies RecordConverterOpenResult,
+            "timeout",
+          );
         }, 4000);
 
         const reply = (result: RecordConverterOpenResult) => {

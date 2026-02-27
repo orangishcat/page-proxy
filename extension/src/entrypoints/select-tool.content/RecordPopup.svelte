@@ -23,6 +23,10 @@
     type SupportedRecordStep,
   } from "./record-converter/normalize";
   import { attachPopupKeyboardOwnership, POPUP_SHARED_STYLE } from "./popup/container-shared";
+  import {
+    createSelectorMatchPreviewController,
+    type SelectorMatchPreviewController,
+  } from "./popup/selector-preview";
 
   type Props = {
     payload: RecordConverterOpenPayload;
@@ -68,6 +72,9 @@
   let applyingGeneratedReviewCode = false;
   let releaseKeyboardOwnership = () => {};
   let removeWorkerErrorListener = () => {};
+  let selectElementPreviewError = $state<string | null>(null);
+  let isSelectElementPreviewing = $state(false);
+  let selectElementPreviewController: SelectorMatchPreviewController | null = null;
 
   const activeStep = $derived.by(() => supportedSteps.find((step) => step.id === activeStepId) ?? null);
   const isReviewStep = $derived.by(() => activeStepId === reviewStepId);
@@ -283,6 +290,17 @@
     reviewCode = activeGeneratedReview.finalCode;
     setupReviewEditor();
     releaseKeyboardOwnership = attachPopupKeyboardOwnership(popupContainerEl);
+    selectElementPreviewController = createSelectorMatchPreviewController({
+      getSelectorCode: () => activeStepPreviewCode,
+      isEnabled: () => !isReviewStep && activeStep?.kind === "select-element",
+      onError: (message) => {
+        selectElementPreviewError = message;
+      },
+      onPreviewStateChange: (previewing) => {
+        isSelectElementPreviewing = previewing;
+      },
+    });
+    selectElementPreviewController.mount();
 
     const onMonacoWorkerError = (event: Event) => {
       const customEvent = event as CustomEvent<{ label?: string; message?: string }>;
@@ -301,6 +319,8 @@
 
   onDestroy(() => {
     logger.debug("record popup destroyed");
+    selectElementPreviewController?.dispose();
+    selectElementPreviewController = null;
     removeWorkerErrorListener();
     releaseKeyboardOwnership();
     reviewEditorHandle?.dispose();
@@ -402,9 +422,30 @@
       reviewEditorHandle?.editor.focus();
     });
   });
+
+  $effect(() => {
+    const _previewSelectorCode = activeStepPreviewCode;
+    selectElementPreviewController?.refresh();
+  });
+
+  $effect(() => {
+    if (!activeStep || activeStep.kind !== "select-element") {
+      selectElementPreviewError = null;
+      selectElementPreviewController?.stop();
+      return;
+    }
+
+    if (!isSelectElementPreviewing) {
+      selectElementPreviewError = null;
+    }
+  });
 </script>
 
-<div class="pp-no-select-tool fixed inset-0 z-2147483646 flex items-center justify-center bg-black/60 p-4">
+<div
+  class={`pp-no-select-tool fixed inset-0 z-2147483646 flex items-center justify-center bg-black/60 p-4 ${
+    isSelectElementPreviewing ? "invisible" : ""
+  }`}
+>
   <section
     bind:this={popupContainerEl}
     class="pp-no-select-tool flex w-full h-full max-w-4xl max-h-[40em] min-h-0 flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-900 text-white shadow-2xl"
@@ -461,6 +502,14 @@
             onParentCountChange={updateParentCount}
             onStepPreviewCodeChange={updateStepPreviewCode}
           />
+          {#if activeStep?.kind === "select-element"}
+            <div class="px-4 pb-2 text-caption text-gray-400">
+              Hold <code>z</code> to highlight selector matches.
+            </div>
+            {#if selectElementPreviewError}
+              <div class="px-4 pb-3 text-caption text-amber-300">{selectElementPreviewError}</div>
+            {/if}
+          {/if}
         {/if}
       </section>
     </div>

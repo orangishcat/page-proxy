@@ -237,7 +237,9 @@
           {onSave}
           {onCancel}
           {baseSelector}
+          active={popupMode === "pp-api"}
           onBaseSelectorChange={handleBaseSelectorChange}
+          onVisibilityChange={handlePopupVisibilityChange}
         />
       </div>
 

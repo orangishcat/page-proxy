@@ -10,7 +10,9 @@
   } from "@/lib/code-editor";
   import { GripVertical } from "lucide-svelte";
   import { buildPreviewCode, isSpecialPropertyKey, type FilterOperator } from "./preview-code";
+  import { readBaseSelectorFromCode, replaceBaseSelectorInCode } from "./popup/base-selector";
   import { buildSelectorTemplateCode } from "./popup/selector";
+  import { createSelectorMatchPreviewController, type SelectorMatchPreviewController } from "./popup/selector-preview";
 
   type PropertyItem = {
     key: string;
@@ -27,9 +29,11 @@
     onCancel: () => void;
     baseSelector: string;
     onBaseSelectorChange?: (nextSelector: string) => void;
+    active?: boolean;
+    onVisibilityChange?: (hidden: boolean) => void;
   };
 
-  let { info, propertyItems, onSave, onCancel, baseSelector, onBaseSelectorChange }: Props = $props();
+  let { info, propertyItems, onSave, onCancel, baseSelector, onBaseSelectorChange, active = true, onVisibilityChange }: Props = $props();
 
   let editorHost = $state<HTMLDivElement | null>(null);
   let editorHandle = $state<MonacoCodeEditorHandle | null>(null);
@@ -45,54 +49,14 @@
   let selectedPropertyKey = $state<string | null>(null);
   let propertySearchTerm = $state("");
   let errorMessage = $state("");
+  let previewErrorMessage = $state<string | null>(null);
+  let isSelectorEditorFocused = $state(false);
+  let selectorPreviewController: SelectorMatchPreviewController | null = null;
+  let disposeEditorFocus = () => {};
+  let disposeEditorBlur = () => {};
 
   const transparentDragImage = new Image();
   transparentDragImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
-
-  const baseSelectorPattern = /(["']baseSelector["']\s*:\s*)(["'`])((?:\\.|(?!\2)[\s\S])*?)\2/;
-
-  const decodeStringLiteral = (value: string) => {
-    return value.replace(/\\([\\'"`nrt])/g, (_match, token: string) => {
-      if (token === "n") {
-        return "\n";
-      }
-      if (token === "r") {
-        return "\r";
-      }
-      if (token === "t") {
-        return "\t";
-      }
-      return token;
-    });
-  };
-
-  const escapeForQuote = (value: string, quote: string) => {
-    return value
-      .replace(/\\/g, "\\\\")
-      .replace(/\n/g, "\\n")
-      .replace(/\r/g, "\\r")
-      .replace(/\t/g, "\\t")
-      .replaceAll(quote, `\\${quote}`);
-  };
-
-  const readBaseSelectorFromCode = (code: string): string | null => {
-    const match = code.match(baseSelectorPattern);
-    if (!match) {
-      return null;
-    }
-
-    return decodeStringLiteral(match[3]);
-  };
-
-  const replaceBaseSelectorInCode = (code: string, nextSelector: string): string | null => {
-    if (!baseSelectorPattern.test(code)) {
-      return null;
-    }
-
-    return code.replace(baseSelectorPattern, (_match, prefix: string, quote: string) => {
-      return `${prefix}${quote}${escapeForQuote(nextSelector, quote)}${quote}`;
-    });
-  };
 
   const activePropertyKey = $derived.by(() => {
     if (selectedPropertyKey && propertyItems.some((item) => item.key === selectedPropertyKey)) {
@@ -244,6 +208,24 @@
     editorDom.addEventListener("dragover", handleEditorDragOver, { capture: true });
     editorDom.addEventListener("drop", handleEditorDrop, { capture: true });
     editorDom.addEventListener("dragleave", handleEditorDragLeave, { capture: true });
+
+    const focusDisposable = editorHandle.editor.onDidFocusEditorText(() => {
+      isSelectorEditorFocused = true;
+    });
+    disposeEditorFocus = () => {
+      focusDisposable.dispose();
+      disposeEditorFocus = () => {};
+    };
+
+    const blurDisposable = editorHandle.editor.onDidBlurEditorText(() => {
+      isSelectorEditorFocused = false;
+    });
+    disposeEditorBlur = () => {
+      blurDisposable.dispose();
+      disposeEditorBlur = () => {};
+    };
+
+    isSelectorEditorFocused = editorHandle.editor.hasTextFocus();
   };
 
   const setupPreview = () => {
@@ -518,9 +500,28 @@
   onMount(() => {
     setupEditor();
     setupPreview();
+
+    selectorPreviewController = createSelectorMatchPreviewController({
+      getSelectorCode: () => editorHandle?.editor.getValue() ?? editorValue,
+      isEnabled: () => active && !isSelectorEditorFocused,
+      onError: (message) => {
+        previewErrorMessage = message;
+      },
+      onPreviewStateChange: (previewing) => {
+        onVisibilityChange?.(previewing);
+      },
+    });
+    selectorPreviewController.mount();
   });
 
   onDestroy(() => {
+    selectorPreviewController?.dispose();
+    selectorPreviewController = null;
+    onVisibilityChange?.(false);
+
+    disposeEditorFocus();
+    disposeEditorBlur();
+
     if (editorHandle) {
       const editorDom = editorHandle.editor.getDomNode();
       if (editorDom instanceof HTMLElement) {
@@ -579,6 +580,24 @@
 
     setSelectorEditorCode(nextCode);
   });
+
+  $effect(() => {
+    const _previewSelector = currentBaseSelector;
+    if (!selectorPreviewController) {
+      return;
+    }
+    selectorPreviewController.refresh();
+  });
+
+  $effect(() => {
+    if (active) {
+      return;
+    }
+
+    previewErrorMessage = null;
+    selectorPreviewController?.stop();
+    onVisibilityChange?.(false);
+  });
 </script>
 
 <Tooltip.Provider>
@@ -591,6 +610,10 @@
       {#if errorMessage}
         <div class="text-xs text-red-400">{errorMessage}</div>
       {/if}
+      {#if previewErrorMessage}
+        <div class="text-xs text-amber-300">{previewErrorMessage}</div>
+      {/if}
+      <div class="text-xs text-gray-400">Hold <code>z</code> to highlight matching elements.</div>
 
       <div class="flex gap-2">
         <button
