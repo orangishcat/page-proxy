@@ -1,8 +1,9 @@
-import { cssSelectorGenerator, getCssSelector } from "css-selector-generator";
+import { cssSelectorGenerator } from "css-selector-generator";
 
 const selectorFallback = "body";
 const selectorMatchLimitDefault = 10;
-const selectorBlacklist = [".pp-hover", ".pp-selected", ".pp-hovered", ".pp-no-select-tool", ".pp-*"];
+const selectorBlacklist = [".pp-hover", ".pp-selected", ".pp-hovered", ".pp-no-select-tool", ".pp-*", /\[style(?:[~|^$*]?=)?/i];
+type SelectorGeneratorOptions = NonNullable<Parameters<typeof cssSelectorGenerator>[1]>;
 
 const normalizeSelector = (value: string) => value.trim().replace(/\s+/g, " ");
 
@@ -61,14 +62,33 @@ const normalizeSelectorCandidate = (value: string) => {
   return normalized;
 };
 
-const createSelectorGeneratorOptions = (element: Element) => {
-  const selectorRoot =
-    element.ownerDocument?.documentElement ?? document.documentElement ?? element.ownerDocument?.body ?? null;
-
+const createSelectorGeneratorOptions = (maxResults: number): SelectorGeneratorOptions => {
   return {
-    ...(selectorRoot ? { root: selectorRoot } : {}),
     blacklist: selectorBlacklist,
+    combineWithinSelector: true,
+    combineBetweenSelectors: true,
+    includeTag: true,
+    maxResults,
   };
+};
+
+const getGeneratedSelectors = (element: Element, maxResults: number) => {
+  const cappedResults = Math.max(1, Math.floor(maxResults));
+  const selectors = new Set<string>();
+
+  for (const selector of cssSelectorGenerator(element, createSelectorGeneratorOptions(cappedResults))) {
+    const normalized = normalizeSelectorCandidate(selector);
+    if (!normalized || normalized.includes(".pp-")) {
+      continue;
+    }
+
+    selectors.add(normalized);
+    if (selectors.size >= cappedResults) {
+      break;
+    }
+  }
+
+  return Array.from(selectors);
 };
 
 export const getSelectorFallback = () => selectorFallback;
@@ -78,9 +98,9 @@ export const generateElementSelector = (element: Element) => {
     return buildDeterministicSelectorPath(element) || selectorFallback;
   }
 
-  const generated = normalizeSelectorCandidate(getCssSelector(element, createSelectorGeneratorOptions(element)));
-  if (generated) {
-    return generated;
+  const generatedSelectors = getGeneratedSelectors(element, 1);
+  if (generatedSelectors[0]) {
+    return generatedSelectors[0];
   }
 
   const deterministicPath = normalizeSelectorCandidate(buildDeterministicSelectorPath(element));
@@ -93,39 +113,18 @@ export const generateElementSelector = (element: Element) => {
 
 export const generateElementSelectorMatches = (element: Element, maxResults = selectorMatchLimitDefault) => {
   const cappedResults = Math.max(1, Math.floor(maxResults));
-  const selectors = new Set<string>();
 
   if (!element.isConnected) {
     const fallback = normalizeSelectorCandidate(buildDeterministicSelectorPath(element));
     return fallback ? [fallback] : [selectorFallback];
   }
 
-  const options = {
-    ...createSelectorGeneratorOptions(element),
-    maxResults: cappedResults,
-  };
-
-  for (const selector of cssSelectorGenerator(element, options)) {
-    const normalized = normalizeSelectorCandidate(selector);
-    if (!normalized) {
-      continue;
-    }
-
-    if (normalized.includes(".pp-")) {
-      continue;
-    }
-
-    selectors.add(normalized);
-    if (selectors.size >= cappedResults) {
-      break;
-    }
+  const selectors = getGeneratedSelectors(element, cappedResults * 4);
+  if (selectors.length === 0) {
+    return [generateElementSelector(element)];
   }
 
-  if (selectors.size === 0) {
-    selectors.add(generateElementSelector(element));
-  }
-
-  return Array.from(selectors).slice(0, cappedResults);
+  return selectors.slice(0, cappedResults);
 };
 
 export const buildSelectorTemplateCode = (selectorValue: string) => {

@@ -117,6 +117,7 @@
     const normalized = entry.detail.trim();
     return normalized.length > 0 ? normalized : null;
   };
+  const isSelectedElementEntry = (entry: RecordTimelineEntry) => entry.action.trim().toLowerCase() === "selected element";
 
   const isModifierHeld = (event: MouseEvent | PointerEvent | KeyboardEvent) => event.metaKey || event.ctrlKey;
 
@@ -192,6 +193,8 @@
       <div>
         <ul>
           {#each timelineEntries as entry (entry.id)}
+            {@const entryDetail = getEntryDetail(entry)}
+            {@const shouldTruncateDetail = isSelectedElementEntry(entry)}
             <li class="min-w-0">
               <button
                 data-record-entry-id={entry.id}
@@ -204,16 +207,21 @@
                 aria-pressed={isEntrySelected(entry.id)}
                 onpointerdown={(event) => handleEntryPointerDown(event, entry.id)}
                 onkeydown={(event) => handleEntryKeyDown(event, entry.id)}
-              >
-                <div class="flex items-start justify-between gap-3">
-                  <span class="min-w-0 text-body text-gray-800 dark:text-gray-100">{entry.action}</span>
-                  <span class="shrink-0 text-caption text-gray-500 dark:text-gray-400">
-                    {formatTimestamp(entry.timestamp)}
-                  </span>
-                </div>
-                {#if getEntryDetail(entry)}
-                  <p class="mt-1 text-caption text-gray-600 dark:text-gray-400">{entry.detail}</p>
-                {/if}
+                >
+                  <div class="flex items-start justify-between gap-3">
+                    <span class="min-w-0 text-body text-gray-800 dark:text-gray-100">{entry.action}</span>
+                    <span class="shrink-0 text-caption text-gray-500 dark:text-gray-400">
+                      {formatTimestamp(entry.timestamp)}
+                    </span>
+                  </div>
+                  {#if entryDetail}
+                    <p
+                      class={`mt-1 text-caption text-gray-600 dark:text-gray-400 ${shouldTruncateDetail ? "truncate" : ""}`}
+                      title={shouldTruncateDetail ? entryDetail : null}
+                    >
+                      {entryDetail}
+                    </p>
+                  {/if}
               </button>
             </li>
           {/each}

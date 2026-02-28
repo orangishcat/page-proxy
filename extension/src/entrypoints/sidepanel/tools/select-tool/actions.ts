@@ -43,6 +43,37 @@ const logger = log.getLogger("select-tool-sidepanel");
 logger.setLevel("debug", false);
 const selectedElementRecordSuppressionMs = 1000;
 let suppressSelectedElementRecordUntil = 0;
+let suppressNextSelectedElementRecord = false;
+
+const armSelectedElementRecordSuppression = () => {
+  suppressNextSelectedElementRecord = true;
+  suppressSelectedElementRecordUntil = Date.now() + selectedElementRecordSuppressionMs;
+};
+
+const clearSelectedElementRecordSuppression = () => {
+  suppressNextSelectedElementRecord = false;
+  suppressSelectedElementRecordUntil = 0;
+};
+
+const shouldSuppressSelectedElementRecord = () => {
+  const now = Date.now();
+  if (now > suppressSelectedElementRecordUntil) {
+    clearSelectedElementRecordSuppression();
+    return false;
+  }
+
+  if (suppressNextSelectedElementRecord) {
+    clearSelectedElementRecordSuppression();
+    return true;
+  }
+
+  if (now <= suppressSelectedElementRecordUntil) {
+    suppressSelectedElementRecordUntil = 0;
+    return true;
+  }
+
+  return false;
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -158,7 +189,6 @@ const refreshDevtoolsIntegrationForActiveTab = () => {
 };
 
 const recordSelectedParentElement = (selectorHint?: string | null) => {
-  suppressSelectedElementRecordUntil = Date.now() + selectedElementRecordSuppressionMs;
   const detail = selectorHint && selectorHint.trim().length > 0 ? `selector: ${selectorHint.trim()}` : "";
   recordSidepanelAction("Selected parent element", detail);
 };
@@ -244,6 +274,7 @@ export const sendSelectParent = () => {
         return;
       }
 
+      armSelectedElementRecordSuppression();
       const response = await sendSelectToolMessage(
         tabContext.tabId,
         {
@@ -252,6 +283,7 @@ export const sendSelectParent = () => {
         context.frameId ?? 0,
       ).catch(() => null);
       if (response === null) {
+        clearSelectedElementRecordSuppression();
         setErrorMessage("Unable to connect to the active tab.");
         return;
       }
@@ -259,6 +291,7 @@ export const sendSelectParent = () => {
       let selectorHint: string | null = null;
       if (isSelectParentResponse(response)) {
         if (!response.ok) {
+          clearSelectedElementRecordSuppression();
           setErrorMessage(response.error ?? "Unable to select parent element.");
           return;
         }
@@ -273,6 +306,7 @@ export const sendSelectParent = () => {
       recordSelectedParentElement(selectorHint);
     })
     .catch(() => {
+      clearSelectedElementRecordSuppression();
       setErrorMessage("Unable to connect to the active tab.");
     });
 };
@@ -514,9 +548,7 @@ export const attachSelectionListener = () => {
         frameUrl: null,
       });
       if (message.payload) {
-        if (Date.now() <= suppressSelectedElementRecordUntil) {
-          suppressSelectedElementRecordUntil = 0;
-        } else {
+        if (!shouldSuppressSelectedElementRecord()) {
           const selectorDetail = message.payload.selector.trim();
           recordSidepanelAction(
             "Selected element",
