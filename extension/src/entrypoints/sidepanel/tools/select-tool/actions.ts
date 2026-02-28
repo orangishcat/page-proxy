@@ -410,6 +410,11 @@ const sendSelectionAction = (action: SelectElementAction) => {
         return;
       }
 
+      if (action === "click") {
+        recordSidepanelAction("Clicked element");
+        return;
+      }
+
       if (action === "paste") {
         recordSidepanelAction("Pasted element");
         return;
@@ -426,6 +431,10 @@ const sendSelectionAction = (action: SelectElementAction) => {
 
 export const sendCopySelection = () => {
   sendSelectionAction("copy");
+};
+
+export const sendClickSelection = () => {
+  sendSelectionAction("click");
 };
 
 export const sendCutSelection = () => {

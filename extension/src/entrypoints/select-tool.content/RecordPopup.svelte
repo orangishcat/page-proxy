@@ -570,10 +570,6 @@
             onStepPreviewCodeChange={updateStepPreviewCode}
           />
           {#if activeStep?.kind === "select-element"}
-            {@const matchCount = activeSelectElementMatchingElements.length}
-            <div class="px-4 pb-2 text-caption text-gray-400">
-              Hold <code>z</code> to highlight {matchCount} matching element{matchCount === 1 ? "" : "s"}.
-            </div>
             {#if selectElementPreviewError}
               <div class="px-4 pb-3 text-caption text-amber-300">{selectElementPreviewError}</div>
             {/if}
@@ -586,6 +582,7 @@
         {activeStep}
         selectElementCurrentSelector={activeSelectElementBaseSelector}
         selectElementSelectorMatches={activeSelectElementSelectorMatches}
+        selectElementMatchCount={activeSelectElementMatchingElements.length}
         onSelectElementSelectorMatch={applySelectElementSelectorMatch}
       />
     </div>

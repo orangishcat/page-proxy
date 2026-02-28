@@ -396,7 +396,7 @@ export default defineContentScript({
     };
 
     const sendRuntimeMessage = (message: SelectToolMessage | SidepanelShortcutMessage) => {
-      logger.debug("runtime message sent", { type: message.type });
+      logger.debug("runtime message sent", message);
       void browser.runtime.sendMessage(message).catch((error: unknown) => {
         if (isNoReceiverError(error)) {
           stopSelection("receiver-missing");
@@ -719,6 +719,12 @@ export default defineContentScript({
         return { ok: true };
       }
 
+      if (action === "click") {
+        logger.debug("Clicking target", target);
+        (target as HTMLElement).click();
+        return { ok: true };
+      }
+
       if (action === "cut") {
         const copied = await writeClipboardText(target.outerHTML);
         if (!copied) {
@@ -873,6 +879,7 @@ export default defineContentScript({
       if (!target) return;
       if (shadowUi) clearSelectorPopup({ resumeSelection: false });
       applySelection(target);
+      setSelectionEnabled(false, { clearSelection: false });
     };
 
     const onViewportChange = () => {
@@ -1008,7 +1015,7 @@ export default defineContentScript({
       }
 
       const selectMessage = message as SelectToolMessage;
-      logger.debug("select tool message received", { type: selectMessage.type });
+      logger.debug("select tool message received", selectMessage);
       if (selectMessage.type === "selector:open") {
         void openSelectorPopup(selectMessage.payload, selectMessage.mode ?? "pp-api")
           .then((opened) => {
@@ -1106,10 +1113,10 @@ export default defineContentScript({
         return true;
       }
       if (selectMessage.type === "select:parent") {
-        if (!selectionEnabled) {
+        if (!selectedTarget) {
           sendResponse({
             ok: false,
-            error: "Selection mode is disabled.",
+            error: "Select an element first.",
           });
           return false;
         }

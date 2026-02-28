@@ -22,6 +22,7 @@
     - Test: `vitest`
     - [Figma file](https://www.figma.com/file/1E8P0X0wBphOq6kbXWMhbW/page-proxy--)
 - Auth, Database, Storage: Appwrite
+- Always use `bits-ui` for components wherever possible.
 
 ### Development guidelines
 

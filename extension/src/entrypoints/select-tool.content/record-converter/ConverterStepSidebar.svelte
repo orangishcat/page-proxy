@@ -6,6 +6,7 @@
     activeStep: SupportedRecordStep | null;
     selectElementCurrentSelector: string;
     selectElementSelectorMatches: string[];
+    selectElementMatchCount: number;
     onSelectElementSelectorMatch: (selector: string) => void;
   };
 
@@ -14,6 +15,7 @@
     activeStep,
     selectElementCurrentSelector,
     selectElementSelectorMatches,
+    selectElementMatchCount,
     onSelectElementSelectorMatch,
   }: Props = $props();
 
@@ -31,7 +33,7 @@
           <p class="text-caption text-gray-500">No selector matches were generated for the selected element.</p>
         {:else}
           <div class="space-y-2">
-            {#each selectElementSelectorMatches as selectorMatch}
+            {#each selectElementSelectorMatches as selectorMatch, selectorIndex (`${selectorMatch}-${selectorIndex}`)}
               {@const isSelected = normalizeSelector(selectorMatch) === normalizeSelector(selectElementCurrentSelector)}
               <button
                 type="button"
@@ -51,5 +53,13 @@
     </div>
   {:else}
     <p class="text-caption text-gray-400">Select a step to inspect step-specific options.</p>
+  {/if}
+
+  {#if !isReviewStep && activeStep?.kind === "select-element"}
+    <div class="pt-3 text-caption text-gray-400">
+      Hold <code>z</code> to highlight {selectElementMatchCount} matching element{selectElementMatchCount === 1
+        ? ""
+        : "s"}.
+    </div>
   {/if}
 </aside>

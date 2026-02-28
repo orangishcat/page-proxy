@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import { Tooltip } from "bits-ui";
+  import { DropdownMenu, Tooltip } from "bits-ui";
   import Button from "@/lib/components/Button.svelte";
   import type { PropertyItem } from "./select-tool/state";
   import {
+    sendClickSelection,
     sendCopySelection,
     sendCutSelection,
     sendDeleteSelection,
@@ -19,10 +20,14 @@
     propertyItems,
     selectModeEnabled,
   } from "./select-tool/state";
-  import { ArrowUpIcon, ClipboardPaste, Copy, Scissors, Trash2, Wrench } from "lucide-svelte";
+  import { ArrowUpIcon, ClipboardPaste, Copy, MousePointerClick, Scissors, Trash2, Wrench } from "lucide-svelte";
 
   const iconActionButtonClass =
     "h-8 w-8 rounded-lg p-0! bg-[#55503E] text-white dark:text-white hover:opacity-55 active:opacity-40";
+  const actionMenuClasses =
+    "z-20 min-w-56 rounded-md border border-gray-300 bg-gray-50 p-1 text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100";
+  const actionMenuItemClasses =
+    "text-body flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-900/60 dark:active:bg-gray-900";
 
   let hasSelectionValue = $state(false);
   let selectModeEnabledValue = $state(false);
@@ -125,105 +130,44 @@
     {#if hasSelectionValue || devtoolsIntegrationDetectedValue}
       <div class="flex items-center justify-self-end gap-1">
         {#if hasSelectionValue}
-          <Tooltip.Root>
-            <Tooltip.Trigger>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger>
               {#snippet child({ props })}
                 <Button
                   {...props}
                   class={iconActionButtonClass}
                   variant="outline"
-                  aria-label="Copy selected element"
-                  onclick={sendCopySelection}
+                  aria-label="Selected element actions"
                 >
-                  <Copy class="h-4 w-4" />
+                  <span class="text-lg leading-none">...</span>
                 </Button>
               {/snippet}
-            </Tooltip.Trigger>
-            <Tooltip.Portal>
-              <Tooltip.Content
-                sideOffset={6}
-                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
-              >
-                Copy selected element
-                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
-              </Tooltip.Content>
-            </Tooltip.Portal>
-          </Tooltip.Root>
-
-          <Tooltip.Root>
-            <Tooltip.Trigger>
-              {#snippet child({ props })}
-                <Button
-                  {...props}
-                  class={iconActionButtonClass}
-                  variant="outline"
-                  aria-label="Cut selected element"
-                  onclick={sendCutSelection}
-                >
-                  <Scissors class="h-4 w-4" />
-                </Button>
-              {/snippet}
-            </Tooltip.Trigger>
-            <Tooltip.Portal>
-              <Tooltip.Content
-                sideOffset={6}
-                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
-              >
-                Cut selected element
-                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
-              </Tooltip.Content>
-            </Tooltip.Portal>
-          </Tooltip.Root>
-
-          <Tooltip.Root>
-            <Tooltip.Trigger>
-              {#snippet child({ props })}
-                <Button
-                  {...props}
-                  class={iconActionButtonClass}
-                  variant="outline"
-                  aria-label="Paste after selected element"
-                  onclick={sendPasteSelection}
-                >
-                  <ClipboardPaste class="h-4 w-4" />
-                </Button>
-              {/snippet}
-            </Tooltip.Trigger>
-            <Tooltip.Portal>
-              <Tooltip.Content
-                sideOffset={6}
-                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
-              >
-                Paste after selected element
-                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
-              </Tooltip.Content>
-            </Tooltip.Portal>
-          </Tooltip.Root>
-
-          <Tooltip.Root>
-            <Tooltip.Trigger>
-              {#snippet child({ props })}
-                <Button
-                  {...props}
-                  class={iconActionButtonClass}
-                  variant="outline"
-                  aria-label="Delete selected element"
-                  onclick={sendDeleteSelection}
-                >
-                  <Trash2 class="h-4 w-4" />
-                </Button>
-              {/snippet}
-            </Tooltip.Trigger>
-            <Tooltip.Portal>
-              <Tooltip.Content
-                sideOffset={6}
-                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
-              >
-                Delete selected element
-                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
-              </Tooltip.Content>
-            </Tooltip.Portal>
-          </Tooltip.Root>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content class={actionMenuClasses} align="end" side="top" sideOffset={6}>
+                <DropdownMenu.Item class={actionMenuItemClasses} onclick={sendClickSelection}>
+                  <MousePointerClick class="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                  Click selected element
+                </DropdownMenu.Item>
+                <DropdownMenu.Item class={actionMenuItemClasses} onclick={sendCopySelection}>
+                  <Copy class="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                  Copy selected element
+                </DropdownMenu.Item>
+                <DropdownMenu.Item class={actionMenuItemClasses} onclick={sendCutSelection}>
+                  <Scissors class="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                  Cut selected element
+                </DropdownMenu.Item>
+                <DropdownMenu.Item class={actionMenuItemClasses} onclick={sendPasteSelection}>
+                  <ClipboardPaste class="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                  Paste after selected element
+                </DropdownMenu.Item>
+                <DropdownMenu.Item class={actionMenuItemClasses} onclick={sendDeleteSelection}>
+                  <Trash2 class="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                  Delete selected element
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
         {/if}
 
         {#if devtoolsIntegrationDetectedValue}
