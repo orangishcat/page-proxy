@@ -4,6 +4,10 @@ import { SelectionController } from "./SelectionController";
 import { addMessageListener } from "./message-router";
 import "@/styles/app.css";
 
+const originalMethodFactory = log.methodFactory;
+log.methodFactory = (methodName, level, loggerName) => (message) =>
+  originalMethodFactory(methodName, level, loggerName)(`[${loggerName.toString()}] ${message}`);
+
 const logger = log.getLogger("select-content-script");
 logger.setLevel("debug", false);
 
