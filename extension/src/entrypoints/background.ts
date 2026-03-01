@@ -29,6 +29,7 @@ type StoredToolState = {
       name: string;
       ruleKeys: string[];
       rules?: string[];
+      mode?: "pp-api" | "css";
     }>;
   };
   permissions: {
@@ -83,6 +84,7 @@ const coerceStoredSelectorEntries = (value: unknown): StoredToolState["selectorP
       name?: unknown;
       ruleKeys?: unknown;
       rules?: unknown;
+      mode?: unknown;
     };
 
     if (typeof data.name !== "string" || !isStringArray(data.ruleKeys)) {
@@ -90,10 +92,12 @@ const coerceStoredSelectorEntries = (value: unknown): StoredToolState["selectorP
     }
 
     const rules = isStringArray(data.rules) ? data.rules : undefined;
+    const mode = data.mode === "pp-api" || data.mode === "css" ? data.mode : undefined;
     entries.push({
       name: data.name,
       ruleKeys: data.ruleKeys,
       rules,
+      mode,
     });
   });
 

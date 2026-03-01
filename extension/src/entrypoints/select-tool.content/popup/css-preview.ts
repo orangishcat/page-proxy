@@ -22,7 +22,7 @@ export const getSelectorPreviewState = (selector: string, excludedAncestorSelect
   );
 
   if (matchingElements.length === 0) {
-    return { matchingElements, error: "CSS selector matches no elements." };
+    return { matchingElements, error: "Selector does not match any elements" };
   }
 
   return { matchingElements, error: null };

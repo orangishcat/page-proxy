@@ -10,7 +10,9 @@
   } from "@/lib/code-editor";
   import { GripVertical } from "lucide-svelte";
   import { buildPreviewCode, isSpecialPropertyKey, type FilterOperator } from "./preview-code";
+  import CopyablePropertyText from "./CopyablePropertyText.svelte";
   import { readBaseSelectorFromCode, replaceBaseSelectorInCode } from "./popup/base-selector";
+  import { getPqSelectorPreviewState } from "./popup/pq-selector-preview";
   import { buildSelectorTemplateCode } from "./popup/selector";
   import { createSelectorMatchPreviewController, type SelectorMatchPreviewController } from "./popup/selector-preview";
 
@@ -50,10 +52,12 @@
   let propertySearchTerm = $state("");
   let errorMessage = $state("");
   let previewErrorMessage = $state<string | null>(null);
+  let selectorMatchCount = $state(0);
   let isSelectorEditorFocused = $state(false);
   let selectorPreviewController: SelectorMatchPreviewController | null = null;
   let disposeEditorFocus = () => {};
   let disposeEditorBlur = () => {};
+  const noMatchesErrorMessages = new Set(["Selector matches no elements.", "Selector does not match any elements"]);
 
   const transparentDragImage = new Image();
   transparentDragImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
@@ -101,6 +105,15 @@
   const isActiveSpecialProperty = $derived.by(() => isSpecialPropertyKey(activePropertyKey));
   const currentBaseSelector = $derived.by(() => readBaseSelectorFromCode(editorValue) ?? info.selector);
   const previewCode = $derived.by(() => buildPreviewCode(activePropertyItem, filterOperator));
+  const hasNoMatchingElements = $derived.by(() => previewErrorMessage !== null && noMatchesErrorMessages.has(previewErrorMessage));
+
+  const formatMatchingElementsLabel = (count: number) => `${count} matching element${count === 1 ? "" : "s"}`;
+
+  const updateSelectorPreviewState = () => {
+    const previewState = getPqSelectorPreviewState(editorHandle?.editor.getValue() ?? editorValue);
+    previewErrorMessage = previewState.error;
+    selectorMatchCount = previewState.matchingElements.length;
+  };
 
   const setSelectorEditorCode = (nextCode: string) => {
     editorValue = nextCode;
@@ -173,6 +186,7 @@
       onChange: (nextValue) => {
         editorValue = nextValue;
         errorMessage = "";
+        updateSelectorPreviewState();
 
         const nextSelector = readBaseSelectorFromCode(nextValue);
         if (!nextSelector) {
@@ -500,6 +514,7 @@
   onMount(() => {
     setupEditor();
     setupPreview();
+    updateSelectorPreviewState();
 
     selectorPreviewController = createSelectorMatchPreviewController({
       getSelectorCode: () => editorHandle?.editor.getValue() ?? editorValue,
@@ -590,6 +605,11 @@
   });
 
   $effect(() => {
+    const _currentEditorValue = editorValue;
+    updateSelectorPreviewState();
+  });
+
+  $effect(() => {
     if (active) {
       return;
     }
@@ -613,7 +633,6 @@
       {#if previewErrorMessage}
         <div class="text-xs text-amber-300">{previewErrorMessage}</div>
       {/if}
-      <div class="text-xs text-gray-400">Hold <code>z</code> to highlight matching elements.</div>
 
       <div class="flex gap-2">
         <button
@@ -632,21 +651,26 @@
     </div>
 
     <div class="flex flex-col w-64 max-w-64 min-w-0 border-l border-gray-800 bg-black/20 p-3 gap-3">
-      <div class="text-xs uppercase tracking-wide text-gray-500">Property filters</div>
-
-      {#if !isActiveSpecialProperty}
-        <div class="flex flex-col gap-1">
-          <select
-            value={filterOperator}
-            onchange={(event) => (filterOperator = event.currentTarget.value as FilterOperator)}
-            class="text-sm text-white bg-white/10 border border-white/15 py-1.5 px-2 rounded cursor-pointer"
-          >
-            <option value="contains">contains</option>
-            <option value="matches">matches</option>
-            <option value="keyExists">keyExists</option>
-          </select>
+      {#if hasNoMatchingElements}
+        <div class="flex h-full items-center justify-center text-center text-sm text-gray-400">
+          Selector does not match any elements
         </div>
-      {/if}
+      {:else}
+        <div class="text-xs uppercase tracking-wide text-gray-500">Property filters</div>
+
+        {#if !isActiveSpecialProperty}
+          <div class="flex flex-col gap-1">
+            <select
+              value={filterOperator}
+              onchange={(event) => (filterOperator = event.currentTarget.value as FilterOperator)}
+              class="text-sm text-white bg-white/10 border border-white/15 py-1.5 px-2 rounded cursor-pointer"
+            >
+              <option value="contains">contains</option>
+              <option value="matches">matches</option>
+              <option value="keyExists">keyExists</option>
+            </select>
+          </div>
+        {/if}
 
       <div class="w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden">
         <div class="flex h-12 w-full bg-gray-900">
@@ -704,37 +728,14 @@
               class={`flex justify-between items-center text-left rounded-md border border-transparent px-2 py-1 cursor-pointer transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
               aria-pressed={activePropertyKey === item.key}
             >
-              <div title={item.key} class="font-mono text-xs text-accent-500 truncate max-w-24">
-                {item.key}
-              </div>
-              {#if item.value.length > 18}
-                <Tooltip.Root>
-                  <Tooltip.Trigger>
-                    {#snippet child({ props })}
-                      <div
-                        {...props}
-                        title={item.value}
-                        class="font-mono text-xs text-secondary-500 truncate text-right underline cursor-help"
-                      >
-                        {item.value.length} chars
-                      </div>
-                    {/snippet}
-                  </Tooltip.Trigger>
-                  <Tooltip.Portal>
-                    <Tooltip.Content
-                      sideOffset={6}
-                      class="max-w-96 break-all rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-caption text-gray-100 shadow-lg"
-                    >
-                      {item.value}
-                      <Tooltip.Arrow class="fill-gray-900" />
-                    </Tooltip.Content>
-                  </Tooltip.Portal>
-                </Tooltip.Root>
-              {:else}
-                <div class="font-mono text-xs text-secondary-500 truncate text-right">
-                  {truncate(item.value, 30)}
-                </div>
-              {/if}
+              <CopyablePropertyText text={item.key} align="left" class="max-w-24 text-accent-500" stopPropagation={true} />
+              <CopyablePropertyText
+                text={item.value}
+                displayText={item.value.length > 18 ? `${item.value.length} chars` : truncate(item.value, 30)}
+                title={item.value}
+                class="max-w-28 text-secondary-500"
+                stopPropagation={true}
+              />
             </button>
           {/each}
 
@@ -749,37 +750,14 @@
               class={`flex justify-between items-center text-left rounded-md border border-transparent px-2 py-1 cursor-pointer transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
               aria-pressed={activePropertyKey === item.key}
             >
-              <div title={item.key} class="font-mono text-xs text-accent-500 truncate max-w-24">
-                {item.key}
-              </div>
-              {#if item.value.length > 18}
-                <Tooltip.Root>
-                  <Tooltip.Trigger>
-                    {#snippet child({ props })}
-                      <div
-                        {...props}
-                        title={item.value}
-                        class="font-mono text-xs text-secondary-500 truncate text-right underline cursor-help"
-                      >
-                        {item.value.length} chars
-                      </div>
-                    {/snippet}
-                  </Tooltip.Trigger>
-                  <Tooltip.Portal>
-                    <Tooltip.Content
-                      sideOffset={6}
-                      class="max-w-96 break-all rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-caption text-gray-100 shadow-lg"
-                    >
-                      {item.value}
-                      <Tooltip.Arrow class="fill-gray-900" />
-                    </Tooltip.Content>
-                  </Tooltip.Portal>
-                </Tooltip.Root>
-              {:else}
-                <div class="font-mono text-xs text-secondary-500 truncate text-right">
-                  {truncate(item.value, 30)}
-                </div>
-              {/if}
+              <CopyablePropertyText text={item.key} align="left" class="max-w-24 text-accent-500" stopPropagation={true} />
+              <CopyablePropertyText
+                text={item.value}
+                displayText={item.value.length > 18 ? `${item.value.length} chars` : truncate(item.value, 30)}
+                title={item.value}
+                class="max-w-28 text-secondary-500"
+                stopPropagation={true}
+              />
             </button>
           {/each}
 
@@ -788,6 +766,11 @@
           {/if}
         </div>
       </div>
+        <p class="mt-auto text-xs text-gray-500">
+          Hold <code>z</code> to highlight {formatMatchingElementsLabel(selectorMatchCount)
+          }{isSelectorEditorFocused ? " (unfocus code editor first)" : ""}
+        </p>
+      {/if}
     </div>
   </div>
 </Tooltip.Provider>

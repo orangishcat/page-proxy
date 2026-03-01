@@ -21,6 +21,7 @@
     selectModeEnabled,
   } from "./select-tool/state";
   import { ArrowUpIcon, ClipboardPaste, Copy, MousePointerClick, Scissors, Trash2, Wrench } from "lucide-svelte";
+  import { fly } from "svelte/transition";
 
   const iconActionButtonClass =
     "h-8 w-8 rounded-lg p-0! bg-[#55503E] text-white dark:text-white hover:opacity-55 active:opacity-40";
@@ -63,12 +64,17 @@
 <div class="flex w-full min-h-0 shrink-0 flex-1 flex-col px-4 py-4">
   <div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
     {#if hasSelectionValue}
-      <div class="grid grid-cols-[fit-content(7rem)_minmax(0,1fr)] gap-x-4 gap-y-2 text-body whitespace-pre-line">
-        {#each propertyItemsValue as prop (prop.key)}
-          <span class="min-w-0 text-right truncate text-gray-500">{prop.label}</span>
-          <span class="min-w-0 wrap-break-word text-left font-mono">{prop.value}</span>
-        {/each}
-      </div>
+      {#key propertyItemsValue}
+        <div
+          in:fly={{ y: 16, duration: 300 }}
+          class="grid grid-cols-[fit-content(7rem)_minmax(0,1fr)] gap-x-4 gap-y-2 text-body whitespace-pre-line"
+        >
+          {#each propertyItemsValue as prop (prop.key)}
+            <span class="min-w-0 text-right truncate text-gray-500">{prop.label}</span>
+            <span class="min-w-0 wrap-break-word text-left font-mono">{prop.value}</span>
+          {/each}
+        </div>
+      {/key}
     {:else}
       <div class="text-caption text-gray-500 dark:text-gray-400 flex h-full justify-center place-items-center">
         <div class="flex flex-col items-center gap-2">

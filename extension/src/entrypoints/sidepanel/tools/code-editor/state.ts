@@ -18,6 +18,7 @@ export type SelectorEntry = {
   name: string;
   ruleKeys: string[];
   rules?: string[];
+  mode?: "pp-api" | "css";
 };
 
 export type ScriptMetadataState = {

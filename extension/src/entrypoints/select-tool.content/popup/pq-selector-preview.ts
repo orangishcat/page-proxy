@@ -9,7 +9,7 @@ export type SelectorPreviewState = {
 const selectorCallPattern = /pq\.selector\s*\(/;
 const invalidSelectorError = "Selector is invalid.";
 const missingSelectorError = "Selector definition must include pq.selector.";
-const noMatchesError = "Selector matches no elements.";
+const noMatchesError = "Selector does not match any elements";
 
 const extractFirstSelectorDefinitionSource = (code: string): string | null => {
   const selectorMatch = selectorCallPattern.exec(code);

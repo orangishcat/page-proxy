@@ -6,6 +6,7 @@
   import { onDestroy, onMount } from "svelte";
   import { SvelteMap } from "svelte/reactivity";
   import { createMonacoEditor, type MonacoCodeEditorHandle, updateMonacoEditorValue } from "@/lib/code-editor";
+  import CopyablePropertyText from "./CopyablePropertyText.svelte";
   import { parseCssSelectorParts, type CssSelectorPart } from "./css-inspector";
   import {
     buildCssDocument,
@@ -70,6 +71,7 @@
   let isCssEditorFocused = $state(false);
   let highlightedPreviewElements: Element[] = [];
   let highlightedPreviewCount = $state(0);
+  let matchingElementCount = $state(0);
   let cssPreviewErrorMessage = $state<string | null>(null);
   let highlightNoticeElement: HTMLDivElement | null = null;
   let cssStylePreviewElement: HTMLStyleElement | null = null;
@@ -82,8 +84,16 @@
 
   let computedValueDrafts = $state<Record<string, string>>({});
   const computedInputRefs = new SvelteMap<string, HTMLInputElement>();
+  const noMatchingElementsErrorMessages = new Set([
+    "CSS selector matches no elements.",
+    "Selector does not match any elements",
+  ]);
 
   const hoveredPreviewClass = "pp-hovered";
+  const hasNoMatchingElements = $derived.by(
+    () => cssPreviewErrorMessage !== null && noMatchingElementsErrorMessages.has(cssPreviewErrorMessage),
+  );
+  const formatMatchingElementsLabel = (count: number) => `${count} matching element${count === 1 ? "" : "s"}`;
 
   const computedValueInput = (node: HTMLInputElement, key: string) => {
     let currentKey = key;
@@ -311,9 +321,11 @@
     highlightedPreviewCount = 0;
   };
 
-  const updateCssPreviewErrorMessage = () => {
+  const updateCssPreviewState = () => {
     const selector = normalizeSelectorFromCssEditor(cssEditorHandle?.editor.getValue() ?? cssEditorValue);
-    cssPreviewErrorMessage = getSelectorPreviewState(selector).error;
+    const previewState = getSelectorPreviewState(selector);
+    matchingElementCount = previewState.matchingElements.length;
+    cssPreviewErrorMessage = previewState.error;
   };
 
   const applyPreviewHighlights = () => {
@@ -321,6 +333,7 @@
 
     const selector = normalizeSelectorFromCssEditor(cssEditorHandle?.editor.getValue() ?? cssEditorValue);
     const previewState = getSelectorPreviewState(selector);
+    matchingElementCount = previewState.matchingElements.length;
     cssPreviewErrorMessage = previewState.error;
     if (previewState.matchingElements.length === 0) {
       return;
@@ -350,6 +363,7 @@
     }
 
     const previewState = getSelectorPreviewState(selector);
+    matchingElementCount = previewState.matchingElements.length;
     cssPreviewErrorMessage = previewState.error;
     if (previewState.matchingElements.length === 0) {
       return;
@@ -477,7 +491,7 @@
         const normalizedSelectorValue = normalizeSelectorFromCssEditor(nextValue);
         if (normalizedSelectorValue.length === 0) {
           errorMessage = "CSS selector cannot be empty.";
-          updateCssPreviewErrorMessage();
+          updateCssPreviewState();
           return;
         }
 
@@ -491,7 +505,7 @@
           applyCssStylePreview();
         }
 
-        updateCssPreviewErrorMessage();
+        updateCssPreviewState();
       },
       editorOptions: {
         minimap: { enabled: false },
@@ -614,7 +628,7 @@
       cssEditorValue = syncedCssDocument;
     }
 
-    updateCssPreviewErrorMessage();
+    updateCssPreviewState();
   });
 
   $effect(() => {
@@ -625,7 +639,7 @@
       return;
     }
 
-    updateCssPreviewErrorMessage();
+    updateCssPreviewState();
   });
 
   $effect(() => {
@@ -694,17 +708,22 @@
     </div>
 
     <div class="flex flex-col w-64 max-w-64 min-w-0 border-l border-gray-800 bg-black/20 p-3 gap-3">
-      {#if activeCssPart}
-        <div class="space-y-1">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-xs uppercase tracking-wide text-gray-500">{activeCssPart.type}</span>
-            <span class="font-mono text-xs text-accent-400 break-all">{activeCssPart.displayText}</span>
-          </div>
-          <p class="h-14 text-xs leading-5 text-gray-400">{activeCssPart.description}</p>
+      {#if hasNoMatchingElements}
+        <div class="flex h-full items-center justify-center text-center text-sm text-gray-400">
+          Selector does not match any elements
         </div>
       {:else}
-        <div class="h-14 text-xs leading-5 text-gray-500">Place the text caret on a selector part to inspect it.</div>
-      {/if}
+        {#if activeCssPart}
+          <div class="space-y-1">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs uppercase tracking-wide text-gray-500">{activeCssPart.type}</span>
+              <span class="font-mono text-xs text-accent-400 break-all">{activeCssPart.displayText}</span>
+            </div>
+            <p class="h-14 text-xs leading-5 text-gray-400">{activeCssPart.description}</p>
+          </div>
+        {:else}
+          <div class="h-14 text-xs leading-5 text-gray-500">Place the text caret on a selector part to inspect it.</div>
+        {/if}
 
       <div class="flex items-center justify-between gap-2">
         <div class="text-xs uppercase tracking-wide text-gray-500">Properties</div>
@@ -721,37 +740,13 @@
         <div class="flex flex-col gap-2">
           {#each filteredPropertyItems as item (item.key)}
             <div class="flex justify-between items-center rounded-md border border-transparent px-2 py-1 hover:bg-white/10">
-              <div title={item.key} class="font-mono text-xs text-accent-500 truncate flex-1 min-w-0">
-                {item.key}
-              </div>
-              {#if item.value.length > 18}
-                <Tooltip.Root>
-                  <Tooltip.Trigger>
-                    {#snippet child({ props })}
-                      <div
-                        {...props}
-                        title={item.value}
-                        class="font-mono text-xs text-secondary-500 truncate text-right underline cursor-help"
-                      >
-                        {item.value.length} chars
-                      </div>
-                    {/snippet}
-                  </Tooltip.Trigger>
-                  <Tooltip.Portal>
-                    <Tooltip.Content
-                      sideOffset={6}
-                      class="max-w-96 break-all rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-caption text-gray-100 shadow-lg"
-                    >
-                      {item.value}
-                      <Tooltip.Arrow class="fill-gray-900" />
-                    </Tooltip.Content>
-                  </Tooltip.Portal>
-                </Tooltip.Root>
-              {:else}
-                <div class="font-mono text-xs text-secondary-500 truncate text-right">
-                  {truncate(item.value, 30)}
-                </div>
-              {/if}
+              <CopyablePropertyText text={item.key} align="left" class="flex-1 min-w-0 text-accent-500" />
+              <CopyablePropertyText
+                text={item.value}
+                displayText={item.value.length > 18 ? `${item.value.length} chars` : truncate(item.value, 30)}
+                title={item.value}
+                class="max-w-28 text-secondary-500"
+              />
             </div>
           {/each}
 
@@ -790,12 +785,12 @@
                 </button>
               {/if}
 
-              <div
-                title={property.key}
-                class={`font-mono text-xs text-accent-500 truncate flex-1 min-w-0 ${property.edited ? "pl-5" : ""}`}
-              >
-                {property.key}
-              </div>
+              <CopyablePropertyText
+                text={property.key}
+                align="left"
+                class={`flex-1 min-w-0 text-accent-500 ${property.edited ? "pl-5" : ""}`}
+                stopPropagation={true}
+              />
 
               <Tooltip.Root>
                 <Tooltip.Trigger>
@@ -845,31 +840,33 @@
         </div>
       </div>
 
-      <div class="mt-auto space-y-4">
-        {#if hasNthOfTypeRule}
+        <div class="mt-auto space-y-4">
+          {#if hasNthOfTypeRule}
+            <p class="text-xs text-gray-500">
+              Want to broaden the selector?
+              <button
+                type="button"
+                class="ml-1 cursor-pointer bg-transparent p-0 text-accent-400 underline decoration-accent-400/80 underline-offset-2 transition hover:text-accent-300"
+                onclick={removeNthOfTypeFromCssSelector}
+              >
+                Remove nth-of-type
+              </button>
+            </p>
+          {/if}
+
           <p class="text-xs text-gray-500">
-            Want to broaden the selector?
-            <button
-              type="button"
-              class="ml-1 cursor-pointer bg-transparent p-0 text-accent-400 underline decoration-accent-400/80 underline-offset-2 transition hover:text-accent-300"
-              onclick={removeNthOfTypeFromCssSelector}
-            >
-              Remove nth-of-type
-            </button>
+            Hold <code>z</code> to highlight {formatMatchingElementsLabel(matchingElementCount)
+            }{isCssEditorFocused ? " (unfocus code editor first)" : ""}
           </p>
-        {/if}
+          <p class="text-xs text-gray-500">
+            Hold <code>x</code> to preview applied CSS styles{isCssEditorFocused ? " (unfocus code editor first)" : ""}
+          </p>
 
-        <p class="text-xs text-gray-500">
-          Hold <code>z</code> to highlight matching elements{isCssEditorFocused ? " (unfocus code editor first)" : ""}
-        </p>
-        <p class="text-xs text-gray-500">
-          Hold <code>x</code> to preview applied CSS styles{isCssEditorFocused ? " (unfocus code editor first)" : ""}
-        </p>
-
-        {#if cssPreviewErrorMessage}
-          <p class="text-sm text-red-400">{cssPreviewErrorMessage}</p>
-        {/if}
-      </div>
+          {#if cssPreviewErrorMessage}
+            <p class="text-sm text-red-400">{cssPreviewErrorMessage}</p>
+          {/if}
+        </div>
+      {/if}
     </div>
   </div>
 </Tooltip.Provider>

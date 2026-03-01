@@ -1,13 +1,18 @@
 <script lang="ts">
-  import { Collapsible } from "bits-ui";
+  import { Collapsible, DropdownMenu } from "bits-ui";
   import { onDestroy, onMount } from "svelte";
+  import { Pencil } from "lucide-svelte";
   import { sendSelectorsHover } from "./selectors/actions";
+  import { sendSelectorPopup } from "./select-tool/actions";
   import type { SelectorsToolEntry } from "./selectors/state";
   import { selectorEntriesDisplay } from "./selectors/state";
 
   let selectorEntriesValue = $state<SelectorsToolEntry[]>([]);
 
-  const formatRuleCount = (ruleCount: number) => `${ruleCount} ${ruleCount === 1 ? "rule" : "rules"}`;
+  const actionMenuClasses =
+    "z-20 min-w-36 rounded-md border border-gray-300 bg-gray-50 p-1 text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100";
+  const actionMenuItemClasses =
+    "text-body flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-900/60 dark:active:bg-gray-900";
 
   const handleSelectorMouseEnter = (entry: SelectorsToolEntry) => {
     sendSelectorsHover({
@@ -18,6 +23,10 @@
 
   const handleSelectorMouseLeave = () => {
     sendSelectorsHover(null);
+  };
+
+  const handleEditEntry = (entry: SelectorsToolEntry) => {
+    sendSelectorPopup(entry.mode);
   };
 
   onMount(() => {
@@ -43,23 +52,43 @@
       </div>
     {:else}
       <div class="min-h-0 h-full space-y-2 overflow-y-auto">
-        {#each selectorEntriesValue as entry (entry.name)}
+        {#each selectorEntriesValue as entry (entry.key)}
           <Collapsible.Root
             class="rounded-lg border border-[#4f4a38] bg-[#2d2b25] text-gray-100 group"
             onmouseenter={() => handleSelectorMouseEnter(entry)}
             onmouseleave={handleSelectorMouseLeave}
           >
-            <Collapsible.Trigger
-              class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-[#37332c]"
-            >
-              <div class="flex min-w-0 items-center gap-2">
+            <div class="flex w-full items-center gap-2 px-3 py-2 hover:bg-[#37332c]">
+              <Collapsible.Trigger class="flex min-w-0 flex-1 items-center gap-2 text-left">
                 <span class="w-3 shrink-0 text-center text-2xl text-gray-300 transition-transform duration-200 group-data-[state=open]:rotate-90">
                   ▸
                 </span>
                 <span class="truncate text-sm text-accent-500">{entry.name}</span>
-              </div>
-              <span class="text-caption text-gray-400">{formatRuleCount(entry.ruleCount)}</span>
-            </Collapsible.Trigger>
+              </Collapsible.Trigger>
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger>
+                  {#snippet child({ props })}
+                    <button
+                      {...props}
+                      type="button"
+                      class="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition hover:bg-[#464036] hover:text-gray-200"
+                      aria-label={`Open actions for ${entry.name}`}
+                      onclick={(event) => event.stopPropagation()}
+                    >
+                      <span class="text-base leading-none">...</span>
+                    </button>
+                  {/snippet}
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content class={actionMenuClasses} align="end" side="bottom" sideOffset={6}>
+                    <DropdownMenu.Item class={actionMenuItemClasses} onclick={() => handleEditEntry(entry)}>
+                      <Pencil class="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                      Edit
+                    </DropdownMenu.Item>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
+            </div>
 
             <Collapsible.Content class="space-y-1 border-t border-[#4f4a38] px-3 py-2">
               {#if entry.rules.length === 0}
