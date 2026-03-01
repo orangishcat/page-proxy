@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "@/lib/components/Button.svelte";
   import type { ElementInfo, SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
   import { Tooltip } from "bits-ui";
   import { RotateCw } from "lucide-svelte";
@@ -681,12 +682,14 @@
           class="flex-1 rounded-md py-2 px-4 text-sm font-medium bg-accent-500 text-gray-950 hover:bg-accent-400 transition-colors cursor-pointer"
           >Save</button
         >
-        <button
-          type="button"
+        <Button
+          variant="outline"
           onclick={onCancel}
-          class="flex-1 rounded-md py-2 px-4 text-sm font-medium bg-transparent text-gray-100 border border-white/20 hover:bg-white/10 transition-colors cursor-pointer"
-          >Close</button
+          class="!rounded-md !border !border-white/20 !px-3 !py-2 !text-gray-500 hover:!bg-white/10 hover:!text-gray-300 dark:!text-gray-400 dark:hover:!text-gray-200"
+          aria-label="Close popup"
         >
+          x
+        </Button>
       </div>
     </div>
 

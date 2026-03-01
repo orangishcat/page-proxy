@@ -112,6 +112,9 @@ export const describeStepOption = (step: SupportedRecordStep, parentOptions: Par
   if (step.kind === "select-element") {
     return "Select element";
   }
+  if (step.kind === "click-element") {
+    return "Click element";
+  }
   if (step.kind === "delete-element") {
     return "Delete element";
   }
@@ -263,6 +266,22 @@ const buildDeleteStepCode = ({ functionName, inputNames }: { functionName: strin
   };
 };
 
+const buildClickStepCode = ({ functionName, inputNames }: { functionName: string; inputNames: string[] }): BuiltStepCode => {
+  const clickableElement = inputNames.includes(stepInputOutputName) ? stepInputOutputName : "null";
+
+  return {
+    functionName,
+    inputNames,
+    code: buildStepFunctionCode({
+      functionName,
+      inputNames,
+      bodyLines: [`if (${clickableElement}) {`, `  ${clickableElement}.click()`, "}"],
+      outputs: [{ name: stepInputOutputName, expression: clickableElement }],
+    }),
+    outputNames: [stepInputOutputName],
+  };
+};
+
 const buildStepCode = ({
   step,
   stepNumber,
@@ -287,6 +306,9 @@ const buildStepCode = ({
 
   if (step.kind === "delete-element") {
     return buildDeleteStepCode({ functionName, inputNames });
+  }
+  if (step.kind === "click-element") {
+    return buildClickStepCode({ functionName, inputNames });
   }
 
   if (parentOption.mode === "traverse-until") {
@@ -395,6 +417,9 @@ const buildCombinedStepLines = ({
 
   if (step.kind === "delete-element") {
     return [`if (${stepInputOutputName}) {`, `  ${stepInputOutputName}.remove()`, "}"];
+  }
+  if (step.kind === "click-element") {
+    return [`if (${stepInputOutputName}) {`, `  ${stepInputOutputName}.click()`, "}"];
   }
 
   if (parentOption.mode === "traverse-until") {

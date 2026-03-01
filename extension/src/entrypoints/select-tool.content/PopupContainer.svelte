@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "@/lib/components/Button.svelte";
   import type { ElementInfo, SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
   import { onDestroy, onMount } from "svelte";
   import SelectorPopup from "./SelectorPopup.svelte";
@@ -221,12 +222,14 @@
         <option value="pp-api">pp-api</option>
         <option value="css">CSS</option>
       </select>
-      <button
-        type="button"
+      <Button
+        variant="outline"
         onclick={onCancel}
-        class="p-1 rounded text-gray-500 hover:bg-white/10 hover:text-white"
-        aria-label="Close popup">×</button
+        class="!rounded !border !border-white/20 !p-1 !text-gray-500 hover:!bg-white/10 hover:!text-gray-300 dark:!text-gray-400 dark:hover:!text-gray-200"
+        aria-label="Close popup"
       >
+        x
+      </Button>
     </div>
 
     <div class="flex-1 min-h-0 overflow-hidden">

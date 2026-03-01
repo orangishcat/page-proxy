@@ -35,6 +35,9 @@
     if (kind === "select-element") {
       return "Select element";
     }
+    if (kind === "click-element") {
+      return "Click element";
+    }
     if (kind === "delete-element") {
       return "Delete element";
     }
@@ -44,6 +47,9 @@
   const getStepDescription = (kind: SupportedRecordStep["kind"]) => {
     if (kind === "select-element") {
       return "Edit the selector so we can find the element you selected during script execution.";
+    }
+    if (kind === "click-element") {
+      return "Review this step before invoking click() on the selected element.";
     }
     if (kind === "delete-element") {
       return "Review this step before removing the currently selected element from the page.";

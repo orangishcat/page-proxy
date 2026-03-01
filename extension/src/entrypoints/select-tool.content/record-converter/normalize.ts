@@ -1,6 +1,6 @@
 import type { RecordTimelineEntry } from "@/lib/selection";
 
-export type SupportedRecordStepKind = "select-element" | "select-parent" | "delete-element";
+export type SupportedRecordStepKind = "select-element" | "select-parent" | "click-element" | "delete-element";
 
 export type SupportedRecordStep = {
   id: string;
@@ -24,6 +24,9 @@ const normalizeAction = (action: string): SupportedRecordStepKind | null => {
   if (normalized === "selected parent element") {
     return "select-parent";
   }
+  if (normalized === "click" || normalized === "click element" || normalized === "clicked element") {
+    return "click-element";
+  }
   if (normalized === "deleted element") {
     return "delete-element";
   }
@@ -46,6 +49,9 @@ const readSelectorHint = (detail: string) => {
 const buildStepLabel = (kind: SupportedRecordStepKind, count: number) => {
   if (kind === "select-element") {
     return "Selected element";
+  }
+  if (kind === "click-element") {
+    return "Click element";
   }
   if (kind === "delete-element") {
     return "Delete element";

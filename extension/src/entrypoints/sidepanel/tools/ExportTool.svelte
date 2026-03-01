@@ -3,6 +3,7 @@
   import { Collapsible } from "bits-ui";
   import Button from "@/lib/components/Button.svelte";
   import { codeEditorContent, resetEditorToDefault, scriptMetadata, type ScriptMetadataState } from "./code-editor/state";
+  import { buildWebsiteMetadataListing, extractWebsiteMetadataGlobs, normalizeScriptMetadataWebsites } from "@/lib/utils/script-metadata";
 
   type ExportFormat = "pp-script" | "tampermonkey" | "css-only" | "wxt-extension";
 
@@ -40,7 +41,9 @@
 
   const canExportSelectedFormat = $derived(selectedFormatOption.available);
 
-  const normalizedWebsiteGlob = $derived(scriptMetadataValue.website.trim());
+  const normalizedWebsiteGlob = $derived(
+    buildWebsiteMetadataListing(extractWebsiteMetadataGlobs(editorContentValue), scriptMetadataValue.website),
+  );
 
   onMount(() => {
     const unsubscribeScriptMetadata = scriptMetadata.subscribe((value) => {
@@ -69,7 +72,8 @@
 
   const downloadPpScript = () => {
     const fileName = buildFileName();
-    const blob = new Blob([editorContentValue], { type: "text/javascript;charset=utf-8" });
+    const normalizedContent = normalizeScriptMetadataWebsites(editorContentValue);
+    const blob = new Blob([normalizedContent], { type: "text/javascript;charset=utf-8" });
     const objectUrl = URL.createObjectURL(blob);
 
     const downloadAnchor = document.createElement("a");
