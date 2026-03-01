@@ -1,7 +1,6 @@
 <script lang="ts">
   import { DropdownMenu, Tooltip } from "bits-ui";
   import Button from "@/lib/components/Button.svelte";
-  import type { PropertyItem } from "./select-tool/state";
   import {
     sendClickSelection,
     sendCopySelection,

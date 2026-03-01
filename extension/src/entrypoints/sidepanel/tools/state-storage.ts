@@ -1,6 +1,5 @@
 import { browser } from "wxt/browser";
 import {
-  coerceStoredSelectorEntries,
   coerceStoredToolState,
   findBestMatchingWebsiteGlob,
   fromStorageKey,

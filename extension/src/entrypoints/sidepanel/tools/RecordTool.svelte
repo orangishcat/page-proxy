@@ -5,7 +5,7 @@
   import Button from "@/lib/components/Button.svelte";
   import { openRecordConverter } from "./record/actions";
   import { clearRecordPanelState, recordPanelState, toggleRecordPanelRecording } from "./record/state";
-  import type { RecordPanelState, RecordTimelineEntry } from "./state-storage";
+  import type { RecordTimelineEntry } from "./state-storage";
 
   const recordState = $derived($recordPanelState);
   let timelineContainer = $state<HTMLDivElement | null>(null);

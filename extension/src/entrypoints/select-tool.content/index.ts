@@ -4,7 +4,6 @@ import log from "loglevel";
 
 import type {
   ElementInfo,
-  RecordConverterOpenPayload,
   RecordConverterOpenResult,
   SelectElementAction,
   SelectElementActionResult,
@@ -18,7 +17,7 @@ import {
   type ScriptRunRequest,
   type ScriptRunResponse,
 } from "@/lib/script-runner";
-import type { SidepanelShortcutId, SidepanelShortcutMessage } from "@/lib/sidepanel-shortcuts";
+import type { SidepanelShortcutMessage } from "@/lib/sidepanel-shortcuts";
 import { isEditableTarget } from "@/lib/utils/dom-checks";
 import { getShortcutTool } from "@/lib/utils/keyboard-shortcuts";
 import {
@@ -149,7 +148,9 @@ export default defineContentScript({
       ctx,
       getElementInfo,
       () => selectedTarget,
-      (el) => { selectedTarget = el; },
+      (el) => {
+        selectedTarget = el;
+      },
       () => selectionEnabled,
       (enabled, options) => setSelectionEnabled(enabled, options),
       (msg) => postMessage(msg),
@@ -533,7 +534,8 @@ export default defineContentScript({
       logger.debug("select tool message received", selectMessage);
       if (selectMessage.type === "selector:open") {
         recordManager.clear();
-        void selectorManager.open(selectMessage.payload, selectMessage.mode ?? "pp-api")
+        void selectorManager
+          .open(selectMessage.payload, selectMessage.mode ?? "pp-api")
           .then((opened) => {
             sendResponse({
               opened,
@@ -615,7 +617,8 @@ export default defineContentScript({
           setSelectionEnabled(false, { clearSelection: false });
         }
         selectorManager.clear({ resumeSelection: false });
-        void recordManager.open(payload)
+        void recordManager
+          .open(payload)
           .then((result) => {
             reply(result);
           })

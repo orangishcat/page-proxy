@@ -25,7 +25,6 @@
     selectorEntries,
   } from "./code-editor/state";
   import { getTabUrl, resolveActiveTab, shouldHandleTabUpdate, type ActiveTab } from "./code-editor/tabs";
-  import type { ScriptMetadataState } from "./code-editor/state";
   import { removeStoredToolState } from "./state-storage";
   import { setRecordPanelActiveTab } from "./record/state";
   import {

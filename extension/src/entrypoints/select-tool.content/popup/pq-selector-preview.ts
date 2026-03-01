@@ -106,7 +106,9 @@ type SelectorDefinitionCandidate = {
 
 const evaluateSelectorDefinition = (source: string): SelectorDefinitionCandidate | null => {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
     const evaluator = new Function("pq", `"use strict"; return (${source});`);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const result = evaluator(pq);
     if (!result || typeof result !== "object") {
       return null;

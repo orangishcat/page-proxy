@@ -37,7 +37,6 @@
 - Use `axios` for all network requests.
 - For all UI edits, assume the colors are for dark mode, and do the inverse of the action for light mode.
     - For example, if the prompt says to darken an element, make it lighter in light mode.
-- After edits, use `bun run check` to check for errors. If node is below v22, use the node executable at
-  `~/.nvm/versions/node/v22.14.0/bin`.
+- After edits, use `bun run check` and `bun run lint` to check for errors, fixing issues and rerunning until clean.
 - Extension UI should use all colors, styles, and components from the web UI, and resemble existing pages from the web
   UI.
