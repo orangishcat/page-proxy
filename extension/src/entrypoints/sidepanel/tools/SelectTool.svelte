@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
   import { DropdownMenu, Tooltip } from "bits-ui";
   import Button from "@/lib/components/Button.svelte";
   import type { PropertyItem } from "./select-tool/state";
@@ -30,46 +29,18 @@
   const actionMenuItemClasses =
     "text-body flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-900/60 dark:active:bg-gray-900";
 
-  let hasSelectionValue = $state(false);
-  let selectModeEnabledValue = $state(false);
-  let devtoolsIntegrationDetectedValue = $state(false);
-  let followDevtoolsSelectionValue = $state(false);
-  let propertyItemsValue = $state<PropertyItem[]>([]);
 
-  const unsubscribeHasSelection = hasSelection.subscribe((value) => {
-    hasSelectionValue = value;
-  });
-  const unsubscribeSelectModeEnabled = selectModeEnabled.subscribe((value) => {
-    selectModeEnabledValue = value;
-  });
-  const unsubscribeDevtoolsIntegrationDetected = devtoolsIntegrationDetected.subscribe((value) => {
-    devtoolsIntegrationDetectedValue = value;
-  });
-  const unsubscribeFollowDevtoolsSelection = followDevtoolsSelection.subscribe((value) => {
-    followDevtoolsSelectionValue = value;
-  });
-  const unsubscribePropertyItems = propertyItems.subscribe((value) => {
-    propertyItemsValue = value;
-  });
-
-  onDestroy(() => {
-    unsubscribeHasSelection();
-    unsubscribeSelectModeEnabled();
-    unsubscribeDevtoolsIntegrationDetected();
-    unsubscribeFollowDevtoolsSelection();
-    unsubscribePropertyItems();
-  });
 </script>
 
 <div class="flex w-full min-h-0 shrink-0 flex-1 flex-col px-4 py-4">
   <div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-    {#if hasSelectionValue}
-      {#key propertyItemsValue}
+    {#if $hasSelection}
+      {#key $propertyItems}
         <div
           in:fly={{ y: 16, duration: 300 }}
           class="grid grid-cols-[fit-content(7rem)_minmax(0,1fr)] gap-x-4 gap-y-2 text-body whitespace-pre-line"
         >
-          {#each propertyItemsValue as prop (prop.key)}
+          {#each $propertyItems as prop (prop.key)}
             <span class="min-w-0 text-right truncate text-gray-500">{prop.label}</span>
             <span class="min-w-0 wrap-break-word text-left font-mono">{prop.value}</span>
           {/each}
@@ -79,12 +50,12 @@
       <div class="text-caption text-gray-500 dark:text-gray-400 flex h-full justify-center place-items-center">
         <div class="flex flex-col items-center gap-2">
           <span>No element selected</span>
-          <span>{selectModeEnabledValue ? "Esc to cancel select mode" : "⇧+1 to enable select mode"}</span>
+          <span>{$selectModeEnabled ? "Esc to cancel select mode" : "⇧+1 to enable select mode"}</span>
         </div>
       </div>
     {/if}
   </div>
-  {#if devtoolsIntegrationDetectedValue && followDevtoolsSelectionValue}
+  {#if $devtoolsIntegrationDetected && $followDevtoolsSelection}
     <div class="mt-2 text-center text-caption text-gray-500 dark:text-gray-400">
       Currently matching the DevTools panel's selected element
     </div>
@@ -95,11 +66,11 @@
         {#snippet child({ props })}
           <Button
             {...props}
-            class={`${iconActionButtonClass} ${hasSelectionValue ? "" : "hidden"}`}
+            class={`${iconActionButtonClass} ${$hasSelection ? "" : "hidden"}`}
             variant="outline"
             aria-label="Select parent element"
             onclick={sendSelectParent}
-            disabled={!hasSelectionValue}
+            disabled={!$hasSelection}
           >
             <ArrowUpIcon class="h-5 w-5" />
           </Button>
@@ -115,12 +86,12 @@
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
-    <div class={`w-full max-w-40 justify-self-center gap-2 ${hasSelectionValue ? "flex" : "hidden"}`}>
+    <div class={`w-full max-w-40 justify-self-center gap-2 ${$hasSelection ? "flex" : "hidden"}`}>
       <Button
         class="flex-1 text-sm"
         variant="primary"
         onclick={() => sendSelectorPopup("pp-api")}
-        disabled={!hasSelectionValue}
+        disabled={!$hasSelection}
       >
         Selector
       </Button>
@@ -128,14 +99,14 @@
         class="flex-1 text-sm"
         variant="secondary"
         onclick={() => sendSelectorPopup("css")}
-        disabled={!hasSelectionValue}
+        disabled={!$hasSelection}
       >
         CSS
       </Button>
     </div>
-    {#if hasSelectionValue || devtoolsIntegrationDetectedValue}
+    {#if $hasSelection || $devtoolsIntegrationDetected}
       <div class="flex items-center justify-self-end gap-1">
-        {#if hasSelectionValue}
+        {#if $hasSelection}
           <DropdownMenu.Root>
             <DropdownMenu.Trigger>
               {#snippet child({ props })}
@@ -176,16 +147,16 @@
           </DropdownMenu.Root>
         {/if}
 
-        {#if devtoolsIntegrationDetectedValue}
+        {#if $devtoolsIntegrationDetected}
           <Tooltip.Root>
             <Tooltip.Trigger>
               {#snippet child({ props })}
                 <Button
                   {...props}
-                  class={`${iconActionButtonClass} ${followDevtoolsSelectionValue ? "text-accent-500 opacity-100" : "opacity-55 hover:opacity-80"}`}
+                  class={`${iconActionButtonClass} ${$followDevtoolsSelection ? "text-accent-500 opacity-100" : "opacity-55 hover:opacity-80"}`}
                   variant="outline"
                   aria-label="Toggle follow DevTools selected element"
-                  aria-pressed={followDevtoolsSelectionValue}
+                  aria-pressed={$followDevtoolsSelection}
                   onclick={toggleFollowDevtoolsSelection}
                 >
                   <Wrench class="h-4 w-4" />

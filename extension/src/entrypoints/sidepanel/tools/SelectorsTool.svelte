@@ -1,13 +1,11 @@
 <script lang="ts">
   import { Collapsible, DropdownMenu } from "bits-ui";
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy } from "svelte";
   import { Pencil } from "lucide-svelte";
   import { sendSelectorsHover } from "./selectors/actions";
   import { sendSelectorPopup } from "./select-tool/actions";
   import type { SelectorsToolEntry } from "./selectors/state";
   import { selectorEntriesDisplay } from "./selectors/state";
-
-  let selectorEntriesValue = $state<SelectorsToolEntry[]>([]);
 
   const actionMenuClasses =
     "z-20 min-w-36 rounded-md border border-gray-300 bg-gray-50 p-1 text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100";
@@ -29,16 +27,6 @@
     sendSelectorPopup(entry.mode);
   };
 
-  onMount(() => {
-    const unsubscribeSelectorEntries = selectorEntriesDisplay.subscribe((value) => {
-      selectorEntriesValue = value;
-    });
-
-    return () => {
-      unsubscribeSelectorEntries();
-    };
-  });
-
   onDestroy(() => {
     sendSelectorsHover(null);
   });
@@ -46,13 +34,13 @@
 
 <div class="flex w-full min-h-0 flex-1 flex-col px-4 py-4">
   <div class="min-h-0 flex-1">
-    {#if selectorEntriesValue.length === 0}
+    {#if $selectorEntriesDisplay.length === 0}
       <div class="flex min-h-0 h-full items-center justify-center text-body text-gray-500 dark:text-gray-400">
         It&apos;s empty in here
       </div>
     {:else}
       <div class="min-h-0 h-full space-y-2 overflow-y-auto">
-        {#each selectorEntriesValue as entry (entry.key)}
+        {#each $selectorEntriesDisplay as entry (entry.key)}
           <Collapsible.Root
             class="rounded-lg border border-[#4f4a38] bg-[#2d2b25] text-gray-100 group"
             onmouseenter={() => handleSelectorMouseEnter(entry)}

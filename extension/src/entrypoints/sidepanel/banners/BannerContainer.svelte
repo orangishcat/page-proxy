@@ -35,13 +35,9 @@
   let userscriptEnableWithFirefoxPermissions = $state(false);
   let userscriptReloadBannerDismissed = $state(false);
   let showHelpBanner = $state(true);
-  let errorMessageValue = $state<string | null>(null);
-  let errorStackTraceValue = $state<string | null>(null);
-  let successMessageValue = $state<string | null>(null);
-
-  let unsubscribeErrorMessage = () => {};
-  let unsubscribeErrorStackTrace = () => {};
-  let unsubscribeSuccessMessage = () => {};
+  const errorMessageValue = $derived($errorMessage);
+  const errorStackTraceValue = $derived($errorStackTrace);
+  const successMessageValue = $derived($successMessage);
 
   onMount(() => {
     void detectBrowserSupport().then(({ browser: supportedBrowser, supported }) => {
@@ -66,21 +62,7 @@
       showHelpBanner = !dismissed;
     });
 
-    unsubscribeErrorMessage = errorMessage.subscribe((value) => {
-      errorMessageValue = value;
-    });
-    unsubscribeErrorStackTrace = errorStackTrace.subscribe((value) => {
-      errorStackTraceValue = value;
-    });
-    unsubscribeSuccessMessage = successMessage.subscribe((value) => {
-      successMessageValue = value;
-    });
 
-    return () => {
-      unsubscribeErrorMessage();
-      unsubscribeErrorStackTrace();
-      unsubscribeSuccessMessage();
-    };
   });
 
   const dismissUnsupportedBrowserBanner = () => {

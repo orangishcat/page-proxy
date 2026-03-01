@@ -25,6 +25,20 @@ import {
   type ScriptRunResponse,
 } from "@/lib/script-runner";
 import type { SidepanelShortcutId, SidepanelShortcutMessage } from "@/lib/sidepanel-shortcuts";
+import { isEditableTarget } from "@/lib/utils/dom-checks";
+import { getShortcutTool } from "@/lib/utils/keyboard-shortcuts";
+import { type PropertyItem, buildPropertyList } from "@/lib/utils/element-info";
+import {
+  hoverClass,
+  selectedClass,
+  hoveredPreviewClass,
+  noSelectClass,
+  selectorsHoverExclusionClass,
+  contentUiRootClass,
+  styleId,
+  selectorLabelId,
+  selectionStyles,
+} from "@/lib/constants/selection";
 import PopupContainer from "./PopupContainer.svelte";
 import RecordPopup from "./RecordPopup.svelte";
 import { generateElementSelector } from "./popup/selector";
@@ -33,42 +47,9 @@ import "@/styles/app.css";
 const logger = log.getLogger("select-tool");
 logger.setLevel("debug", false);
 
-const hoverClass = "pp-hover";
-const selectedClass = "pp-selected";
-const hoveredPreviewClass = "pp-hovered";
-const contentUiRootClass = "pp-content-ui-root";
-const styleId = "page-proxy-selection-styles";
-const selectorLabelId = "page-proxy-selector-label";
 const filteredSelectionClasses = new Set([hoverClass, selectedClass, hoveredPreviewClass]);
 const uiBaseFontSizePx = 16;
 const scriptRunBridgeTimeoutMs = 1800;
-
-const selectionStyles = `
-.pp-hover { outline: 2px solid #86d24b !important; outline-offset: -1px !important; }
-.pp-selected { outline: 2px solid #bb9348 !important; outline-offset: -1px !important; }
-.pp-hovered { outline: 2px solid #86d24b !important; outline-offset: -1px !important; }
-.pp-selected-label {
-  position: fixed;
-  z-index: 2147483646;
-  background: #282824;
-  color: #f2f0ea;
-  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.4;
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid #3F403A;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
-  pointer-events: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-@media (prefers-color-scheme: light) {
-  .pp-selected-label { background: #f7f4ee; color: #1f1d18; border-color: #d9d2c2; }
-}
-`;
 
 const filterSelectionClasses = (value: string | null) => {
   if (!value) return null;
@@ -105,55 +86,6 @@ const getElementInfo = (element: Element): ElementInfo => {
   };
 };
 
-type PropertyItem = {
-  key: string;
-  label: string;
-  value: string;
-  rawValue: string | ElementInfo["boundingBox"];
-  primary: boolean;
-};
-
-const formatBoundingBoxCompact = (box: ElementInfo["boundingBox"]) =>
-  `${box.x.toFixed(2)}, ${box.y.toFixed(2)}, ${box.width.toFixed(2)}, ${box.height.toFixed(2)}`;
-
-const getPrimaryPropertyItems = (info: ElementInfo): PropertyItem[] => {
-  const items: PropertyItem[] = [];
-  if (info.tag) items.push({ key: "tag", label: "Tag", value: info.tag, rawValue: info.tag, primary: true });
-  if (info.id) items.push({ key: "id", label: "ID", value: info.id, rawValue: info.id, primary: true });
-  if (info.className)
-    items.push({ key: "class", label: "Class", value: info.className, rawValue: info.className, primary: true });
-  if (info.name) items.push({ key: "name", label: "Name", value: info.name, rawValue: info.name, primary: true });
-  items.push({ key: "selector", label: "Selector", value: info.selector, rawValue: info.selector, primary: true });
-  items.push({
-    key: "bbox",
-    label: "BBox",
-    value: formatBoundingBoxCompact(info.boundingBox),
-    rawValue: info.boundingBox,
-    primary: true,
-  });
-  if (info.innerText)
-    items.push({
-      key: "innerText",
-      label: "Inner text",
-      value: info.innerText,
-      rawValue: info.innerText,
-      primary: false,
-    });
-  return items;
-};
-
-const buildPropertyList = (info: ElementInfo | null): PropertyItem[] => {
-  if (!info) return [];
-  const properties = getPrimaryPropertyItems(info);
-  const reservedKeys = new Set(["id", "class", "name", "tag", "selector"]);
-  Object.entries(info.attributes)
-    .filter(([k, v]) => !reservedKeys.has(k) && v.length > 0)
-    .forEach(([k, v]) => {
-      properties.push({ key: k, label: k, value: v, rawValue: v, primary: false });
-    });
-  return properties;
-};
-
 const truncate = (value: string, maxLength = 120) =>
   value.length <= maxLength ? value : `${value.slice(0, maxLength - 1)}…`;
 
@@ -177,40 +109,7 @@ const getEventTarget = (event: Event): Element | null => {
   return event.target instanceof Element ? event.target : null;
 };
 
-const isEditableTarget = (target: EventTarget | null) => {
-  if (!(target instanceof Element)) return false;
-  if (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement
-  )
-    return true;
-  if (target instanceof HTMLElement && target.isContentEditable) return true;
-  return Boolean(target.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]'));
-};
-
-const getShortcutTool = (event: KeyboardEvent): SidepanelShortcutId | null => {
-  if (!event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return null;
-  switch (event.code) {
-    case "Digit1":
-      return "select";
-    case "Digit2":
-      return "create";
-    case "Digit3":
-      return "selectors";
-    case "Digit4":
-      return "record";
-    case "Digit5":
-      return "help";
-    case "Digit6":
-      return "share";
-    default:
-      return null;
-  }
-};
-
 const selectorRulePrefixPattern = /^(?:selector|baseSelector):\s*(.+)$/i;
-const selectorsHoverExclusionClass = "pp-no-select-tool";
 
 const normalizeCssSelector = (value: string) => value.trim().replace(/\s+/g, " ");
 
@@ -446,8 +345,6 @@ export default defineContentScript({
         error: result?.error ?? "Unable to save selector to the editor.",
       };
     };
-
-    const noSelectClass = "pp-no-select-tool";
 
     const clearRecordConverterPopup = () => {
       if (recordConverterPopupApp) {

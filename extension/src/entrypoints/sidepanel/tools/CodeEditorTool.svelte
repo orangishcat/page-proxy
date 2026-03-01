@@ -6,13 +6,15 @@
   import { Tooltip } from "bits-ui";
 
   import {
-    clearMonacoEditorMarkers,
     createMonacoEditor,
-    setMonacoEditorMarkers,
     updateMonacoEditorValue,
     type MonacoCodeEditorHandle,
-    type MonacoEditorMarker,
   } from "@/lib/code-editor";
+  import {
+    applyScriptRunErrorMarker,
+    clearScriptRunErrorMarker,
+  } from "./code-editor/error-markers";
+  import { createAutosaveManager } from "./code-editor/autosave";
   import Button from "@/lib/components/Button.svelte";
   import { parseScriptMetadata } from "@/lib/utils/script-metadata";
   import { isRestrictedUrl } from "@/lib/utils/website-glob";
@@ -20,14 +22,11 @@
   import { saveState } from "./code-editor/save";
   import {
     codeEditorContent,
-    elementEntries,
-    scriptMetadata,
-    setEditorApi,
     selectorEntries,
   } from "./code-editor/state";
   import { getTabUrl, resolveActiveTab, shouldHandleTabUpdate, type ActiveTab } from "./code-editor/tabs";
   import type { ScriptMetadataState } from "./code-editor/state";
-  import { activeToolState, allowedScriptGrantsState, removeStoredToolState } from "./state-storage";
+  import { removeStoredToolState } from "./state-storage";
   import { setRecordPanelActiveTab } from "./record/state";
   import {
     buildDefaultScript,
@@ -38,6 +37,11 @@
     type ScriptFormatConfig,
   } from "./state-loading";
   import { errorMessage, setErrorFromUnknown, setErrorMessage, setSuccessMessage } from "./tool-errors";
+  import { getToolContext } from "../context/tool.svelte";
+  import { getEditorContext } from "../context/editor.svelte";
+
+  const toolCtx = getToolContext();
+  const editorCtx = getEditorContext();
 
   const defineBlockStart = "// ==Selectors==";
   const defineBlockEnd = "// ==/Selectors==";
@@ -51,15 +55,11 @@
     defineBlockEnd,
     protectedComment,
   };
-  const scriptRunErrorMarkerOwner = "script-run-error";
-  const scriptLocationPattern = /(?:<script>|blob:[^\s)]+):(\d+)(?::(\d+))?/;
   const saveFailurePrefix = "Saving failed:";
 
   let editorHost = $state<HTMLDivElement | null>(null);
   let editorHandle = $state<MonacoCodeEditorHandle | null>(null);
   let editorValue = $state("");
-  let saveTimer: number | null = null;
-  let pendingAutosaveContent: string | null = null;
   let isRunning = $state(false);
   let activeTabId = $state<number | null>(null);
   let activeTabUrl = $state<string | null>(null);
@@ -69,18 +69,7 @@
   let isProgrammaticUpdate = false;
   let canPersistEditorChanges = false;
   let hasUnsavedChanges = $state(false);
-  let requiresManualSaveToContinue = $state(false);
-  let hasPendingTabRefresh = false;
   let editorDomNode: HTMLElement | null = null;
-  let scriptMetadataValue = $state<ScriptMetadataState>({
-    title: "Page Proxy",
-    website: "",
-    description: "",
-    author: "",
-    credits: "",
-  });
-
-  let unsubscribeScriptMetadata = () => {};
   let unsubscribeErrorMessageStore = () => {};
   let lastRunErrorStack = $state<string | null>(null);
 
@@ -95,96 +84,22 @@
   const updateScriptMetadata = (content: string) => {
     try {
       const metadata = parseScriptMetadata(content);
-      scriptMetadata.set({
+      editorCtx.scriptMetadata = {
         title: metadata.title || "Page Proxy",
         website: metadata.website,
         description: metadata.description,
         author: metadata.author,
         credits: metadata.credits,
-      });
+      };
     } catch {
-      scriptMetadata.set({
+      editorCtx.scriptMetadata = {
         title: "Page Proxy",
         website: "",
         description: "",
         author: "",
         credits: "",
-      });
+      };
     }
-  };
-
-  const clearScriptRunErrorMarker = () => {
-    if (!editorHandle) {
-      return;
-    }
-
-    clearMonacoEditorMarkers(editorHandle, scriptRunErrorMarkerOwner);
-  };
-
-  const getScriptLocation = (text: string | null) => {
-    if (!text) {
-      return null;
-    }
-
-    const match = text.match(scriptLocationPattern);
-    if (!match) {
-      return null;
-    }
-
-    const lineNumber = Number.parseInt(match[1] ?? "", 10);
-    if (Number.isNaN(lineNumber) || lineNumber < 1) {
-      return null;
-    }
-
-    const column = Number.parseInt(match[2] ?? "1", 10);
-    if (Number.isNaN(column) || column < 1) {
-      return null;
-    }
-
-    return {
-      lineNumber,
-      column,
-    };
-  };
-
-  const buildScriptRunErrorMarker = (message: string, stackTrace: string | null): MonacoEditorMarker | null => {
-    if (!editorHandle || editorHandle.model.isDisposed()) {
-      return null;
-    }
-
-    const location = getScriptLocation(stackTrace) ?? getScriptLocation(message);
-    if (!location) {
-      return null;
-    }
-
-    const lineCount = editorHandle.model.getLineCount();
-    const startLineNumber = Math.min(Math.max(location.lineNumber, 1), lineCount);
-    const lineMaxColumn = editorHandle.model.getLineMaxColumn(startLineNumber);
-    const startColumn = Math.min(Math.max(location.column, 1), lineMaxColumn);
-    const endColumn = lineMaxColumn > startColumn ? startColumn + 1 : startColumn;
-
-    return {
-      message,
-      startLineNumber,
-      startColumn,
-      endLineNumber: startLineNumber,
-      endColumn,
-      severity: "error",
-    };
-  };
-
-  const applyScriptRunErrorMarker = (message: string, stackTrace: string | null) => {
-    if (!editorHandle) {
-      return;
-    }
-
-    const marker = buildScriptRunErrorMarker(message, stackTrace);
-    if (!marker) {
-      clearScriptRunErrorMarker();
-      return;
-    }
-
-    setMonacoEditorMarkers(editorHandle, scriptRunErrorMarkerOwner, [marker]);
   };
 
   const saveToolState = async (content: string) => {
@@ -192,13 +107,13 @@
       await saveState({
         content,
         selectorEntries: get(selectorEntries),
-        allowedGrants: get(allowedScriptGrantsState),
+        allowedGrants: editorCtx.allowedGrants,
         isProtectedPage,
         scriptFormatConfig,
         activeTabUrl,
         activeWebsiteGlob,
         activeScriptName,
-        activeTool: get(activeToolState),
+        activeTool: toolCtx.activeTool,
         getDefinitionBlock,
         setActiveWebsiteGlob: (websiteGlob) => {
           activeWebsiteGlob = websiteGlob;
@@ -208,9 +123,7 @@
         },
       });
       hasUnsavedChanges = false;
-      requiresManualSaveToContinue = false;
-      const shouldRefreshPendingTab = hasPendingTabRefresh;
-      hasPendingTabRefresh = false;
+      const shouldRefreshPendingTab = autosave.onSaveSuccess();
       if (shouldClearErrorOnSuccessfulSave(get(errorMessage))) {
         setErrorMessage(null);
       }
@@ -226,29 +139,10 @@
     }
   };
 
-  const autoSave = () => {
-    if (saveTimer) {
-      window.clearTimeout(saveTimer);
-      saveTimer = null;
-    }
-
-    if (pendingAutosaveContent === null) {
-      return;
-    }
-
-    const content = pendingAutosaveContent;
-    pendingAutosaveContent = null;
-    void saveToolState(content);
-  };
-
-  const saveNow = (content: string) => {
-    if (saveTimer) {
-      window.clearTimeout(saveTimer);
-      saveTimer = null;
-    }
-    pendingAutosaveContent = null;
-    void saveToolState(content);
-  };
+  const autosave = createAutosaveManager({
+    onSave: (content) => void saveToolState(content),
+    onPendingRefreshWarning: () => setErrorMessage(unsavedTabSwitchWarning),
+  });
 
   let lastRunError = $state<string | null>(null);
 
@@ -277,7 +171,7 @@
       }
       lastRunError = null;
       lastRunErrorStack = null;
-      clearScriptRunErrorMarker();
+      clearScriptRunErrorMarker(editorHandle);
       setSuccessMessage("Script execution succeeded");
       return;
     }
@@ -288,7 +182,7 @@
     lastRunErrorStack = stackTrace;
     setSuccessMessage(null);
     setErrorMessage(message, stackTrace);
-    applyScriptRunErrorMarker(message, stackTrace);
+    applyScriptRunErrorMarker(editorHandle, message, stackTrace);
   };
 
   const handleRunFailure = (error: unknown) => {
@@ -318,12 +212,12 @@
     }
 
     isRunning = true;
-    saveNow(editorValue);
+    autosave.saveNow(editorValue);
     const formattedScript = formatIndentation(editorValue);
     void requestScriptRun(formattedScript)
       .then((result) => {
         selectorEntries.set(result.selectors);
-        saveNow(editorValue);
+        autosave.saveNow(editorValue);
         updateRunError(result.errors, result.errorStacks);
       })
       .catch((error: unknown) => {
@@ -347,56 +241,20 @@
     }
 
     if (!persist) {
-      if (saveTimer) {
-        window.clearTimeout(saveTimer);
-        saveTimer = null;
-      }
-      pendingAutosaveContent = null;
+      autosave.cancel();
       hasUnsavedChanges = false;
       return;
     }
 
-    saveToStorage(content);
-  };
-
-  const saveToStorage = (content: string) => {
     hasUnsavedChanges = true;
-    pendingAutosaveContent = content;
-    if (requiresManualSaveToContinue) {
-      return;
-    }
-
-    if (saveTimer) {
-      window.clearTimeout(saveTimer);
-    }
-
-    saveTimer = window.setTimeout(() => {
-      saveTimer = null;
-      autoSave();
-    }, 3000);
+    autosave.schedule(content);
   };
 
   const saveCurrentScript = () => {
     if (!canPersistEditorChanges || isProtectedPage) {
       return;
     }
-    saveNow(editorValue);
-  };
-
-  const queuePendingTabRefresh = () => {
-    if (!hasUnsavedChanges || isProgrammaticUpdate) {
-      return false;
-    }
-
-    requiresManualSaveToContinue = true;
-    hasPendingTabRefresh = true;
-    pendingAutosaveContent = editorValue;
-    if (saveTimer) {
-      window.clearTimeout(saveTimer);
-      saveTimer = null;
-    }
-    setErrorMessage(unsavedTabSwitchWarning);
-    return true;
+    autosave.saveNow(editorValue);
   };
 
   const resetScriptToDefault = async () => {
@@ -406,8 +264,8 @@
 
     const activeWebsite = activeWebsiteGlob?.trim() ?? "";
     const activeScript = activeScriptName?.trim() ?? "";
-    const metadataScriptName = scriptMetadataValue.title.trim();
-    const metadataWebsite = scriptMetadataValue.website.trim();
+    const metadataScriptName = editorCtx.scriptMetadata.title.trim();
+    const metadataWebsite = editorCtx.scriptMetadata.website.trim();
     const websiteGlob = activeWebsite || metadataWebsite;
     const scriptNamesToRemove = Array.from(
       new Set([activeScript, metadataScriptName].filter((name) => name.length > 0)),
@@ -468,9 +326,9 @@
     if (!normalizedUrl) {
       activeScriptName = null;
       activeWebsiteGlob = null;
-      activeToolState.set("none");
+      toolCtx.activeTool = "none";
       selectorEntries.set([]);
-      allowedScriptGrantsState.set([]);
+      editorCtx.allowedGrants = [];
       const baseContent = buildDefaultScript("", scriptFormatConfig);
       const displayContent = isProtectedPage ? buildProtectedDisplay(baseContent, scriptFormatConfig) : baseContent;
       updateEditorContent(displayContent, { persist: false });
@@ -480,9 +338,9 @@
     const resolvedState = await resolveStoredToolStateForUrl(normalizedUrl, scriptFormatConfig);
     activeScriptName = resolvedState.scriptName;
     activeWebsiteGlob = resolvedState.websiteGlob;
-    activeToolState.set(resolvedState.state.activeTool);
+    toolCtx.activeTool = resolvedState.state.activeTool;
     selectorEntries.set(resolvedState.state.selectorPanel.entries);
-    allowedScriptGrantsState.set(resolvedState.state.permissions.allowedGrants);
+    editorCtx.allowedGrants = resolvedState.state.permissions.allowedGrants;
     const normalizedBaseContent = ensureDefineBlock(resolvedState.state.codeEditor.content, scriptFormatConfig);
     const contentWithWebsite = ensureWebsiteMetadata(normalizedBaseContent, resolvedState.websiteGlob);
     const displayContent = isProtectedPage
@@ -502,13 +360,13 @@
     isProtectedPage = isRestrictedUrl(activeTabUrl ?? undefined);
 
     if (isProtectedPage) {
-      elementEntries.set([]);
+      editorCtx.elementEntries = [];
       selectorEntries.set([]);
-      allowedScriptGrantsState.set([]);
+      editorCtx.allowedGrants = [];
 
       activeWebsiteGlob = null;
       activeScriptName = null;
-      activeToolState.set("none");
+      toolCtx.activeTool = "none";
       const protectedContent = buildProtectedDisplay(buildDefaultScript("", scriptFormatConfig), scriptFormatConfig);
       updateEditorContent(protectedContent, { persist: false });
       canPersistEditorChanges = true;
@@ -546,7 +404,7 @@
   };
 
   const handleTabActivated = (activeInfo: { tabId: number }) => {
-    if (queuePendingTabRefresh()) {
+    if (autosave.queuePendingTabRefresh(editorValue, hasUnsavedChanges, isProgrammaticUpdate)) {
       return;
     }
 
@@ -564,7 +422,7 @@
     if (!shouldHandleTabUpdate(activeTabId, tabId, changeInfo)) {
       return;
     }
-    if (queuePendingTabRefresh()) {
+    if (autosave.queuePendingTabRefresh(editorValue, hasUnsavedChanges, isProgrammaticUpdate)) {
       return;
     }
     applyActiveTab(tab ?? null);
@@ -581,10 +439,9 @@
         editorValue = nextValue;
         codeEditorContent.set(editorValue);
         updateScriptMetadata(editorValue);
-        if (!isProgrammaticUpdate) {
-          if (canPersistEditorChanges) {
-            saveToStorage(editorValue);
-          }
+        if (!isProgrammaticUpdate && canPersistEditorChanges) {
+          hasUnsavedChanges = true;
+          autosave.schedule(editorValue);
         }
       },
     });
@@ -596,12 +453,9 @@
   };
 
   onMount(() => {
-    unsubscribeScriptMetadata = scriptMetadata.subscribe((value) => {
-      scriptMetadataValue = value;
-    });
     unsubscribeErrorMessageStore = errorMessage.subscribe((value) => {
       if (value === lastRunError && lastRunError) {
-        applyScriptRunErrorMarker(lastRunError, lastRunErrorStack);
+        applyScriptRunErrorMarker(editorHandle, lastRunError, lastRunErrorStack);
         return;
       }
 
@@ -609,29 +463,26 @@
         lastRunError = null;
         lastRunErrorStack = null;
       }
-      clearScriptRunErrorMarker();
+      clearScriptRunErrorMarker(editorHandle);
     });
 
     canPersistEditorChanges = false;
     editorValue = buildDefaultScript("", scriptFormatConfig);
     codeEditorContent.set(editorValue);
-    elementEntries.set([]);
+    editorCtx.elementEntries = [];
     selectorEntries.set([]);
-    allowedScriptGrantsState.set([]);
+    editorCtx.allowedGrants = [];
     setupEditor();
-    setEditorApi({ insertDefinitions: insertDefinitionLines, resetToDefault: resetScriptToDefault });
+    editorCtx.api = { insertDefinitions: insertDefinitionLines, resetToDefault: resetScriptToDefault };
     refreshActiveTab();
     browser.tabs.onActivated.addListener(handleTabActivated);
     browser.tabs.onUpdated.addListener(handleTabUpdated);
 
     return () => {
-      setEditorApi(null);
+      editorCtx.api = null;
       browser.tabs.onActivated.removeListener(handleTabActivated);
       browser.tabs.onUpdated.removeListener(handleTabUpdated);
-      if (saveTimer) {
-        window.clearTimeout(saveTimer);
-        saveTimer = null;
-      }
+      autosave.dispose();
 
       if (editorHandle) {
         editorHandle.dispose();
@@ -643,9 +494,8 @@
         editorDomNode = null;
       }
 
-      unsubscribeScriptMetadata();
       unsubscribeErrorMessageStore();
-      clearScriptRunErrorMarker();
+      clearScriptRunErrorMarker(editorHandle);
     };
   });
 </script>
@@ -656,10 +506,10 @@
 >
   <div class="h-10 w-full bg-[#393a34] flex items-center justify-between px-4">
     <div class="text-body flex gap-1">
-      <span>{scriptMetadataValue.title}</span>
-      {#if scriptMetadataValue.website}
+      <span>{editorCtx.scriptMetadata.title}</span>
+      {#if editorCtx.scriptMetadata.website}
         <span class="text-gray-600"> @ </span>
-        <span class="text-accent-500">{scriptMetadataValue.website}</span>
+        <span class="text-accent-500">{editorCtx.scriptMetadata.website}</span>
       {/if}
       {#if hasUnsavedChanges}
         <Tooltip.Root>

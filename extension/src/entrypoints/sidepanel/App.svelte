@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, type Component } from "svelte";
   import { Tooltip } from "bits-ui";
   import { browser } from "wxt/browser";
-  import { CircleQuestionMark, Disc, MousePointer, Plus, Share } from "lucide-svelte";
-
   import { get } from "svelte/store";
+
   import SelectTool from "./tools/SelectTool.svelte";
   import CreateTool from "./tools/CreateTool.svelte";
   import ExportTool from "./tools/ExportTool.svelte";
@@ -13,83 +12,48 @@
   import SelectorsTool from "./tools/SelectorsTool.svelte";
   import CodeEditorTool from "./tools/CodeEditorTool.svelte";
   import BannerContainer from "./banners/BannerContainer.svelte";
-  import Button from "@/lib/components/Button.svelte";
+  import Toolbar from "./Toolbar.svelte";
+  import ResizeHandle from "./ResizeHandle.svelte";
   import { attachSelectionListener, sendSelectionToggle } from "./tools/select-tool/actions";
   import { setErrorMessage } from "./tools/tool-errors";
   import { isGrantPermissionRequestMessage } from "@/lib/grant-permissions";
   import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
-  import type {
-    RecordConverterSavePayload,
-    RecordConverterSaveResult,
-    SelectorSavePayload,
-    SelectorSaveResult,
-  } from "@/lib/selection";
-  import { resolveRecordConverterCollisions } from "../select-tool.content/record-converter/collision";
+  import { codeEditorContent, selectorEntries } from "./tools/code-editor/state";
+  import { readToolPanelHeightSetting, saveToolPanelHeightSetting, type ToolId } from "./tools/state-storage";
+  import { createToolContext, setToolContext } from "./context/tool.svelte";
+  import { createEditorContext, setEditorContext } from "./context/editor.svelte";
+  import { createGrantsContext, setGrantsContext } from "./context/grants.svelte";
+  import { isEditableTarget, isCodeEditorFocused } from "@/lib/utils/dom-checks";
+  import { getShortcutTool } from "@/lib/utils/keyboard-shortcuts";
   import {
-    codeEditorContent,
-    elementEntries,
-    insertDefinitions,
-    sanitizeVariableName,
-    selectorEntries,
-  } from "./tools/code-editor/state";
-  import { grantPermissionRequest } from "./tools/grant-permissions/state";
-  import {
-    activeToolState,
-    readToolPanelHeightSetting,
-    saveToolPanelHeightSetting,
-    type ToolId,
-  } from "./tools/state-storage";
+    isSelectorSaveMessage,
+    isRecordConverterSaveMessage,
+    saveSelectorDefinition,
+    saveRecordConverterDefinition,
+  } from "./message-handler";
 
-  type ToolbarControlId = SidepanelShortcutId;
+  const toolCtx = createToolContext();
+  setToolContext(toolCtx);
+  const editorCtx = createEditorContext();
+  setEditorContext(editorCtx);
+  const grantsCtx = createGrantsContext();
+  setGrantsContext(grantsCtx);
 
-  const toolLabels: Record<ToolId, string> = {
-    select: "Select",
-    create: "Create",
-    selectors: "Selectors",
-    record: "Record",
-    share: "Export",
-    help: "Help",
-    none: "",
+  const toolComponents: Partial<Record<ToolId, Component>> = {
+    select: SelectTool,
+    create: CreateTool,
+    selectors: SelectorsTool,
+    record: RecordTool,
+    help: HelpTool,
+    share: ExportTool,
   };
 
-  let activeTool = $state<ToolId>("none");
-  let hoveredTool = $state<ToolbarControlId | null>(null);
-  let lastHoveredTool = $state<ToolbarControlId | null>(null);
-  let isToolbarHovered = $state(false);
   let toolPanelHeightPx = $state<number | null>(null);
-  let toolPanelLayout = $state<HTMLDivElement | null>(null);
   let toolPanelSection = $state<HTMLElement | null>(null);
-  let toolPanelResizeHandle = $state<HTMLDivElement | null>(null);
-  let resizePointerId = $state<number | null>(null);
-  let isResizingToolPanel = $state(false);
 
   const minToolPanelHeightPx = 300;
   const maxToolPanelHeightPx = 600;
-  const toolPanelResizeHandleClass =
-    "h-2 w-full shrink-0 cursor-row-resize bg-[#282824] transition-colors hover:bg-[#4a4b45] active:bg-accent-500/40";
-  const codeEditorFocusSelector =
-    ".monaco-editor textarea.inputarea:focus, .monaco-diff-editor textarea.inputarea:focus";
 
-  let unsubscribeActiveToolState = () => {};
-
-  const activeToolLabel = $derived(toolLabels[activeTool]);
-  const shortcutLabels: Record<ToolbarControlId, string> = {
-    select: "⇧1",
-    create: "⇧2",
-    selectors: "⇧3",
-    record: "⇧4",
-    help: "⇧5",
-    share: "⇧6",
-  };
-  const hoverCandidate = $derived(hoveredTool ?? lastHoveredTool);
-  const hoveredShortcutLabel = $derived(hoverCandidate ? shortcutLabels[hoverCandidate] : "");
-  const hoveredToolLabel = $derived(hoverCandidate ? toolLabels[hoverCandidate] : "");
-  const hoveredToolText = $derived(
-    hoverCandidate ? `${hoveredToolLabel}${hoveredShortcutLabel ? ` (${hoveredShortcutLabel})` : ""}` : "",
-  );
-  const showHoveredToolLabel = $derived(Boolean(isToolbarHovered && hoverCandidate));
-  const toolLabelText = $derived(showHoveredToolLabel ? hoveredToolText : activeToolLabel);
-  const isSelectToolActive = $derived(activeTool === "select");
   const toolPanelStyle = $derived(
     toolPanelHeightPx === null
       ? undefined
@@ -97,279 +61,45 @@
   );
 
   const setActiveTool = (tool: ToolId) => {
-    if (tool === activeTool) {
+    if (tool === toolCtx.activeTool) {
       return;
     }
 
-    const wasSelectTool = activeTool === "select";
-    activeTool = tool;
-    const isSelectTool = tool === "select";
-    if (wasSelectTool && !isSelectTool) {
+    const wasSelectTool = toolCtx.activeTool === "select";
+    toolCtx.activeTool = tool;
+    if (wasSelectTool && tool !== "select") {
       sendSelectionToggle(false, { clearSelection: false });
     }
-    activeToolState.set(tool);
   };
 
   const activateSelectTool = () => {
     sendSelectionToggle(true);
-    if (activeTool === "select") {
+    if (toolCtx.activeTool === "select") {
       return;
     }
 
     setActiveTool("select");
   };
 
-  const isEditableTarget = (target: EventTarget | null) => {
-    if (!(target instanceof Element)) {
-      return false;
-    }
-
-    if (
-      target instanceof HTMLInputElement ||
-      target instanceof HTMLTextAreaElement ||
-      target instanceof HTMLSelectElement
-    ) {
-      return true;
-    }
-
-    if (target instanceof HTMLElement && target.isContentEditable) {
-      return true;
-    }
-
-    return Boolean(target.closest('input, textarea, select, [contenteditable="true"], [contenteditable]'));
-  };
-
-  const isMonacoEditorTarget = (target: EventTarget | null) => {
-    if (!(target instanceof Element)) {
-      return false;
-    }
-
-    return Boolean(target.closest(".monaco-editor, .monaco-diff-editor"));
-  };
-
-  const isCodeEditorFocused = (eventTarget: EventTarget | null) => {
-    if (isMonacoEditorTarget(eventTarget) || isMonacoEditorTarget(document.activeElement)) {
-      return true;
-    }
-
-    return (
-      document.querySelector(codeEditorFocusSelector) !== null
-    );
-  };
-
-  const getShortcutTool = (event: KeyboardEvent): ToolbarControlId | null => {
-    if (!event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) {
-      return null;
-    }
-
-    switch (event.code) {
-      case "Digit1":
-        return "select";
-      case "Digit2":
-        return "create";
-      case "Digit3":
-        return "selectors";
-      case "Digit4":
-        return "record";
-      case "Digit5":
-        return "help";
-      case "Digit6":
-        return "share";
-      default:
-        return null;
-    }
-  };
-
-  const handleShortcut = (tool: ToolbarControlId) => {
+  const handleToolSelect = (tool: ToolId) => {
     if (tool === "select") {
       activateSelectTool();
       return;
     }
-
-    if (tool === "share") {
-      setActiveTool("share");
-      return;
-    }
-
     setActiveTool(tool);
   };
 
-  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const selectorDefinitionPattern = new RegExp(
-    `\\bconst\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*${escapeRegExp("pq.selector")}\\s*\\(`,
-  );
-
-  const extractSelectorVariableName = (code: string) => {
-    const match = code.match(selectorDefinitionPattern);
-    return match?.[1] ?? null;
+  const handleShortcut = (tool: SidepanelShortcutId) => {
+    handleToolSelect(tool as ToolId);
   };
 
-  const saveSelectorDefinition = (payload: SelectorSavePayload): SelectorSaveResult => {
-    const rawCode = payload.code.trim();
-    const includesSelectorDefinition = rawCode.includes("pq.selector");
-    const includesInjectCssCall = rawCode.includes("ps.injectCSS");
-
-    if (includesInjectCssCall && !includesSelectorDefinition) {
-      if (!insertDefinitions([rawCode])) {
-        const error = "Unable to save selector to the editor.";
-        setErrorMessage(error);
-        return { ok: false, error };
-      }
-
-      setErrorMessage(null);
-      return { ok: true };
-    }
-
-    if (!includesSelectorDefinition) {
-      const error = `Selector definition must include pq.selector.`;
-      setErrorMessage(error);
-      return { ok: false, error };
-    }
-
-    const existingEntries = get(selectorEntries);
-    const existingVariableNames = new Set(
-      [...get(elementEntries), ...existingEntries].map((entry) => sanitizeVariableName(entry.name)),
-    );
-
-    const variableName = extractSelectorVariableName(rawCode);
-    if (!variableName) {
-      const error = "Selector definition must include a const assignment.";
-      setErrorMessage(error);
-      return { ok: false, error };
-    }
-
-    if (existingVariableNames.has(sanitizeVariableName(variableName))) {
-      const error = `Variable name "${variableName}" already exists.`;
-      setErrorMessage(error);
-      return { ok: false, error };
-    }
-
-    if (!insertDefinitions([rawCode])) {
-      const error = "Unable to save selector to the editor.";
-      setErrorMessage(error);
-      return { ok: false, error };
-    }
-
-    setErrorMessage(null);
-    return { ok: true };
-  };
-
-  const isRecord = (value: unknown): value is Record<string, unknown> =>
-    value !== null && typeof value === "object" && !Array.isArray(value);
-
-  const saveRecordConverterDefinition = (
-    payload: RecordConverterSavePayload,
-  ): Promise<RecordConverterSaveResult> => {
-    const rawCode = payload.code.trim();
-    if (!rawCode) {
-      const error = "Record converter code is empty.";
-      setErrorMessage(error);
-      return Promise.resolve({ ok: false, error });
-    }
-
-    const existingCode = get(codeEditorContent);
-    return Promise.resolve(resolveRecordConverterCollisions({ code: rawCode, existingCode }))
-      .then(({ finalCode, renameMap }) => {
-        if (!insertDefinitions([finalCode])) {
-          const error = "Unable to save record converter code.";
-          setErrorMessage(error);
-          return { ok: false, error };
-        }
-
-        setErrorMessage(null);
-        return {
-          ok: true,
-          finalCode,
-          renameMap,
-        };
-      })
-      .catch((error: unknown) => {
-        const message =
-          error instanceof Error && error.message.trim().length > 0
-            ? error.message
-            : "Unable to resolve record converter collisions.";
-        setErrorMessage(message);
-        return {
-          ok: false,
-          error: message,
-        };
-      });
-  };
-
-  const isSelectorSaveMessage = (
-    message: unknown,
-  ): message is { type: "selector:save"; payload: SelectorSavePayload } => {
-    if (!message || typeof message !== "object") {
-      return false;
-    }
-
-    const payload = (message as { payload?: unknown }).payload;
-    if (!payload || typeof payload !== "object") {
-      return false;
-    }
-
-    return (message as { type?: string }).type === "selector:save";
-  };
-
-  const isRecordConverterSaveMessage = (
-    message: unknown,
-  ): message is { type: "record:converter:save"; payload: RecordConverterSavePayload } => {
-    if (!isRecord(message)) {
-      return false;
-    }
-
-    if (message.type !== "record:converter:save") {
-      return false;
-    }
-
-    const payload = message.payload;
-    return isRecord(payload) && typeof payload.code === "string";
-  };
-
-  const setToolPanelHeightFromClientY = (clientY: number) => {
-    if (!toolPanelSection) {
-      return;
-    }
-
-    toolPanelHeightPx = clientY;
-  };
-
-  const startToolPanelResize = (event: PointerEvent) => {
-    if (event.button !== 0 || !toolPanelResizeHandle) {
-      return;
-    }
-
-    event.preventDefault();
-    resizePointerId = event.pointerId;
-    isResizingToolPanel = true;
-    toolPanelResizeHandle.setPointerCapture(event.pointerId);
-    setToolPanelHeightFromClientY(event.clientY);
-  };
-
-  const updateToolPanelResize = (event: PointerEvent) => {
-    if (!isResizingToolPanel || event.pointerId !== resizePointerId) {
-      return;
-    }
-
-    event.preventDefault();
-    setToolPanelHeightFromClientY(event.clientY);
-  };
-
-  const finishToolPanelResize = (event: PointerEvent) => {
-    if (event.pointerId !== resizePointerId || !toolPanelResizeHandle) {
-      return;
-    }
-
-    if (toolPanelResizeHandle.hasPointerCapture(event.pointerId)) {
-      toolPanelResizeHandle.releasePointerCapture(event.pointerId);
-    }
-
-    isResizingToolPanel = false;
-    resizePointerId = null;
-    if (toolPanelHeightPx !== null) {
-      void saveToolPanelHeightSetting(toolPanelHeightPx);
-    }
-  };
+  const buildDeps = () => ({
+    getSelectorEntries: () => get(selectorEntries),
+    getElementEntries: () => editorCtx.elementEntries,
+    getEditorContent: () => get(codeEditorContent),
+    insertDefinitions: (lines: string[]) => editorCtx.insertDefinitions(lines),
+    setError: (msg: string | null) => setErrorMessage(msg),
+  });
 
   onMount(() => {
     toolPanelHeightPx = minToolPanelHeightPx;
@@ -381,41 +111,28 @@
       toolPanelHeightPx = storedHeight;
     });
 
-    unsubscribeActiveToolState = activeToolState.subscribe((tool) => {
-      if (tool === activeTool) {
-        return;
-      }
-
-      const wasSelectTool = activeTool === "select";
-      activeTool = tool;
-      const isSelectTool = tool === "select";
-      if (wasSelectTool && !isSelectTool) {
-        sendSelectionToggle(false, { clearSelection: false });
-      }
-    });
-
     sendSelectionToggle(false);
 
     const cleanup = attachSelectionListener();
 
     const handleRuntimeMessage = (message: unknown, _sender: unknown, sendResponse: (response?: unknown) => void) => {
       if (isSelectorSaveMessage(message)) {
-        sendResponse(saveSelectorDefinition(message.payload));
+        sendResponse(saveSelectorDefinition(message.payload, buildDeps()));
         return true;
       }
 
       if (isRecordConverterSaveMessage(message)) {
-        void saveRecordConverterDefinition(message.payload).then((result) => {
+        void saveRecordConverterDefinition(message.payload, buildDeps()).then((result) => {
           sendResponse(result);
         });
         return true;
       }
 
       if (isGrantPermissionRequestMessage(message)) {
-        grantPermissionRequest.set({
+        grantsCtx.request = {
           scriptName: message.payload.scriptName,
           grants: message.payload.grants,
-        });
+        };
         setActiveTool("help");
         return false;
       }
@@ -437,7 +154,7 @@
         return;
       }
 
-      if (event.key === "Escape" && activeTool === "select") {
+      if (event.key === "Escape" && toolCtx.activeTool === "select") {
         event.preventDefault();
         sendSelectionToggle(false, { clearSelection: false });
         return;
@@ -459,21 +176,15 @@
       window.removeEventListener("keydown", onKeyDown, { capture: true });
       browser.runtime.onMessage.removeListener(handleRuntimeMessage);
       sendSelectionToggle(false);
-      unsubscribeActiveToolState();
     };
   });
-
-  const toolButtonClasses = (selected: boolean) =>
-    "w-8 h-8 !p-0 rounded-lg text-white dark:text-white " +
-    (selected ? "bg-accent-500 hover:!opacity-100" : "bg-[#55503E] hover:opacity-55 active:opacity-40");
-  const iconSize = "w-5 h-5";
 </script>
 
 <Tooltip.Provider>
   <main class="flex h-full w-full overflow-hidden bg-[#222121] text-white">
     <div class="h-full w-full min-h-0 min-w-full">
       <BannerContainer>
-        <div class="flex h-full w-full min-h-0 flex-col" bind:this={toolPanelLayout}>
+        <div class="flex h-full w-full min-h-0 flex-col">
 
           <section
             class="relative flex w-full shrink-0 flex-col bg-[#282824]"
@@ -481,162 +192,31 @@
             bind:this={toolPanelSection}
             style={toolPanelStyle}
           >
-            <div
-              class="flex justify-between h-12 px-3 py-2 bg-[#393a34]"
-              role="toolbar"
-              aria-label="Tool actions"
-              tabindex="0"
-              onmouseenter={() => {
-                isToolbarHovered = true;
-              }}
-              onmouseleave={() => {
-                isToolbarHovered = false;
-                hoveredTool = null;
-                lastHoveredTool = null;
-              }}
-            >
-              <!-- Left side -->
-              <div class="h-full min-w-0 flex flex-1 flex-row gap-3 place-items-center">
-                <Button
-                  class={toolButtonClasses(activeTool === "select")}
-                  variant="outline"
-                  aria-label="Toggle selection mode"
-                  aria-pressed={isSelectToolActive}
-                  onmouseenter={() => {
-                    hoveredTool = "select";
-                    lastHoveredTool = "select";
-                  }}
-                  onmouseleave={() => {
-                    hoveredTool = null;
-                  }}
-                  onclick={activateSelectTool}
-                >
-                  <MousePointer class={iconSize} />
-                </Button>
-                <Button
-                  class={toolButtonClasses(activeTool === "create")}
-                  variant="outline"
-                  aria-label="Create tool"
-                  onmouseenter={() => {
-                    hoveredTool = "create";
-                    lastHoveredTool = "create";
-                  }}
-                  onmouseleave={() => {
-                    hoveredTool = null;
-                  }}
-                  onclick={() => setActiveTool("create")}
-                >
-                  <Plus class={iconSize} />
-                </Button>
-                <Button
-                  class="{toolButtonClasses(activeTool === 'selectors')} text-sm"
-                  variant="outline"
-                  aria-label="Selectors tool"
-                  onmouseenter={() => {
-                    hoveredTool = "selectors";
-                    lastHoveredTool = "selectors";
-                  }}
-                  onmouseleave={() => {
-                    hoveredTool = null;
-                  }}
-                  onclick={() => setActiveTool("selectors")}
-                >
-                  $0
-                </Button>
-                <Button
-                  class={toolButtonClasses(activeTool === "record")}
-                  variant="outline"
-                  aria-label="Record tool"
-                  onmouseenter={() => {
-                    hoveredTool = "record";
-                    lastHoveredTool = "record";
-                  }}
-                  onmouseleave={() => {
-                    hoveredTool = null;
-                  }}
-                  onclick={() => setActiveTool("record")}
-                >
-                  <Disc class={iconSize} />
-                </Button>
-                <span
-                  class="min-w-0 max-w-full flex-1 truncate transition duration-300 {showHoveredToolLabel
-                    ? 'text-gray-600 dark:text-gray-400'
-                    : ''}"
-                >
-                  {toolLabelText}
-                </span>
-              </div>
-              <!-- Right side -->
-              <div class="h-full flex flex-row gap-4 place-items-center">
-                <Button
-                  class={toolButtonClasses(activeTool === "help")}
-                  variant="outline"
-                  aria-label="Help"
-                  onmouseenter={() => {
-                    hoveredTool = "help";
-                    lastHoveredTool = "help";
-                  }}
-                  onmouseleave={() => {
-                    hoveredTool = null;
-                  }}
-                  onclick={() => setActiveTool("help")}
-                >
-                  <CircleQuestionMark class={iconSize} />
-                </Button>
-                <Button
-                  class="{toolButtonClasses(activeTool === 'share')} bg-secondary-500"
-                  variant="outline"
-                  aria-label="Export tool"
-                  onmouseenter={() => {
-                    hoveredTool = "share";
-                    lastHoveredTool = "share";
-                  }}
-                  onmouseleave={() => {
-                    hoveredTool = null;
-                  }}
-                  onclick={() => setActiveTool("share")}
-                >
-                  <Share class={iconSize} />
-                </Button>
-              </div>
-            </div>
+            <Toolbar activeTool={toolCtx.activeTool} ontoolselect={handleToolSelect} />
 
-            {#if activeTool === "select"}
-              <SelectTool />
-            {:else if activeTool === "create"}
-              <CreateTool />
-            {:else if activeTool === "selectors"}
-              <SelectorsTool />
-            {:else if activeTool === "record"}
-              <RecordTool />
-            {:else if activeTool === "help"}
-              <HelpTool />
-            {:else if activeTool === "share"}
-              <ExportTool />
-            {:else if activeTool === "none"}
+            {#if toolCtx.activeTool === "none"}
               <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4 justify-center place-items-center">
                 <p class="text-caption text-gray-500 dark:text-gray-400">Select a tool from the top bar</p>
               </div>
             {:else}
-              <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4">
-                <p class="text-body">
-                  Unknown tool: {activeTool}
-                </p>
-              </div>
+              {@const ToolComponent = toolComponents[toolCtx.activeTool]}
+              {#if ToolComponent}
+                <ToolComponent />
+              {:else}
+                <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4">
+                  <p class="text-body">Unknown tool: {toolCtx.activeTool}</p>
+                </div>
+              {/if}
             {/if}
           </section>
 
-          <div
-            class={toolPanelResizeHandleClass}
-            role="separator"
-            aria-label="Resize tool panel"
-            aria-orientation="horizontal"
-            bind:this={toolPanelResizeHandle}
-            onpointerdown={startToolPanelResize}
-            onpointermove={updateToolPanelResize}
-            onpointerup={finishToolPanelResize}
-            onpointercancel={finishToolPanelResize}
-          ></div>
+          <ResizeHandle
+            onheightchange={(clientY) => { toolPanelHeightPx = clientY; }}
+            onresizefinish={(clientY) => {
+              toolPanelHeightPx = clientY;
+              void saveToolPanelHeightSetting(clientY);
+            }}
+          />
 
           <CodeEditorTool />
         </div>

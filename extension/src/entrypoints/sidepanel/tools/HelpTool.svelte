@@ -5,15 +5,14 @@
   import { loadAndRenderHelpMarkdown } from "@/lib/help/help-markdown";
   import type { ScriptGrantValue } from "@/lib/grants";
   import { resolveGrantPermissionRequest } from "./grant-permissions/actions";
-  import {
-    clearGrantPermissionRequest,
-    grantPermissionRequest,
-    type GrantPermissionRequestState,
-  } from "./grant-permissions/state";
-  import { allowedScriptGrantsState } from "./state-storage";
+  import { getGrantsContext } from "../context/grants.svelte";
+  import { getEditorContext } from "../context/editor.svelte";
   import { setErrorMessage, setSuccessMessage } from "./tool-errors";
 
-  let grantRequest = $state<GrantPermissionRequestState>(null);
+  const grantsCtx = getGrantsContext();
+  const editorCtx = getEditorContext();
+
+  const grantRequest = $derived(grantsCtx.request);
   let isResolvingGrantRequest = $state(false);
   let isLoadingHelpContent = $state(true);
   let helpContentHtml = $state("");
@@ -58,8 +57,8 @@
           return;
         }
 
-        allowedScriptGrantsState.set(result.allowedGrants);
-        clearGrantPermissionRequest();
+        editorCtx.allowedGrants = result.allowedGrants;
+        grantsCtx.request = null;
         setSuccessMessage(
           allow ? "Grant permissions saved (reload the page for permissions to take effect)." : "Grant request denied.",
         );
@@ -73,15 +72,7 @@
   };
 
   onMount(() => {
-    const unsubscribeGrantPermissionRequest = grantPermissionRequest.subscribe((value) => {
-      grantRequest = value;
-    });
-
     void loadHelpContent();
-
-    return () => {
-      unsubscribeGrantPermissionRequest();
-    };
   });
 </script>
 

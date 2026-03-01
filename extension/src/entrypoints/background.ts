@@ -7,37 +7,22 @@ import {
   type GrantPermissionRequestMessage,
   type GrantPermissionResolveResult,
 } from "@/lib/grant-permissions";
-import { parseScriptMetadata } from "@/lib/utils/script-metadata";
-import { isRestrictedUrl, matchWebsiteGlob } from "@/lib/utils/website-glob";
+import { isRestrictedUrl } from "@/lib/utils/website-glob";
 import { isScriptRunResponse, type ScriptRunRequest } from "@/lib/script-runner";
 import { createTabBadgeUpdater } from "@/lib/background/tab-badge";
 import { createDevtoolsSelectionRuntimeHandler } from "@/lib/background/devtools-selection";
 import { buildDefaultScript } from "@/lib/default-script";
 import { ensureCodeRunnerUserscript } from "@/lib/userscript-runner";
+import {
+  coerceStoredToolState,
+  findBestMatchingWebsiteGlob,
+  fromStorageKey,
+  getWebsiteGlobsFromContent,
+  resolveMetadataFallback,
+  toStorageKey,
+  type StoredToolState,
+} from "@/lib/stored-tool-state";
 import log from "loglevel";
-
-type ToolId = "select" | "create" | "selectors" | "help" | "share" | "none";
-
-type StoredToolState = {
-  scriptName: string;
-  activeTool: ToolId;
-  codeEditor: {
-    content: string;
-  };
-  selectorPanel: {
-    entries: Array<{
-      name: string;
-      ruleKeys: string[];
-      rules?: string[];
-      mode?: "pp-api" | "css";
-    }>;
-  };
-  permissions: {
-    allowedGrants: ScriptGrantValue[];
-  };
-  websiteGlob: string;
-  updatedAt: number;
-};
 
 type StoredStateMatch = {
   scriptName: string;
@@ -45,7 +30,6 @@ type StoredStateMatch = {
   state: StoredToolState;
 };
 
-const storageKeyPrefix = "pageproxy:";
 const runOnPageLoadGrant: ScriptGrantValue = "run-on-page-load";
 const defaultScriptImportLines = ['import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";'] as const;
 const defaultDefineBlockStart = "// ==Selectors==";
@@ -58,144 +42,7 @@ const defaultScriptConfig = {
 const logger = log.getLogger("background");
 logger.setLevel("debug", false);
 
-const isToolId = (value: unknown): value is ToolId =>
-  value === "select" ||
-  value === "create" ||
-  value === "selectors" ||
-  value === "help" ||
-  value === "share" ||
-  value === "none";
 
-const isStringArray = (value: unknown): value is string[] =>
-  Array.isArray(value) && value.every((item) => typeof item === "string");
-
-const coerceStoredSelectorEntries = (value: unknown): StoredToolState["selectorPanel"]["entries"] => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const entries: StoredToolState["selectorPanel"]["entries"] = [];
-  value.forEach((entry) => {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-      return;
-    }
-
-    const data = entry as {
-      name?: unknown;
-      ruleKeys?: unknown;
-      rules?: unknown;
-      mode?: unknown;
-    };
-
-    if (typeof data.name !== "string" || !isStringArray(data.ruleKeys)) {
-      return;
-    }
-
-    const rules = isStringArray(data.rules) ? data.rules : undefined;
-    const mode = data.mode === "pp-api" || data.mode === "css" ? data.mode : undefined;
-    entries.push({
-      name: data.name,
-      ruleKeys: data.ruleKeys,
-      rules,
-      mode,
-    });
-  });
-
-  return entries;
-};
-
-const fromStorageKey = (key: string) => {
-  if (!key.startsWith(storageKeyPrefix)) {
-    return null;
-  }
-
-  const scriptName = key.slice(storageKeyPrefix.length).trim();
-  return scriptName.length > 0 ? scriptName : null;
-};
-
-const resolveMetadataFallback = (content: string) => {
-  try {
-    return parseScriptMetadata(content);
-  } catch {
-    return null;
-  }
-};
-
-const getWebsiteGlobsFromContent = (content: string) => {
-  const metadata = resolveMetadataFallback(content);
-  if (!metadata) {
-    return [];
-  }
-
-  const websites = metadata.websites.map((website) => website.trim()).filter((website) => website.length > 0);
-  if (websites.length > 0) {
-    return websites;
-  }
-
-  const website = metadata.website.trim();
-  return website.length > 0 ? [website] : [];
-};
-
-const findBestMatchingWebsiteGlob = (websiteGlobs: string[], url: string) =>
-  websiteGlobs
-    .filter((websiteGlob) => matchWebsiteGlob(websiteGlob, url))
-    .sort((left, right) => right.length - left.length)[0] ?? null;
-
-const coerceStoredToolState = (value: unknown, scriptNameFromKey: string): StoredToolState | null => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-
-  const data = value as {
-    scriptName?: unknown;
-    activeTool?: unknown;
-    codeEditor?: unknown;
-    selectorPanel?: unknown;
-    permissions?: unknown;
-    websiteGlob?: unknown;
-    updatedAt?: unknown;
-  };
-
-  if (!isToolId(data.activeTool)) {
-    return null;
-  }
-
-  const codeEditor = data.codeEditor as { content?: unknown } | undefined;
-  if (typeof codeEditor?.content !== "string") {
-    return null;
-  }
-
-  const selectorPanel = data.selectorPanel as { entries?: unknown } | undefined;
-  const permissions = data.permissions as { allowedGrants?: unknown } | undefined;
-  const metadata = resolveMetadataFallback(codeEditor.content);
-  const metadataScriptName = metadata?.title.trim() ?? "";
-  const resolvedScriptName =
-    typeof data.scriptName === "string" && data.scriptName.trim().length > 0
-      ? data.scriptName.trim()
-      : metadataScriptName.length > 0
-        ? metadataScriptName
-        : scriptNameFromKey;
-  const metadataWebsites = metadata?.websites.map((website) => website.trim()).filter((website) => website.length > 0) ?? [];
-  const metadataWebsite = metadata?.website.trim() ?? "";
-  const fallbackWebsiteGlob = metadataWebsites[0] ?? metadataWebsite;
-
-  return {
-    scriptName: resolvedScriptName,
-    activeTool: data.activeTool,
-    codeEditor: {
-      content: codeEditor.content,
-    },
-    selectorPanel: {
-      entries: coerceStoredSelectorEntries(selectorPanel?.entries),
-    },
-    permissions: {
-      allowedGrants: coerceScriptGrantValues(permissions?.allowedGrants),
-    },
-    websiteGlob:
-      typeof data.websiteGlob === "string" && data.websiteGlob.trim().length > 0 ? data.websiteGlob : fallbackWebsiteGlob,
-    updatedAt: typeof data.updatedAt === "number" ? data.updatedAt : Date.now(),
-  };
-};
 
 const listStoredToolStates = async () => {
   const allValues = await browser.storage.local.get(null);
@@ -247,8 +94,6 @@ const findStoredToolStatesForUrl = async (url: string) => {
   });
 };
 
-const toStorageKey = (scriptName: string) => `${storageKeyPrefix}${scriptName.trim()}`;
-
 const readStoredToolState = async (scriptName: string) => {
   const key = toStorageKey(scriptName);
   const stored = await browser.storage.local.get(key);
@@ -289,14 +134,7 @@ const toRunnableScriptContent = (state: StoredToolState) => {
   return content;
 };
 
-const extractScriptGrants = (content: string) => {
-  try {
-    const metadata = parseScriptMetadata(content);
-    return metadata.grants;
-  } catch {
-    return [];
-  }
-};
+const extractScriptGrants = (content: string) => resolveMetadataFallback(content)?.grants ?? [];
 
 const getMissingAllowedGrants = (state: StoredToolState, requiredGrants: ScriptGrantValue[]) =>
   requiredGrants.filter((grant) => !state.permissions.allowedGrants.includes(grant));

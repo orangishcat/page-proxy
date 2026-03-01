@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount, tick } from "svelte";
+  import { onMount, tick } from "svelte";
   import { Disc, Trash2, X } from "lucide-svelte";
 
   import Button from "@/lib/components/Button.svelte";
@@ -7,11 +7,7 @@
   import { clearRecordPanelState, recordPanelState, toggleRecordPanelRecording } from "./record/state";
   import type { RecordPanelState, RecordTimelineEntry } from "./state-storage";
 
-  let recordState = $state<RecordPanelState>({
-    isRecording: true,
-    timeline: [],
-    updatedAt: Date.now(),
-  });
+  const recordState = $derived($recordPanelState);
   let timelineContainer = $state<HTMLDivElement | null>(null);
   let selectedEntryIds = $state<string[]>([]);
   let dragSelectionMode = $state<"none" | "replace" | "toggle">("none");
@@ -25,21 +21,12 @@
   });
   const hasSelectedEntries = $derived(selectedEntries.length > 0);
 
-  const pruneSelectionToTimeline = (timeline: RecordTimelineEntry[]) => {
-    const timelineIdSet = new Set(timeline.map((entry) => entry.id));
+  $effect(() => {
+    const timelineIdSet = new Set(recordState.timeline.map((entry) => entry.id));
     const prunedSelection = selectedEntryIds.filter((id) => timelineIdSet.has(id));
     if (prunedSelection.length !== selectedEntryIds.length) {
       selectedEntryIds = prunedSelection;
     }
-  };
-
-  const unsubscribeRecordPanelState = recordPanelState.subscribe((value) => {
-    recordState = value;
-    pruneSelectionToTimeline(value.timeline);
-  });
-
-  onDestroy(() => {
-    unsubscribeRecordPanelState();
   });
 
   const scrollTimelineToBottom = () => {
