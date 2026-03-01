@@ -1,20 +1,14 @@
 import { browser } from "wxt/browser";
 import { defineContentScript } from "wxt/utils/define-content-script";
-import { createShadowRootUi } from "wxt/utils/content-script-ui/shadow-root";
-import { mount, unmount } from "svelte";
 import log from "loglevel";
 
 import type {
   ElementInfo,
   RecordConverterOpenPayload,
   RecordConverterOpenResult,
-  RecordConverterSaveResult,
   SelectElementAction,
   SelectElementActionResult,
   SelectorOpenResult,
-  SelectorPopupMode,
-  SelectorSavePayload,
-  SelectorSaveResult,
   SelectToolMessage,
 } from "@/lib/selection";
 import {
@@ -27,20 +21,16 @@ import {
 import type { SidepanelShortcutId, SidepanelShortcutMessage } from "@/lib/sidepanel-shortcuts";
 import { isEditableTarget } from "@/lib/utils/dom-checks";
 import { getShortcutTool } from "@/lib/utils/keyboard-shortcuts";
-import { type PropertyItem, buildPropertyList } from "@/lib/utils/element-info";
 import {
   hoverClass,
   selectedClass,
   hoveredPreviewClass,
   noSelectClass,
   selectorsHoverExclusionClass,
-  contentUiRootClass,
-  styleId,
-  selectorLabelId,
-  selectionStyles,
 } from "@/lib/constants/selection";
-import PopupContainer from "./PopupContainer.svelte";
-import RecordPopup from "./RecordPopup.svelte";
+import { HoverManager, ensureSelectionStyles } from "./HoverManager";
+import { SelectorPopupManager } from "./SelectorPopupManager";
+import { RecordConverterPopupManager } from "./RecordConverterPopupManager";
 import { generateElementSelector } from "./popup/selector";
 import "@/styles/app.css";
 
@@ -48,7 +38,6 @@ const logger = log.getLogger("select-tool");
 logger.setLevel("debug", false);
 
 const filteredSelectionClasses = new Set([hoverClass, selectedClass, hoveredPreviewClass]);
-const uiBaseFontSizePx = 16;
 const scriptRunBridgeTimeoutMs = 1800;
 
 const filterSelectionClasses = (value: string | null) => {
@@ -84,14 +73,6 @@ const getElementInfo = (element: Element): ElementInfo => {
     attributes,
     boundingBox: { x: rect.x + window.scrollX, y: rect.y + window.scrollY, width: rect.width, height: rect.height },
   };
-};
-
-const truncate = (value: string, maxLength = 120) =>
-  value.length <= maxLength ? value : `${value.slice(0, maxLength - 1)}…`;
-
-const describeElement = (element: Element) => {
-  const info = getElementInfo(element);
-  return `${info.tag}${info.id ? `#${info.id}` : ""}${info.className ? `.${info.className.replace(" ", ".")}` : ""}`;
 };
 
 const describeElementCompact = (element: Element | null) => {
@@ -152,82 +133,32 @@ export default defineContentScript({
 
   main(ctx) {
     let selectionEnabled = false;
-    let hoverTarget: Element | null = null;
     let selectedTarget: Element | null = null;
-    let hoverFrame: number | null = null;
-    let queuedHoverTarget: Element | null = null;
-    let labelFrame: number | null = null;
-    let queuedLabelTarget: Element | null = null;
-    let popupFrame: number | null = null;
-    let popupTarget: Element | null = null;
-    let popupApp: ReturnType<typeof mount> | null = null;
-    let shadowUi: Awaited<ReturnType<typeof createShadowRootUi>> | null = null;
-    let recordConverterPopupApp: ReturnType<typeof mount> | null = null;
-    let recordConverterShadowUi: Awaited<ReturnType<typeof createShadowRootUi>> | null = null;
-    let resumeSelectionAfterPopup = false;
     let hoveredSelectorElements: Element[] = [];
 
     logger.debug("select tool content script initialized", { href: window.location.href });
 
-    const ensureSelectionStyles = () => {
-      if (document.getElementById(styleId)) return;
-      const style = document.createElement("style");
-      style.id = styleId;
-      style.textContent = selectionStyles;
-      (document.head ?? document.documentElement).appendChild(style);
-      logger.debug("selection styles injected");
-    };
+    const hover = new HoverManager(
+      () => selectionEnabled,
+      (element) => postMessage({ type: "select:hover", payload: element ? getElementInfo(element) : null }),
+    );
 
-    const ensureSelectorLabel = () => {
-      const existing = document.getElementById(selectorLabelId);
-      if (existing) return existing as HTMLDivElement;
-      const label = document.createElement("div");
-      label.id = selectorLabelId;
-      label.className = "pp-selected-label";
-      label.dataset.pageProxy = "selector-label";
-      document.body.appendChild(label);
-      return label;
-    };
+    const recordManager = new RecordConverterPopupManager(ctx);
 
-    const removeSelectorLabel = () => document.getElementById(selectorLabelId)?.remove();
-
-    const clearHover = () => {
-      if (!hoverTarget) return;
-      hoverTarget.classList.remove(hoverClass);
-      hoverTarget = null;
-      queuedLabelTarget = null;
-      removeSelectorLabel();
-    };
+    const selectorManager = new SelectorPopupManager(
+      ctx,
+      getElementInfo,
+      () => selectedTarget,
+      (el) => { selectedTarget = el; },
+      () => selectionEnabled,
+      (enabled, options) => setSelectionEnabled(enabled, options),
+      (msg) => postMessage(msg),
+    );
 
     const clearSelected = () => {
       if (!selectedTarget) return;
       selectedTarget.classList.remove(selectedClass);
       selectedTarget = null;
-    };
-
-    const clearSelectorPopup = ({ resumeSelection = true }: { resumeSelection?: boolean } = {}) => {
-      const hadPopup = popupApp !== null || shadowUi !== null || popupTarget !== null || popupFrame !== null;
-      if (popupApp) {
-        void unmount(popupApp);
-        popupApp = null;
-      }
-      if (shadowUi) {
-        shadowUi.remove();
-        shadowUi = null;
-      }
-      popupTarget = null;
-      if (popupFrame !== null) {
-        window.cancelAnimationFrame(popupFrame);
-        popupFrame = null;
-      }
-      logger.debug("selector popup closed");
-      if (hadPopup) {
-        const shouldResumeSelection = resumeSelection && resumeSelectionAfterPopup;
-        resumeSelectionAfterPopup = false;
-        if (shouldResumeSelection) {
-          setSelectionEnabled(true);
-        }
-      }
     };
 
     const clearHoveredSelectorElements = () => {
@@ -307,265 +238,13 @@ export default defineContentScript({
 
     const postMessage = (message: SelectToolMessage) => sendRuntimeMessage(message);
 
-    const handleSave = async (payload: SelectorSavePayload): Promise<SelectorSaveResult> => {
-      if (!popupTarget?.isConnected) {
-        return { ok: false, error: "Selected element is no longer available." };
-      }
-      const info = getElementInfo(popupTarget);
-
-      logger.debug("selector popup save requested", {
-        target: describeElementCompact(popupTarget),
-        name: payload.name,
-        selector: info.selector,
-      });
-
-      logger.debug("runtime message sent", { type: "selector:save" });
-      const response: unknown = await browser.runtime
-        .sendMessage({ type: "selector:save", payload } satisfies SelectToolMessage)
-        .catch((error: unknown) => {
-          logger.error("Failed to save selector", { error });
-          return null;
-        });
-
-      if (response === null) {
-        return {
-          ok: false,
-          error: "Unable to save selector to the editor.",
-        };
-      }
-
-      const result = response as SelectorSaveResult | undefined;
-      if (result?.ok) {
-        clearSelectorPopup();
-        return result;
-      }
-
-      return {
-        ok: false,
-        error: result?.error ?? "Unable to save selector to the editor.",
-      };
-    };
-
-    const clearRecordConverterPopup = () => {
-      if (recordConverterPopupApp) {
-        void unmount(recordConverterPopupApp);
-        recordConverterPopupApp = null;
-      }
-      if (recordConverterShadowUi) {
-        recordConverterShadowUi.remove();
-        recordConverterShadowUi = null;
-      }
-      logger.debug("record converter popup closed");
-    };
-
-    const handleRecordConverterSave = async (reviewedCode: string): Promise<RecordConverterSaveResult> => {
-      logger.debug("record converter save requested", {
-        codeLength: reviewedCode.length,
-      });
-
-      const response: unknown = await browser.runtime
-        .sendMessage({
-          type: "record:converter:save",
-          payload: {
-            code: reviewedCode,
-          },
-        } satisfies SelectToolMessage)
-        .catch((error: unknown) => {
-          logger.error("Failed to save record converter code", { error });
-          return null;
-        });
-
-      if (response === null) {
-        return {
-          ok: false,
-          error: "Unable to save record converter code to the editor.",
-        };
-      }
-
-      const result = response as Partial<RecordConverterSaveResult> | null;
-      if (!result || typeof result.ok !== "boolean") {
-        logger.error("Invalid record converter save response", {
-          codeLength: reviewedCode.length,
-          rawResponse: response,
-        });
-        return {
-          ok: false,
-          error: "Unable to save record converter code to the editor.",
-        };
-      }
-
-      if (result.ok) {
-        clearRecordConverterPopup();
-        return result as RecordConverterSaveResult;
-      }
-
-      const errorMessage = typeof result.error === "string" ? result.error : undefined;
-      logger.error("Unexpected record converter save failure response", {
-        codeLength: reviewedCode.length,
-        error: errorMessage,
-        rawResponse: response,
-      });
-
-      return {
-        ok: false,
-        error: errorMessage ?? "Unable to save record converter code to the editor.",
-      };
-    };
-
-    const openRecordConverterPopup = async (
-      payload: RecordConverterOpenPayload,
-    ): Promise<RecordConverterOpenResult> => {
-      if (selectionEnabled) {
-        setSelectionEnabled(false, { clearSelection: false });
-      }
-
-      clearSelectorPopup({ resumeSelection: false });
-      clearRecordConverterPopup();
-
-      try {
-        recordConverterShadowUi = await createShadowRootUi(ctx, {
-          name: "pp-record-converter-popup",
-          position: "overlay",
-          anchor: "body",
-          zIndex: 2147483647,
-          onMount(container: HTMLElement) {
-            const app = mount(RecordPopup, {
-              target: container,
-              props: {
-                payload,
-                onCancel: clearRecordConverterPopup,
-                onSave: handleRecordConverterSave,
-              },
-            });
-            recordConverterPopupApp = app;
-            return app;
-          },
-        });
-
-        recordConverterShadowUi.mount();
-        recordConverterShadowUi.shadowHost.classList.add(noSelectClass);
-        recordConverterShadowUi.shadowHost.classList.add(contentUiRootClass);
-        logger.debug("record converter popup opened", {
-          timelineSize: payload.timeline.length,
-        });
-        return {
-          opened: true,
-        };
-      } catch (error: unknown) {
-        logger.error("Failed to open record converter popup", { error });
-        clearRecordConverterPopup();
-        return {
-          opened: false,
-          error: "Unable to open record converter popup.",
-        };
-      }
-    };
-
-    const resolvePopupTarget = (requestedInfo: ElementInfo | null) => {
-      if (selectedTarget?.isConnected) {
-        return selectedTarget;
-      }
-
-      if (requestedInfo?.id) {
-        const byId = document.getElementById(requestedInfo.id);
-        if (byId?.isConnected) {
-          selectedTarget = byId;
-          return byId;
-        }
-      }
-
-      if (requestedInfo?.selector) {
-        const bySelector = document.querySelector(requestedInfo.selector);
-        if (bySelector?.isConnected) {
-          selectedTarget = bySelector;
-          return bySelector;
-        }
-      }
-
-      const selectedElement = document.querySelector(`.${selectedClass}`);
-      if (selectedElement?.isConnected) {
-        selectedTarget = selectedElement;
-        return selectedElement;
-      }
-
-      return null;
-    };
-
-    const openSelectorPopup = async (requestedInfo: ElementInfo | null, mode: SelectorPopupMode = "pp-api") => {
-      const target = resolvePopupTarget(requestedInfo);
-      if (!target) {
-        logger.debug("selector popup open skipped", {
-          reason: "no-target",
-          selectionEnabled,
-        });
-        return false;
-      }
-
-      ensureSelectionStyles();
-      clearRecordConverterPopup();
-      clearSelectorPopup({ resumeSelection: false });
-      if (selectionEnabled) {
-        resumeSelectionAfterPopup = true;
-        setSelectionEnabled(false, { clearSelection: false });
-      } else {
-        resumeSelectionAfterPopup = false;
-        postMessage({ type: "select:mode", enabled: false });
-      }
-
-      if (!target.classList.contains(selectedClass)) {
-        clearSelected();
-        target.classList.add(selectedClass);
-      }
-
-      selectedTarget = target;
-      const info = getElementInfo(target);
-      const propertyItems = buildPropertyList(info);
-      popupTarget = target;
-
-      shadowUi = await createShadowRootUi(ctx, {
-        name: "pp-selector-popup",
-        position: "overlay",
-        anchor: "body",
-        zIndex: 2147483647,
-        onMount(container: HTMLElement) {
-          const app = mount(PopupContainer, {
-            target: container,
-            props: {
-              info,
-              propertyItems,
-              targetElement: popupTarget,
-              onSave: handleSave,
-              onCancel: clearSelectorPopup,
-              mode,
-            },
-          });
-          popupApp = app;
-          return app;
-        },
-      });
-
-      shadowUi.mount();
-      shadowUi.shadowHost.classList.add(noSelectClass);
-      shadowUi.shadowHost.classList.add(contentUiRootClass);
-      logger.debug("selector popup opened", {
-        target: describeElementCompact(target),
-        selector: info.selector,
-      });
-      return true;
-    };
-
     const isExcludedFromSelection = (target: EventTarget | null) => {
       if (!(target instanceof Element)) return false;
       return Boolean(target.closest(`.${noSelectClass}`));
     };
 
-    const clearHoverAndNotify = () => {
-      clearHover();
-      postMessage({ type: "select:hover", payload: null });
-    };
-
     const applySelection = (target: Element) => {
-      clearSelectorPopup({ resumeSelection: false });
+      selectorManager.clear({ resumeSelection: false });
       if (selectedTarget && selectedTarget !== target) selectedTarget.classList.remove(selectedClass);
       selectedTarget = target;
       ensureSelectionStyles();
@@ -668,54 +347,6 @@ export default defineContentScript({
       };
     };
 
-    const scheduleLabelUpdate = (target: Element | null) => {
-      queuedLabelTarget = target;
-      if (labelFrame !== null) return;
-      labelFrame = window.requestAnimationFrame(() => {
-        labelFrame = null;
-        const currentTarget = queuedLabelTarget;
-        if (!currentTarget?.isConnected || !selectionEnabled) {
-          removeSelectorLabel();
-          return;
-        }
-        const label = ensureSelectorLabel();
-        label.textContent = truncate(describeElement(currentTarget));
-        const offset = uiBaseFontSizePx * 0.5;
-        const maxWidth = Math.max(0, window.innerWidth - offset * 2);
-        label.style.maxWidth = `${maxWidth}px`;
-        label.style.top = "0px";
-        label.style.left = "0px";
-        const rect = currentTarget.getBoundingClientRect();
-        const labelRect = label.getBoundingClientRect();
-        const topCandidate = rect.top - labelRect.height - offset;
-        const top = topCandidate > offset ? topCandidate : rect.bottom + offset;
-        const left = Math.min(Math.max(offset, rect.left), window.innerWidth - labelRect.width - offset);
-        label.style.top = `${Math.max(offset, top)}px`;
-        label.style.left = `${Math.max(offset, left)}px`;
-      });
-    };
-
-    const flushHover = () => {
-      hoverFrame = null;
-      if (!selectionEnabled) return;
-      const nextTarget = queuedHoverTarget;
-      if (nextTarget === hoverTarget) return;
-      if (hoverTarget) hoverTarget.classList.remove(hoverClass);
-      hoverTarget = nextTarget;
-      if (hoverTarget) {
-        ensureSelectionStyles();
-        hoverTarget.classList.add(hoverClass);
-      }
-      scheduleLabelUpdate(hoverTarget);
-      postMessage({ type: "select:hover", payload: nextTarget ? getElementInfo(nextTarget) : null });
-    };
-
-    const scheduleHover = (target: Element | null) => {
-      queuedHoverTarget = target;
-      if (hoverFrame !== null) return;
-      hoverFrame = window.requestAnimationFrame(flushHover);
-    };
-
     const stopEvent = (event: Event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -744,19 +375,19 @@ export default defineContentScript({
     const onPointerMove = (event: PointerEvent) => {
       if (!selectionEnabled) return;
       if (isExcludedFromSelection(event.target)) {
-        clearHoverAndNotify();
+        hover.clearHoverAndNotify();
         return;
       }
-      scheduleHover(getEventTarget(event));
+      hover.scheduleHover(getEventTarget(event));
     };
 
     const onPointerOut = (event: MouseEvent) => {
       if (!selectionEnabled) return;
-      if (event.relatedTarget === null) clearHoverAndNotify();
+      if (event.relatedTarget === null) hover.clearHoverAndNotify();
     };
 
     const onWindowBlur = () => {
-      if (selectionEnabled) clearHoverAndNotify();
+      if (selectionEnabled) hover.clearHoverAndNotify();
     };
 
     const onPointerDown = (event: PointerEvent) => {
@@ -774,14 +405,14 @@ export default defineContentScript({
       const target = getEventTarget(event);
       stopEvent(event);
       if (!target) return;
-      if (shadowUi) clearSelectorPopup({ resumeSelection: false });
+      if (selectorManager.hasPopup) selectorManager.clear({ resumeSelection: false });
       applySelection(target);
       setSelectionEnabled(false, { clearSelection: false });
     };
 
     const onViewportChange = () => {
       if (!selectionEnabled) return;
-      if (hoverTarget) scheduleLabelUpdate(hoverTarget);
+      hover.refreshLabel();
     };
 
     const onShortcutKeyDown = (event: KeyboardEvent) => {
@@ -825,23 +456,10 @@ export default defineContentScript({
       window.removeEventListener("click", onClick, { capture: true });
       window.removeEventListener("scroll", onViewportChange, { capture: true });
       window.removeEventListener("resize", onViewportChange);
-      clearHover();
+      hover.dispose();
       clearSelected();
-      clearSelectorPopup({ resumeSelection: false });
-      clearRecordConverterPopup();
-      queuedHoverTarget = null;
-      if (hoverFrame !== null) {
-        window.cancelAnimationFrame(hoverFrame);
-        hoverFrame = null;
-      }
-      if (labelFrame !== null) {
-        window.cancelAnimationFrame(labelFrame);
-        labelFrame = null;
-      }
-      if (popupFrame !== null) {
-        window.cancelAnimationFrame(popupFrame);
-        popupFrame = null;
-      }
+      selectorManager.clear({ resumeSelection: false });
+      recordManager.clear();
       clearHoveredSelectorElements();
       logger.debug("select tool listeners detached");
     };
@@ -914,7 +532,8 @@ export default defineContentScript({
       const selectMessage = message as SelectToolMessage;
       logger.debug("select tool message received", selectMessage);
       if (selectMessage.type === "selector:open") {
-        void openSelectorPopup(selectMessage.payload, selectMessage.mode ?? "pp-api")
+        recordManager.clear();
+        void selectorManager.open(selectMessage.payload, selectMessage.mode ?? "pp-api")
           .then((opened) => {
             sendResponse({
               opened,
@@ -992,7 +611,11 @@ export default defineContentScript({
           safeSendResponse(result, "resolved");
         };
 
-        void openRecordConverterPopup(payload)
+        if (selectionEnabled) {
+          setSelectionEnabled(false, { clearSelection: false });
+        }
+        selectorManager.clear({ resumeSelection: false });
+        void recordManager.open(payload)
           .then((result) => {
             reply(result);
           })
@@ -1026,7 +649,7 @@ export default defineContentScript({
           });
           return false;
         }
-        clearHoverAndNotify();
+        hover.clearHoverAndNotify();
         applySelection(parent);
         sendResponse({
           ok: true,
@@ -1049,9 +672,9 @@ export default defineContentScript({
         return true;
       }
       if (selectMessage.type === "select:toggle") {
-        if (shadowUi) {
+        if (selectorManager.hasPopup) {
           if (selectMessage.enabled) {
-            resumeSelectionAfterPopup = true;
+            selectorManager.resumeSelectionAfterPopup = true;
             if (selectionEnabled) {
               setSelectionEnabled(false);
             } else {
@@ -1059,7 +682,7 @@ export default defineContentScript({
             }
             return false;
           }
-          resumeSelectionAfterPopup = false;
+          selectorManager.resumeSelectionAfterPopup = false;
         }
         setSelectionEnabled(selectMessage.enabled, { clearSelection: selectMessage.clearSelection });
       }
@@ -1071,8 +694,8 @@ export default defineContentScript({
 
     window.addEventListener("unload", () => {
       window.removeEventListener("keydown", onShortcutKeyDown, { capture: true });
-      clearSelectorPopup({ resumeSelection: false });
-      clearRecordConverterPopup();
+      selectorManager.clear({ resumeSelection: false });
+      recordManager.clear();
     });
   },
 });
