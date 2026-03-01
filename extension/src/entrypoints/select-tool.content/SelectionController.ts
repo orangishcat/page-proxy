@@ -5,7 +5,12 @@ import type { SelectElementAction, SelectElementActionResult, SelectToolMessage 
 import type { SidepanelShortcutMessage } from "@/lib/sidepanel-shortcuts";
 import { isEditableTarget } from "@/lib/utils/dom-checks";
 import { getShortcutTool } from "@/lib/utils/keyboard-shortcuts";
-import { selectedClass, noSelectClass, hoveredPreviewClass, selectorsHoverExclusionClass } from "@/lib/constants/selection";
+import {
+  selectedClass,
+  noSelectClass,
+  hoveredPreviewClass,
+  selectorsHoverExclusionClass,
+} from "@/lib/constants/selection";
 import { HoverManager, ensureSelectionStyles } from "./HoverManager";
 import { SelectorPopupManager } from "./SelectorPopupManager";
 import { RecordConverterPopupManager } from "./RecordConverterPopupManager";
@@ -15,7 +20,7 @@ import { runSelectElementAction } from "./element-actions";
 
 type ContentScriptContext = Parameters<typeof createShadowRootUi>[0];
 
-const logger = log.getLogger("select-tool");
+const logger = log.getLogger("selection-manager");
 
 export class SelectionController {
   selectionEnabled = false;
@@ -36,7 +41,9 @@ export class SelectionController {
       ctx,
       getElementInfo,
       () => this.selectedTarget,
-      (el) => { this.selectedTarget = el; },
+      (el) => {
+        this.selectedTarget = el;
+      },
       () => this.selectionEnabled,
       (enabled, options) => this.setSelectionEnabled(enabled, options),
       (msg) => this.postMessage(msg),

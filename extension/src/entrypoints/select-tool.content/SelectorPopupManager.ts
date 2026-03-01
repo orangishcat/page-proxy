@@ -16,7 +16,7 @@ import PopupContainer from "./PopupContainer.svelte";
 
 type ContentScriptContext = Parameters<typeof createShadowRootUi>[0];
 
-const logger = log.getLogger("select-tool");
+const logger = log.getLogger("select-popup-manager");
 
 export class SelectorPopupManager {
   private popupApp: ReturnType<typeof mount> | null = null;
@@ -41,10 +41,7 @@ export class SelectorPopupManager {
 
   clear({ resumeSelection = true }: { resumeSelection?: boolean } = {}): void {
     const hadPopup =
-      this.popupApp !== null ||
-      this.shadowUi !== null ||
-      this.popupTarget !== null ||
-      this.popupFrame !== null;
+      this.popupApp !== null || this.shadowUi !== null || this.popupTarget !== null || this.popupFrame !== null;
     if (this.popupApp) {
       void unmount(this.popupApp);
       this.popupApp = null;

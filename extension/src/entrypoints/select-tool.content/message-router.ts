@@ -11,7 +11,7 @@ import { forwardScriptRunToMainWorld } from "./script-run-bridge";
 import { getElementInfo } from "./element-info";
 import type { SelectionController } from "./SelectionController";
 
-const logger = log.getLogger("select-tool");
+const logger = log.getLogger("message-router");
 
 export const addMessageListener = (ctrl: SelectionController): void => {
   browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
@@ -67,7 +67,10 @@ export const addMessageListener = (ctrl: SelectionController): void => {
           existingCodeLength: payload.existingCode.length,
         });
         safeSendResponse(
-          { opened: false, error: "Timed out while opening record converter popup." } satisfies RecordConverterOpenResult,
+          {
+            opened: false,
+            error: "Timed out while opening record converter popup.",
+          } satisfies RecordConverterOpenResult,
           "timeout",
         );
       }, 4000);
@@ -113,7 +116,8 @@ export const addMessageListener = (ctrl: SelectionController): void => {
     }
 
     if (msg.type === "select:action") {
-      void ctrl.runAction(msg.action)
+      void ctrl
+        .runAction(msg.action)
         .then((result) => sendResponse(result))
         .catch((error: unknown) => {
           const errorMsg = error instanceof Error ? error.message : "Unable to update the selected element.";

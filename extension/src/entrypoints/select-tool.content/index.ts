@@ -4,7 +4,7 @@ import { SelectionController } from "./SelectionController";
 import { addMessageListener } from "./message-router";
 import "@/styles/app.css";
 
-const logger = log.getLogger("select-tool");
+const logger = log.getLogger("select-content-script");
 logger.setLevel("debug", false);
 
 export default defineContentScript({

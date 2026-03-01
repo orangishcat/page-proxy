@@ -6,12 +6,11 @@ import {
   type ScriptRunResponse,
 } from "@/lib/script-runner";
 
-const logger = log.getLogger("select-tool");
+const logger = log.getLogger("run-bridge");
 
 export const scriptRunBridgeTimeoutMs = 1800;
 
-const isWindowSource = (source: MessageEventSource | null): boolean =>
-  source === window || source === null;
+const isWindowSource = (source: MessageEventSource | null): boolean => source === window || source === null;
 
 export const forwardScriptRunToMainWorld = (
   request: ScriptRunRequest,
@@ -45,9 +44,7 @@ export const forwardScriptRunToMainWorld = (
 
   window.addEventListener("message", onMessage);
   timeoutId = globalThis.setTimeout(() => {
-    respond(
-      buildScriptRunResponse(request.requestId, "Script runner did not respond. Reload the page and try again."),
-    );
+    respond(buildScriptRunResponse(request.requestId, "Script runner did not respond. Reload the page and try again."));
   }, scriptRunBridgeTimeoutMs);
 
   logger.debug("window message sent", { type: request.type, requestId: request.requestId });

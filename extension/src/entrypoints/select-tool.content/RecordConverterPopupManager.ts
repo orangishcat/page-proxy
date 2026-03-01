@@ -13,7 +13,7 @@ import RecordPopup from "./RecordPopup.svelte";
 
 type ContentScriptContext = Parameters<typeof createShadowRootUi>[0];
 
-const logger = log.getLogger("select-tool");
+const logger = log.getLogger("record-popup-manager");
 
 export class RecordConverterPopupManager {
   private popupApp: ReturnType<typeof mount> | null = null;

@@ -8,7 +8,7 @@ import {
   selectionStyles,
 } from "@/lib/constants/selection";
 
-const logger = log.getLogger("select-tool");
+const logger = log.getLogger("hover-manager");
 
 const uiBaseFontSizePx = 16;
 const filteredSelectionClasses = new Set([hoverClass, selectedClass, hoveredPreviewClass]);
