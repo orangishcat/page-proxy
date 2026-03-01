@@ -1,4 +1,4 @@
-import log from "loglevel";
+import log from "@/lib/logger";
 import { get, writable } from "svelte/store";
 
 import {
@@ -11,7 +11,6 @@ import {
 } from "../state-storage";
 
 const logger = log.getLogger("record-tool-state");
-logger.setLevel("debug", false);
 
 const timelineLimit = 200;
 let activeTabId: number | null = null;

@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import log from "loglevel";
+import log from "@/lib/logger";
 import type {
   RecordConverterOpenResult,
   SelectElementActionResult,
@@ -30,7 +30,7 @@ export const addMessageListener = (ctrl: SelectionController): void => {
     if (msg.type === "selector:open") {
       ctrl.recordManager.clear();
       void ctrl.selectorManager
-        .open(msg.payload, msg.mode ?? "pp-api")
+        .open(msg.payload, msg.mode ?? "pp-api", msg.initialCssContent)
         .then((opened) => sendResponse({ opened } satisfies SelectorOpenResult))
         .catch(() => sendResponse({ opened: false } satisfies SelectorOpenResult));
       return true;

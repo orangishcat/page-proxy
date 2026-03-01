@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import log from "loglevel";
+import log from "@/lib/logger";
 
 import {
   buildScriptRunResponse,
@@ -16,7 +16,6 @@ const maxScriptRunAttempts = 3;
 const scriptRunRetryDelayMs = 200;
 const scriptRunBroadcastWaitTimeoutMs = 1500;
 const logger = log.getLogger("script-actions");
-logger.setLevel("debug", false);
 
 const toRunResult = (message: string, errorStack: string | null = null): ScriptRunResult => ({
   errors: [message],

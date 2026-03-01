@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import log from "loglevel";
+import log from "@/lib/logger";
 import { get } from "svelte/store";
 
 import type {
@@ -40,7 +40,6 @@ import {
 } from "./devtools";
 
 const logger = log.getLogger("select-tool-sidepanel");
-logger.setLevel("debug", false);
 const selectedElementRecordSuppressionMs = 1000;
 let suppressSelectedElementRecordUntil = 0;
 let suppressNextSelectedElementRecord = false;
@@ -87,7 +86,7 @@ const isSelectorOpenResult = (value: unknown): value is SelectorOpenResult =>
 const isSelectElementActionResult = (value: unknown): value is SelectElementActionResult =>
   isRecord(value) &&
   typeof value.ok === "boolean" &&
-    (value.ok === true || (typeof value.error === "string" && value.error.length > 0));
+  (value.ok === true || (typeof value.error === "string" && value.error.length > 0));
 
 const isElementInfo = (value: unknown): value is ElementInfo => {
   if (!isRecord(value)) {
@@ -311,7 +310,7 @@ export const sendSelectParent = () => {
     });
 };
 
-export const sendSelectorPopup = (mode: SelectorPopupMode = "pp-api") => {
+export const sendSelectorPopup = (mode: SelectorPopupMode = "pp-api", initialCssContent?: string) => {
   logger.debug("request selector popup open", { mode });
   setErrorMessage(null);
   const selection = get(selectedInfo);
@@ -335,6 +334,7 @@ export const sendSelectorPopup = (mode: SelectorPopupMode = "pp-api") => {
           type: "selector:open",
           payload: selection,
           mode,
+          initialCssContent,
         } satisfies SelectToolMessage,
         context.frameId ?? 0,
       ).catch(() => null);
@@ -559,10 +559,7 @@ export const attachSelectionListener = () => {
       if (message.payload) {
         if (!shouldSuppressSelectedElementRecord()) {
           const selectorDetail = message.payload.selector.trim();
-          recordSidepanelAction(
-            "Selected element",
-            selectorDetail.length > 0 ? `selector: ${selectorDetail}` : "",
-          );
+          recordSidepanelAction("Selected element", selectorDetail.length > 0 ? `selector: ${selectorDetail}` : "");
         }
       }
       setErrorMessage(null);
@@ -573,11 +570,7 @@ export const attachSelectionListener = () => {
     refreshDevtoolsIntegrationForActiveTab();
   };
 
-  const updatedListener: Parameters<typeof browser.tabs.onUpdated.addListener>[0] = (
-    _tabId,
-    changeInfo,
-    tab,
-  ) => {
+  const updatedListener: Parameters<typeof browser.tabs.onUpdated.addListener>[0] = (_tabId, changeInfo, tab) => {
     if (!tab.active) {
       return;
     }

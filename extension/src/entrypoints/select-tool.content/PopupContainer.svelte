@@ -27,9 +27,10 @@
     onSave: (payload: SelectorSavePayload) => Promise<SelectorSaveResult>;
     onCancel: () => void;
     mode?: PopupMode;
+    initialCssContent?: string;
   };
 
-  let { info, propertyItems, targetElement, onSave, onCancel, mode = "pp-api" }: Props = $props();
+  let { info, propertyItems, targetElement, onSave, onCancel, mode = "pp-api", initialCssContent }: Props = $props();
 
   let containerEl: HTMLDivElement | undefined = $state();
   let position = $state({ top: 0, left: 0 });
@@ -254,6 +255,7 @@
           {onSave}
           {onCancel}
           {baseSelector}
+          {initialCssContent}
           active={popupMode === "css"}
           onBaseSelectorChange={handleBaseSelectorChange}
           onVisibilityChange={handlePopupVisibilityChange}

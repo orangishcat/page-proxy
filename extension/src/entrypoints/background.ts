@@ -22,7 +22,7 @@ import {
   toStorageKey,
   type StoredToolState,
 } from "@/lib/stored-tool-state";
-import log from "loglevel";
+import log from "@/lib/logger";
 
 type StoredStateMatch = {
   scriptName: string;
@@ -40,9 +40,6 @@ const defaultScriptConfig = {
   defineBlockEnd: defaultDefineBlockEnd,
 } as const;
 const logger = log.getLogger("background");
-logger.setLevel("debug", false);
-
-
 
 const listStoredToolStates = async () => {
   const allValues = await browser.storage.local.get(null);
@@ -188,15 +185,13 @@ const isNoReceiverError = (error: unknown) => {
 };
 
 const sendRunRequestToTab = (tabId: number, code: string) =>
-  browser.tabs
-    .sendMessage(tabId, buildRunRequest(code), { frameId: 0 })
-    .catch((error: unknown) => {
-      if (!isNoReceiverError(error)) {
-        throw error;
-      }
+  browser.tabs.sendMessage(tabId, buildRunRequest(code), { frameId: 0 }).catch((error: unknown) => {
+    if (!isNoReceiverError(error)) {
+      throw error;
+    }
 
-      return browser.tabs.sendMessage(tabId, buildRunRequest(code));
-    });
+    return browser.tabs.sendMessage(tabId, buildRunRequest(code));
+  });
 
 const runScriptInTab = async (tabId: number, code: string) => {
   const userscriptStatus = await ensureCodeRunnerUserscript();
@@ -342,20 +337,21 @@ export default defineBackground(() => {
     void sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   }
 
-  const toolbarAction = (
-    browser as typeof browser & {
-      action?: {
-        onClicked?: {
-          addListener: (listener: () => void) => void;
+  const toolbarAction =
+    (
+      browser as typeof browser & {
+        action?: {
+          onClicked?: {
+            addListener: (listener: () => void) => void;
+          };
         };
-      };
-      browserAction?: {
-        onClicked?: {
-          addListener: (listener: () => void) => void;
+        browserAction?: {
+          onClicked?: {
+            addListener: (listener: () => void) => void;
+          };
         };
-      };
-    }
-  ).action ??
+      }
+    ).action ??
     (
       browser as typeof browser & {
         browserAction?: {

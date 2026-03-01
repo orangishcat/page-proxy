@@ -6,6 +6,7 @@
   import { sendSelectorPopup } from "./select-tool/actions";
   import type { SelectorsToolEntry } from "./selectors/state";
   import { selectorEntriesDisplay } from "./selectors/state";
+  import Button from "@/lib/components/Button.svelte";
 
   const actionMenuClasses =
     "z-20 min-w-36 rounded-md border border-gray-300 bg-gray-50 p-1 text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100";
@@ -24,7 +25,7 @@
   };
 
   const handleEditEntry = (entry: SelectorsToolEntry) => {
-    sendSelectorPopup(entry.mode);
+    sendSelectorPopup(entry.mode, entry.cssText);
   };
 
   onDestroy(() => {
@@ -48,7 +49,9 @@
           >
             <div class="flex w-full items-center gap-2 px-3 py-2 hover:bg-[#37332c]">
               <Collapsible.Trigger class="flex min-w-0 flex-1 items-center gap-2 text-left">
-                <span class="w-3 shrink-0 text-center text-2xl text-gray-300 transition-transform duration-200 group-data-[state=open]:rotate-90">
+                <span
+                  class="w-3 shrink-0 text-center text-2xl text-gray-300 transition-transform duration-200 group-data-[state=open]:rotate-90"
+                >
                   ▸
                 </span>
                 <span class="truncate text-sm text-accent-500">{entry.name}</span>
@@ -56,15 +59,14 @@
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger>
                   {#snippet child({ props })}
-                    <button
+                    <Button
                       {...props}
-                      type="button"
-                      class="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition hover:bg-[#464036] hover:text-gray-200"
+                      variant="outline"
                       aria-label={`Open actions for ${entry.name}`}
                       onclick={(event) => event.stopPropagation()}
                     >
                       <span class="text-base leading-none">...</span>
-                    </button>
+                    </Button>
                   {/snippet}
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal>

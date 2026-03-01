@@ -1,15 +1,10 @@
-import log from "loglevel";
+import log from "@/lib/logger";
 import { defineContentScript } from "wxt/utils/define-content-script";
 import { SelectionController } from "./SelectionController";
 import { addMessageListener } from "./message-router";
 import "@/styles/app.css";
 
-const originalMethodFactory = log.methodFactory;
-log.methodFactory = (methodName, level, loggerName) => (message) =>
-  originalMethodFactory(methodName, level, loggerName)(`[${loggerName.toString()}] ${message}`);
-
 const logger = log.getLogger("select-content-script");
-logger.setLevel("debug", false);
 
 export default defineContentScript({
   matches: ["<all_urls>"],

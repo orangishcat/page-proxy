@@ -9,6 +9,7 @@ export type StoredSelectorEntry = {
   ruleKeys: string[];
   rules?: string[];
   mode?: "pp-api" | "css";
+  cssText?: string;
 };
 
 export type StoredToolState = {
@@ -40,11 +41,12 @@ export const coerceStoredSelectorEntries = (value: unknown): StoredSelectorEntry
   const entries: StoredSelectorEntry[] = [];
   value.forEach((entry) => {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) return;
-    const data = entry as { name?: unknown; ruleKeys?: unknown; rules?: unknown; mode?: unknown };
+    const data = entry as { name?: unknown; ruleKeys?: unknown; rules?: unknown; mode?: unknown; cssText?: unknown };
     if (typeof data.name !== "string" || !isStringArray(data.ruleKeys)) return;
     const rules = isStringArray(data.rules) ? data.rules : undefined;
     const mode = data.mode === "pp-api" || data.mode === "css" ? data.mode : undefined;
-    entries.push({ name: data.name, ruleKeys: data.ruleKeys, rules, mode });
+    const cssText = typeof data.cssText === "string" ? data.cssText : undefined;
+    entries.push({ name: data.name, ruleKeys: data.ruleKeys, rules, mode, cssText });
   });
   return entries;
 };

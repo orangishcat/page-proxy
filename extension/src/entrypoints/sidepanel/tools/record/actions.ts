@@ -1,4 +1,4 @@
-import log from "loglevel";
+import log from "@/lib/logger";
 import { get } from "svelte/store";
 
 import type { RecordConverterOpenResult, SelectToolMessage } from "@/lib/selection";
@@ -8,7 +8,6 @@ import { setErrorMessage } from "../tool-errors";
 import { isRestrictedUrl, readActiveTabContext, sendSelectToolMessage } from "../select-tool/content-messaging";
 
 const logger = log.getLogger("record-tool-actions");
-logger.setLevel("debug", false);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);

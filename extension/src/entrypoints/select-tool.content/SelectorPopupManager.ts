@@ -1,7 +1,7 @@
 import { mount, unmount } from "svelte";
 import { browser } from "wxt/browser";
 import { createShadowRootUi } from "wxt/utils/content-script-ui/shadow-root";
-import log from "loglevel";
+import log from "@/lib/logger";
 import { buildPropertyList } from "@/lib/utils/element-info";
 import { noSelectClass, contentUiRootClass, selectedClass } from "@/lib/constants/selection";
 import type {
@@ -112,7 +112,7 @@ export class SelectorPopupManager {
     return { ok: false, error: result?.error ?? "Unable to save selector to the editor." };
   }
 
-  async open(requestedInfo: ElementInfo | null, mode: SelectorPopupMode = "pp-api"): Promise<boolean> {
+  async open(requestedInfo: ElementInfo | null, mode: SelectorPopupMode = "pp-api", initialCssContent?: string): Promise<boolean> {
     const target = this.resolveTarget(requestedInfo);
     if (!target) {
       logger.debug("selector popup open skipped", { reason: "no-target" });
@@ -153,6 +153,7 @@ export class SelectorPopupManager {
             onSave: (p: SelectorSavePayload) => this.handleSave(p),
             onCancel: () => this.clear(),
             mode,
+            initialCssContent,
           },
         });
         this.popupApp = app;

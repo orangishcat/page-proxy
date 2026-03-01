@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import log from "loglevel";
+import log from "@/lib/logger";
 import {
   devtoolsSelectionPortName,
   type DevtoolsCommandAction,
@@ -30,7 +30,6 @@ type PendingCommand = {
 };
 const commandTimeoutMs = 1200;
 const logger = log.getLogger("devtools-selection");
-logger.setLevel("debug", false);
 
 const buildRequestId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -165,7 +164,10 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
     notifySelectionChanged(tabId, selection);
   };
 
-  const sendCommandToTab = (tabId: number, action: DevtoolsCommandAction): Promise<DevtoolsSelectionResponseMessage> => {
+  const sendCommandToTab = (
+    tabId: number,
+    action: DevtoolsCommandAction,
+  ): Promise<DevtoolsSelectionResponseMessage> => {
     const port = getAnyPortForTab(tabId);
     if (!port) {
       return Promise.resolve({

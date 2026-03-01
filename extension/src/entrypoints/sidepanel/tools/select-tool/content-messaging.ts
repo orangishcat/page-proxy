@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import log from "loglevel";
+import log from "@/lib/logger";
 
 import type { SelectToolMessage } from "@/lib/selection";
 
@@ -9,7 +9,6 @@ export type ActiveTabContext = {
 };
 
 const logger = log.getLogger("select-tool-messaging");
-logger.setLevel("debug", false);
 
 export const isRestrictedUrl = (url: string | undefined) => {
   if (!url) {

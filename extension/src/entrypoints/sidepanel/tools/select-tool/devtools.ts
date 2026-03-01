@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import log from "loglevel";
+import log from "@/lib/logger";
 
 import type {
   DevtoolsSelectionChangedRuntimeMessage,
@@ -9,7 +9,6 @@ import type {
 } from "@/lib/devtools-selection";
 
 const logger = log.getLogger("select-tool-devtools");
-logger.setLevel("debug", false);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -21,10 +20,16 @@ const isDevtoolsSelectionResponse = (value: unknown): value is DevtoolsSelection
   isRecord(value) && typeof value.ok === "boolean" && "selection" in value;
 
 export const isDevtoolsSelectionChangedMessage = (value: unknown): value is DevtoolsSelectionChangedRuntimeMessage =>
-  isRecord(value) && value.type === "devtools:selection:changed" && typeof value.tabId === "number" && "selection" in value;
+  isRecord(value) &&
+  value.type === "devtools:selection:changed" &&
+  typeof value.tabId === "number" &&
+  "selection" in value;
 
 export const isDevtoolsStatusChangedMessage = (value: unknown): value is DevtoolsSelectionStatusChangedRuntimeMessage =>
-  isRecord(value) && value.type === "devtools:status:changed" && typeof value.tabId === "number" && typeof value.open === "boolean";
+  isRecord(value) &&
+  value.type === "devtools:status:changed" &&
+  typeof value.tabId === "number" &&
+  typeof value.open === "boolean";
 
 export const requestDevtoolsStatus = async (tabId: number) => {
   logger.debug("request devtools status", { tabId });

@@ -46,6 +46,7 @@
     onCancel: () => void;
     baseSelector: string;
     active?: boolean;
+    initialCssContent?: string;
     onBaseSelectorChange?: (nextSelector: string) => void;
     onVisibilityChange?: (hidden: boolean) => void;
   };
@@ -58,6 +59,7 @@
     onCancel,
     baseSelector,
     active = false,
+    initialCssContent,
     onBaseSelectorChange,
     onVisibilityChange,
   }: Props = $props();
@@ -476,8 +478,11 @@
 
     const initialDeclarationValue = readDeclarationSourceFromCssEditor(cssEditorValue);
     const initialSelectorValue = baseSelector.trim() || info.selector;
+    const trimmedInitialCssContent = initialCssContent?.trim() ?? "";
     const initialCssEditorValue =
-      cssEditorValue.trim().length > 0 ? cssEditorValue : buildCssDocument(initialSelectorValue, initialDeclarationValue);
+      cssEditorValue.trim().length > 0 ? cssEditorValue :
+      trimmedInitialCssContent.length > 0 ? trimmedInitialCssContent :
+      buildCssDocument(initialSelectorValue, initialDeclarationValue);
 
     cssEditorValue = initialCssEditorValue;
     cssEditorHandle = createMonacoEditor(cssEditorHost, initialCssEditorValue, {

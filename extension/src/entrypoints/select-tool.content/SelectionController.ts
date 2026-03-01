@@ -1,6 +1,6 @@
 import { browser } from "wxt/browser";
 import { createShadowRootUi } from "wxt/utils/content-script-ui/shadow-root";
-import log from "loglevel";
+import log from "@/lib/logger";
 import type { SelectElementAction, SelectElementActionResult, SelectToolMessage } from "@/lib/selection";
 import type { SidepanelShortcutMessage } from "@/lib/sidepanel-shortcuts";
 import { isEditableTarget } from "@/lib/utils/dom-checks";

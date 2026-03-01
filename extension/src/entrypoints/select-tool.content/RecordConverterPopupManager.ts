@@ -1,7 +1,7 @@
 import { mount, unmount } from "svelte";
 import { browser } from "wxt/browser";
 import { createShadowRootUi } from "wxt/utils/content-script-ui/shadow-root";
-import log from "loglevel";
+import log from "@/lib/logger";
 import { noSelectClass, contentUiRootClass } from "@/lib/constants/selection";
 import type {
   RecordConverterOpenPayload,

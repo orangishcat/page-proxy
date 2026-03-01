@@ -57,6 +57,7 @@ export type ScriptRunSelectorEntry = {
   ruleKeys: string[];
   rules: string[];
   mode?: ScriptRunSelectorMode;
+  cssText?: string;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

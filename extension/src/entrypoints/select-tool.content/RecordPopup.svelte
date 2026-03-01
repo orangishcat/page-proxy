@@ -1,6 +1,6 @@
 <script lang="ts">
   import Button from "@/lib/components/Button.svelte";
-  import log from "loglevel";
+  import log from "@/lib/logger";
   import { onDestroy, onMount } from "svelte";
   import { createMonacoEditor, type MonacoCodeEditorHandle, updateMonacoEditorValue } from "@/lib/code-editor";
   import { MONACO_WORKER_ERROR_EVENT } from "@/lib/code-editor/environment";
@@ -27,10 +27,7 @@
   import { generateElementSelectorMatches } from "./popup/selector";
   import { readBaseSelectorFromCode, replaceBaseSelectorInCode } from "./popup/base-selector";
   import { attachPopupKeyboardOwnership, POPUP_SHARED_STYLE } from "./popup/container-shared";
-  import {
-    createSelectorMatchPreviewController,
-    type SelectorMatchPreviewController,
-  } from "./popup/selector-preview";
+  import { createSelectorMatchPreviewController, type SelectorMatchPreviewController } from "./popup/selector-preview";
 
   type Props = {
     payload: RecordConverterOpenPayload;
@@ -40,7 +37,6 @@
 
   let { payload, onCancel, onSave }: Props = $props();
   const logger = log.getLogger("record-popup");
-  logger.setLevel("debug", false);
 
   const normalized = $derived.by(() => normalizeRecordTimeline(payload.timeline));
   const supportedSteps = $derived.by(() => normalized.supportedSteps);

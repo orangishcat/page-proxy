@@ -7,6 +7,7 @@ export type SelectorsToolEntry = {
   ruleCount: number;
   rules: string[];
   mode: "pp-api" | "css";
+  cssText?: string;
 };
 
 export const selectorEntriesDisplay = derived(selectorEntries, (entries): SelectorsToolEntry[] =>
@@ -20,6 +21,7 @@ export const selectorEntriesDisplay = derived(selectorEntries, (entries): Select
       ruleCount: rules.length,
       rules,
       mode,
+      cssText: entry.cssText,
     };
   })
 );
