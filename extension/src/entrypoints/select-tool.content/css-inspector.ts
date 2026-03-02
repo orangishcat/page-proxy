@@ -1,3 +1,4 @@
+import * as css from "css-tree";
 import type { FilterOperator } from "./preview-code";
 
 export type CssSelectorPartType =
@@ -22,11 +23,6 @@ export type CssSelectorPart = {
   startOffset: number;
   endOffset: number;
 };
-
-const selectorTokenPattern =
-  /\[[^\]]+\]|::?[a-zA-Z-]+(?:\([^)]*\))?|[#.][a-zA-Z0-9_-]+|\*|[a-zA-Z][a-zA-Z0-9_-]*|[>+~]|,|\s+/g;
-
-const attributePattern = /^\[\s*([^\s~|^$*=\]]+)(?:\s*[~|^$*]?=\s*["']?([^"'`\]]+)["']?)?\s*\]$/;
 
 const parsePseudoToken = (token: string) => {
   const isPseudoElement = token.startsWith("::");
@@ -221,124 +217,86 @@ const buildDescription = (type: CssSelectorPartType, text: string, key: string |
   return "Matches any element.";
 };
 
-const parseToken = (token: string) => {
-  if (/^\s+$/.test(token)) {
-    return {
-      text: " ",
-      displayText: "descendant (space)",
-      type: "descendant" as const,
-      key: null,
-      value: null,
-    };
-  }
-
-  if (token === ",") {
-    return {
-      text: token,
-      displayText: token,
-      type: "group" as const,
-      key: null,
-      value: null,
-    };
-  }
-
-  if (token === "*") {
-    return {
-      text: token,
-      displayText: token,
-      type: "wildcard" as const,
-      key: null,
-      value: null,
-    };
-  }
-
-  if (token === ">" || token === "+" || token === "~") {
-    return {
-      text: token,
-      displayText: token,
-      type: "combinator" as const,
-      key: null,
-      value: null,
-    };
-  }
-
-  if (token.startsWith(".")) {
-    const className = token.slice(1);
-    return {
-      text: token,
-      displayText: token,
-      type: "class" as const,
-      key: "class",
-      value: className,
-    };
-  }
-
-  if (token.startsWith("#")) {
-    const idValue = token.slice(1);
-    return {
-      text: token,
-      displayText: token,
-      type: "id" as const,
-      key: "id",
-      value: idValue,
-    };
-  }
-
-  if (token.startsWith("[")) {
-    const attributeMatch = token.match(attributePattern);
-    return {
-      text: token,
-      displayText: token,
-      type: "attribute" as const,
-      key: attributeMatch?.[1] ?? null,
-      value: attributeMatch?.[2] ?? null,
-    };
-  }
-
-  if (token.startsWith(":")) {
-    return {
-      text: token,
-      displayText: token,
-      type: "pseudo" as const,
-      key: null,
-      value: null,
-    };
-  }
-
-  return {
-    text: token,
-    displayText: token,
-    type: "tag" as const,
-    key: "tag",
-    value: token,
-  };
-};
-
 export const parseCssSelectorParts = (selector: string): CssSelectorPart[] => {
-  if (!selector.trim()) {
+  if (!selector.trim()) return [];
+
+  let ast: css.CssNode;
+  try {
+    ast = css.parse(selector, { context: "selectorList", positions: true });
+  } catch {
     return [];
   }
 
-  const parts: CssSelectorPart[] = [];
-  const matches = selector.matchAll(selectorTokenPattern);
+  if (ast.type !== "SelectorList") return [];
 
-  for (const [index, match] of Array.from(matches).entries()) {
-    const token = match[0];
-    const parsed = parseToken(token);
-    const tokenStartOffset = match.index ?? 0;
-    const tokenEndOffset = tokenStartOffset + token.length;
+  const parts: CssSelectorPart[] = [];
+  let globalIndex = 0;
+
+  const addPart = (
+    text: string,
+    displayText: string,
+    type: CssSelectorPartType,
+    key: string | null,
+    value: string | null,
+    startOffset: number,
+    endOffset: number,
+  ) => {
     parts.push({
-      id: `${index}-${parsed.type}`,
-      text: parsed.text,
-      displayText: parsed.displayText,
-      type: parsed.type,
-      key: parsed.key,
-      value: parsed.value,
-      description: buildDescription(parsed.type, parsed.text, parsed.key, parsed.value),
-      startOffset: tokenStartOffset,
-      endOffset: tokenEndOffset,
+      id: `${globalIndex++}-${type}`,
+      text,
+      displayText,
+      type,
+      key,
+      value,
+      description: buildDescription(type, text, key, value),
+      startOffset,
+      endOffset,
     });
-  }
+  };
+
+  const selectors = ast.children.toArray();
+  selectors.forEach((selectorNode, selectorIndex) => {
+    if (selectorIndex > 0) {
+      const prevEnd = selectors[selectorIndex - 1].loc!.end.offset;
+      addPart(",", ",", "group", null, null, prevEnd, prevEnd + 1);
+    }
+
+    if (selectorNode.type !== "Selector") return;
+    selectorNode.children.forEach((node) => {
+      const start = node.loc?.start.offset ?? 0;
+      const end = node.loc?.end.offset ?? 0;
+      const text = node.loc ? selector.slice(start, end) : "";
+
+      if (node.type === "TypeSelector") {
+        if (node.name === "*") {
+          addPart(text, text, "wildcard", null, null, start, end);
+        } else {
+          addPart(text, text, "tag", "tag", node.name, start, end);
+        }
+      } else if (node.type === "ClassSelector") {
+        addPart(text, text, "class", "class", node.name, start, end);
+      } else if (node.type === "IdSelector") {
+        addPart(text, text, "id", "id", node.name, start, end);
+      } else if (node.type === "AttributeSelector") {
+        const attrKey = node.name.name;
+        const attrValue =
+          node.value?.type === "String"
+            ? node.value.value.replace(/^["']|["']$/g, "")
+            : node.value?.type === "Identifier"
+              ? node.value.name
+              : null;
+        addPart(text, text, "attribute", attrKey, attrValue, start, end);
+      } else if (node.type === "PseudoClassSelector" || node.type === "PseudoElementSelector") {
+        addPart(text, text, "pseudo", null, null, start, end);
+      } else if (node.type === "Combinator") {
+        if (node.name === " ") {
+          addPart(" ", "descendant (space)", "descendant", null, null, start, end);
+        } else {
+          addPart(node.name, node.name, "combinator", null, null, start, end);
+        }
+      }
+    });
+  });
 
   return parts;
 };

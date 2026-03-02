@@ -1,3 +1,6 @@
+import * as acorn from "acorn";
+import { full as walkFull, simple as walkSimple } from "acorn-walk";
+
 type ResolveRecordConverterCollisionsArgs = {
   code: string;
   existingCode: string;
@@ -7,9 +10,6 @@ type ResolveRecordConverterCollisionsResult = {
   finalCode: string;
   renameMap: Record<string, string>;
 };
-
-const identifierPattern = /\b[A-Za-z_$][A-Za-z0-9_$]*\b/g;
-const declarationPattern = /\b(?:const|let|var|function|class)\s+([A-Za-z_$][A-Za-z0-9_$]*)\b/g;
 
 const reservedIdentifiers = new Set([
   "await",
@@ -62,28 +62,51 @@ const reservedIdentifiers = new Set([
 
 const escapeForRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+const parseAst = (source: string) => {
+  try {
+    return acorn.parse(source, { ecmaVersion: "latest", sourceType: "script" });
+  } catch {
+    return null;
+  }
+};
+
 const collectIdentifiers = (source: string) => {
   const identifiers = new Set<string>();
-  for (const match of source.matchAll(identifierPattern)) {
-    const identifier = match[0];
-    if (!reservedIdentifiers.has(identifier)) {
-      identifiers.add(identifier);
+  const ast = parseAst(source);
+  if (!ast) return identifiers;
+  walkFull(ast, (node) => {
+    if (node.type === "Identifier" && !reservedIdentifiers.has(node.name)) {
+      identifiers.add(node.name);
     }
-  }
+  });
   return identifiers;
 };
 
 const collectDeclaredIdentifiers = (source: string) => {
   const identifiers: string[] = [];
   const seen = new Set<string>();
-  for (const match of source.matchAll(declarationPattern)) {
-    const identifier = match[1];
-    if (!identifier || seen.has(identifier) || reservedIdentifiers.has(identifier)) {
-      continue;
+  const ast = parseAst(source);
+  if (!ast) return identifiers;
+
+  const push = (name: string) => {
+    if (!seen.has(name) && !reservedIdentifiers.has(name)) {
+      seen.add(name);
+      identifiers.push(name);
     }
-    seen.add(identifier);
-    identifiers.push(identifier);
-  }
+  };
+
+  walkSimple(ast, {
+    VariableDeclarator(node) {
+      if (node.id.type === "Identifier") push(node.id.name);
+    },
+    FunctionDeclaration(node) {
+      if (node.id) push(node.id.name);
+    },
+    ClassDeclaration(node) {
+      if (node.id) push(node.id.name);
+    },
+  });
+
   return identifiers;
 };
 
