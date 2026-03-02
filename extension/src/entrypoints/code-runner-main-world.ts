@@ -9,6 +9,7 @@ import {
   type ScriptRunResponse
 } from '@/lib/script-runner';
 import {pa, pn, pq, ps, pt, pv} from '@page-proxy/pp';
+import { extractCssSelectorsFromStyleText } from '@/lib/utils/css-rule-parsing';
 
 type PpModuleBindings = {
   pa: typeof pa;
@@ -340,29 +341,6 @@ const toSelectorEntry = (definition: pq.SelectorDefinition<unknown>): ScriptRunS
   };
 };
 
-const normalizeCssSelectorText = (value: string) => value.trim().replace(/\s+/g, ' ');
-
-const extractCssSelectorsFromStyleText = (styleText: string) => {
-  const selectors = new Set<string>();
-  const selectorGroupPattern = /([^{}]+)\{/g;
-
-  Array.from(styleText.matchAll(selectorGroupPattern)).forEach((match) => {
-    const selectorGroup = match[1]?.trim() ?? '';
-    if (!selectorGroup || selectorGroup.startsWith('@')) {
-      return;
-    }
-
-    selectorGroup.split(',').forEach((selectorText) => {
-      const normalizedSelector = normalizeCssSelectorText(selectorText);
-      if (!normalizedSelector || normalizedSelector.startsWith('@')) {
-        return;
-      }
-      selectors.add(normalizedSelector);
-    });
-  });
-
-  return Array.from(selectors).slice(0, maxSelectorRules);
-};
 
 const toCssSelectorEntry = (name: string, selectors: string[]): ScriptRunSelectorEntry => {
   const rules = selectors.length > 0 ? selectors.map((selector) => `selector: ${selector}`) : ['css'];

@@ -1,9 +1,16 @@
 import { cssSelectorGenerator } from "css-selector-generator";
+import { CssSelectorGeneratorOptionsInput } from "css-selector-generator/types/types.js";
 
 const selectorFallback = "body";
 const selectorMatchLimitDefault = 10;
-const selectorBlacklist = [".pp-hover", ".pp-selected", ".pp-hovered", ".pp-no-select-tool", ".pp-*", /\[style(?:[~|^$*]?=)?/i];
-type SelectorGeneratorOptions = NonNullable<Parameters<typeof cssSelectorGenerator>[1]>;
+const selectorBlacklist = [
+  ".pp-hover",
+  ".pp-selected",
+  ".pp-hovered",
+  ".pp-no-select-tool",
+  ".pp-*",
+  /\[style(?:[~|^$*]?=)?/i,
+];
 
 const normalizeSelector = (value: string) => value.trim().replace(/\s+/g, " ");
 
@@ -62,7 +69,7 @@ const normalizeSelectorCandidate = (value: string) => {
   return normalized;
 };
 
-const createSelectorGeneratorOptions = (maxResults: number): SelectorGeneratorOptions => {
+const createSelectorGeneratorOptions = (maxResults: number): CssSelectorGeneratorOptionsInput => {
   return {
     blacklist: selectorBlacklist,
     combineWithinSelector: true,

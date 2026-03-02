@@ -4,11 +4,9 @@
   import { onDestroy, onMount } from "svelte";
   import SelectorPopup from "./SelectorPopup.svelte";
   import CssInspector from "./CssInspector.svelte";
-  import {
-    attachPopupKeyboardOwnership,
-    POPUP_BASE_FONT_SIZE_PX,
-    POPUP_SHARED_STYLE,
-  } from "./popup/container-shared";
+  import { attachPopupKeyboardOwnership, POPUP_BASE_FONT_SIZE_PX, POPUP_SHARED_STYLE } from "./popup/container-shared";
+  import { readBaseSelectorFromCode } from "./popup/base-selector";
+  import { normalizeSelectorFromCssEditor } from "./css-editor-utils";
 
   type PropertyItem = {
     key: string;
@@ -21,16 +19,26 @@
   type PopupMode = "pp-api" | "css";
 
   type Props = {
-    info: ElementInfo;
+    info: ElementInfo | null;
     propertyItems: PropertyItem[];
     targetElement: Element | null;
     onSave: (payload: SelectorSavePayload) => Promise<SelectorSaveResult>;
     onCancel: () => void;
     mode?: PopupMode;
     initialCssContent?: string;
+    initialCode?: string;
   };
 
-  let { info, propertyItems, targetElement, onSave, onCancel, mode = "pp-api", initialCssContent }: Props = $props();
+  let {
+    info,
+    propertyItems,
+    targetElement,
+    onSave,
+    onCancel,
+    mode = "pp-api",
+    initialCssContent,
+    initialCode,
+  }: Props = $props();
 
   let containerEl: HTMLDivElement | undefined = $state();
   let position = $state({ top: 0, left: 0 });
@@ -39,11 +47,36 @@
   let visible = $state(false);
   let popupHidden = $state(false);
   let popupMode = $state<PopupMode>("pp-api");
-  let baseSelector = $derived(info.selector);
+  let baseSelector = $derived.by(() => {
+    const fromCode = readBaseSelectorFromCode(initialCode ?? "");
+    if (fromCode) return fromCode;
+    const fromCss = normalizeSelectorFromCssEditor(initialCssContent ?? "");
+    if (fromCss) return fromCss;
+    if (info?.selector) return info.selector;
+    return "body";
+  });
 
   const updatePosition = () => {
-    if (!containerEl || !targetElement?.isConnected) {
+    if (!containerEl) {
       visible = false;
+      return;
+    }
+
+    if (!targetElement?.isConnected) {
+      // No element to position relative to - center on screen
+      direction = "center";
+      const popupRect = containerEl.getBoundingClientRect();
+      const gap = 0.75 * POPUP_BASE_FONT_SIZE_PX;
+      const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+      const top = (window.innerHeight - popupRect.height) * 0.5;
+      const left = (window.innerWidth - popupRect.width) * 0.5;
+      const maxLeft = window.innerWidth - popupRect.width - gap;
+      const maxTop = window.innerHeight - popupRect.height - gap;
+      position = {
+        top: clamp(top, gap, Math.max(gap, maxTop)),
+        left: clamp(left, gap, Math.max(gap, maxLeft)),
+      };
+      visible = true;
       return;
     }
 
@@ -241,6 +274,7 @@
           {onSave}
           {onCancel}
           {baseSelector}
+          initialCode={mode === "pp-api" ? initialCode : undefined}
           active={popupMode === "pp-api"}
           onBaseSelectorChange={handleBaseSelectorChange}
           onVisibilityChange={handlePopupVisibilityChange}
@@ -256,6 +290,7 @@
           {onCancel}
           {baseSelector}
           {initialCssContent}
+          initialCode={mode === "css" ? initialCode : undefined}
           active={popupMode === "css"}
           onBaseSelectorChange={handleBaseSelectorChange}
           onVisibilityChange={handlePopupVisibilityChange}

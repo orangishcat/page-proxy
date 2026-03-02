@@ -1,5 +1,4 @@
 <script lang="ts">
-  import Button from "@/lib/components/Button.svelte";
   import type { ElementInfo, SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
   import { Tooltip } from "bits-ui";
   import { RotateCw } from "lucide-svelte";
@@ -20,6 +19,7 @@
     upsertCssDeclaration,
   } from "./css-editor-utils";
   import { getSelectorPreviewState } from "./popup/css-preview";
+  import log from "@/lib/logger";
 
   type PropertyItem = {
     key: string;
@@ -39,7 +39,7 @@
   };
 
   type Props = {
-    info: ElementInfo;
+    info: ElementInfo | null;
     propertyItems: PropertyItem[];
     targetElement: Element | null;
     onSave: (payload: SelectorSavePayload) => Promise<SelectorSaveResult>;
@@ -47,6 +47,7 @@
     baseSelector: string;
     active?: boolean;
     initialCssContent?: string;
+    initialCode?: string;
     onBaseSelectorChange?: (nextSelector: string) => void;
     onVisibilityChange?: (hidden: boolean) => void;
   };
@@ -60,9 +61,12 @@
     baseSelector,
     active = false,
     initialCssContent,
+    initialCode,
     onBaseSelectorChange,
     onVisibilityChange,
   }: Props = $props();
+
+  const logger = log.getLogger("css-inspector");
 
   let cssEditorHost = $state<HTMLDivElement | null>(null);
   let cssEditorHandle = $state<MonacoCodeEditorHandle | null>(null);
@@ -130,7 +134,9 @@
   );
 
   const baseComputedStyleEntries = $derived.by(() => readComputedStyleEntries(targetElement));
-  const cssDeclarationEntries = $derived.by(() => parseCssDeclarations(readDeclarationSourceFromCssEditor(cssEditorValue)));
+  const cssDeclarationEntries = $derived.by(() =>
+    parseCssDeclarations(readDeclarationSourceFromCssEditor(cssEditorValue)),
+  );
 
   const cssComputedStyleProperties = $derived.by<CssComputedStyleProperty[]>(() => {
     const baseValueByKey = new Map(baseComputedStyleEntries.map((entry) => [entry.key, entry.value]));
@@ -477,12 +483,25 @@
     }
 
     const initialDeclarationValue = readDeclarationSourceFromCssEditor(cssEditorValue);
-    const initialSelectorValue = baseSelector.trim() || info.selector;
+    const initialSelectorValue = baseSelector.trim() || info?.selector || "body";
     const trimmedInitialCssContent = initialCssContent?.trim() ?? "";
+    const trimmedInitialCode = initialCode?.trim() ?? "";
     const initialCssEditorValue =
-      cssEditorValue.trim().length > 0 ? cssEditorValue :
-      trimmedInitialCssContent.length > 0 ? trimmedInitialCssContent :
-      buildCssDocument(initialSelectorValue, initialDeclarationValue);
+      cssEditorValue.trim().length > 0
+        ? cssEditorValue
+        : trimmedInitialCode.length > 0
+          ? trimmedInitialCode
+          : trimmedInitialCssContent.length > 0
+            ? trimmedInitialCssContent
+            : buildCssDocument(initialSelectorValue, initialDeclarationValue);
+
+    logger.debug("Creating CSS Inspector editor", {
+      initialDeclarationValue,
+      initialSelectorValue,
+      trimmedInitialCssContent,
+      trimmedInitialCode,
+      initialCssEditorValue,
+    });
 
     cssEditorValue = initialCssEditorValue;
     cssEditorHandle = createMonacoEditor(cssEditorHost, initialCssEditorValue, {
@@ -701,14 +720,12 @@
           class="flex-1 rounded-md py-2 px-4 text-sm font-medium bg-accent-500 text-gray-950 hover:bg-accent-400 transition-colors cursor-pointer"
           >Save</button
         >
-        <Button
-          variant="outline"
+        <button
+          type="button"
           onclick={onCancel}
-          class="!rounded-md !border !border-white/20 !px-3 !py-2 !text-gray-500 hover:!bg-white/10 hover:!text-gray-300 dark:!text-gray-400 dark:hover:!text-gray-200"
-          aria-label="Close popup"
+          class="flex-1 rounded-md py-2 px-4 text-sm font-medium bg-transparent text-gray-100 border border-white/20 hover:bg-white/10 transition-colors cursor-pointer"
+          >Cancel</button
         >
-          x
-        </Button>
       </div>
     </div>
 
@@ -730,120 +747,122 @@
           <div class="h-14 text-xs leading-5 text-gray-500">Place the text caret on a selector part to inspect it.</div>
         {/if}
 
-      <div class="flex items-center justify-between gap-2">
-        <div class="text-xs uppercase tracking-wide text-gray-500">Properties</div>
-        <input
-          type="search"
-          bind:value={propertySearchTerm}
-          placeholder="Search"
-          class="h-6 w-28 rounded border border-white/15 bg-white/5 px-2 text-xs text-gray-100 placeholder:text-gray-500 focus:border-white/25 focus:outline-none"
-          aria-label="Search CSS inspector properties"
-        />
-      </div>
-
-      <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
-        <div class="flex flex-col gap-2">
-          {#each filteredPropertyItems as item (item.key)}
-            <div class="flex justify-between items-center rounded-md border border-transparent px-2 py-1 hover:bg-white/10">
-              <CopyablePropertyText text={item.key} align="left" class="flex-1 min-w-0 text-accent-500" />
-              <CopyablePropertyText
-                text={item.value}
-                displayText={item.value.length > 18 ? `${item.value.length} chars` : truncate(item.value, 30)}
-                title={item.value}
-                class="max-w-28 text-secondary-500"
-              />
-            </div>
-          {/each}
-
-          {#if filteredPropertyItems.length === 0}
-            <div class="text-xs text-gray-500 text-center p-2">No properties available.</div>
-          {/if}
-
-          <hr class="my-1 border-gray-800" />
-
-          {#each filteredComputedStyleProperties as property (property.key)}
-            {@const currentValue = getDraftValue(property.key, property.value)}
-            {@const inputWidthCh = Math.max(5, currentValue.length + 1)}
-            <div
-              class={`relative flex justify-between items-center gap-2 rounded-md border px-2 py-1 overflow-visible transition-colors ${property.edited ? "border-accent-400/40 bg-accent-500/10" : "border-transparent hover:bg-white/10"}`}
-              role="button"
-              tabindex="0"
-              onkeydown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  focusComputedValueInput(property.key);
-                }
-              }}
-              onclick={() => focusComputedValueInput(property.key)}
-            >
-              {#if property.edited}
-                <button
-                  type="button"
-                  class="absolute left-1 top-1/2 -translate-y-1/2 inline-flex h-4 w-4 items-center justify-center rounded text-accent-300 hover:bg-accent-400/20"
-                  onclick={(event) => {
-                    event.stopPropagation();
-                    revertComputedValue(property.key);
-                  }}
-                  aria-label={`Revert ${property.key}`}
-                >
-                  <RotateCw class="h-3.5 w-3.5 -scale-x-100 text-gray-300 cursor-pointer" strokeWidth={2.75} />
-                </button>
-              {/if}
-
-              <CopyablePropertyText
-                text={property.key}
-                align="left"
-                class={`flex-1 min-w-0 text-accent-500 ${property.edited ? "pl-5" : ""}`}
-                stopPropagation={true}
-              />
-
-              <Tooltip.Root>
-                <Tooltip.Trigger>
-                  {#snippet child({ props })}
-                    <input
-                      {...props}
-                      type="text"
-                      use:computedValueInput={property.key}
-                      value={currentValue}
-                      style={`width: ${inputWidthCh}ch;`}
-                      class="h-6 shrink-0 rounded border border-transparent bg-transparent px-1 font-mono text-xs text-secondary-500 text-right hover:overflow-visible focus:border-white/20 focus:bg-white/5 focus:outline-none"
-                      onclick={(event) => event.stopPropagation()}
-                      oninput={(event) => setDraftValue(property.key, event.currentTarget.value)}
-                      onblur={() => commitComputedValue(property.key, property.value)}
-                      onkeydown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          commitComputedValue(property.key, property.value);
-                          event.currentTarget.blur();
-                        }
-                        if (event.key === "Escape") {
-                          event.preventDefault();
-                          clearDraftValue(property.key);
-                          event.currentTarget.blur();
-                        }
-                      }}
-                      aria-label={`Edit ${property.key}`}
-                    />
-                  {/snippet}
-                </Tooltip.Trigger>
-                <Tooltip.Portal>
-                  <Tooltip.Content
-                    sideOffset={6}
-                    class="max-w-96 break-all rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-caption text-gray-100 shadow-lg"
-                  >
-                    {currentValue}
-                    <Tooltip.Arrow class="fill-gray-900" />
-                  </Tooltip.Content>
-                </Tooltip.Portal>
-              </Tooltip.Root>
-            </div>
-          {/each}
-
-          {#if filteredComputedStyleProperties.length === 0}
-            <div class="text-xs text-gray-500 text-center p-2">No computed styles available.</div>
-          {/if}
+        <div class="flex items-center justify-between gap-2">
+          <div class="text-xs uppercase tracking-wide text-gray-500">Properties</div>
+          <input
+            type="search"
+            bind:value={propertySearchTerm}
+            placeholder="Search"
+            class="h-6 w-28 rounded border border-white/15 bg-white/5 px-2 text-xs text-gray-100 placeholder:text-gray-500 focus:border-white/25 focus:outline-none"
+            aria-label="Search CSS inspector properties"
+          />
         </div>
-      </div>
+
+        <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
+          <div class="flex flex-col gap-2">
+            {#each filteredPropertyItems as item (item.key)}
+              <div
+                class="flex justify-between items-center rounded-md border border-transparent px-2 py-1 hover:bg-white/10"
+              >
+                <CopyablePropertyText text={item.key} align="left" class="flex-1 min-w-0 text-accent-500" />
+                <CopyablePropertyText
+                  text={item.value}
+                  displayText={item.value.length > 18 ? `${item.value.length} chars` : truncate(item.value, 30)}
+                  title={item.value}
+                  class="max-w-28 text-secondary-500"
+                />
+              </div>
+            {/each}
+
+            {#if filteredPropertyItems.length === 0}
+              <div class="text-xs text-gray-500 text-center p-2">No properties available.</div>
+            {/if}
+
+            <hr class="my-1 border-gray-800" />
+
+            {#each filteredComputedStyleProperties as property (property.key)}
+              {@const currentValue = getDraftValue(property.key, property.value)}
+              {@const inputWidthCh = Math.max(5, currentValue.length + 1)}
+              <div
+                class={`relative flex justify-between items-center gap-2 rounded-md border px-2 py-1 overflow-visible transition-colors ${property.edited ? "border-accent-400/40 bg-accent-500/10" : "border-transparent hover:bg-white/10"}`}
+                role="button"
+                tabindex="0"
+                onkeydown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    focusComputedValueInput(property.key);
+                  }
+                }}
+                onclick={() => focusComputedValueInput(property.key)}
+              >
+                {#if property.edited}
+                  <button
+                    type="button"
+                    class="absolute left-1 top-1/2 -translate-y-1/2 inline-flex h-4 w-4 items-center justify-center rounded text-accent-300 hover:bg-accent-400/20"
+                    onclick={(event) => {
+                      event.stopPropagation();
+                      revertComputedValue(property.key);
+                    }}
+                    aria-label={`Revert ${property.key}`}
+                  >
+                    <RotateCw class="h-3.5 w-3.5 -scale-x-100 text-gray-300 cursor-pointer" strokeWidth={2.75} />
+                  </button>
+                {/if}
+
+                <CopyablePropertyText
+                  text={property.key}
+                  align="left"
+                  class={`flex-1 min-w-0 text-accent-500 ${property.edited ? "pl-5" : ""}`}
+                  stopPropagation={true}
+                />
+
+                <Tooltip.Root>
+                  <Tooltip.Trigger>
+                    {#snippet child({ props })}
+                      <input
+                        {...props}
+                        type="text"
+                        use:computedValueInput={property.key}
+                        value={currentValue}
+                        style={`width: ${inputWidthCh}ch;`}
+                        class="h-6 shrink-0 rounded border border-transparent bg-transparent px-1 font-mono text-xs text-secondary-500 text-right hover:overflow-visible focus:border-white/20 focus:bg-white/5 focus:outline-none"
+                        onclick={(event) => event.stopPropagation()}
+                        oninput={(event) => setDraftValue(property.key, event.currentTarget.value)}
+                        onblur={() => commitComputedValue(property.key, property.value)}
+                        onkeydown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            commitComputedValue(property.key, property.value);
+                            event.currentTarget.blur();
+                          }
+                          if (event.key === "Escape") {
+                            event.preventDefault();
+                            clearDraftValue(property.key);
+                            event.currentTarget.blur();
+                          }
+                        }}
+                        aria-label={`Edit ${property.key}`}
+                      />
+                    {/snippet}
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      sideOffset={6}
+                      class="max-w-96 break-all rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-caption text-gray-100 shadow-lg"
+                    >
+                      {currentValue}
+                      <Tooltip.Arrow class="fill-gray-900" />
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
+              </div>
+            {/each}
+
+            {#if filteredComputedStyleProperties.length === 0}
+              <div class="text-xs text-gray-500 text-center p-2">No computed styles available.</div>
+            {/if}
+          </div>
+        </div>
 
         <div class="mt-auto space-y-4">
           {#if hasNthOfTypeRule}
@@ -860,8 +879,9 @@
           {/if}
 
           <p class="text-xs text-gray-500">
-            Hold <code>z</code> to highlight {formatMatchingElementsLabel(matchingElementCount)
-            }{isCssEditorFocused ? " (unfocus code editor first)" : ""}
+            Hold <code>z</code> to highlight {formatMatchingElementsLabel(matchingElementCount)}{isCssEditorFocused
+              ? " (unfocus code editor first)"
+              : ""}
           </p>
           <p class="text-xs text-gray-500">
             Hold <code>x</code> to preview applied CSS styles{isCssEditorFocused ? " (unfocus code editor first)" : ""}

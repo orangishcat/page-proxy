@@ -105,6 +105,7 @@ export type SelectToolMessage =
       payload: ElementInfo | null;
       mode?: SelectorPopupMode;
       initialCssContent?: string;
+      initialCode?: string;
     }
   | {
       type: "record:converter:open";

@@ -30,7 +30,7 @@ export const addMessageListener = (ctrl: SelectionController): void => {
     if (msg.type === "selector:open") {
       ctrl.recordManager.clear();
       void ctrl.selectorManager
-        .open(msg.payload, msg.mode ?? "pp-api", msg.initialCssContent)
+        .open(msg.payload, msg.mode ?? "pp-api", msg.initialCssContent, msg.initialCode)
         .then((opened) => sendResponse({ opened } satisfies SelectorOpenResult))
         .catch(() => sendResponse({ opened: false } satisfies SelectorOpenResult));
       return true;

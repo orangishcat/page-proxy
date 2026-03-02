@@ -3,17 +3,25 @@ export type SelectorPreviewState = {
   error: string | null;
 };
 
-export const getSelectorPreviewState = (selector: string, excludedAncestorSelector = ".pp-no-select-tool"): SelectorPreviewState => {
+const isValidSelector = (selector: string): boolean => {
+  try {
+    document.querySelector(selector);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const getSelectorPreviewState = (
+  selector: string,
+  excludedAncestorSelector = ".pp-no-select-tool",
+): SelectorPreviewState => {
   const normalizedSelector = selector.trim();
   if (!normalizedSelector) {
     return { matchingElements: [], error: "CSS selector is invalid." };
   }
 
-  if (typeof CSS === "undefined" || typeof CSS.supports !== "function") {
-    return { matchingElements: [], error: "CSS selector is invalid." };
-  }
-
-  if (!CSS.supports(`selector(${normalizedSelector})`)) {
+  if (!isValidSelector(normalizedSelector)) {
     return { matchingElements: [], error: "CSS selector is invalid." };
   }
 

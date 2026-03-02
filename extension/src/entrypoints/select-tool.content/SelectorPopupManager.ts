@@ -12,6 +12,8 @@ import type {
   SelectToolMessage,
 } from "@/lib/selection";
 import { ensureSelectionStyles } from "./HoverManager";
+import { readBaseSelectorFromCode } from "./popup/base-selector";
+import { normalizeSelectorFromCssEditor } from "./css-editor-utils";
 import PopupContainer from "./PopupContainer.svelte";
 
 type ContentScriptContext = Parameters<typeof createShadowRootUi>[0];
@@ -112,12 +114,25 @@ export class SelectorPopupManager {
     return { ok: false, error: result?.error ?? "Unable to save selector to the editor." };
   }
 
-  async open(requestedInfo: ElementInfo | null, mode: SelectorPopupMode = "pp-api", initialCssContent?: string): Promise<boolean> {
-    const target = this.resolveTarget(requestedInfo);
-    if (!target) {
-      logger.debug("selector popup open skipped", { reason: "no-target" });
-      return false;
-    }
+  private resolveTargetFromSelector(selector: string | null | undefined): Element | null {
+    if (!selector) return null;
+    const found = document.querySelector(selector);
+    return found?.isConnected ? found : null;
+  }
+
+  async open(
+    requestedInfo: ElementInfo | null,
+    mode: SelectorPopupMode = "pp-api",
+    initialCssContent?: string,
+    initialCode?: string,
+  ): Promise<boolean> {
+    let target = this.resolveTarget(requestedInfo);
+    const selector =
+      mode === "pp-api"
+        ? initialCode && readBaseSelectorFromCode(initialCode)
+        : initialCssContent && normalizeSelectorFromCssEditor(initialCssContent);
+
+    if (!target) target = this.resolveTargetFromSelector(selector);
 
     ensureSelectionStyles();
     this.clear({ resumeSelection: false });
@@ -129,13 +144,16 @@ export class SelectorPopupManager {
       this.onPostMessage({ type: "select:mode", enabled: false });
     }
 
-    if (!target.classList.contains(selectedClass)) {
-      this.getSelectedTarget()?.classList.remove(selectedClass);
-      target.classList.add(selectedClass);
+    if (target) {
+      if (!target.classList.contains(selectedClass)) {
+        this.getSelectedTarget()?.classList.remove(selectedClass);
+        target.classList.add(selectedClass);
+      }
+      this.setSelectedTarget(target);
     }
-    this.setSelectedTarget(target);
-    const info = this.getElementInfo(target);
-    const propertyItems = buildPropertyList(info);
+
+    const info = target ? this.getElementInfo(target) : null;
+    const propertyItems = info ? buildPropertyList(info) : [];
     this.popupTarget = target;
 
     this.shadowUi = await createShadowRootUi(this.ctx, {
@@ -154,6 +172,7 @@ export class SelectorPopupManager {
             onCancel: () => this.clear(),
             mode,
             initialCssContent,
+            initialCode,
           },
         });
         this.popupApp = app;
@@ -164,7 +183,11 @@ export class SelectorPopupManager {
     this.shadowUi.mount();
     this.shadowUi.shadowHost.classList.add(noSelectClass, contentUiRootClass);
     logger.debug("selector popup opened", {
-      selector: info.selector,
+      info,
+      target: this.popupTarget,
+      mode,
+      initialCssContent,
+      initialCode,
     });
     return true;
   }

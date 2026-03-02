@@ -10,6 +10,8 @@ import type {
   SelectorOpenResult,
   SelectorPopupMode,
 } from "@/lib/selection";
+import { buildSelectorTemplateCode } from "@/entrypoints/select-tool.content/popup/selector";
+import { buildCssDocument } from "@/entrypoints/select-tool.content/css-editor-utils";
 import type {
   DevtoolsSelectionChangedRuntimeMessage,
   DevtoolsSelectionStatusChangedRuntimeMessage,
@@ -310,11 +312,25 @@ export const sendSelectParent = () => {
     });
 };
 
-export const sendSelectorPopup = (mode: SelectorPopupMode = "pp-api", initialCssContent?: string) => {
+export const sendSelectorPopup = (
+  mode: SelectorPopupMode = "pp-api",
+  initialCssContent?: string,
+  initialCode?: string,
+) => {
   logger.debug("request selector popup open", { mode });
   setErrorMessage(null);
   const selection = get(selectedInfo);
   const context = getSelectionContext();
+
+  const selectorValue = selection?.selector ?? "body";
+  const resolvedInitialCode =
+    initialCode !== undefined
+      ? initialCode
+      : mode === "pp-api"
+        ? buildSelectorTemplateCode(selectorValue)
+        : initialCssContent !== undefined
+          ? initialCssContent
+          : buildCssDocument(selectorValue, "");
 
   void readActiveTabContext()
     .then(async (tabContext) => {
@@ -335,6 +351,7 @@ export const sendSelectorPopup = (mode: SelectorPopupMode = "pp-api", initialCss
           payload: selection,
           mode,
           initialCssContent,
+          initialCode: resolvedInitialCode,
         } satisfies SelectToolMessage,
         context.frameId ?? 0,
       ).catch(() => null);
