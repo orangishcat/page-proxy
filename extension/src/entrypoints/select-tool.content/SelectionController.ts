@@ -102,6 +102,7 @@ export class SelectionController {
     if (!this.selectionEnabled) return;
     this.selectionEnabled = false;
     this.detachListeners();
+    this.clearSelected();
     logger.debug("selection stopped", { reason });
   };
 
@@ -162,6 +163,7 @@ export class SelectionController {
       return;
     }
     this.detachListeners();
+    if (clearSelection) this.clearSelected();
     this.postMessage({ type: "select:hover", payload: null });
     if (clearSelection) this.postMessage({ type: "select:selected", payload: null });
     logger.debug("selection disabled");
@@ -245,7 +247,6 @@ export class SelectionController {
     window.removeEventListener("scroll", this.onViewportChange, { capture: true });
     window.removeEventListener("resize", this.onViewportChange);
     this.hover.dispose();
-    this.clearSelected();
     this.selectorManager.clear({ resumeSelection: false });
     this.recordManager.clear();
     this.clearHoveredSelectorElements();
