@@ -1,12 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
-  "schedule": ["every week on monday"],
-  "packageRules": [
-    {
-      "matchManagers": ["bun"],
-      "groupName": "all dependencies",
-      "groupSlug": "all-deps"
-    }
+  "extends": [
+    "config:recommended"
   ]
 }
