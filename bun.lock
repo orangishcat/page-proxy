@@ -54,7 +54,7 @@
         "tailwindcss": "4.1.18",
         "typescript": "5.9.3",
         "typescript-eslint": "8.53.1",
-        "wxt": "0.20.13",
+        "wxt": "^0.20.13",
       },
     },
     "packages/pp": {

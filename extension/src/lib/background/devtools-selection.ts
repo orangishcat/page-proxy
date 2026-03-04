@@ -268,7 +268,7 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
 
   const handleRuntimeMessage: RuntimeMessageHandler = (message, _sender, sendResponse) => {
     if (isStatusRequestMessage(message)) {
-      logger.debug("runtime message received", { type: message.type, tabId: message.tabId });
+      logger.debug("runtime message received", { message });
       const response: DevtoolsSelectionStatusResponseMessage = {
         open: getAnyPortForTab(message.tabId) !== null,
       };
@@ -277,7 +277,7 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
     }
 
     if (isSelectionGetRequestMessage(message)) {
-      logger.debug("runtime message received", { type: message.type, tabId: message.tabId });
+      logger.debug("runtime message received", { message });
       void sendCommandToTab(message.tabId, "get-selected")
         .then((response) => {
           if (response.selection) {
@@ -297,7 +297,7 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
     }
 
     if (isSelectionParentRequestMessage(message)) {
-      logger.debug("runtime message received", { type: message.type, tabId: message.tabId });
+      logger.debug("runtime message received", { message });
       void sendCommandToTab(message.tabId, "select-parent")
         .then((response) => {
           if (response.selection) {

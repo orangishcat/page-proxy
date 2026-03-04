@@ -7,6 +7,7 @@ import type {
   SelectToolMessage,
 } from "@/lib/selection";
 import { isScriptRunRequest } from "@/lib/script-runner";
+import { isGrantPermissionRequestMessage } from "@/lib/grant-permissions";
 import { forwardScriptRunToMainWorld } from "./script-run-bridge";
 import { getElementInfo } from "./element-info";
 import type { SelectionController } from "./SelectionController";
@@ -18,6 +19,15 @@ export const addMessageListener = (ctrl: SelectionController): void => {
     if (isScriptRunRequest(message)) {
       logger.debug("script run bridge received", { requestId: message.requestId });
       return forwardScriptRunToMainWorld(message, sendResponse);
+    }
+
+    if (isGrantPermissionRequestMessage(message)) {
+      logger.debug("grant:request received", {
+        scriptName: message.payload.scriptName,
+        grants: message.payload.grants,
+      });
+      void ctrl.grantManager.open(message.payload);
+      return false;
     }
 
     if (!message || typeof message !== "object" || typeof (message as { type?: unknown }).type !== "string") {

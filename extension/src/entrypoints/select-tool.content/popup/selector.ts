@@ -71,6 +71,7 @@ const normalizeSelectorCandidate = (value: string) => {
 
 const createSelectorGeneratorOptions = (maxResults: number): CssSelectorGeneratorOptionsInput => {
   return {
+    selectors: ["id", "class", "tag", "attribute", "nthchild", "nthoftype"],
     blacklist: selectorBlacklist,
     combineWithinSelector: true,
     combineBetweenSelectors: true,

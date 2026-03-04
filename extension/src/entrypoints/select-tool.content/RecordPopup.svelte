@@ -27,6 +27,7 @@
   import { generateElementSelectorMatches } from "./popup/selector";
   import { readBaseSelectorFromCode, replaceBaseSelectorInCode } from "./popup/base-selector";
   import { attachPopupKeyboardOwnership, POPUP_SHARED_STYLE } from "./popup/container-shared";
+  import ModalOverlay from "./ModalOverlay.svelte";
   import { createSelectorMatchPreviewController, type SelectorMatchPreviewController } from "./popup/selector-preview";
 
   type Props = {
@@ -505,11 +506,7 @@
   });
 </script>
 
-<div
-  class={`pp-no-select-tool fixed inset-0 z-2147483646 flex items-center justify-center bg-black/60 p-4 ${
-    isSelectElementPreviewing ? "invisible" : ""
-  }`}
->
+<ModalOverlay class={isSelectElementPreviewing ? "invisible" : ""}>
   <section
     bind:this={popupContainerEl}
     class="pp-no-select-tool flex w-full h-full max-w-5xl max-h-[40em] min-h-0 flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-900 text-white shadow-2xl"
@@ -598,4 +595,4 @@
       onSave={handleSave}
     />
   </section>
-</div>
+</ModalOverlay>

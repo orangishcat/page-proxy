@@ -14,6 +14,7 @@ import {
 import { HoverManager, ensureSelectionStyles } from "./HoverManager";
 import { SelectorPopupManager } from "./SelectorPopupManager";
 import { RecordConverterPopupManager } from "./RecordConverterPopupManager";
+import { GrantPermissionPopupManager } from "./GrantPermissionPopupManager";
 import { getElementInfo, describeElementCompact, getEventTarget } from "./element-info";
 import { toPreviewCssSelectors } from "./selector-preview";
 import { runSelectElementAction } from "./element-actions";
@@ -30,6 +31,7 @@ export class SelectionController {
   readonly hover: HoverManager;
   readonly selectorManager: SelectorPopupManager;
   readonly recordManager: RecordConverterPopupManager;
+  readonly grantManager: GrantPermissionPopupManager;
 
   constructor(ctx: ContentScriptContext) {
     this.hover = new HoverManager(
@@ -37,6 +39,7 @@ export class SelectionController {
       (element) => this.postMessage({ type: "select:hover", payload: element ? getElementInfo(element) : null }),
     );
     this.recordManager = new RecordConverterPopupManager(ctx);
+    this.grantManager = new GrantPermissionPopupManager(ctx);
     this.selectorManager = new SelectorPopupManager(
       ctx,
       getElementInfo,

@@ -15,14 +15,13 @@
   import Toolbar from "./Toolbar.svelte";
   import ResizeHandle from "./ResizeHandle.svelte";
   import { attachSelectionListener, sendSelectionToggle } from "./tools/select-tool/actions";
-  import { setErrorMessage } from "./tools/tool-errors";
-  import { isGrantPermissionRequestMessage } from "@/lib/grant-permissions";
+  import { setErrorMessage, setSuccessMessage } from "./tools/tool-errors";
+  import { isGrantResolvedMessage } from "@/lib/grant-permissions";
   import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
   import { codeEditorContent, selectorEntries } from "./tools/code-editor/state";
   import { readToolPanelHeightSetting, saveToolPanelHeightSetting, type ToolId } from "./tools/state-storage";
   import { createToolContext, setToolContext } from "./context/tool.svelte";
   import { createEditorContext, setEditorContext } from "./context/editor.svelte";
-  import { createGrantsContext, setGrantsContext } from "./context/grants.svelte";
   import { isEditableTarget, isCodeEditorFocused } from "@/lib/utils/dom-checks";
   import { getShortcutTool } from "@/lib/utils/keyboard-shortcuts";
   import {
@@ -36,9 +35,6 @@
   setToolContext(toolCtx);
   const editorCtx = createEditorContext();
   setEditorContext(editorCtx);
-  const grantsCtx = createGrantsContext();
-  setGrantsContext(grantsCtx);
-
   const toolComponents: Partial<Record<ToolId, Component>> = {
     select: SelectTool,
     create: CreateTool,
@@ -128,12 +124,13 @@
         return true;
       }
 
-      if (isGrantPermissionRequestMessage(message)) {
-        grantsCtx.request = {
-          scriptName: message.payload.scriptName,
-          grants: message.payload.grants,
-        };
-        setActiveTool("help");
+      if (isGrantResolvedMessage(message)) {
+        editorCtx.allowedGrants = message.payload.allowedGrants;
+        if (message.payload.allow) {
+          setSuccessMessage("Grant permissions saved (reload the page for permissions to take effect).");
+        } else {
+          setErrorMessage("Grant request denied.");
+        }
         return false;
       }
 

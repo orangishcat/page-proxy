@@ -6,6 +6,7 @@ import {
   isGrantPermissionResolveMessage,
   type GrantPermissionRequestMessage,
   type GrantPermissionResolveResult,
+  type GrantResolvedMessage,
 } from "@/lib/grant-permissions";
 import { isRestrictedUrl } from "@/lib/utils/website-glob";
 import { isScriptRunResponse, type ScriptRunRequest } from "@/lib/script-runner";
@@ -250,28 +251,43 @@ const resolveGrantPermissions = async (
 };
 
 const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
+  logger.debug("runMatchingScriptsForTab called", { tabId, url });
+
   if (isRestrictedUrl(url)) {
+    logger.debug("runMatchingScriptsForTab: restricted URL, skipping", { url });
     return 0;
   }
 
   const tabUrl = url ?? "";
   const matchedStates = await findStoredToolStatesForUrl(tabUrl);
+  logger.debug("runMatchingScriptsForTab: matched states", { count: matchedStates.length, tabUrl });
+
   const scripts: string[] = [];
   const permissionRequests = new Map<string, Set<ScriptGrantValue>>();
 
   matchedStates.forEach((entry) => {
     const content = toRunnableScriptContent(entry.state);
     if (!content) {
+      logger.debug("runMatchingScriptsForTab: skipping entry — no runnable content", { scriptName: entry.scriptName });
       return;
     }
 
     const scriptGrants = extractScriptGrants(content);
     if (!scriptGrants.includes(runOnPageLoadGrant)) {
+      logger.debug("runMatchingScriptsForTab: skipping entry — no run-on-page-load grant", {
+        scriptName: entry.scriptName,
+        grants: scriptGrants,
+      });
       return;
     }
 
     const missingGrants = getMissingAllowedGrants(entry.state, scriptGrants);
     if (missingGrants.length > 0) {
+      logger.debug("runMatchingScriptsForTab: grant request needed", {
+        scriptName: entry.scriptName,
+        missingGrants,
+        allowedGrants: entry.state.permissions.allowedGrants,
+      });
       if (!permissionRequests.has(entry.scriptName)) {
         permissionRequests.set(entry.scriptName, new Set<ScriptGrantValue>());
       }
@@ -281,16 +297,28 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
       return;
     }
 
+    logger.debug("runMatchingScriptsForTab: script ready to run", { scriptName: entry.scriptName });
     scripts.push(content);
   });
 
+  logger.debug("runMatchingScriptsForTab: summary", {
+    tabId,
+    tabUrl,
+    permissionRequestCount: permissionRequests.size,
+    runnableScriptCount: scripts.length,
+  });
+
   permissionRequests.forEach((grants, scriptName) => {
-    void requestGrantPermissions({
-      scriptName,
-      grants: Array.from(grants),
-    }).catch(() => {
+    const payload = { scriptName, grants: Array.from(grants) };
+    logger.debug("runMatchingScriptsForTab: sending grant request", { scriptName, grants: payload.grants, tabId });
+    void requestGrantPermissions(payload).catch(() => {
       logger.debug("No open sidepanel receiver for grant request.", { scriptName });
     });
+    void browser.tabs
+      .sendMessage(tabId, { type: "grant:request", payload } satisfies GrantPermissionRequestMessage)
+      .catch(() => {
+        logger.debug("No open content script receiver for grant request.", { scriptName });
+      });
   });
 
   if (scripts.length === 0) {
@@ -320,9 +348,18 @@ export default defineBackground(() => {
       );
     }
 
-    void resolveGrantPermissions(message.payload.scriptName, message.payload.grants, message.payload.allow)
+    const allow = message.payload.allow;
+    void resolveGrantPermissions(message.payload.scriptName, message.payload.grants, allow)
       .then((result) => {
         sendResponse(result);
+        if (result.ok) {
+          void browser.runtime
+            .sendMessage({
+              type: "grant:resolved",
+              payload: { allowedGrants: result.allowedGrants, allow },
+            } satisfies GrantResolvedMessage)
+            .catch(() => {});
+        }
       })
       .catch((error: unknown) => {
         const messageText = error instanceof Error ? error.message : "Unable to process permission request.";

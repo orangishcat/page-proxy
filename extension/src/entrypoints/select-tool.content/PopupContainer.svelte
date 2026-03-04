@@ -7,6 +7,7 @@
   import { attachPopupKeyboardOwnership, POPUP_BASE_FONT_SIZE_PX, POPUP_SHARED_STYLE } from "./popup/container-shared";
   import { readBaseSelectorFromCode } from "./popup/base-selector";
   import { normalizeSelectorFromCssEditor } from "./css-editor-utils";
+  import ModalOverlay from "./ModalOverlay.svelte";
 
   type PropertyItem = {
     key: string;
@@ -210,13 +211,11 @@
   });
 </script>
 
+<ModalOverlay centered={false} class={visible && !popupHidden ? "" : "invisible"}>
 <div
   bind:this={containerEl}
-  class="pp-no-select-tool fixed z-2147483646 pointer-events-auto"
-  style="top: {position.top}px; left: {position.left}px; width: min(45.3125em, 92vw); height: min(28.0625em, 80vh); visibility: {visible &&
-  !popupHidden
-    ? 'visible'
-    : 'hidden'};"
+  class="pp-no-select-tool absolute pointer-events-auto"
+  style="top: {position.top}px; left: {position.left}px; width: min(45.3125em, 92vw); height: min(28.0625em, 80vh);"
 >
   {#if direction !== "center"}
     <div
@@ -299,3 +298,4 @@
     </div>
   </div>
 </div>
+</ModalOverlay>
