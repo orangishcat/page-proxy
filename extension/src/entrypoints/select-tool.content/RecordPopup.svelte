@@ -520,7 +520,7 @@
       <div class="flex-1"></div>
       <Button
         variant="outline"
-        class="!rounded-md !border !border-white/20 !p-1 !text-gray-500 hover:!border-gray-600 hover:!text-gray-300 dark:!text-gray-400 dark:hover:!text-gray-200"
+        class="rounded-md! border! border-white/20! p-1! text-gray-500! hover:border-gray-600! hover:text-gray-300! dark:text-gray-400! dark:hover:text-gray-200!"
         onclick={onCancel}
         aria-label="Close popup"
       >

@@ -118,7 +118,11 @@
             <Collapsible.Content class="space-y-1 border-t border-[#4f4a38] px-3 py-2">
               {#if entry.mode === "css"}
                 {#if entry.cssText}
-                  <div class="rounded-md bg-[#24231f] px-2 py-1 font-mono text-xs text-secondary-500 whitespace-pre-wrap">{entry.cssText}</div>
+                  <div
+                    class="rounded-md bg-[#24231f] px-2 py-1 font-mono text-xs text-secondary-500 whitespace-pre-wrap"
+                  >
+                    {entry.cssText}
+                  </div>
                 {:else}
                   <div class="rounded-md bg-[#24231f] px-2 py-1 text-caption text-gray-500">No declarations</div>
                 {/if}
@@ -135,5 +139,5 @@
       </div>
     {/if}
   </div>
-  <p class="mt-2 px-1 text-center text-caption text-gray-500 dark:text-gray-400">Updates every script run</p>
+  <p class="mt-2 px-1 text-center text-caption text-gray-500 dark:text-gray-400">Updates every manual script run</p>
 </div>
