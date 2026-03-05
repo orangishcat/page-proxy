@@ -77,6 +77,7 @@ export type SelectElementAction = "click" | "copy" | "cut" | "paste" | "delete";
 export type SelectElementActionResult =
   | {
       ok: true;
+      html?: string;
     }
   | {
       ok: false;
