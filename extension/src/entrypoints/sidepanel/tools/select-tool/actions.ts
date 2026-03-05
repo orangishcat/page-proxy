@@ -45,6 +45,7 @@ const logger = log.getLogger("select-tool-sidepanel");
 const selectedElementRecordSuppressionMs = 1000;
 let suppressSelectedElementRecordUntil = 0;
 let suppressNextSelectedElementRecord = false;
+let internalClipboardHtml: string | null = null;
 
 const armSelectedElementRecordSuppression = () => {
   suppressNextSelectedElementRecord = true;
@@ -370,6 +371,52 @@ export const sendSelectorPopup = (
     });
 };
 
+export const sendApplyStylePopup = () => {
+  logger.debug("request apply style popup");
+  setErrorMessage(null);
+  const selection = get(selectedInfo);
+  const context = getSelectionContext();
+  const selectorValue = selection?.selector ?? "body";
+  const initialCssContent = buildCssDocument(selectorValue, "");
+
+  void readActiveTabContext()
+    .then(async (tabContext) => {
+      if (!tabContext) {
+        setErrorMessage("No active tab found.");
+        return;
+      }
+
+      if (isRestrictedUrl(tabContext.url)) {
+        setErrorMessage("Selection is unavailable on this page.");
+        return;
+      }
+
+      const response: unknown = await sendSelectToolMessage(
+        tabContext.tabId,
+        {
+          type: "selector:open",
+          payload: selection,
+          mode: "css",
+          initialCssContent,
+          applyStyle: true,
+        } satisfies SelectToolMessage,
+        context.frameId ?? 0,
+      ).catch(() => null);
+
+      if (response === null) {
+        setErrorMessage("Unable to connect to the active tab.");
+        return;
+      }
+
+      if (isSelectorOpenResult(response) && !response.opened) {
+        setErrorMessage("Unable to open style editor for the selected element.");
+      }
+    })
+    .catch(() => {
+      setErrorMessage("Unable to connect to the active tab.");
+    });
+};
+
 const sendSelectionAction = (action: SelectElementAction) => {
   logger.debug("request selected element action", { action });
   setErrorMessage(null);
@@ -393,9 +440,14 @@ const sendSelectionAction = (action: SelectElementAction) => {
       }
 
       const context = getSelectionContext();
-      if (context.source === "devtools") {
-        setErrorMessage("This action is only available for page selections.");
-        return;
+
+      let clipboardText: string | undefined;
+      if (action === "paste") {
+        if (!internalClipboardHtml) {
+          setErrorMessage("Nothing to paste. Copy or cut an element first.");
+          return;
+        }
+        clipboardText = internalClipboardHtml;
       }
 
       const response: unknown = await sendSelectToolMessage(
@@ -403,6 +455,7 @@ const sendSelectionAction = (action: SelectElementAction) => {
         {
           type: "select:action",
           action,
+          clipboardText,
         } satisfies SelectToolMessage,
         context.frameId ?? 0,
       ).catch(() => null);
@@ -422,8 +475,18 @@ const sendSelectionAction = (action: SelectElementAction) => {
         return;
       }
 
+      if (response.html !== undefined) {
+        internalClipboardHtml = response.html;
+      }
+
       if (action === "copy") {
         recordSidepanelAction("Copied element");
+        return;
+      }
+
+      if (action === "cut") {
+        const selectorDetail = get(selectedInfo)?.selector?.trim() ?? "";
+        recordSidepanelAction("Cut element", selectorDetail ? `selector: ${selectorDetail}` : "");
         return;
       }
 
