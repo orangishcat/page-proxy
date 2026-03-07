@@ -27,9 +27,11 @@
   import {
     isSelectorSaveMessage,
     isRecordConverterSaveMessage,
+    isApplyStyleSaveMessage,
     saveSelectorDefinition,
     saveRecordConverterDefinition,
   } from "./message-handler";
+  import { recordSidepanelAction } from "./tools/record/state";
 
   const toolCtx = createToolContext();
   setToolContext(toolCtx);
@@ -122,6 +124,12 @@
           sendResponse(result);
         });
         return true;
+      }
+
+      if (isApplyStyleSaveMessage(message)) {
+        recordSidepanelAction("Applied style", JSON.stringify(message.cssValues));
+        sendResponse(undefined);
+        return false;
       }
 
       if (isGrantResolvedMessage(message)) {

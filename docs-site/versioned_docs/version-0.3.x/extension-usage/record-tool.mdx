@@ -3,6 +3,8 @@ title: Record tool
 sidebar_position: 5
 ---
 
+import useBaseUrl from "@docusaurus/useBaseUrl";
+
 # Record tool
 
 Capture interactions with the DOM for conversion into code, for easy creation of userscripts.
@@ -13,25 +15,20 @@ Capture interactions with the DOM for conversion into code, for easy creation of
 
 ## Recording workflow
 
-1. Start recording in the Record tool if not already, on by default.
-2. Interact with the page using the Select Tool.
-3. Select one or more timeline events.
-4. Convert your selected events to code.
+1. Start recording in the Record tool. Recording is on by default for the active tab.
+2. Interact with the page using the Select tool.
+3. Review the captured timeline and select one or more events.
+4. Use **Convert to code** to open the converter popup for the selected chain.
 
 </div>
 
 <div className="col col--6 margin-bottom--xl">
 
-<div
-    style={{
-        border: "1px dashed var(--ifm-color-emphasis-400)",
-        borderRadius: "8px",
-        padding: "1rem",
-        minHeight: "12rem",
-    }}
->
-    Recording timeline image slot
-</div>
+<img src={useBaseUrl("/img/editor_usage/record_timeline.png", { absolute: true })} alt="Page Proxy Record tool timeline" />
+<img
+    src={useBaseUrl("/img/editor_usage/record_timeline_selected.png", { absolute: true })}
+    alt="Page Proxy Record tool timeline with selected events"
+/>
 
 </div>
 
@@ -41,24 +38,51 @@ Capture interactions with the DOM for conversion into code, for easy creation of
 
 <div className="col col--6 margin-bottom--xl">
 
-## Record converter popup
+## Event selection and step conversion
 
-Review generated steps, edit generated code, and save into the sidepanel code editor.
+Selecting timeline events exposes the action menu for the current recording chain.
+
+- Use the menu to open the converter for the selected steps.
+- Inspect each generated step before moving on to the review stage.
+- Keep the selected chain focused so the generated code stays minimal.
 
 </div>
 
 <div className="col col--6 margin-bottom--xl">
 
-<div
-    style={{
-        border: "1px dashed var(--ifm-color-emphasis-400)",
-        borderRadius: "8px",
-        padding: "1rem",
-        minHeight: "12rem",
-    }}
->
-    Record converter popup image slot
+<img
+    src={useBaseUrl("/img/editor_usage/select_actions_menu.png", { absolute: true })}
+    alt="Page Proxy Record tool actions menu for selected events"
+/>
+<img
+    src={useBaseUrl("/img/editor_usage/record_popup_action_step.png", { absolute: true })}
+    alt="Page Proxy Record converter action step view"
+/>
+
 </div>
+
+</div>
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+## Review generated code
+
+The review step combines the supported recorded actions into editable code.
+
+- Step through the generated sequence in the sidebar.
+- Edit the final code before saving.
+- Save the reviewed result back into the sidepanel code editor.
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img
+    src={useBaseUrl("/img/editor_usage/record_popup_review_step.png", { absolute: true })}
+    alt="Page Proxy Record converter review generated code step"
+/>
 
 </div>
 

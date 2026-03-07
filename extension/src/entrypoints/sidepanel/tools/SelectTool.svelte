@@ -7,6 +7,7 @@
     sendCutSelection,
     sendDeleteSelection,
     sendPasteSelection,
+    sendApplyStylePopup,
     sendSelectParent,
     sendSelectorPopup,
     toggleFollowDevtoolsSelection,
@@ -18,7 +19,7 @@
     propertyItems,
     selectModeEnabled,
   } from "./select-tool/state";
-  import { ArrowUpIcon, ClipboardPaste, Copy, MousePointerClick, Scissors, Trash2, Wrench } from "lucide-svelte";
+  import { ArrowUpIcon, ClipboardPaste, Copy, MousePointerClick, Palette, Scissors, Trash2, Wrench } from "lucide-svelte";
   import { fly } from "svelte/transition";
 
   const iconActionButtonClass =
@@ -136,6 +137,10 @@
                 <DropdownMenu.Item class={actionMenuItemClasses} onclick={sendPasteSelection}>
                   <ClipboardPaste class="h-4 w-4 text-gray-500 dark:text-gray-300" />
                   Paste after selected element
+                </DropdownMenu.Item>
+                <DropdownMenu.Item class={actionMenuItemClasses} onclick={sendApplyStylePopup}>
+                  <Palette class="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                  Apply style to element
                 </DropdownMenu.Item>
                 <DropdownMenu.Item class={actionMenuItemClasses} onclick={sendDeleteSelection}>
                   <Trash2 class="h-4 w-4 text-gray-500 dark:text-gray-300" />

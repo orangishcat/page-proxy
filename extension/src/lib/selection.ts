@@ -100,6 +100,7 @@ export type SelectToolMessage =
   | {
       type: "select:action";
       action: SelectElementAction;
+      clipboardText?: string;
     }
   | {
       type: 'selector:open';
@@ -107,6 +108,7 @@ export type SelectToolMessage =
       mode?: SelectorPopupMode;
       initialCssContent?: string;
       initialCode?: string;
+      applyStyle?: boolean;
     }
   | {
       type: "record:converter:open";
@@ -119,6 +121,10 @@ export type SelectToolMessage =
   | {
       type: 'selector:save';
       payload: SelectorSavePayload;
+    }
+  | {
+      type: "selector:apply-style:save";
+      cssValues: Record<string, string>;
     }
   | {
       type: 'select:hover';

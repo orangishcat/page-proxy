@@ -27,6 +27,10 @@ export type GeneratedReviewCode = {
 };
 
 const stepInputOutputName = "selectedElement";
+const clipboardHtmlName = "clipboardHtml";
+
+const getPassthroughExtras = (inputNames: string[], ...exclude: string[]) =>
+  inputNames.filter((n) => !exclude.includes(n));
 
 const toStringLiteral = (value: string) => JSON.stringify(value);
 
@@ -118,6 +122,18 @@ export const describeStepOption = (step: SupportedRecordStep, parentOptions: Par
   if (step.kind === "delete-element") {
     return "Delete element";
   }
+  if (step.kind === "cut-element") {
+    return "Cut element";
+  }
+  if (step.kind === "copy-element") {
+    return "Copy element";
+  }
+  if (step.kind === "paste-element") {
+    return "Paste element";
+  }
+  if (step.kind === "apply-style-element") {
+    return "Apply style";
+  }
 
   const option = parentOptions[step.id] ?? buildDefaultParentTraversalOption(step.count);
   if (option.mode === "traverse-until") {
@@ -146,6 +162,11 @@ const buildSelectElementStepCode = ({
   inputNames: string[];
 }): BuiltStepCode => {
   const selectorValue = resolveSelectElementSelector(step);
+  const extras = getPassthroughExtras(inputNames, stepInputOutputName);
+  const isFirstStep = !inputNames.includes(stepInputOutputName);
+  const assignmentLine = isFirstStep
+    ? `const ${stepInputOutputName} = await selector.waitUntilMatch()`
+    : `${stepInputOutputName} = await selector.waitUntilMatch()`;
 
   return {
     functionName,
@@ -159,11 +180,14 @@ const buildSelectElementStepCode = ({
         `  baseSelector: ${toStringLiteral(selectorValue)},`,
         "  matches: e => true",
         "})",
-        `const ${stepInputOutputName} = await selector.waitUntilMatch()`,
+        assignmentLine,
       ],
-      outputs: [{ name: stepInputOutputName, expression: stepInputOutputName }],
+      outputs: [
+        { name: stepInputOutputName, expression: stepInputOutputName },
+        ...extras.map((n) => ({ name: n, expression: n })),
+      ],
     }),
-    outputNames: [stepInputOutputName],
+    outputNames: [stepInputOutputName, ...extras],
   };
 };
 
@@ -181,6 +205,7 @@ const buildTraverseUntilStepCode = ({
   const untilSelector = normalizeUntilSelector(option.untilSelector);
   const selectedElementInput = inputNames.includes(stepInputOutputName) ? stepInputOutputName : "null";
   const nextElementName = toNextSelectedElementName();
+  const extras = getPassthroughExtras(inputNames, stepInputOutputName);
 
   return {
     functionName,
@@ -199,13 +224,11 @@ const buildTraverseUntilStepCode = ({
         "  : null",
       ],
       outputs: [
-        {
-          name: stepInputOutputName,
-          expression: nextElementName,
-        },
+        { name: stepInputOutputName, expression: nextElementName },
+        ...extras.map((n) => ({ name: n, expression: n })),
       ],
     }),
-    outputNames: [stepInputOutputName],
+    outputNames: [stepInputOutputName, ...extras],
   };
 };
 
@@ -221,6 +244,7 @@ const buildTraverseCountStepCode = ({
   const count = normalizeTraversalCount(option.count);
   const nextElementName = toNextSelectedElementName();
   const selectedElementInput = inputNames.includes(stepInputOutputName) ? stepInputOutputName : "null";
+  const extras = getPassthroughExtras(inputNames, stepInputOutputName);
 
   return {
     functionName,
@@ -240,13 +264,11 @@ const buildTraverseCountStepCode = ({
         "}",
       ],
       outputs: [
-        {
-          name: stepInputOutputName,
-          expression: nextElementName,
-        },
+        { name: stepInputOutputName, expression: nextElementName },
+        ...extras.map((n) => ({ name: n, expression: n })),
       ],
     }),
-    outputNames: [stepInputOutputName],
+    outputNames: [stepInputOutputName, ...extras],
   };
 };
 
@@ -268,6 +290,7 @@ const buildDeleteStepCode = ({ functionName, inputNames }: { functionName: strin
 
 const buildClickStepCode = ({ functionName, inputNames }: { functionName: string; inputNames: string[] }): BuiltStepCode => {
   const clickableElement = inputNames.includes(stepInputOutputName) ? stepInputOutputName : "null";
+  const extras = getPassthroughExtras(inputNames, stepInputOutputName);
 
   return {
     functionName,
@@ -276,9 +299,126 @@ const buildClickStepCode = ({ functionName, inputNames }: { functionName: string
       functionName,
       inputNames,
       bodyLines: [`if (${clickableElement}) {`, `  ${clickableElement}.click()`, "}"],
-      outputs: [{ name: stepInputOutputName, expression: clickableElement }],
+      outputs: [
+        { name: stepInputOutputName, expression: clickableElement },
+        ...extras.map((n) => ({ name: n, expression: n })),
+      ],
     }),
-    outputNames: [stepInputOutputName],
+    outputNames: [stepInputOutputName, ...extras],
+  };
+};
+
+const buildCutStepCode = ({ functionName, inputNames }: { functionName: string; inputNames: string[] }): BuiltStepCode => {
+  const el = inputNames.includes(stepInputOutputName) ? stepInputOutputName : "null";
+  const extras = getPassthroughExtras(inputNames, stepInputOutputName, clipboardHtmlName);
+
+  return {
+    functionName,
+    inputNames,
+    code: buildStepFunctionCode({
+      functionName,
+      inputNames,
+      bodyLines: [
+        `const ${clipboardHtmlName} = ${el} ? ${el}.outerHTML : null`,
+        `if (${el}) {`,
+        `  ${el}.remove()`,
+        "}",
+      ],
+      outputs: [
+        { name: stepInputOutputName, expression: "null" },
+        { name: clipboardHtmlName, expression: clipboardHtmlName },
+        ...extras.map((n) => ({ name: n, expression: n })),
+      ],
+    }),
+    outputNames: [stepInputOutputName, clipboardHtmlName, ...extras],
+  };
+};
+
+const buildCopyStepCode = ({ functionName, inputNames }: { functionName: string; inputNames: string[] }): BuiltStepCode => {
+  const el = inputNames.includes(stepInputOutputName) ? stepInputOutputName : "null";
+  const extras = getPassthroughExtras(inputNames, stepInputOutputName, clipboardHtmlName);
+
+  return {
+    functionName,
+    inputNames,
+    code: buildStepFunctionCode({
+      functionName,
+      inputNames,
+      bodyLines: [`const ${clipboardHtmlName} = ${el} ? ${el}.outerHTML : null`],
+      outputs: [
+        { name: stepInputOutputName, expression: el },
+        { name: clipboardHtmlName, expression: clipboardHtmlName },
+        ...extras.map((n) => ({ name: n, expression: n })),
+      ],
+    }),
+    outputNames: [stepInputOutputName, clipboardHtmlName, ...extras],
+  };
+};
+
+const buildPasteStepCode = ({ functionName, inputNames }: { functionName: string; inputNames: string[] }): BuiltStepCode => {
+  const el = inputNames.includes(stepInputOutputName) ? stepInputOutputName : "null";
+  const extras = getPassthroughExtras(inputNames, stepInputOutputName, clipboardHtmlName);
+  const functionInputNames = inputNames.includes(clipboardHtmlName)
+    ? inputNames
+    : [...inputNames, clipboardHtmlName];
+
+  return {
+    functionName,
+    inputNames: functionInputNames,
+    code: buildStepFunctionCode({
+      functionName,
+      inputNames: functionInputNames,
+      bodyLines: [
+        `if (${el} && ${clipboardHtmlName}) {`,
+        `  ${el}.insertAdjacentHTML("afterend", ${clipboardHtmlName})`,
+        "}",
+      ],
+      outputs: [
+        { name: stepInputOutputName, expression: el },
+        { name: clipboardHtmlName, expression: clipboardHtmlName },
+        ...extras.map((n) => ({ name: n, expression: n })),
+      ],
+    }),
+    outputNames: [stepInputOutputName, clipboardHtmlName, ...extras],
+  };
+};
+
+const buildApplyStyleStepCode = ({
+  functionName,
+  inputNames,
+  cssValues,
+}: {
+  functionName: string;
+  inputNames: string[];
+  cssValues?: Record<string, string>;
+}): BuiltStepCode => {
+  const el = inputNames.includes(stepInputOutputName) ? stepInputOutputName : "null";
+  const extras = getPassthroughExtras(inputNames, stepInputOutputName);
+  const cssEntries = Object.entries(cssValues ?? {});
+  const bodyLines =
+    cssEntries.length === 0
+      ? [`// Applied style (no CSS properties recorded)`]
+      : [
+          `if (${el}) {`,
+          `  ps.applyStyle([${el}], {`,
+          ...cssEntries.map(([key, value]) => `    ${JSON.stringify(key)}: ${JSON.stringify(value)},`),
+          "  })",
+          "}",
+        ];
+
+  return {
+    functionName,
+    inputNames,
+    code: buildStepFunctionCode({
+      functionName,
+      inputNames,
+      bodyLines,
+      outputs: [
+        { name: stepInputOutputName, expression: el },
+        ...extras.map((n) => ({ name: n, expression: n })),
+      ],
+    }),
+    outputNames: [stepInputOutputName, ...extras],
   };
 };
 
@@ -309,6 +449,18 @@ const buildStepCode = ({
   }
   if (step.kind === "click-element") {
     return buildClickStepCode({ functionName, inputNames });
+  }
+  if (step.kind === "cut-element") {
+    return buildCutStepCode({ functionName, inputNames });
+  }
+  if (step.kind === "copy-element") {
+    return buildCopyStepCode({ functionName, inputNames });
+  }
+  if (step.kind === "paste-element") {
+    return buildPasteStepCode({ functionName, inputNames });
+  }
+  if (step.kind === "apply-style-element") {
+    return buildApplyStyleStepCode({ functionName, inputNames, cssValues: step.cssValues });
   }
 
   if (parentOption.mode === "traverse-until") {
@@ -422,6 +574,42 @@ const buildCombinedStepLines = ({
     return [`if (${stepInputOutputName}) {`, `  ${stepInputOutputName}.click()`, "}"];
   }
 
+  if (step.kind === "cut-element") {
+    return [
+      `${clipboardHtmlName} = ${stepInputOutputName} ? ${stepInputOutputName}.outerHTML : null`,
+      `if (${stepInputOutputName}) {`,
+      `  ${stepInputOutputName}.remove()`,
+      "}",
+      `${stepInputOutputName} = null`,
+    ];
+  }
+
+  if (step.kind === "copy-element") {
+    return [`${clipboardHtmlName} = ${stepInputOutputName} ? ${stepInputOutputName}.outerHTML : null`];
+  }
+
+  if (step.kind === "paste-element") {
+    return [
+      `if (${stepInputOutputName} && ${clipboardHtmlName}) {`,
+      `  ${stepInputOutputName}.insertAdjacentHTML("afterend", ${clipboardHtmlName})`,
+      "}",
+    ];
+  }
+
+  if (step.kind === "apply-style-element") {
+    const cssEntries = Object.entries(step.cssValues ?? {});
+    if (cssEntries.length === 0) {
+      return [`// Applied style (no CSS properties recorded)`];
+    }
+    return [
+      `if (${stepInputOutputName}) {`,
+      `  ps.applyStyle([${stepInputOutputName}], {`,
+      ...cssEntries.map(([key, value]) => `    ${JSON.stringify(key)}: ${JSON.stringify(value)},`),
+      "  })",
+      "}",
+    ];
+  }
+
   if (parentOption.mode === "traverse-until") {
     const untilSelector = normalizeUntilSelector(parentOption.untilSelector);
     const selectorName = `traverseUntilSelector${stepNumber}`;
@@ -470,6 +658,12 @@ const buildCombinedRawCode = ({
   }
 
   const lines = [`let ${stepInputOutputName} = null`];
+  const hasClipboardStep = steps.some(
+    (s) => s.kind === "cut-element" || s.kind === "copy-element" || s.kind === "paste-element",
+  );
+  if (hasClipboardStep) {
+    lines.push(`let ${clipboardHtmlName} = null`);
+  }
   steps.forEach((step, stepIndex) => {
     const stepNumber = stepIndex + 1;
     const parentOption =

@@ -36,6 +36,14 @@ export const isRecordConverterSaveMessage = (
   return isRecord(payload) && typeof payload.code === "string";
 };
 
+export const isApplyStyleSaveMessage = (
+  message: unknown,
+): message is { type: "selector:apply-style:save"; cssValues: Record<string, string> } => {
+  if (!isRecord(message)) return false;
+  if (message.type !== "selector:apply-style:save") return false;
+  return isRecord(message.cssValues);
+};
+
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const selectorDefinitionPattern = new RegExp(
   `\\bconst\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*${escapeRegExp("pq.selector")}\\s*\\(`,

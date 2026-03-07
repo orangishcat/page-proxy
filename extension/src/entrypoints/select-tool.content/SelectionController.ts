@@ -145,8 +145,8 @@ export class SelectionController {
     this.postMessage({ type: "select:selected", payload: null });
   };
 
-  runAction = (action: SelectElementAction): Promise<SelectElementActionResult> =>
-    runSelectElementAction(action, this.selectedTarget, this.clearSelectedAndNotify);
+  runAction = (action: SelectElementAction, clipboardText?: string): Promise<SelectElementActionResult> =>
+    Promise.resolve(runSelectElementAction(action, this.selectedTarget, this.clearSelectedAndNotify, clipboardText));
 
   private stopEvent = (event: Event): void => {
     event.preventDefault();

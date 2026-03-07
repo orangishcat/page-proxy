@@ -1,11 +1,11 @@
 import type { SelectElementAction, SelectElementActionResult } from "@/lib/selection";
-import { readClipboardText } from "./clipboard";
 
-export const runSelectElementAction = async (
+export const runSelectElementAction = (
   action: SelectElementAction,
   selectedTarget: Element | null,
   clearSelectedAndNotify: () => void,
-): Promise<SelectElementActionResult> => {
+  clipboardText?: string,
+): SelectElementActionResult => {
   const target = selectedTarget;
   if (!target?.isConnected) return { ok: false, error: "Select an element first." };
 
@@ -26,7 +26,7 @@ export const runSelectElementAction = async (
   }
 
   if (action === "paste") {
-    const pasted = (await readClipboardText())?.trim();
+    const pasted = clipboardText?.trim();
     if (!pasted) return { ok: false, error: "Clipboard is empty or unavailable." };
     if (!target.parentElement) return { ok: false, error: "Selected element has no parent element." };
     target.insertAdjacentHTML("afterend", pasted);

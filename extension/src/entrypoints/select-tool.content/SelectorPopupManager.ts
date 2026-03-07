@@ -13,7 +13,7 @@ import type {
 } from "@/lib/selection";
 import { ensureSelectionStyles } from "./HoverManager";
 import { readBaseSelectorFromCode } from "./popup/base-selector";
-import { normalizeSelectorFromCssEditor } from "./css-editor-utils";
+import { normalizeSelectorFromCssEditor, readDeclarationSourceFromCssEditor, parseCssDeclarations } from "./css-editor-utils";
 import PopupContainer from "./PopupContainer.svelte";
 
 type ContentScriptContext = Parameters<typeof createShadowRootUi>[0];
@@ -26,6 +26,7 @@ export class SelectorPopupManager {
   private popupTarget: Element | null = null;
   private popupFrame: number | null = null;
   resumeSelectionAfterPopup = false;
+  private applyStyleMode = false;
 
   constructor(
     private readonly ctx: ContentScriptContext,
@@ -42,6 +43,7 @@ export class SelectorPopupManager {
   }
 
   clear({ resumeSelection = true }: { resumeSelection?: boolean } = {}): void {
+    this.applyStyleMode = false;
     const hadPopup =
       this.popupApp !== null || this.shadowUi !== null || this.popupTarget !== null || this.popupFrame !== null;
     if (this.popupApp) {
@@ -96,6 +98,38 @@ export class SelectorPopupManager {
     if (!this.popupTarget?.isConnected) {
       return { ok: false, error: "Selected element is no longer available." };
     }
+
+    if (this.applyStyleMode) {
+      const backtickMatch = /`([\s\S]*?)`/.exec(payload.code);
+      if (!backtickMatch) {
+        return { ok: false, error: "Unable to extract CSS from the editor content." };
+      }
+      const declarationText = readDeclarationSourceFromCssEditor(backtickMatch[1].trim());
+      const declarations = parseCssDeclarations(declarationText);
+      if (declarations.length === 0) {
+        return { ok: false, error: "No CSS declarations found to apply." };
+      }
+      const cssValues: Record<string, string> = {};
+      for (const decl of declarations) {
+        cssValues[decl.key] = decl.value;
+      }
+      const target = this.popupTarget;
+      if (!(target instanceof HTMLElement) && !(target instanceof SVGElement)) {
+        return { ok: false, error: "Selected element does not support inline styles." };
+      }
+      for (const [key, value] of Object.entries(cssValues)) {
+        target.style.setProperty(key, value);
+      }
+      logger.debug("runtime message sent", { type: "selector:apply-style:save" });
+      await browser.runtime
+        .sendMessage({ type: "selector:apply-style:save", cssValues } satisfies SelectToolMessage)
+        .catch((error: unknown) => {
+          logger.error("Failed to send apply-style:save", { error });
+        });
+      this.clear();
+      return { ok: true };
+    }
+
     logger.debug("runtime message sent", { type: "selector:save" });
     const response: unknown = await browser.runtime
       .sendMessage({ type: "selector:save", payload } satisfies SelectToolMessage)
@@ -125,6 +159,7 @@ export class SelectorPopupManager {
     mode: SelectorPopupMode = "pp-api",
     initialCssContent?: string,
     initialCode?: string,
+    options?: { applyStyle?: boolean },
   ): Promise<boolean> {
     let target = this.resolveTarget(requestedInfo);
     const selector =
@@ -136,6 +171,8 @@ export class SelectorPopupManager {
 
     ensureSelectionStyles();
     this.clear({ resumeSelection: false });
+    // Set applyStyleMode after clear() to avoid being wiped by the reset inside clear().
+    this.applyStyleMode = options?.applyStyle === true;
     if (this.isSelectionEnabled()) {
       this.resumeSelectionAfterPopup = true;
       this.setSelectionEnabled(false, { clearSelection: false });
