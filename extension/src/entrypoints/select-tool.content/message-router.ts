@@ -40,7 +40,7 @@ export const addMessageListener = (ctrl: SelectionController): void => {
     if (msg.type === "selector:open") {
       ctrl.recordManager.clear();
       void ctrl.selectorManager
-        .open(msg.payload, msg.mode ?? "pp-api", msg.initialCssContent, msg.initialCode)
+        .open(msg.payload, msg.mode ?? "pp-api", msg.initialCssContent, msg.initialCode, { applyStyle: msg.applyStyle })
         .then((opened) => sendResponse({ opened } satisfies SelectorOpenResult))
         .catch(() => sendResponse({ opened: false } satisfies SelectorOpenResult));
       return true;
@@ -127,7 +127,7 @@ export const addMessageListener = (ctrl: SelectionController): void => {
 
     if (msg.type === "select:action") {
       void ctrl
-        .runAction(msg.action)
+        .runAction(msg.action, msg.clipboardText)
         .then((result) => sendResponse(result))
         .catch((error: unknown) => {
           const errorMsg = error instanceof Error ? error.message : "Unable to update the selected element.";

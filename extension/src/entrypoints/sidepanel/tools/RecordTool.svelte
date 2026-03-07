@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { Tooltip } from "bits-ui";
   import { onMount, tick } from "svelte";
-  import { Disc, Trash2, X } from "lucide-svelte";
+  import { CheckCheck, Disc, Trash2, X } from "lucide-svelte";
 
   import Button from "@/lib/components/Button.svelte";
   import { openRecordConverter } from "./record/actions";
+  import { getRecordTimelineEntryIds, hasFullRecordSelection } from "./record/selection";
   import { clearRecordPanelState, recordPanelState, toggleRecordPanelRecording } from "./record/state";
   import type { RecordTimelineEntry } from "./state-storage";
 
@@ -15,11 +17,13 @@
 
   const timelineEntries = $derived(recordState.timeline);
   const isRecording = $derived(recordState.isRecording);
+  const allEntryIds = $derived(getRecordTimelineEntryIds(timelineEntries));
   const selectedEntryIdSet = $derived(new Set(selectedEntryIds));
   const selectedEntries = $derived.by(() => {
     return timelineEntries.filter((entry) => selectedEntryIdSet.has(entry.id));
   });
   const hasSelectedEntries = $derived(selectedEntries.length > 0);
+  const allEntriesSelected = $derived(hasFullRecordSelection(timelineEntries, selectedEntryIds));
 
   $effect(() => {
     const timelineIdSet = new Set(recordState.timeline.map((entry) => entry.id));
@@ -120,6 +124,10 @@
     selectedEntryIds = [];
   };
 
+  const selectAllEntries = () => {
+    selectedEntryIds = allEntryIds;
+  };
+
   const endDragSelection = () => {
     dragSelectionMode = "none";
     dragVisitedEntryIds = [];
@@ -164,6 +172,9 @@
 
     openRecordConverter(selectedEntries);
   };
+
+  const iconTooltipClass =
+    "rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100";
 </script>
 
 <div class="flex w-full min-h-0 flex-1 flex-col px-4 py-4">
@@ -225,42 +236,116 @@
       <Button class="w-full max-w-40 justify-self-center text-sm" variant="primary" onclick={convertSelectionToCode}>
         Convert to code
       </Button>
-      <Button
-        class="h-8 w-8 justify-self-end rounded-lg border border-gray-700 bg-transparent p-0! text-gray-500 hover:text-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-        variant="outline"
-        aria-label="Clear selection"
-        onclick={clearSelection}
-      >
-        <X class="h-4 w-4" />
-      </Button>
+      <div class="flex items-center justify-self-end gap-2">
+        <Tooltip.Root>
+          <Tooltip.Trigger>
+            {#snippet child({ props })}
+              <Button
+                {...props}
+                class="h-8 w-8 rounded-lg border border-gray-700 bg-transparent p-0! text-gray-500 hover:text-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                variant="outline"
+                aria-label="Select all events"
+                disabled={allEntriesSelected}
+                onclick={selectAllEntries}
+              >
+                <CheckCheck class="h-4 w-4" />
+              </Button>
+            {/snippet}
+          </Tooltip.Trigger>
+          <Tooltip.Portal>
+            <Tooltip.Content sideOffset={6} class={iconTooltipClass}>
+              Select all events
+              <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+            </Tooltip.Content>
+          </Tooltip.Portal>
+        </Tooltip.Root>
+        <Button
+          class="h-8 w-8 rounded-lg border border-gray-700 bg-transparent p-0! text-gray-500 hover:text-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          variant="outline"
+          aria-label="Clear selection"
+          onclick={clearSelection}
+        >
+          <X class="h-4 w-4" />
+        </Button>
+      </div>
     {:else}
       <div class="flex items-center gap-2">
-        <Button
-          class={`h-8 w-8 rounded-full p-0! ${
-            isRecording
-              ? "!border-red-400 !bg-red-500/85 text-red-50 hover:opacity-100"
-              : "border-gray-700 bg-gray-700 text-gray-200"
-          }`}
-          variant="outline"
-          aria-label={isRecording ? "Pause recording" : "Resume recording"}
-          aria-pressed={isRecording}
-          onclick={toggleRecordPanelRecording}
-        >
-          <Disc class="h-4 w-4" />
-        </Button>
+        <Tooltip.Root>
+          <Tooltip.Trigger>
+            {#snippet child({ props })}
+              <Button
+                {...props}
+                class={`h-8 w-8 rounded-full p-0! ${
+                  isRecording
+                    ? "!border-red-400 !bg-red-500/85 text-red-50 hover:opacity-100"
+                    : "border-gray-700 bg-gray-700 text-gray-200"
+                }`}
+                variant="outline"
+                aria-label={isRecording ? "Stop recording" : "Start recording"}
+                aria-pressed={isRecording}
+                onclick={toggleRecordPanelRecording}
+              >
+                <Disc class="h-4 w-4" />
+              </Button>
+            {/snippet}
+          </Tooltip.Trigger>
+          <Tooltip.Portal>
+            <Tooltip.Content sideOffset={6} class={iconTooltipClass}>
+              {isRecording ? "Stop recording" : "Start recording"}
+              <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+            </Tooltip.Content>
+          </Tooltip.Portal>
+        </Tooltip.Root>
         <span class={`text-caption ${isRecording ? "text-red-300" : "text-gray-500 dark:text-gray-400"}`}>
           {isRecording ? "Recording" : "Paused"}
         </span>
       </div>
       <span class="justify-self-center text-caption text-gray-500 dark:text-gray-400">{timelineEntries.length} events</span>
-      <Button
-        class="h-8 w-8 justify-self-end rounded-lg border border-gray-700 bg-transparent p-0! text-gray-500 hover:text-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-        variant="outline"
-        aria-label="Clear recording storage"
-        onclick={clearRecordPanelState}
-      >
-        <Trash2 class="h-4 w-4" />
-      </Button>
+      <div class="flex items-center justify-self-end gap-2">
+        <Tooltip.Root>
+          <Tooltip.Trigger>
+            {#snippet child({ props })}
+              <Button
+                {...props}
+                class="h-8 w-8 rounded-lg border border-gray-700 bg-transparent p-0! text-gray-500 hover:text-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                variant="outline"
+                aria-label="Select all events"
+                disabled={timelineEntries.length === 0}
+                onclick={selectAllEntries}
+              >
+                <CheckCheck class="h-4 w-4" />
+              </Button>
+            {/snippet}
+          </Tooltip.Trigger>
+          <Tooltip.Portal>
+            <Tooltip.Content sideOffset={6} class={iconTooltipClass}>
+              Select all events
+              <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+            </Tooltip.Content>
+          </Tooltip.Portal>
+        </Tooltip.Root>
+        <Tooltip.Root>
+          <Tooltip.Trigger>
+            {#snippet child({ props })}
+              <Button
+                {...props}
+                class="h-8 w-8 rounded-lg border border-gray-700 bg-transparent p-0! text-gray-500 hover:text-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                variant="outline"
+                aria-label="Delete recording"
+                onclick={clearRecordPanelState}
+              >
+                <Trash2 class="h-4 w-4" />
+              </Button>
+            {/snippet}
+          </Tooltip.Trigger>
+          <Tooltip.Portal>
+            <Tooltip.Content sideOffset={6} class={iconTooltipClass}>
+              Delete recording
+              <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+            </Tooltip.Content>
+          </Tooltip.Portal>
+        </Tooltip.Root>
+      </div>
     {/if}
   </div>
 </div>

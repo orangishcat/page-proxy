@@ -1,6 +1,14 @@
 import type { RecordTimelineEntry } from "@/lib/selection";
 
-export type SupportedRecordStepKind = "select-element" | "select-parent" | "click-element" | "delete-element";
+export type SupportedRecordStepKind =
+  | "select-element"
+  | "select-parent"
+  | "click-element"
+  | "delete-element"
+  | "cut-element"
+  | "copy-element"
+  | "paste-element"
+  | "apply-style-element";
 
 export type SupportedRecordStep = {
   id: string;
@@ -9,6 +17,7 @@ export type SupportedRecordStep = {
   label: string;
   selectorHint: string | null;
   sourceEntries: RecordTimelineEntry[];
+  cssValues?: Record<string, string>;
 };
 
 export type NormalizedRecordSteps = {
@@ -30,7 +39,31 @@ const normalizeAction = (action: string): SupportedRecordStepKind | null => {
   if (normalized === "deleted element") {
     return "delete-element";
   }
+  if (normalized === "cut element") {
+    return "cut-element";
+  }
+  if (normalized === "copied element") {
+    return "copy-element";
+  }
+  if (normalized === "pasted element") {
+    return "paste-element";
+  }
+  if (normalized === "applied style") {
+    return "apply-style-element";
+  }
   return null;
+};
+
+const parseCssValuesDetail = (detail: string): Record<string, string> | undefined => {
+  const trimmed = detail.trim();
+  if (!trimmed.startsWith("{")) {
+    return undefined;
+  }
+  const parsed = JSON.parse(trimmed) as unknown;
+  if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+    return parsed as Record<string, string>;
+  }
+  return undefined;
 };
 
 const readSelectorHint = (detail: string) => {
@@ -55,6 +88,18 @@ const buildStepLabel = (kind: SupportedRecordStepKind, count: number) => {
   }
   if (kind === "delete-element") {
     return "Delete element";
+  }
+  if (kind === "cut-element") {
+    return "Cut element";
+  }
+  if (kind === "copy-element") {
+    return "Copy element";
+  }
+  if (kind === "paste-element") {
+    return "Paste element";
+  }
+  if (kind === "apply-style-element") {
+    return "Apply style";
   }
 
   if (count > 1) {
@@ -97,6 +142,9 @@ export const normalizeRecordTimeline = (timeline: RecordTimelineEntry[]): Normal
       return;
     }
 
+    const cssValues: Record<string, string> | undefined =
+      kind === "apply-style-element" ? parseCssValuesDetail(entry.detail) : undefined;
+
     stepCounter += 1;
     supportedSteps.push({
       id: `step-${stepCounter}`,
@@ -105,6 +153,7 @@ export const normalizeRecordTimeline = (timeline: RecordTimelineEntry[]): Normal
       label: buildStepLabel(kind, kind === "select-parent" ? 1 : 0),
       selectorHint: readSelectorHint(entry.detail),
       sourceEntries: [entry],
+      cssValues,
     });
     lastSupportedKind = kind;
   });

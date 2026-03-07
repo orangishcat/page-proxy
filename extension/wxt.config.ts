@@ -52,8 +52,8 @@ export default defineConfig({
     },
     permissions:
       browser === "firefox"
-        ? ["storage", "scripting", "tabs", "webNavigation"]
-        : ["storage", "scripting", "tabs", "webNavigation", "userScripts"],
+        ? ["storage", "scripting", "tabs", "webNavigation", "clipboardRead", "clipboardWrite"]
+        : ["storage", "scripting", "tabs", "webNavigation", "userScripts", "clipboardRead", "clipboardWrite"],
     optional_permissions: browser === "firefox" ? ["userScripts"] : [],
     host_permissions: ["<all_urls>"],
     web_accessible_resources: [
