@@ -12,13 +12,8 @@
     saveHelpBannerDismissedSetting,
     saveUserscriptReloadBannerDismissedSetting,
   } from "../tools/state-storage";
-  import StackTraceView from "../tools/StackTraceView.svelte";
   import {
-    errorMessage,
-    errorStackTrace,
-    setErrorMessage,
-    setSuccessMessage,
-    successMessage,
+    setToolMessage,
   } from "../tools/tool-errors";
   import Banner from "./Banner.svelte";
 
@@ -35,9 +30,6 @@
   let userscriptEnableWithFirefoxPermissions = $state(false);
   let userscriptReloadBannerDismissed = $state(false);
   let showHelpBanner = $state(true);
-  const errorMessageValue = $derived($errorMessage);
-  const errorStackTraceValue = $derived($errorStackTrace);
-  const successMessageValue = $derived($successMessage);
 
   onMount(() => {
     void detectBrowserSupport().then(({ browser: supportedBrowser, supported }) => {
@@ -61,8 +53,6 @@
     void readHelpBannerDismissedSetting().then((dismissed) => {
       showHelpBanner = !dismissed;
     });
-
-
   });
 
   const dismissUnsupportedBrowserBanner = () => {
@@ -88,35 +78,29 @@
     void saveHelpBannerDismissedSetting(true);
   };
 
-  const dismissStatusBanner = () => {
-    setErrorMessage(null);
-    setSuccessMessage(null);
-  };
-
   const requestFirefoxUserscriptPermission = (event: MouseEvent) => {
     event.preventDefault();
     void browser.permissions
       .request({ permissions: ["userScripts"] })
       .then((granted) => {
         if (!granted) {
-          setErrorMessage("Userscripts API permission was not granted.");
+          setToolMessage("Userscripts API permission was not granted.", "error");
           return;
         }
 
         return ensureCodeRunnerUserscript().then((status) => {
           if (!status.ok) {
-            setErrorMessage(status.message);
+            setToolMessage(status.message, "error");
             return;
           }
 
           showUserscriptEnableBanner = false;
           showUserscriptReloadBanner = !userscriptReloadBannerDismissed;
-          setErrorMessage(null);
-          setSuccessMessage("Userscripts API enabled.");
+          setToolMessage("Userscripts API enabled.", "success");
         });
       })
       .catch(() => {
-        setErrorMessage("Unable to request Userscripts API permission.");
+        setToolMessage("Unable to request Userscripts API permission.", "error");
       });
   };
 </script>
@@ -206,23 +190,4 @@
   <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
     {@render children?.()}
   </div>
-
-  {#if errorMessageValue || successMessageValue}
-    <Banner
-      variant={successMessageValue ? "success" : "error"}
-      dismissAriaLabel="Dismiss status message"
-      onDismiss={dismissStatusBanner}
-    >
-      {#if successMessageValue}
-        <span>{successMessageValue}</span>
-      {:else}
-        <div class="w-full">
-          <span>{errorMessageValue}</span>
-          {#if errorStackTraceValue}
-            <StackTraceView stackTrace={errorStackTraceValue} />
-          {/if}
-        </div>
-      {/if}
-    </Banner>
-  {/if}
 </div>

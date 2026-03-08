@@ -18,7 +18,7 @@ import type {
   DevtoolsSelectionResponseMessage,
 } from "@/lib/devtools-selection";
 import { recordSidepanelAction } from "../record/state";
-import { setErrorMessage } from "../tool-errors";
+import { setToolMessage } from "../tool-errors";
 import {
   followDevtoolsSelection,
   getSelectionContext,
@@ -139,7 +139,7 @@ const applyDevtoolsSelection = (tabId: number, response: DevtoolsSelectionRespon
     frameUrl: response.selection.frameUrl,
   });
   setSelectModeEnabled(false);
-  setErrorMessage(null);
+  setToolMessage(null, "error");
   return true;
 };
 
@@ -154,7 +154,7 @@ const syncSelectionFromDevtools = async (tabId: number) => {
   if (!response.selection) {
     setSelection(null);
     setSelectModeEnabled(false);
-    setErrorMessage(null);
+    setToolMessage(null, "error");
     return true;
   }
 
@@ -199,7 +199,7 @@ export const sendSelectionToggle = (enabled: boolean, options: { clearSelection?
   const clearSelection = options.clearSelection ?? true;
   logger.debug("toggle selection mode requested", { enabled });
   const shouldReportError = enabled;
-  setErrorMessage(null);
+  setToolMessage(null, "error");
   setSelectModeEnabled(enabled);
 
   void readActiveTabContext()
@@ -208,7 +208,7 @@ export const sendSelectionToggle = (enabled: boolean, options: { clearSelection?
         setDevtoolsIntegrationDetected(false);
         setSelectModeEnabled(false);
         if (shouldReportError) {
-          setErrorMessage("No active tab found.");
+          setToolMessage("No active tab found.", "error");
         }
         return;
       }
@@ -216,7 +216,7 @@ export const sendSelectionToggle = (enabled: boolean, options: { clearSelection?
       if (shouldReportError && isRestrictedUrl(tabContext.url)) {
         setDevtoolsIntegrationDetected(false);
         setSelectModeEnabled(false);
-        setErrorMessage("Selection is unavailable on this page.");
+        setToolMessage("Selection is unavailable on this page.", "error");
         return;
       }
 
@@ -236,7 +236,7 @@ export const sendSelectionToggle = (enabled: boolean, options: { clearSelection?
 
       await runContentSelectionToggle(tabContext.tabId, true).catch(() => {
         setSelectModeEnabled(false);
-        setErrorMessage("Unable to connect to the active tab.");
+        setToolMessage("Unable to connect to the active tab.", "error");
       });
     })
     .catch(() => {
@@ -245,23 +245,23 @@ export const sendSelectionToggle = (enabled: boolean, options: { clearSelection?
         return;
       }
 
-      setErrorMessage("Unable to connect to the active tab.");
+      setToolMessage("Unable to connect to the active tab.", "error");
     });
 };
 
 export const sendSelectParent = () => {
   logger.debug("request select parent");
-  setErrorMessage(null);
+  setToolMessage(null, "error");
 
   void readActiveTabContext()
     .then(async (tabContext) => {
       if (!tabContext) {
-        setErrorMessage("No active tab found.");
+        setToolMessage("No active tab found.", "error");
         return;
       }
 
       if (isRestrictedUrl(tabContext.url)) {
-        setErrorMessage("Selection is unavailable on this page.");
+        setToolMessage("Selection is unavailable on this page.", "error");
         return;
       }
 
@@ -269,7 +269,7 @@ export const sendSelectParent = () => {
       if (context.source === "devtools") {
         const response = await requestDevtoolsSelection(tabContext.tabId, "devtools:selection:parent");
         if (!response || !applyDevtoolsSelection(tabContext.tabId, response)) {
-          setErrorMessage(response?.error ?? "Unable to select parent element.");
+          setToolMessage(response?.error ?? "Unable to select parent element.", "error");
           return;
         }
         recordSelectedParentElement();
@@ -286,7 +286,7 @@ export const sendSelectParent = () => {
       ).catch(() => null);
       if (response === null) {
         clearSelectedElementRecordSuppression();
-        setErrorMessage("Unable to connect to the active tab.");
+        setToolMessage("Unable to connect to the active tab.", "error");
         return;
       }
 
@@ -294,7 +294,7 @@ export const sendSelectParent = () => {
       if (isSelectParentResponse(response)) {
         if (!response.ok) {
           clearSelectedElementRecordSuppression();
-          setErrorMessage(response.error ?? "Unable to select parent element.");
+          setToolMessage(response.error ?? "Unable to select parent element.", "error");
           return;
         }
         selectorHint = response.payload?.selector ?? null;
@@ -309,7 +309,7 @@ export const sendSelectParent = () => {
     })
     .catch(() => {
       clearSelectedElementRecordSuppression();
-      setErrorMessage("Unable to connect to the active tab.");
+      setToolMessage("Unable to connect to the active tab.", "error");
     });
 };
 
@@ -319,7 +319,7 @@ export const sendSelectorPopup = (
   initialCode?: string,
 ) => {
   logger.debug("request selector popup open", { mode });
-  setErrorMessage(null);
+  setToolMessage(null, "error");
   const selection = get(selectedInfo);
   const context = getSelectionContext();
 
@@ -336,12 +336,12 @@ export const sendSelectorPopup = (
   void readActiveTabContext()
     .then(async (tabContext) => {
       if (!tabContext) {
-        setErrorMessage("No active tab found.");
+        setToolMessage("No active tab found.", "error");
         return;
       }
 
       if (isRestrictedUrl(tabContext.url)) {
-        setErrorMessage("Selection is unavailable on this page.");
+        setToolMessage("Selection is unavailable on this page.", "error");
         return;
       }
 
@@ -358,22 +358,22 @@ export const sendSelectorPopup = (
       ).catch(() => null);
 
       if (response === null) {
-        setErrorMessage("Unable to connect to the active tab.");
+        setToolMessage("Unable to connect to the active tab.", "error");
         return;
       }
 
       if (isSelectorOpenResult(response) && !response.opened) {
-        setErrorMessage("Unable to open selector details for the selected element.");
+        setToolMessage("Unable to open selector details for the selected element.", "error");
       }
     })
     .catch(() => {
-      setErrorMessage("Unable to connect to the active tab.");
+      setToolMessage("Unable to connect to the active tab.", "error");
     });
 };
 
 export const sendApplyStylePopup = () => {
   logger.debug("request apply style popup");
-  setErrorMessage(null);
+  setToolMessage(null, "error");
   const selection = get(selectedInfo);
   const context = getSelectionContext();
   const selectorValue = selection?.selector ?? "body";
@@ -382,12 +382,12 @@ export const sendApplyStylePopup = () => {
   void readActiveTabContext()
     .then(async (tabContext) => {
       if (!tabContext) {
-        setErrorMessage("No active tab found.");
+        setToolMessage("No active tab found.", "error");
         return;
       }
 
       if (isRestrictedUrl(tabContext.url)) {
-        setErrorMessage("Selection is unavailable on this page.");
+        setToolMessage("Selection is unavailable on this page.", "error");
         return;
       }
 
@@ -404,38 +404,38 @@ export const sendApplyStylePopup = () => {
       ).catch(() => null);
 
       if (response === null) {
-        setErrorMessage("Unable to connect to the active tab.");
+        setToolMessage("Unable to connect to the active tab.", "error");
         return;
       }
 
       if (isSelectorOpenResult(response) && !response.opened) {
-        setErrorMessage("Unable to open style editor for the selected element.");
+        setToolMessage("Unable to open style editor for the selected element.", "error");
       }
     })
     .catch(() => {
-      setErrorMessage("Unable to connect to the active tab.");
+      setToolMessage("Unable to connect to the active tab.", "error");
     });
 };
 
 const sendSelectionAction = (action: SelectElementAction) => {
   logger.debug("request selected element action", { action });
-  setErrorMessage(null);
+  setToolMessage(null, "error");
 
   const selection = get(selectedInfo);
   if (!selection) {
-    setErrorMessage("Select an element first.");
+    setToolMessage("Select an element first.", "error");
     return;
   }
 
   void readActiveTabContext()
     .then(async (tabContext) => {
       if (!tabContext) {
-        setErrorMessage("No active tab found.");
+        setToolMessage("No active tab found.", "error");
         return;
       }
 
       if (isRestrictedUrl(tabContext.url)) {
-        setErrorMessage("Selection is unavailable on this page.");
+        setToolMessage("Selection is unavailable on this page.", "error");
         return;
       }
 
@@ -444,7 +444,7 @@ const sendSelectionAction = (action: SelectElementAction) => {
       let clipboardText: string | undefined;
       if (action === "paste") {
         if (!internalClipboardHtml) {
-          setErrorMessage("Nothing to paste. Copy or cut an element first.");
+          setToolMessage("Nothing to paste. Copy or cut an element first.", "error");
           return;
         }
         clipboardText = internalClipboardHtml;
@@ -461,17 +461,17 @@ const sendSelectionAction = (action: SelectElementAction) => {
       ).catch(() => null);
 
       if (response === null) {
-        setErrorMessage("Unable to connect to the active tab.");
+        setToolMessage("Unable to connect to the active tab.", "error");
         return;
       }
 
       if (!isSelectElementActionResult(response)) {
-        setErrorMessage("Unable to update the selected element.");
+        setToolMessage("Unable to update the selected element.", "error");
         return;
       }
 
       if (!response.ok) {
-        setErrorMessage(response.error);
+        setToolMessage(response.error, "error");
         return;
       }
 
@@ -505,7 +505,7 @@ const sendSelectionAction = (action: SelectElementAction) => {
       }
     })
     .catch(() => {
-      setErrorMessage("Unable to connect to the active tab.");
+      setToolMessage("Unable to connect to the active tab.", "error");
     });
 };
 
@@ -642,7 +642,7 @@ export const attachSelectionListener = () => {
           recordSidepanelAction("Selected element", selectorDetail.length > 0 ? `selector: ${selectorDetail}` : "");
         }
       }
-      setErrorMessage(null);
+      setToolMessage(null, "error");
     }
   };
 
