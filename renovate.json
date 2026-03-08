@@ -2,6 +2,8 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "schedule": ["* * * * 1"],
+  "timezone": "America/Los_Angeles",
+  "separateMajorMinor": false,
   "packageRules": [
     {
       "matchManagers": ["bun"],
