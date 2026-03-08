@@ -96,6 +96,7 @@
     getElementEntries: () => editorCtx.elementEntries,
     getEditorContent: () => get(codeEditorContent),
     insertDefinitions: (lines: string[]) => editorCtx.insertDefinitions(lines),
+    replaceEditorContent: (content: string) => editorCtx.replaceEditorContent(content),
     setError: (msg: string | null) => setErrorMessage(msg),
   });
 

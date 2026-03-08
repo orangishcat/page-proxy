@@ -6,6 +6,7 @@ const key = Symbol("editor");
 
 type EditorApi = {
   insertDefinitions: (lines: string[]) => void;
+  replaceEditorContent: (content: string) => void;
   resetToDefault: () => Promise<void>;
 };
 
@@ -29,6 +30,14 @@ export function createEditorContext() {
     return true;
   };
 
+  const replaceEditorContent = (content: string): boolean => {
+    if (!api) {
+      return false;
+    }
+    api.replaceEditorContent(content);
+    return true;
+  };
+
   const resetToDefault = async (): Promise<void> => {
     if (!api) {
       throw new Error("Editor is not ready.");
@@ -46,6 +55,7 @@ export function createEditorContext() {
     get api() { return api; },
     set api(v: EditorApi | null) { api = v; },
     insertDefinitions,
+    replaceEditorContent,
     resetToDefault,
   };
 }

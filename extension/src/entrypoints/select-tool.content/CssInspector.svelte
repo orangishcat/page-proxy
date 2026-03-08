@@ -592,6 +592,7 @@
       name: null,
       code: injectSnippet,
       baseSelector: selectorValue,
+      originalCode: initialCode?.trim() || initialCssContent?.trim() || undefined,
     };
 
     const result = await onSave(payload);

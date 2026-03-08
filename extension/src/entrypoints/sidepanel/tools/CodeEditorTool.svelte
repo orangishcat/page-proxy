@@ -472,7 +472,11 @@
     selectorEntries.set([]);
     editorCtx.allowedGrants = [];
     setupEditor();
-    editorCtx.api = { insertDefinitions: insertDefinitionLines, resetToDefault: resetScriptToDefault };
+    editorCtx.api = {
+      insertDefinitions: insertDefinitionLines,
+      replaceEditorContent: (content) => updateEditorContent(content),
+      resetToDefault: resetScriptToDefault,
+    };
     refreshActiveTab();
     browser.tabs.onActivated.addListener(handleTabActivated);
     browser.tabs.onUpdated.addListener(handleTabUpdated);
