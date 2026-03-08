@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
-  "schedule": ["every week on monday"],
+  "schedule": ["* * * * 1"],
   "packageRules": [
     {
       "matchManagers": ["bun"],
