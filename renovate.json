@@ -6,7 +6,7 @@
   "separateMajorMinor": false,
   "packageRules": [
     {
-      "matchManagers": ["bun"],
+      "matchManagers": ["bun", "github-actions"],
       "groupName": "all dependencies",
       "groupSlug": "all-deps"
     }
