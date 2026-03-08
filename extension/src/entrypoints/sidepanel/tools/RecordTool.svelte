@@ -5,6 +5,7 @@
 
   import Button from "@/lib/components/Button.svelte";
   import { openRecordConverter } from "./record/actions";
+  import { clearRecordConverterOpenError, recordConverterOpenError } from "./record/error-state";
   import { getRecordTimelineEntryIds, hasFullRecordSelection } from "./record/selection";
   import { clearRecordPanelState, recordPanelState, toggleRecordPanelRecording } from "./record/state";
   import type { RecordTimelineEntry } from "./state-storage";
@@ -22,6 +23,7 @@
   const selectedEntries = $derived.by(() => {
     return timelineEntries.filter((entry) => selectedEntryIdSet.has(entry.id));
   });
+  const recordConverterError = $derived($recordConverterOpenError);
   const hasSelectedEntries = $derived(selectedEntries.length > 0);
   const allEntriesSelected = $derived(hasFullRecordSelection(timelineEntries, selectedEntryIds));
 
@@ -30,6 +32,7 @@
     const prunedSelection = selectedEntryIds.filter((id) => timelineIdSet.has(id));
     if (prunedSelection.length !== selectedEntryIds.length) {
       selectedEntryIds = prunedSelection;
+      clearRecordConverterOpenError();
     }
   });
 
@@ -115,16 +118,19 @@
   const isEntrySelected = (entryId: string) => selectedEntryIdSet.has(entryId);
 
   const toggleEntrySelection = (entryId: string) => {
+    clearRecordConverterOpenError();
     selectedEntryIds = isEntrySelected(entryId)
       ? selectedEntryIds.filter((id) => id !== entryId)
       : [...selectedEntryIds, entryId];
   };
 
   const clearSelection = () => {
+    clearRecordConverterOpenError();
     selectedEntryIds = [];
   };
 
   const selectAllEntries = () => {
+    clearRecordConverterOpenError();
     selectedEntryIds = allEntryIds;
   };
 
@@ -140,6 +146,7 @@
       toggleEntrySelection(entryId);
       return;
     }
+    clearRecordConverterOpenError();
     selectedEntryIds = [entryId];
   };
 
@@ -348,4 +355,8 @@
       </div>
     {/if}
   </div>
+
+  {#if recordConverterError}
+    <p class="mt-3 text-caption text-red-300">{recordConverterError}</p>
+  {/if}
 </div>

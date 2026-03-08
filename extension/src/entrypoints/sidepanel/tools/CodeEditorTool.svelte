@@ -215,7 +215,6 @@
     const formattedScript = formatIndentation(editorValue);
     void requestScriptRun(formattedScript)
       .then((result) => {
-        selectorEntries.set(result.selectors);
         autosave.saveNow(editorValue);
         updateRunError(result.errors, result.errorStacks);
       })
@@ -326,7 +325,6 @@
       activeScriptName = null;
       activeWebsiteGlob = null;
       toolCtx.activeTool = "none";
-      selectorEntries.set([]);
       editorCtx.allowedGrants = [];
       const baseContent = buildDefaultScript("", scriptFormatConfig);
       const displayContent = isProtectedPage ? buildProtectedDisplay(baseContent, scriptFormatConfig) : baseContent;
@@ -338,7 +336,6 @@
     activeScriptName = resolvedState.scriptName;
     activeWebsiteGlob = resolvedState.websiteGlob;
     toolCtx.activeTool = resolvedState.state.activeTool;
-    selectorEntries.set(resolvedState.state.selectorPanel.entries);
     editorCtx.allowedGrants = resolvedState.state.permissions.allowedGrants;
     const normalizedBaseContent = ensureDefineBlock(resolvedState.state.codeEditor.content, scriptFormatConfig);
     const contentWithWebsite = ensureWebsiteMetadata(normalizedBaseContent, resolvedState.websiteGlob);
@@ -360,7 +357,6 @@
 
     if (isProtectedPage) {
       editorCtx.elementEntries = [];
-      selectorEntries.set([]);
       editorCtx.allowedGrants = [];
 
       activeWebsiteGlob = null;
@@ -469,7 +465,6 @@
     editorValue = buildDefaultScript("", scriptFormatConfig);
     codeEditorContent.set(editorValue);
     editorCtx.elementEntries = [];
-    selectorEntries.set([]);
     editorCtx.allowedGrants = [];
     setupEditor();
     editorCtx.api = {
