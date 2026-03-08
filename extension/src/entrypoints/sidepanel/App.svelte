@@ -12,10 +12,11 @@
   import SelectorsTool from "./tools/SelectorsTool.svelte";
   import CodeEditorTool from "./tools/CodeEditorTool.svelte";
   import BannerContainer from "./banners/BannerContainer.svelte";
+  import StatusMessage from "./tools/StatusMessage.svelte";
   import Toolbar from "./Toolbar.svelte";
   import ResizeHandle from "./ResizeHandle.svelte";
   import { attachSelectionListener, sendSelectionToggle } from "./tools/select-tool/actions";
-  import { setErrorMessage, setSuccessMessage } from "./tools/tool-errors";
+  import { setEditorMessage, setToolMessage, toolMessage } from "./tools/tool-errors";
   import { isGrantResolvedMessage } from "@/lib/grant-permissions";
   import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
   import { codeEditorContent, selectorEntries } from "./tools/code-editor/state";
@@ -48,6 +49,7 @@
 
   let toolPanelHeightPx = $state<number | null>(null);
   let toolPanelSection = $state<HTMLElement | null>(null);
+  const activeToolMessage = $derived($toolMessage);
 
   const minToolPanelHeightPx = 300;
   const maxToolPanelHeightPx = 600;
@@ -97,7 +99,7 @@
     getEditorContent: () => get(codeEditorContent),
     insertDefinitions: (lines: string[]) => editorCtx.insertDefinitions(lines),
     replaceEditorContent: (content: string) => editorCtx.replaceEditorContent(content),
-    setError: (msg: string | null) => setErrorMessage(msg),
+    setError: (msg: string | null) => setEditorMessage(msg, "error"),
   });
 
   onMount(() => {
@@ -136,9 +138,9 @@
       if (isGrantResolvedMessage(message)) {
         editorCtx.allowedGrants = message.payload.allowedGrants;
         if (message.payload.allow) {
-          setSuccessMessage("Grant permissions saved (reload the page for permissions to take effect).");
+          setToolMessage("Grant permissions saved (reload the page for permissions to take effect).", "success");
         } else {
-          setErrorMessage("Grant request denied.");
+          setToolMessage("Grant request denied.", "error");
         }
         return false;
       }
@@ -213,6 +215,13 @@
                   <p class="text-body">Unknown tool: {toolCtx.activeTool}</p>
                 </div>
               {/if}
+            {/if}
+
+            {#if activeToolMessage}
+              <StatusMessage
+                message={activeToolMessage}
+                onDismiss={() => setToolMessage(null, "error")}
+              />
             {/if}
           </section>
 

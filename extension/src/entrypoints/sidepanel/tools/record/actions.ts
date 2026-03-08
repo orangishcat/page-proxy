@@ -5,7 +5,7 @@ import type { RecordConverterOpenResult, SelectToolMessage } from "@/lib/selecti
 import { codeEditorContent } from "../code-editor/state";
 import type { RecordTimelineEntry } from "../state-storage";
 import { isRestrictedUrl, readActiveTabContext, sendSelectToolMessage } from "../select-tool/content-messaging";
-import { clearRecordConverterOpenError, setRecordConverterOpenError } from "./error-state";
+import { setToolMessage } from "../tool-errors";
 
 const logger = log.getLogger("record-tool-actions");
 
@@ -39,7 +39,7 @@ export const openRecordConverter = (selectedEntries: RecordTimelineEntry[]) => {
   const timelineSize = timeline.length;
   if (timeline.length === 0) {
     logger.error("record converter open failed: empty timeline selection");
-    setRecordConverterOpenError("Select at least one recorded action to convert.");
+    setToolMessage("Select at least one recorded action to convert.", "error");
     return;
   }
 
@@ -48,7 +48,7 @@ export const openRecordConverter = (selectedEntries: RecordTimelineEntry[]) => {
       timelineSize,
       firstAction: selectedEntries[0]?.action ?? null,
     });
-    setRecordConverterOpenError("The first selected action must be Selected element.");
+    setToolMessage("The first selected action must be Selected element.", "error");
     return;
   }
 
@@ -56,14 +56,14 @@ export const openRecordConverter = (selectedEntries: RecordTimelineEntry[]) => {
     selectedEntries: timeline.length,
   });
 
-  clearRecordConverterOpenError();
+  setToolMessage(null, "error");
   void readActiveTabContext()
     .then(async (tabContext) => {
       if (!tabContext) {
         logger.error("record converter open failed: no active tab", {
           timelineSize,
         });
-        setRecordConverterOpenError("No active tab found.");
+        setToolMessage("No active tab found.", "error");
         return;
       }
 
@@ -73,7 +73,7 @@ export const openRecordConverter = (selectedEntries: RecordTimelineEntry[]) => {
           url: tabContext.url,
           timelineSize,
         });
-        setRecordConverterOpenError("Selection is unavailable on this page.");
+        setToolMessage("Selection is unavailable on this page.", "error");
         return;
       }
 
@@ -108,7 +108,7 @@ export const openRecordConverter = (selectedEntries: RecordTimelineEntry[]) => {
           existingCodeLength,
           rawResponse: response,
         });
-        setRecordConverterOpenError("No response from page while opening record converter.");
+        setToolMessage("No response from page while opening record converter.", "error");
         return;
       }
 
@@ -120,7 +120,7 @@ export const openRecordConverter = (selectedEntries: RecordTimelineEntry[]) => {
           existingCodeLength,
           rawResponse: response,
         });
-        setRecordConverterOpenError("Record converter returned an invalid response.");
+        setToolMessage("Record converter returned an invalid response.", "error");
         return;
       }
 
@@ -132,17 +132,17 @@ export const openRecordConverter = (selectedEntries: RecordTimelineEntry[]) => {
           existingCodeLength,
           error: response.error,
         });
-        setRecordConverterOpenError(response.error ?? "Unable to open record converter.");
+        setToolMessage(response.error ?? "Unable to open record converter.", "error");
         return;
       }
 
-      clearRecordConverterOpenError();
+      setToolMessage(null, "error");
     })
     .catch((error: unknown) => {
       logger.error("record converter open failed: active tab context error", {
         timelineSize,
         error,
       });
-      setRecordConverterOpenError("Unable to connect to the active tab.");
+      setToolMessage("Unable to connect to the active tab.", "error");
     });
 };

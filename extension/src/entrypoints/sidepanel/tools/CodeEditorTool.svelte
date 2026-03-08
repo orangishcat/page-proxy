@@ -35,7 +35,12 @@
     resolveStoredToolStateForUrl,
     type ScriptFormatConfig,
   } from "./state-loading";
-  import { errorMessage, setErrorFromUnknown, setErrorMessage, setSuccessMessage } from "./tool-errors";
+  import StatusMessage from "./StatusMessage.svelte";
+  import {
+    editorMessage,
+    setEditorMessage,
+    setEditorMessageFromUnknown,
+  } from "./tool-errors";
   import { getToolContext } from "../context/tool.svelte";
   import { getEditorContext } from "../context/editor.svelte";
 
@@ -69,15 +74,18 @@
   let canPersistEditorChanges = false;
   let hasUnsavedChanges = $state(false);
   let editorDomNode: HTMLElement | null = null;
-  let unsubscribeErrorMessageStore = () => {};
+  let unsubscribeEditorMessageStore = () => {};
   let lastRunErrorStack = $state<string | null>(null);
+  const activeEditorMessage = $derived($editorMessage);
 
-  const shouldClearErrorOnSuccessfulSave = (message: string | null) => {
-    if (!message) {
+  const shouldClearErrorOnSuccessfulSave = (
+    message: { text: string; status: "success" | "error"; stackTrace: string | null } | null,
+  ) => {
+    if (!message || message.status !== "error") {
       return false;
     }
 
-    return message === unsavedTabSwitchWarning || message.startsWith(saveFailurePrefix);
+    return message.text === unsavedTabSwitchWarning || message.text.startsWith(saveFailurePrefix);
   };
 
   const updateScriptMetadata = (content: string) => {
@@ -123,24 +131,24 @@
       });
       hasUnsavedChanges = false;
       const shouldRefreshPendingTab = autosave.onSaveSuccess();
-      if (shouldClearErrorOnSuccessfulSave(get(errorMessage))) {
-        setErrorMessage(null);
+      if (shouldClearErrorOnSuccessfulSave(get(editorMessage))) {
+        setEditorMessage(null, "error");
       }
       if (shouldRefreshPendingTab) {
         refreshActiveTab();
       }
     } catch (e: unknown) {
       if (e instanceof Error) {
-        setErrorMessage(`${saveFailurePrefix} ${e.message}`, typeof e.stack === "string" ? e.stack : null);
+        setEditorMessage(`${saveFailurePrefix} ${e.message}`, "error", typeof e.stack === "string" ? e.stack : null);
       } else {
-        setErrorMessage(`${saveFailurePrefix} ${e}`);
+        setEditorMessage(`${saveFailurePrefix} ${e}`, "error");
       }
     }
   };
 
   const autosave = createAutosaveManager({
     onSave: (content) => void saveToolState(content),
-    onPendingRefreshWarning: () => setErrorMessage(unsavedTabSwitchWarning),
+    onPendingRefreshWarning: () => setEditorMessage(unsavedTabSwitchWarning, "error"),
   });
 
   let lastRunError = $state<string | null>(null);
@@ -165,13 +173,13 @@
 
   const updateRunError = (errors: string[], errorStacks: string[] = []) => {
     if (errors.length === 0) {
-      if (lastRunError && get(errorMessage) === lastRunError) {
-        setErrorMessage(null);
+      if (lastRunError && get(editorMessage)?.status === "error" && get(editorMessage)?.text === lastRunError) {
+        setEditorMessage(null, "error");
       }
       lastRunError = null;
       lastRunErrorStack = null;
       clearScriptRunErrorMarker(editorHandle);
-      setSuccessMessage("Script execution succeeded");
+      setEditorMessage("Script execution succeeded", "success");
       return;
     }
 
@@ -179,8 +187,7 @@
     const stackTrace = errorStacks.find((value) => value.trim().length > 0) ?? null;
     lastRunError = message;
     lastRunErrorStack = stackTrace;
-    setSuccessMessage(null);
-    setErrorMessage(message, stackTrace);
+    setEditorMessage(message, "error", stackTrace);
     applyScriptRunErrorMarker(editorHandle, message, stackTrace);
   };
 
@@ -195,10 +202,12 @@
       return;
     }
 
-    setSuccessMessage(null);
+    if (get(editorMessage)?.status === "success") {
+      setEditorMessage(null, "success");
+    }
 
     if (!editorValue.trim()) {
-      setErrorMessage("Script is empty.");
+      setEditorMessage("Script is empty.", "error");
       return;
     }
 
@@ -206,7 +215,7 @@
       parseScriptMetadata(editorValue);
       getDefinitionBlock(editorValue);
     } catch (error) {
-      setErrorFromUnknown(error, "Invalid script metadata or selector block.");
+      setEditorMessageFromUnknown(error, "Invalid script metadata or selector block.");
       return;
     }
 
@@ -282,7 +291,7 @@
     activeWebsiteGlob = websiteGlob || null;
     activeScriptName = null;
     updateEditorContent(normalizedContent, { persist: false });
-    setErrorMessage(null);
+    setEditorMessage(null, "error");
   };
 
   const handleEditorKeydown = (event: KeyboardEvent) => {
@@ -303,7 +312,7 @@
     try {
       content = ensureDefineBlock(editorValue, scriptFormatConfig);
     } catch (error) {
-      setErrorFromUnknown(error, "Invalid selector definition block.");
+      setEditorMessageFromUnknown(error, "Invalid selector definition block.");
       return;
     }
 
@@ -369,7 +378,7 @@
     }
 
     if (!activeTabUrl) {
-      setErrorMessage("No active tab found.");
+      setEditorMessage("No active tab found.", "error");
       void loadStateForUrl(null).finally(() => {
         canPersistEditorChanges = true;
       });
@@ -378,7 +387,7 @@
 
     void loadStateForUrl(activeTabUrl)
       .catch((error) => {
-        setErrorFromUnknown(error, "Unable to load saved script state.");
+        setEditorMessageFromUnknown(error, "Unable to load saved script state.");
       })
       .finally(() => {
         canPersistEditorChanges = true;
@@ -391,7 +400,7 @@
         applyActiveTab(tab);
       })
       .catch(() => {
-        setErrorMessage("Unable to read the active tab.");
+        setEditorMessage("Unable to read the active tab.", "error");
         void loadStateForUrl(null).finally(() => {
           canPersistEditorChanges = true;
         });
@@ -409,7 +418,7 @@
         applyActiveTab(tab ?? null);
       })
       .catch(() => {
-        setErrorMessage("Unable to read the active tab.");
+        setEditorMessage("Unable to read the active tab.", "error");
       });
   };
 
@@ -448,13 +457,13 @@
   };
 
   onMount(() => {
-    unsubscribeErrorMessageStore = errorMessage.subscribe((value) => {
-      if (value === lastRunError && lastRunError) {
+    unsubscribeEditorMessageStore = editorMessage.subscribe((value) => {
+      if (value?.status === "error" && value.text === lastRunError && lastRunError) {
         applyScriptRunErrorMarker(editorHandle, lastRunError, lastRunErrorStack);
         return;
       }
 
-      if (value !== lastRunError) {
+      if (value?.text !== lastRunError) {
         lastRunError = null;
         lastRunErrorStack = null;
       }
@@ -492,7 +501,7 @@
         editorDomNode = null;
       }
 
-      unsubscribeErrorMessageStore();
+      unsubscribeEditorMessageStore();
       clearScriptRunErrorMarker(editorHandle);
     };
   });
@@ -559,4 +568,10 @@
     </div>
   </div>
   <div class="h-full min-h-0 w-full overflow-auto" bind:this={editorHost}></div>
+  {#if activeEditorMessage}
+    <StatusMessage
+      message={activeEditorMessage}
+      onDismiss={() => setEditorMessage(null, "error")}
+    />
+  {/if}
 </section>
