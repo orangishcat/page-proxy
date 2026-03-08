@@ -6,8 +6,8 @@
     "test": "bun test --preload ./tests/setup-dom.ts tests"
   },
   "dependencies": {
-    "dompurify": "3.2.7",
-    "marked": "14.0.0"
+    "dompurify": "3.3.2",
+    "marked": "17.0.4"
   },
   "exports": {
     ".": "./src/index.ts",
