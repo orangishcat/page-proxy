@@ -115,5 +115,4 @@
       </div>
     {/if}
   </div>
-  <p class="mt-2 px-1 text-center text-caption text-gray-500 dark:text-gray-400">Updates every manual script run</p>
 </div>
