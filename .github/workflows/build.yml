@@ -14,12 +14,12 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
 
             - name: Setup Node
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
-                  node-version: 22
+                  node-version: 24
 
             - name: Setup Bun
               uses: oven-sh/setup-bun@v2
@@ -78,28 +78,28 @@ jobs:
 
             - name: Upload Chrome CRX
               if: ${{ env.CHROME_CRX_PRIVATE_KEY != '' }}
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: ${{ env.CHROME_CRX_FILE }}
                   path: extension/.output/${{ env.CHROME_CRX_FILE }}
                   if-no-files-found: error
 
             - name: Upload Chrome source
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: ${{ env.CHROME_SOURCE_ARTIFACT }}
                   path: ${{ env.CHROME_SOURCE_DIR }}
                   if-no-files-found: error
 
             - name: Upload Firefox XPI
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: ${{ env.FIREFOX_XPI_FILE }}
                   path: extension/.output/${{ env.FIREFOX_XPI_FILE }}
                   if-no-files-found: error
 
             - name: Upload Firefox source
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: ${{ env.FIREFOX_SOURCE_ARTIFACT }}
                   path: ${{ env.FIREFOX_SOURCE_DIR }}
