@@ -309,6 +309,7 @@
       name: null,
       code,
       baseSelector: readBaseSelectorFromCode(code) ?? info?.selector ?? "body",
+      originalCode: initialCode?.trim() || undefined,
     };
 
     const result = await onSave(payload);

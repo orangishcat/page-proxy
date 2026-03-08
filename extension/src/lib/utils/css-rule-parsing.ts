@@ -2,13 +2,20 @@ import * as css from "css-tree";
 
 const maxSelectorRules = 24;
 
+export type ParsedCssRuleBlock = {
+  selector: string;
+  declarations: string;
+  start: number;
+  end: number;
+};
+
 export const normalizeCssSelectorText = (value: string) => value.trim().replace(/\s+/g, " ");
 
 export const normalizeSelector = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
 
-export const parseCssRuleBlocks = (text: string): Array<{ selector: string; declarations: string }> => {
+export const parseCssRuleBlocksWithRanges = (text: string): ParsedCssRuleBlock[] => {
   const ast = css.parse(text, { positions: true });
-  const blocks: Array<{ selector: string; declarations: string }> = [];
+  const blocks: ParsedCssRuleBlock[] = [];
 
   if (ast.type !== "StyleSheet") return blocks;
 
@@ -16,11 +23,21 @@ export const parseCssRuleBlocks = (text: string): Array<{ selector: string; decl
     if (node.type !== "Rule" || !node.loc || !node.prelude.loc || !node.block.loc) return;
     const selector = text.slice(node.prelude.loc.start.offset, node.prelude.loc.end.offset).trim();
     const declarations = text.slice(node.block.loc.start.offset + 1, node.block.loc.end.offset - 1).trim();
-    if (selector) blocks.push({ selector, declarations });
+    if (selector) {
+      blocks.push({
+        selector,
+        declarations,
+        start: node.prelude.loc.start.offset,
+        end: node.block.loc.end.offset,
+      });
+    }
   });
 
   return blocks;
 };
+
+export const parseCssRuleBlocks = (text: string): Array<{ selector: string; declarations: string }> =>
+  parseCssRuleBlocksWithRanges(text).map(({ selector, declarations }) => ({ selector, declarations }));
 
 export const buildCssBlock = (selector: string, declarations: string) =>
   declarations ? `${selector} {\n  ${declarations.replace(/\n/g, "\n  ")}\n}` : `${selector} {}`;

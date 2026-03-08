@@ -4,6 +4,11 @@ import type {
   SelectorSavePayload,
   SelectorSaveResult,
 } from "@/lib/selection";
+import { normalizeSelector, parseCssRuleBlocksWithRanges } from "@/lib/utils/css-rule-parsing";
+import {
+  extractPqSelectorDefinitionBlocks,
+  findPqSelectorDefinitionBlockByVariableName,
+} from "@/lib/utils/pq-selector-parsing";
 import { resolveRecordConverterCollisions } from "../select-tool.content/record-converter/collision";
 import { type SelectorEntry, type ElementEntry, sanitizeVariableName } from "./tools/code-editor/state";
 
@@ -12,6 +17,7 @@ export type MessageHandlerDeps = {
   getElementEntries: () => ElementEntry[];
   getEditorContent: () => string;
   insertDefinitions: (lines: string[]) => boolean;
+  replaceEditorContent: (content: string) => boolean;
   setError: (message: string | null) => void;
 };
 
@@ -54,15 +60,115 @@ const extractSelectorVariableName = (code: string): string | null => {
   return match?.[1] ?? null;
 };
 
+const replaceExactBlock = (content: string, originalCode: string, nextCode: string) => {
+  const start = content.indexOf(originalCode);
+  if (start < 0) {
+    return null;
+  }
+
+  return `${content.slice(0, start)}${nextCode}${content.slice(start + originalCode.length)}`;
+};
+
+const extractCssDocumentFromSnippet = (code: string) => {
+  const match = /ps\.injectCSS\s*\(\s*`([\s\S]*?)`\s*\)/.exec(code);
+  return match?.[1] ?? null;
+};
+
+const readCssSelectorSource = (value: string) => {
+  const braceIndex = value.indexOf("{");
+  if (braceIndex < 0) {
+    return value.trim();
+  }
+  return value.slice(0, braceIndex).trim();
+};
+
+const replaceCssRuleBlock = (content: string, originalSelector: string, nextCssDocument: string) => {
+  const injectPattern = /ps\.injectCSS\s*\(\s*`([\s\S]*?)`\s*\)/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = injectPattern.exec(content)) !== null) {
+    const styleText = match[1];
+    const styleTextOffset = match[0].indexOf(styleText);
+    if (styleTextOffset < 0) {
+      continue;
+    }
+
+    const matchingBlock = parseCssRuleBlocksWithRanges(styleText).find(
+      (block) => normalizeSelector(block.selector) === normalizeSelector(originalSelector),
+    );
+    if (!matchingBlock) {
+      continue;
+    }
+
+    const styleTextStart = match.index + styleTextOffset;
+    const blockStart = styleTextStart + matchingBlock.start;
+    const blockEnd = styleTextStart + matchingBlock.end;
+    return `${content.slice(0, blockStart)}${nextCssDocument}${content.slice(blockEnd)}`;
+  }
+
+  return null;
+};
+
+const replaceExistingCssDefinition = (payload: SelectorSavePayload, content: string) => {
+  const nextCssDocument = extractCssDocumentFromSnippet(payload.code.trim());
+  if (!nextCssDocument) {
+    return null;
+  }
+
+  const originalSelector = payload.originalCode ? readCssSelectorSource(payload.originalCode) : payload.baseSelector?.trim();
+  if (!originalSelector) {
+    return null;
+  }
+
+  return replaceCssRuleBlock(content, originalSelector, nextCssDocument);
+};
+
+const replaceExistingSelectorDefinition = (payload: SelectorSavePayload, content: string) => {
+  const originalCode = payload.originalCode?.trim();
+  const nextCode = payload.code.trim();
+  if (!originalCode) {
+    return null;
+  }
+
+  const exactReplacement = replaceExactBlock(content, originalCode, nextCode);
+  if (exactReplacement !== null) {
+    return exactReplacement;
+  }
+
+  const originalVariableName = extractSelectorVariableName(originalCode);
+  if (!originalVariableName) {
+    return null;
+  }
+
+  const currentBlock = findPqSelectorDefinitionBlockByVariableName(content, originalVariableName);
+  if (!currentBlock) {
+    return null;
+  }
+
+  return `${content.slice(0, currentBlock.start)}${nextCode}${content.slice(currentBlock.end)}`;
+};
+
 export const saveSelectorDefinition = (
   payload: SelectorSavePayload,
   deps: MessageHandlerDeps,
 ): SelectorSaveResult => {
   const rawCode = payload.code.trim();
+  const existingCode = deps.getEditorContent();
   const includesSelectorDefinition = rawCode.includes("pq.selector");
   const includesInjectCssCall = rawCode.includes("ps.injectCSS");
 
   if (includesInjectCssCall && !includesSelectorDefinition) {
+    const replacedContent = replaceExistingCssDefinition(payload, existingCode);
+    if (replacedContent !== null) {
+      if (!deps.replaceEditorContent(replacedContent)) {
+        const error = "Unable to save selector to the editor.";
+        deps.setError(error);
+        return { ok: false, error };
+      }
+      deps.setError(null);
+      return { ok: true };
+    }
+
     if (!deps.insertDefinitions([rawCode])) {
       const error = "Unable to save selector to the editor.";
       deps.setError(error);
@@ -83,6 +189,12 @@ export const saveSelectorDefinition = (
       sanitizeVariableName(entry.name),
     ),
   );
+  const originalVariableName = payload.originalCode
+    ? extractPqSelectorDefinitionBlocks(payload.originalCode)[0]?.variableName ?? null
+    : null;
+  if (originalVariableName) {
+    existingVariableNames.delete(sanitizeVariableName(originalVariableName));
+  }
 
   const variableName = extractSelectorVariableName(rawCode);
   if (!variableName) {
@@ -95,6 +207,17 @@ export const saveSelectorDefinition = (
     const error = `Variable name "${variableName}" already exists.`;
     deps.setError(error);
     return { ok: false, error };
+  }
+
+  const replacedContent = replaceExistingSelectorDefinition(payload, existingCode);
+  if (replacedContent !== null) {
+    if (!deps.replaceEditorContent(replacedContent)) {
+      const error = "Unable to save selector to the editor.";
+      deps.setError(error);
+      return { ok: false, error };
+    }
+    deps.setError(null);
+    return { ok: true };
   }
 
   if (!deps.insertDefinitions([rawCode])) {

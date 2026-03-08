@@ -27,6 +27,7 @@ export type SelectorSavePayload = {
   name: string | null;
   code: string;
   baseSelector?: string;
+  originalCode?: string;
 };
 
 export type SelectorPopupMode = "pp-api" | "css";
