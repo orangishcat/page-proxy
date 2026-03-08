@@ -1,4 +1,4 @@
-import log from "loglevel";
+import log from "@/lib/logger";
 
 import type { SelectToolMessage } from "@/lib/selection";
 import { isRestrictedUrl, readActiveTabContext, sendSelectToolMessage } from "../select-tool/content-messaging";
@@ -9,7 +9,6 @@ type SelectorsHoverPayload = {
 };
 
 const logger = log.getLogger("selectors-tool-actions");
-logger.setLevel("debug", false);
 
 export const sendSelectorsHover = (payload: SelectorsHoverPayload | null) => {
   logger.debug("selectors hover preview requested", {

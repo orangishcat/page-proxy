@@ -1,0 +1,77 @@
+---
+title: Select tool
+sidebar_position: 2
+---
+
+import useBaseUrl from "@docusaurus/useBaseUrl";
+
+# Select tool
+
+Use Select to inspect elements on the current page, and write selectors and CSS easily.
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+## Select tool panel
+
+Includes selected element details, quick property copy, and parent traversal controls.
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img src={useBaseUrl("/img/editor_usage/select_tool.png", { absolute: true })} alt="Page Proxy Select tool" />
+<img
+    src={useBaseUrl("/img/editor_usage/select_tool_2.png", { absolute: true })}
+    alt="Page Proxy Select tool with DevTools integration"
+/>
+
+</div>
+
+</div>
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+## Selector popup
+
+Open from **Select -> Selector**.
+
+- Edit generated `pq.selector(...)` code.
+- Use the property preview snippets.
+- Drag preview fragments into your selector code.
+- Save to insert into the Selectors block.
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img src={useBaseUrl("/img/editor_usage/selector_popup.png", { absolute: true })} alt="Page Proxy selector popup" />
+
+</div>
+
+</div>
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+## CSS inspector
+
+Open from **Select -> CSS** (or popup mode switch).
+
+- Edit CSS selector + declarations.
+- Inspect and edit computed property values.
+- Preview selectors/styles and save a `ps.injectCSS(...)` snippet.
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img src={useBaseUrl("/img/editor_usage/css_inspector.png", { absolute: true })} alt="Page Proxy CSS inspector" />
+
+</div>
+
+</div>

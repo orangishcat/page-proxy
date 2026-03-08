@@ -89,6 +89,56 @@ describe("pp-api", () => {
     expect(moveNode(orphan, 0, null)).toBe(orphan);
   });
 
+  test("moveNode supports inserting before and after the selected element", () => {
+    const parent = document.createElement("div");
+    const first = document.createElement("span");
+    first.id = "first";
+    const second = document.createElement("span");
+    second.id = "second";
+    const third = document.createElement("span");
+    third.id = "third";
+
+    parent.append(first, second, third);
+
+    moveNode(third, -1, second, { pasteLocation: "before" });
+    expect(Array.from(parent.children).map((node) => node.id)).toEqual(["first", "third", "second"]);
+
+    moveNode(first, -1, second, { pasteLocation: "after" });
+    expect(Array.from(parent.children).map((node) => node.id)).toEqual(["third", "second", "first"]);
+  });
+
+  test("moveNode supports copy mode for child paste location", () => {
+    const parent = document.createElement("div");
+    const first = document.createElement("span");
+    first.id = "first";
+    const second = document.createElement("span");
+    second.id = "second";
+
+    parent.append(first, second);
+    const copy = moveNode(first, -1, parent, { copy: true });
+
+    expect(copy).not.toBe(first);
+    expect(Array.from(parent.children).map((node) => node.id)).toEqual(["first", "second", "first"]);
+  });
+
+  test("moveNode supports copy mode for before and after paste locations", () => {
+    const parent = document.createElement("div");
+    const first = document.createElement("span");
+    first.id = "first";
+    const second = document.createElement("span");
+    second.id = "second";
+
+    parent.append(first, second);
+
+    const copyBefore = moveNode(first, -1, second, { pasteLocation: "before", copy: true });
+    expect(copyBefore).not.toBe(first);
+    expect(Array.from(parent.children).map((node) => node.id)).toEqual(["first", "first", "second"]);
+
+    const copyAfter = moveNode(first, -1, second, { pasteLocation: "after", copy: true });
+    expect(copyAfter).not.toBe(first);
+    expect(Array.from(parent.children).map((node) => node.id)).toEqual(["first", "first", "second", "first"]);
+  });
+
   test("notification logs, notifies sink, and renders page notifications", () => {
     const sinkPayloads: Array<{ level: string; values: unknown[] }> = [];
     (globalThis as Record<string, unknown>)[notificationSinkGlobalKey] = (payload: {

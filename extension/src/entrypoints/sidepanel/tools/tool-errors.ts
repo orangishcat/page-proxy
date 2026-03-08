@@ -1,36 +1,63 @@
-import {writable} from 'svelte/store';
+import { writable } from "svelte/store";
 
-export const errorMessage = writable<string | null>(null);
-export const errorStackTrace = writable<string | null>(null);
-export const successMessage = writable<string | null>(null);
+export type SidepanelMessageStatus = "success" | "error";
 
-export const setErrorMessage = (message: string | null, stackTrace: string | null = null) => {
-  if (message) {
-    successMessage.set(null);
-  }
-  errorMessage.set(message);
-  errorStackTrace.set(message ? stackTrace : null);
+export type SidepanelMessage = {
+  text: string;
+  status: SidepanelMessageStatus;
+  stackTrace: string | null;
 };
 
-export const setSuccessMessage = (message: string | null) => {
-  if (message) {
-    errorMessage.set(null);
-    errorStackTrace.set(null);
+const createMessageStore = () => writable<SidepanelMessage | null>(null);
+
+export const toolMessage = createMessageStore();
+export const editorMessage = createMessageStore();
+
+const setScopedMessage = (
+  store: typeof toolMessage,
+  message: string | null,
+  status: SidepanelMessageStatus,
+  stackTrace: string | null = null,
+) => {
+  if (message === null) {
+    store.set(null);
+    return;
   }
-  successMessage.set(message);
+
+  store.set({
+    text: message,
+    status,
+    stackTrace: status === "error" ? stackTrace : null,
+  });
 };
 
-export const setErrorFromUnknown = (error: unknown, fallbackMessage: string) => {
+export const setToolMessage = (
+  message: string | null,
+  status: SidepanelMessageStatus,
+  stackTrace: string | null = null,
+) => {
+  setScopedMessage(toolMessage, message, status, stackTrace);
+};
+
+export const setEditorMessage = (
+  message: string | null,
+  status: SidepanelMessageStatus,
+  stackTrace: string | null = null,
+) => {
+  setScopedMessage(editorMessage, message, status, stackTrace);
+};
+
+export const setEditorMessageFromUnknown = (error: unknown, fallbackMessage: string) => {
   if (error instanceof Error) {
-    setErrorMessage(error.message || fallbackMessage, typeof error.stack === 'string' ? error.stack : null);
+    setEditorMessage(error.message || fallbackMessage, "error", typeof error.stack === "string" ? error.stack : null);
     return;
   }
 
-  if (typeof error === 'string') {
+  if (typeof error === "string") {
     const normalized = error.trim();
-    setErrorMessage(normalized.length > 0 ? normalized : fallbackMessage);
+    setEditorMessage(normalized.length > 0 ? normalized : fallbackMessage, "error");
     return;
   }
 
-  setErrorMessage(fallbackMessage);
+  setEditorMessage(fallbackMessage, "error");
 };

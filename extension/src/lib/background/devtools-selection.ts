@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import log from "loglevel";
+import log from "@/lib/logger";
 import {
   devtoolsSelectionPortName,
   type DevtoolsCommandAction,
@@ -30,7 +30,6 @@ type PendingCommand = {
 };
 const commandTimeoutMs = 1200;
 const logger = log.getLogger("devtools-selection");
-logger.setLevel("debug", false);
 
 const buildRequestId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -165,7 +164,10 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
     notifySelectionChanged(tabId, selection);
   };
 
-  const sendCommandToTab = (tabId: number, action: DevtoolsCommandAction): Promise<DevtoolsSelectionResponseMessage> => {
+  const sendCommandToTab = (
+    tabId: number,
+    action: DevtoolsCommandAction,
+  ): Promise<DevtoolsSelectionResponseMessage> => {
     const port = getAnyPortForTab(tabId);
     if (!port) {
       return Promise.resolve({
@@ -266,7 +268,7 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
 
   const handleRuntimeMessage: RuntimeMessageHandler = (message, _sender, sendResponse) => {
     if (isStatusRequestMessage(message)) {
-      logger.debug("runtime message received", { type: message.type, tabId: message.tabId });
+      logger.debug("runtime message received", { message });
       const response: DevtoolsSelectionStatusResponseMessage = {
         open: getAnyPortForTab(message.tabId) !== null,
       };
@@ -275,7 +277,7 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
     }
 
     if (isSelectionGetRequestMessage(message)) {
-      logger.debug("runtime message received", { type: message.type, tabId: message.tabId });
+      logger.debug("runtime message received", { message });
       void sendCommandToTab(message.tabId, "get-selected")
         .then((response) => {
           if (response.selection) {
@@ -295,7 +297,7 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
     }
 
     if (isSelectionParentRequestMessage(message)) {
-      logger.debug("runtime message received", { type: message.type, tabId: message.tabId });
+      logger.debug("runtime message received", { message });
       void sendCommandToTab(message.tabId, "select-parent")
         .then((response) => {
           if (response.selection) {

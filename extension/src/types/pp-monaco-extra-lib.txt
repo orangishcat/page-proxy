@@ -23,19 +23,24 @@ declare module "@page-proxy/pp/pp-api" {
       linkRel?: string;
       linkReferrerPolicy?: string;
   };
+  export type MoveNodePasteLocation = "child" | "before" | "after";
+  export type MoveNodeOptions = {
+      pasteLocation?: MoveNodePasteLocation;
+      copy?: boolean;
+  };
   export declare const notificationSinkGlobalKey = "__pageProxyNotificationSink__";
   export declare const notification: (...values: unknown[]) => void;
   export declare const renderMarkdown: (content: string, options?: MarkdownRenderOptions) => string;
-  export declare const moveNode: (node: Element, position?: number, parent?: Element | null) => Element;
+  export declare const moveNode: (node: Element, position?: number, parent?: Element | null, options?: MoveNodeOptions) => Element;
   export declare const createApi: () => {
       notification: (...values: unknown[]) => void;
       renderMarkdown: (content: string, options?: MarkdownRenderOptions) => string;
-      moveNode: (node: Element, position?: number, parent?: Element | null) => Element;
+      moveNode: (node: Element, position?: number, parent?: Element | null, options?: MoveNodeOptions) => Element;
   };
   export declare const pp: {
       notification: (...values: unknown[]) => void;
       renderMarkdown: (content: string, options?: MarkdownRenderOptions) => string;
-      moveNode: (node: Element, position?: number, parent?: Element | null) => Element;
+      moveNode: (node: Element, position?: number, parent?: Element | null, options?: MoveNodeOptions) => Element;
   };
 }
 declare module "@page-proxy/pp/pp-network" {

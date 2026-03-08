@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import log from "loglevel";
+import log from "@/lib/logger";
 
 import {
   devtoolsSelectionPortName,
@@ -16,7 +16,6 @@ type EvalSelectionResult = {
 };
 
 const logger = log.getLogger("devtools-bridge");
-logger.setLevel("debug", false);
 
 const inspectedTabId = chrome.devtools.inspectedWindow.tabId;
 const selectionPort = browser.runtime.connect({
@@ -177,8 +176,7 @@ const isCommandMessage = (message: unknown): message is DevtoolsSelectionCommand
   typeof message.requestId === "string" &&
   (message.action === "get-selected" || message.action === "select-parent");
 
-const isExceptionInfo = (value: unknown): value is { isException?: boolean; value?: unknown } =>
-  isRecord(value);
+const isExceptionInfo = (value: unknown): value is { isException?: boolean; value?: unknown } => isRecord(value);
 
 const evaluateSelection = (selectParent: boolean) =>
   new Promise<EvalSelectionResult>((resolve) => {

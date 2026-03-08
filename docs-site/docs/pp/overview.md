@@ -2,7 +2,7 @@
 title: pp Library Overview
 ---
 
-# pp Library Overview (next)
+# pp Library Overview (v0.2.x)
 
 `pp` scripting is grouped into:
 
@@ -41,4 +41,4 @@ const response = await pn.get("/api/cards", { cache: true });
 console.log(await response.json());
 ```
 
-Use this version for scripts targeting `next` runtime behavior.
+Use this version for scripts targeting `v0.2.x` runtime behavior.

@@ -1,0 +1,82 @@
+---
+title: Side panel basics
+sidebar_position: 1
+---
+
+import useBaseUrl from "@docusaurus/useBaseUrl";
+
+# Side panel basics (next)
+
+This section covers the Page Proxy extension workflow in `next`: sidepanel layout, code editor behavior, and tool-specific pages.
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+## Sidepanel layout and shortcuts
+
+The sidepanel has:
+
+- A code editor panel at the top.
+- A tool panel at the bottom.
+- A toolbar on the top for switching tools.
+
+Toolbar shortcuts:
+
+- `Shift + 1`: Select
+- `Shift + 2`: Create
+- `Shift + 3`: Selectors
+- `Shift + 4`: Record
+- `Shift + 5`: Help
+- `Shift + 6`: Share
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img src={useBaseUrl("/img/editor_usage/side_panel.png", { absolute: true })} alt="Page Proxy sidepanel overview" />
+
+</div>
+
+</div>
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+## Code editor
+
+The editor is where you edit code and run it on the active tab.
+
+What it does:
+
+- Keeps `pa`, `pn`, `pq`, `ps`, `pt`, and `pv` imports in your script.
+- Uses a selector definition block:
+    - `// ==Selectors==`
+    - `// ==/Selectors==`
+- Parses script metadata and selector definitions as you edit.
+- Autosaves after a short delay when content changes.
+- Supports manual save with `Ctrl+S` / `Cmd+S`.
+- Runs your script with the Run button (play icon).
+- Stores state per website/tab context.
+
+On protected pages (for example browser internal pages), editing and execution are disabled and a protected-page message is shown.
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img src={useBaseUrl("/img/editor_usage/code_editor.png", { absolute: true })} alt="Page Proxy code editor tool" />
+
+</div>
+
+</div>
+
+## Tool pages
+
+- [Select tool](./select-tool)
+- [Create tool](./create-tool)
+- [Selectors tool](./selectors-tool)
+- [Record tool](./record-tool)
+- [Help tool](./help-tool)
+- [Share tool](./share-tool)

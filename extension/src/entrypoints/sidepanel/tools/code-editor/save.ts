@@ -92,7 +92,7 @@ export const saveState = async (options: SaveStateOptions) => {
       entries: options.selectorEntries,
     },
     permissions: {
-      allowedGrants: options.allowedGrants,
+      allowedGrants: Array.from(options.allowedGrants),
     },
     websiteGlob,
     updatedAt: Date.now(),

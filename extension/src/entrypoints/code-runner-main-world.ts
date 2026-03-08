@@ -9,6 +9,7 @@ import {
   type ScriptRunResponse
 } from '@/lib/script-runner';
 import {pa, pn, pq, ps, pt, pv} from '@page-proxy/pp';
+import { extractCssSelectorsFromStyleText } from '@/lib/utils/css-rule-parsing';
 
 type PpModuleBindings = {
   pa: typeof pa;
@@ -335,7 +336,19 @@ const toSelectorEntry = (definition: pq.SelectorDefinition<unknown>): ScriptRunS
   return {
     name,
     ruleKeys: rules,
-    rules
+    rules,
+    mode: 'pp-api'
+  };
+};
+
+
+const toCssSelectorEntry = (name: string, selectors: string[]): ScriptRunSelectorEntry => {
+  const rules = selectors.length > 0 ? selectors.map((selector) => `selector: ${selector}`) : ['css'];
+  return {
+    name,
+    ruleKeys: rules,
+    rules,
+    mode: 'css'
   };
 };
 
@@ -399,7 +412,8 @@ const runScriptRequest = (
   sendResult: (response: ScriptRunResponse) => void
 ) => {
   const {logs, sink} = createNotificationCapture();
-  const selectorsByName = new Map<string, ScriptRunSelectorEntry>();
+  const selectorEntries = new Map<string, ScriptRunSelectorEntry>();
+  let cssEntryCount = 0;
   const storageScope = buildScriptStorageScope(code);
   const modules = ensurePpModules();
   const pageStorageApi = modules.pt.createStorage(storageScope);
@@ -410,10 +424,21 @@ const runScriptRequest = (
     ...modules.pq,
     selector: <T = HTMLElement>(definition: pq.SelectorDefinition<T>) => {
       const entry = toSelectorEntry(definition);
-      selectorsByName.set(entry.name, entry);
+      selectorEntries.set(`pp-api:${entry.name}`, entry);
       return modules.pq.selector(definition);
     }
   } satisfies typeof pq;
+  const styleApi = {
+    ...modules.ps,
+    injectCSS: (styleText: string) => {
+      cssEntryCount += 1;
+      const selectors = extractCssSelectorsFromStyleText(styleText);
+      const entryName = selectors[0] ? `CSS ${cssEntryCount}: ${selectors[0]}` : `CSS ${cssEntryCount}`;
+      const entry: ScriptRunSelectorEntry = { ...toCssSelectorEntry(entryName, selectors), cssText: styleText };
+      selectorEntries.set(`css:${entryName}`, entry);
+      return modules.ps.injectCSS(styleText);
+    }
+  } satisfies typeof ps;
 
   const cleanup = () => {
     window.removeEventListener('error', onError);
@@ -428,7 +453,7 @@ const runScriptRequest = (
 
     hasResponded = true;
     cleanup();
-    sendResult(buildScriptRunResponse(requestId, error, logs, Array.from(selectorsByName.values()), errorStack));
+    sendResult(buildScriptRunResponse(requestId, error, logs, Array.from(selectorEntries.values()), errorStack));
   };
 
   const onError = (errorEvent: ErrorEvent) => {
@@ -451,7 +476,7 @@ const runScriptRequest = (
   (globalThis as Record<string, unknown>).pa = modules.pa;
   (globalThis as Record<string, unknown>).pn = pageNetworkApi;
   (globalThis as Record<string, unknown>).pq = queryApi;
-  (globalThis as Record<string, unknown>).ps = modules.ps;
+  (globalThis as Record<string, unknown>).ps = styleApi;
   (globalThis as Record<string, unknown>).pt = pageStorageApi;
   (globalThis as Record<string, unknown>).pv = modules.pv;
   (globalThis as Record<string, unknown>).pp = modules.pa.pp;

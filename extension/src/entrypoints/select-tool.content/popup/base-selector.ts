@@ -1,4 +1,4 @@
-const baseSelectorPattern = /(["']baseSelector["']\s*:\s*)(["'`])((?:\\.|(?!\2)[\s\S])*?)\2/;
+const baseSelectorPattern = /((?:"baseSelector"|'baseSelector'|baseSelector)\s*:\s*)(["'`])((?:\\.|(?!\2)[\s\S])*?)\2/;
 
 const decodeStringLiteral = (value: string) => {
   return value.replace(/\\([\\'"`nrt])/g, (_match, token: string) => {

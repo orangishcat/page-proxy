@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import log from "loglevel";
+import log from "@/lib/logger";
 
 import type { SelectToolMessage } from "@/lib/selection";
 
@@ -9,7 +9,6 @@ export type ActiveTabContext = {
 };
 
 const logger = log.getLogger("select-tool-messaging");
-logger.setLevel("debug", false);
 
 export const isRestrictedUrl = (url: string | undefined) => {
   if (!url) {
@@ -94,12 +93,17 @@ export const sendSelectToolMessage = async (
   }
 };
 
-export const runContentSelectionToggle = async (tabId: number, enabled: boolean) => {
+export const runContentSelectionToggle = async (
+  tabId: number,
+  enabled: boolean,
+  options: { clearSelection?: boolean } = {},
+) => {
   await sendSelectToolMessage(
     tabId,
     {
       type: "select:toggle",
       enabled,
+      ...(enabled ? {} : { clearSelection: options.clearSelection }),
     } satisfies SelectToolMessage,
     0,
   );

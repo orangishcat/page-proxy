@@ -1,3 +1,4 @@
+import * as css from "css-tree";
 import { parseCssSelectorParts } from "./css-inspector";
 
 export type ParsedCssDeclaration = {
@@ -5,8 +6,6 @@ export type ParsedCssDeclaration = {
   value: string;
   order: number;
 };
-
-const cssDeclarationPattern = /^([a-zA-Z-][\w-]*)\s*:\s*(.+?)\s*;?$/;
 
 export const readSelectorSourceFromCssEditor = (value: string) => {
   const braceIndex = value.indexOf("{");
@@ -233,22 +232,20 @@ export const readComputedStyleEntries = (element: Element | null) => {
 };
 
 export const parseCssDeclarations = (declarations: string): ParsedCssDeclaration[] => {
-  return declarations
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .map((line, order) => {
-      const match = line.match(cssDeclarationPattern);
-      if (!match) {
-        return null;
-      }
-      return {
-        key: match[1].toLowerCase(),
-        value: match[2].trim(),
-        order,
-      } satisfies ParsedCssDeclaration;
-    })
-    .filter((entry): entry is ParsedCssDeclaration => entry !== null);
+  if (!declarations.trim()) return [];
+  const results: ParsedCssDeclaration[] = [];
+  let order = 0;
+  const ast = css.parse(`x{${declarations}}`, { parseValue: false });
+  css.walk(ast, {
+    visit: "Declaration",
+    enter(node) {
+      const key = node.property.toLowerCase().trim();
+      const rawValue = node.value.type === "Raw" ? node.value.value.trim() : css.generate(node.value).trim();
+      const value = node.important ? `${rawValue} !important` : rawValue;
+      if (key && value) results.push({ key, value, order: order++ });
+    },
+  });
+  return results;
 };
 
 const serializeCssDeclarations = (declarations: ParsedCssDeclaration[]) =>

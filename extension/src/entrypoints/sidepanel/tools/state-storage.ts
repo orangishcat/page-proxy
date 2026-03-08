@@ -1,32 +1,29 @@
-import { writable } from "svelte/store";
 import { browser } from "wxt/browser";
-
-import { coerceScriptGrantValues, type ScriptGrantValue } from "@/lib/grants";
-import { parseScriptMetadata } from "@/lib/utils/script-metadata";
-import { matchWebsiteGlob } from "@/lib/utils/website-glob";
+import {
+  coerceStoredToolState,
+  findBestMatchingWebsiteGlob,
+  fromStorageKey,
+  getWebsiteGlobsFromContent,
+  toStorageKey,
+  type StoredSelectorEntry,
+  type StoredToolState,
+  type ToolId,
+} from "@/lib/stored-tool-state";
 import { createSidepanelBannerManager, type BannerDefinition } from "../banners/banner-manager";
 
-export type ToolId = "select" | "create" | "selectors" | "help" | "share" | "none";
+export type { StoredSelectorEntry, StoredToolState, ToolId };
+export { toStorageKey, fromStorageKey };
 
-export type StoredSelectorEntry = {
-  name: string;
-  ruleKeys: string[];
-  rules?: string[];
+export type RecordTimelineEntry = {
+  id: string;
+  action: string;
+  detail: string;
+  timestamp: number;
 };
 
-export type StoredToolState = {
-  scriptName: string;
-  activeTool: ToolId;
-  codeEditor: {
-    content: string;
-  };
-  selectorPanel: {
-    entries: StoredSelectorEntry[];
-  };
-  permissions: {
-    allowedGrants: ScriptGrantValue[];
-  };
-  websiteGlob: string;
+export type RecordPanelState = {
+  isRecording: boolean;
+  timeline: RecordTimelineEntry[];
   updatedAt: number;
 };
 
@@ -36,7 +33,7 @@ type StoredStateMatch = {
   state: StoredToolState;
 };
 
-const storageKeyPrefix = "pageproxy:";
+const recordPanelStorageKeyPrefix = "sidepanel:recordPanel:";
 const toolPanelHeightStorageKey = "sidepanel:toolPanelHeightPx";
 const helpBannerDismissedStorageKey = "sidepanel:helpBannerDismissed";
 const userscriptReloadBannerDismissedStorageKey = "sidepanel:userscriptReloadBannerDismissed";
@@ -50,150 +47,73 @@ const userscriptReloadBanner: BannerDefinition = {
   storageKey: userscriptReloadBannerDismissedStorageKey,
 };
 
-const isToolId = (value: unknown): value is ToolId =>
-  value === "select" ||
-  value === "create" ||
-  value === "selectors" ||
-  value === "help" ||
-  value === "share" ||
-  value === "none";
-
-const isStringArray = (value: unknown): value is string[] =>
-  Array.isArray(value) && value.every((item) => typeof item === "string");
-
-const coerceStoredSelectorEntries = (value: unknown): StoredSelectorEntry[] => {
+const coerceRecordTimelineEntries = (value: unknown): RecordTimelineEntry[] => {
   if (!Array.isArray(value)) {
     return [];
   }
 
-  const entries: StoredSelectorEntry[] = [];
+  const entries: RecordTimelineEntry[] = [];
   value.forEach((entry) => {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
       return;
     }
 
     const data = entry as {
-      name?: unknown;
-      ruleKeys?: unknown;
-      rules?: unknown;
+      id?: unknown;
+      action?: unknown;
+      detail?: unknown;
+      timestamp?: unknown;
     };
 
-    if (typeof data.name !== "string" || !isStringArray(data.ruleKeys)) {
+    if (
+      typeof data.id !== "string" ||
+      typeof data.action !== "string" ||
+      typeof data.detail !== "string" ||
+      typeof data.timestamp !== "number"
+    ) {
       return;
     }
 
-    const rules = isStringArray(data.rules) ? data.rules : undefined;
     entries.push({
-      name: data.name,
-      ruleKeys: data.ruleKeys,
-      rules,
+      id: data.id,
+      action: data.action,
+      detail: data.detail,
+      timestamp: data.timestamp,
     });
   });
 
   return entries;
 };
 
-export const toStorageKey = (scriptName: string) => `${storageKeyPrefix}${scriptName.trim()}`;
-
-export const fromStorageKey = (key: string) => {
-  if (!key.startsWith(storageKeyPrefix)) {
-    return null;
-  }
-
-  const scriptName = key.slice(storageKeyPrefix.length).trim();
-  return scriptName.length > 0 ? scriptName : null;
-};
-
-const resolveMetadataFallback = (content: string) => {
-  try {
-    return parseScriptMetadata(content);
-  } catch {
-    return null;
-  }
-};
-
-const getWebsiteGlobsFromContent = (content: string) => {
-  const metadata = resolveMetadataFallback(content);
-  if (!metadata) {
-    return [];
-  }
-
-  const websites = metadata.websites
-    .map((website) => website.trim())
-    .filter((website) => website.length > 0);
-  if (websites.length > 0) {
-    return websites;
-  }
-
-  const website = metadata.website.trim();
-  return website.length > 0 ? [website] : [];
-};
-
-const findBestMatchingWebsiteGlob = (websiteGlobs: string[], url: string) => {
-  return websiteGlobs
-    .filter((websiteGlob) => matchWebsiteGlob(websiteGlob, url))
-    .sort((left, right) => right.length - left.length)[0] ?? null;
-};
-
-const coerceStoredToolState = (value: unknown, scriptNameFromKey: string): StoredToolState | null => {
+const coerceRecordPanelState = (value: unknown): RecordPanelState | null => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
 
   const data = value as {
-    scriptName?: unknown;
-    activeTool?: unknown;
-    codeEditor?: unknown;
-    selectorPanel?: unknown;
-    permissions?: unknown;
-    websiteGlob?: unknown;
+    isRecording?: unknown;
+    timeline?: unknown;
     updatedAt?: unknown;
   };
 
-  if (!isToolId(data.activeTool)) {
+  if (typeof data.isRecording !== "boolean") {
     return null;
   }
-
-  const codeEditor = data.codeEditor as { content?: unknown } | undefined;
-  if (typeof codeEditor?.content !== "string") {
-    return null;
-  }
-
-  const selectorPanel = data.selectorPanel as { entries?: unknown } | undefined;
-  const permissions = data.permissions as { allowedGrants?: unknown } | undefined;
-  const metadata = resolveMetadataFallback(codeEditor.content);
-  const metadataScriptName = metadata?.title?.trim() ?? "";
-  const resolvedScriptName =
-    typeof data.scriptName === "string" && data.scriptName.trim().length > 0
-      ? data.scriptName.trim()
-      : metadataScriptName.length > 0
-        ? metadataScriptName
-        : scriptNameFromKey;
-
-  const metadataWebsites = metadata?.websites.map((website) => website.trim()).filter((website) => website.length > 0) ?? [];
-  const metadataWebsite = metadata?.website?.trim() ?? "";
-  const fallbackWebsiteGlob = metadataWebsites[0] ?? metadataWebsite;
 
   return {
-    scriptName: resolvedScriptName,
-    activeTool: data.activeTool,
-    codeEditor: {
-      content: codeEditor.content,
-    },
-    selectorPanel: {
-      entries: coerceStoredSelectorEntries(selectorPanel?.entries),
-    },
-    permissions: {
-      allowedGrants: coerceScriptGrantValues(permissions?.allowedGrants),
-    },
-    websiteGlob:
-      typeof data.websiteGlob === "string" && data.websiteGlob.trim().length > 0 ? data.websiteGlob : fallbackWebsiteGlob,
+    isRecording: data.isRecording,
+    timeline: coerceRecordTimelineEntries(data.timeline),
     updatedAt: typeof data.updatedAt === "number" ? data.updatedAt : Date.now(),
   };
 };
 
-export const activeToolState = writable<ToolId>("none");
-export const allowedScriptGrantsState = writable<ScriptGrantValue[]>([]);
+const buildRecordPanelStorageKey = (tabId: number) => `${recordPanelStorageKeyPrefix}${tabId}`;
+
+export const buildDefaultRecordPanelState = (): RecordPanelState => ({
+  isRecording: true,
+  timeline: [],
+  updatedAt: Date.now(),
+});
 
 export const listStoredToolStates = async () => {
   const allValues = await browser.storage.local.get(null);
@@ -233,6 +153,42 @@ export const removeStoredToolState = async (scriptName: string) => {
   }
 
   await browser.storage.local.remove(toStorageKey(normalized));
+};
+
+export const readRecordPanelStateForTab = async (tabId: number) => {
+  if (!Number.isInteger(tabId) || tabId < 0) {
+    return buildDefaultRecordPanelState();
+  }
+
+  const storageKey = buildRecordPanelStorageKey(tabId);
+  return browser.storage.local
+    .get(storageKey)
+    .then((stored) => coerceRecordPanelState(stored[storageKey]) ?? buildDefaultRecordPanelState())
+    .catch(() => buildDefaultRecordPanelState());
+};
+
+export const saveRecordPanelStateForTab = async (tabId: number, state: RecordPanelState) => {
+  if (!Number.isInteger(tabId) || tabId < 0) {
+    return;
+  }
+
+  const storageKey = buildRecordPanelStorageKey(tabId);
+  await browser.storage.local.set({
+    [storageKey]: {
+      isRecording: state.isRecording,
+      timeline: state.timeline,
+      updatedAt: state.updatedAt,
+    },
+  });
+};
+
+export const removeRecordPanelStateForTab = async (tabId: number) => {
+  if (!Number.isInteger(tabId) || tabId < 0) {
+    return;
+  }
+
+  const storageKey = buildRecordPanelStorageKey(tabId);
+  await browser.storage.local.remove(storageKey);
 };
 
 const coerceToolPanelHeight = (value: unknown) => {

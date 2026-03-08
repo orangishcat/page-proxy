@@ -1,8 +1,12 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+
   import { Collapsible } from "bits-ui";
   import Button from "@/lib/components/Button.svelte";
-  import { codeEditorContent, resetEditorToDefault, scriptMetadata, type ScriptMetadataState } from "./code-editor/state";
+  import { codeEditorContent } from "./code-editor/state";
+  import { getEditorContext } from "../context/editor.svelte";
+  import { buildWebsiteMetadataListing, extractWebsiteMetadataGlobs, normalizeScriptMetadataWebsites } from "@/lib/utils/script-metadata";
+
+  const editorCtx = getEditorContext();
 
   type ExportFormat = "pp-script" | "tampermonkey" | "css-only" | "wxt-extension";
 
@@ -25,14 +29,7 @@
   let isDeletingScript = $state(false);
   let metadataScrollContainer = $state<HTMLDivElement | null>(null);
 
-  let scriptMetadataValue = $state<ScriptMetadataState>({
-    title: "Page Proxy",
-    website: "",
-    description: "",
-    author: "",
-    credits: "",
-  });
-  let editorContentValue = $state("");
+  const editorContentValue = $derived($codeEditorContent);
 
   const selectedFormatOption = $derived(
     exportFormatOptions.find((option) => option.value === selectedFormat) ?? exportFormatOptions[0],
@@ -40,25 +37,12 @@
 
   const canExportSelectedFormat = $derived(selectedFormatOption.available);
 
-  const normalizedWebsiteGlob = $derived(scriptMetadataValue.website.trim());
-
-  onMount(() => {
-    const unsubscribeScriptMetadata = scriptMetadata.subscribe((value) => {
-      scriptMetadataValue = value;
-    });
-
-    const unsubscribeCodeEditorContent = codeEditorContent.subscribe((value) => {
-      editorContentValue = value;
-    });
-
-    return () => {
-      unsubscribeScriptMetadata();
-      unsubscribeCodeEditorContent();
-    };
-  });
+  const normalizedWebsiteGlob = $derived(
+    buildWebsiteMetadataListing(extractWebsiteMetadataGlobs(editorContentValue), editorCtx.scriptMetadata.website),
+  );
 
   const buildFileName = () => {
-    const title = scriptMetadataValue.title.trim();
+    const title = editorCtx.scriptMetadata.title.trim();
     const normalized = (title.length > 0 ? title : "page-proxy-script")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
@@ -69,7 +53,8 @@
 
   const downloadPpScript = () => {
     const fileName = buildFileName();
-    const blob = new Blob([editorContentValue], { type: "text/javascript;charset=utf-8" });
+    const normalizedContent = normalizeScriptMetadataWebsites(editorContentValue);
+    const blob = new Blob([normalizedContent], { type: "text/javascript;charset=utf-8" });
     const objectUrl = URL.createObjectURL(blob);
 
     const downloadAnchor = document.createElement("a");
@@ -134,7 +119,7 @@
 
     isDeletingScript = true;
     try {
-      await resetEditorToDefault();
+      await editorCtx.resetToDefault();
       statusMessage = "Script deleted. Restored default script.";
       isDeleteWarningVisible = false;
     } catch (error) {
@@ -149,20 +134,20 @@
   <div class="min-h-0 flex-1 overflow-y-auto space-y-3 pr-1" bind:this={metadataScrollContainer}>
     <div class="grid grid-cols-[fit-content(7rem)_minmax(0,1fr)] gap-x-4 gap-y-2 text-body whitespace-pre-line">
       <span class="min-w-0 text-right truncate text-gray-500">Title</span>
-      <span class="min-w-0 wrap-break-word text-left font-mono">{scriptMetadataValue.title || "Untitled script"}</span>
+      <span class="min-w-0 wrap-break-word text-left font-mono">{editorCtx.scriptMetadata.title || "Untitled script"}</span>
 
       <span class="min-w-0 text-right truncate text-gray-500">Website</span>
       <span class="min-w-0 wrap-break-word text-left font-mono">{normalizedWebsiteGlob || "Not set"}</span>
 
       <span class="min-w-0 text-right truncate text-gray-500">Description</span>
-      <span class="min-w-0 wrap-break-word text-left font-mono">{scriptMetadataValue.description || "No description"}</span>
+      <span class="min-w-0 wrap-break-word text-left font-mono">{editorCtx.scriptMetadata.description || "No description"}</span>
 
       <span class="min-w-0 text-right truncate text-gray-500">Author</span>
-      <span class="min-w-0 wrap-break-word text-left font-mono">{scriptMetadataValue.author || "No author"}</span>
+      <span class="min-w-0 wrap-break-word text-left font-mono">{editorCtx.scriptMetadata.author || "No author"}</span>
 
-      {#if scriptMetadataValue.credits.trim()}
+      {#if editorCtx.scriptMetadata.credits.trim()}
         <span class="min-w-0 text-right truncate text-gray-500">Credits</span>
-        <span class="min-w-0 wrap-break-word text-left font-mono">{scriptMetadataValue.credits}</span>
+        <span class="min-w-0 wrap-break-word text-left font-mono">{editorCtx.scriptMetadata.credits}</span>
       {/if}
 
       <div class="col-span-2 my-1 border-t border-[#5b5542]"></div>

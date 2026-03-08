@@ -27,6 +27,14 @@ export type GrantPermissionResolveResult =
       error: string;
     };
 
+export type GrantResolvedMessage = {
+  type: "grant:resolved";
+  payload: {
+    allowedGrants: ScriptGrantValue[];
+    allow: boolean;
+  };
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
@@ -47,6 +55,19 @@ export const isGrantPermissionRequestMessage = (value: unknown): value is GrantP
   }
 
   return typeof payload.scriptName === "string" && payload.scriptName.trim().length > 0 && isScriptGrantArray(payload.grants);
+};
+
+export const isGrantResolvedMessage = (value: unknown): value is GrantResolvedMessage => {
+  if (!isRecord(value) || value.type !== "grant:resolved") {
+    return false;
+  }
+
+  const payload = value.payload;
+  if (!isRecord(payload)) {
+    return false;
+  }
+
+  return isScriptGrantArray(payload.allowedGrants) && typeof payload.allow === "boolean";
 };
 
 export const isGrantPermissionResolveMessage = (value: unknown): value is GrantPermissionResolveMessage => {

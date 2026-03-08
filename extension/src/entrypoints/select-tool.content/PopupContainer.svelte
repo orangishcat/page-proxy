@@ -1,8 +1,13 @@
 <script lang="ts">
+  import Button from "@/lib/components/Button.svelte";
   import type { ElementInfo, SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
   import { onDestroy, onMount } from "svelte";
   import SelectorPopup from "./SelectorPopup.svelte";
   import CssInspector from "./CssInspector.svelte";
+  import { attachPopupKeyboardOwnership, POPUP_BASE_FONT_SIZE_PX, POPUP_SHARED_STYLE } from "./popup/container-shared";
+  import { readBaseSelectorFromCode } from "./popup/base-selector";
+  import { normalizeSelectorFromCssEditor } from "./css-editor-utils";
+  import ModalOverlay from "./ModalOverlay.svelte";
 
   type PropertyItem = {
     key: string;
@@ -15,15 +20,26 @@
   type PopupMode = "pp-api" | "css";
 
   type Props = {
-    info: ElementInfo;
+    info: ElementInfo | null;
     propertyItems: PropertyItem[];
     targetElement: Element | null;
     onSave: (payload: SelectorSavePayload) => Promise<SelectorSaveResult>;
     onCancel: () => void;
     mode?: PopupMode;
+    initialCssContent?: string;
+    initialCode?: string;
   };
 
-  let { info, propertyItems, targetElement, onSave, onCancel, mode = "pp-api" }: Props = $props();
+  let {
+    info,
+    propertyItems,
+    targetElement,
+    onSave,
+    onCancel,
+    mode = "pp-api",
+    initialCssContent,
+    initialCode,
+  }: Props = $props();
 
   let containerEl: HTMLDivElement | undefined = $state();
   let position = $state({ top: 0, left: 0 });
@@ -32,20 +48,43 @@
   let visible = $state(false);
   let popupHidden = $state(false);
   let popupMode = $state<PopupMode>("pp-api");
-  let baseSelector = $derived(info.selector);
-
-  const uiBaseFontSizePx = 16;
+  let baseSelector = $derived.by(() => {
+    const fromCode = readBaseSelectorFromCode(initialCode ?? "");
+    if (fromCode) return fromCode;
+    const fromCss = normalizeSelectorFromCssEditor(initialCssContent ?? "");
+    if (fromCss) return fromCss;
+    if (info?.selector) return info.selector;
+    return "body";
+  });
 
   const updatePosition = () => {
-    if (!containerEl || !targetElement?.isConnected) {
+    if (!containerEl) {
       visible = false;
+      return;
+    }
+
+    if (!targetElement?.isConnected) {
+      // No element to position relative to - center on screen
+      direction = "center";
+      const popupRect = containerEl.getBoundingClientRect();
+      const gap = 0.75 * POPUP_BASE_FONT_SIZE_PX;
+      const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+      const top = (window.innerHeight - popupRect.height) * 0.5;
+      const left = (window.innerWidth - popupRect.width) * 0.5;
+      const maxLeft = window.innerWidth - popupRect.width - gap;
+      const maxTop = window.innerHeight - popupRect.height - gap;
+      position = {
+        top: clamp(top, gap, Math.max(gap, maxTop)),
+        left: clamp(left, gap, Math.max(gap, maxLeft)),
+      };
+      visible = true;
       return;
     }
 
     const popupRect = containerEl.getBoundingClientRect();
     const targetRect = targetElement.getBoundingClientRect();
-    const gap = 0.75 * uiBaseFontSizePx;
-    const arrowSize = 0.75 * uiBaseFontSizePx;
+    const gap = 0.75 * POPUP_BASE_FONT_SIZE_PX;
+    const arrowSize = 0.75 * POPUP_BASE_FONT_SIZE_PX;
 
     const spaces = {
       top: targetRect.top,
@@ -130,9 +169,7 @@
     center: "hidden",
   });
 
-  const stopKeyPropagation = (event: KeyboardEvent) => {
-    event.stopPropagation();
-  };
+  let releaseKeyboardOwnership = () => {};
 
   const handlePopupVisibilityChange = (hidden: boolean) => {
     popupHidden = hidden;
@@ -151,18 +188,14 @@
     scheduleUpdate();
     window.addEventListener("scroll", scheduleUpdate, { capture: true });
     window.addEventListener("resize", scheduleUpdate);
-    containerEl?.addEventListener("keydown", stopKeyPropagation);
-    containerEl?.addEventListener("keyup", stopKeyPropagation);
-    containerEl?.addEventListener("keypress", stopKeyPropagation);
+    releaseKeyboardOwnership = attachPopupKeyboardOwnership(containerEl);
   });
 
   onDestroy(() => {
     if (frameId !== null) cancelAnimationFrame(frameId);
     window.removeEventListener("scroll", scheduleUpdate, { capture: true });
     window.removeEventListener("resize", scheduleUpdate);
-    containerEl?.removeEventListener("keydown", stopKeyPropagation);
-    containerEl?.removeEventListener("keyup", stopKeyPropagation);
-    containerEl?.removeEventListener("keypress", stopKeyPropagation);
+    releaseKeyboardOwnership();
   });
 
   $effect(() => {
@@ -178,13 +211,11 @@
   });
 </script>
 
+<ModalOverlay centered={false} class={visible && !popupHidden ? "" : "invisible"}>
 <div
   bind:this={containerEl}
-  class="pp-no-select-tool fixed z-2147483646 pointer-events-auto"
-  style="top: {position.top}px; left: {position.left}px; width: min(45.3125em, 92vw); height: min(28.0625em, 80vh); visibility: {visible &&
-  !popupHidden
-    ? 'visible'
-    : 'hidden'};"
+  class="pp-no-select-tool absolute pointer-events-auto"
+  style="top: {position.top}px; left: {position.left}px; width: min(45.3125em, 92vw); height: min(28.0625em, 80vh);"
 >
   {#if direction !== "center"}
     <div
@@ -195,7 +226,7 @@
 
   <div
     class="flex flex-col w-full h-full overflow-hidden rounded-lg border border-gray-800 bg-gray-950 text-gray-100 font-sans text-sm shadow-2xl pp-content-ui-root"
-    style={`color-scheme: dark; ${popupMode === "css" ? "font-size: 16px !important;" : ""}`}
+    style={POPUP_SHARED_STYLE}
   >
     <div class="flex items-center h-12 px-4 gap-2.5 bg-gray-900 border-b border-gray-800">
       <span class="text-lead">{popupMode === "pp-api" ? "Selector editor" : "CSS inspector"}</span>
@@ -224,12 +255,14 @@
         <option value="pp-api">pp-api</option>
         <option value="css">CSS</option>
       </select>
-      <button
-        type="button"
+      <Button
+        variant="outline"
         onclick={onCancel}
-        class="p-1 rounded text-gray-500 hover:bg-white/10 hover:text-white"
-        aria-label="Close popup">×</button
+        class="!rounded !border !border-white/20 !p-1 !text-gray-500 hover:!bg-white/10 hover:!text-gray-300 dark:!text-gray-400 dark:hover:!text-gray-200"
+        aria-label="Close popup"
       >
+        x
+      </Button>
     </div>
 
     <div class="flex-1 min-h-0 overflow-hidden">
@@ -240,7 +273,10 @@
           {onSave}
           {onCancel}
           {baseSelector}
+          initialCode={mode === "pp-api" ? initialCode : undefined}
+          active={popupMode === "pp-api"}
           onBaseSelectorChange={handleBaseSelectorChange}
+          onVisibilityChange={handlePopupVisibilityChange}
         />
       </div>
 
@@ -252,6 +288,8 @@
           {onSave}
           {onCancel}
           {baseSelector}
+          {initialCssContent}
+          initialCode={mode === "css" ? initialCode : undefined}
           active={popupMode === "css"}
           onBaseSelectorChange={handleBaseSelectorChange}
           onVisibilityChange={handlePopupVisibilityChange}
@@ -260,3 +298,4 @@
     </div>
   </div>
 </div>
+</ModalOverlay>

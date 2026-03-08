@@ -15,9 +15,7 @@ export const parseScriptGrantValues = (rawValue: string): ScriptGrantValue[] => 
   const parsed: ScriptGrantValue[] = [];
   tokens.forEach((token) => {
     if (!supportedScriptGrantSet.has(token)) {
-      throw new Error(
-        `Unsupported @grant value "${token}". Supported values: ${supportedScriptGrants.join(", ")}.`,
-      );
+      throw new Error(`Unsupported @grant value "${token}". Supported values: ${supportedScriptGrants.join(", ")}.`);
     }
 
     const typedToken = token as ScriptGrantValue;

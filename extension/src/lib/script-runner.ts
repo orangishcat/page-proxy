@@ -50,10 +50,14 @@ export type ScriptRunResult = {
   selectors: ScriptRunSelectorEntry[];
 };
 
+export type ScriptRunSelectorMode = 'pp-api' | 'css';
+
 export type ScriptRunSelectorEntry = {
   name: string;
   ruleKeys: string[];
   rules: string[];
+  mode?: ScriptRunSelectorMode;
+  cssText?: string;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -86,7 +90,8 @@ export const isScriptRunResponse = (value: unknown): value is ScriptRunResponse 
           Array.isArray(entry.ruleKeys) &&
           entry.ruleKeys.every((ruleKey) => typeof ruleKey === 'string') &&
           Array.isArray(entry.rules) &&
-          entry.rules.every((rule) => typeof rule === 'string')
+          entry.rules.every((rule) => typeof rule === 'string') &&
+          (entry.mode === undefined || entry.mode === 'pp-api' || entry.mode === 'css')
       )) ||
     selectors === undefined;
 

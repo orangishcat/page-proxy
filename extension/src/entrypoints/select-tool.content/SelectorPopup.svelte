@@ -10,6 +10,12 @@
   } from "@/lib/code-editor";
   import { GripVertical } from "lucide-svelte";
   import { buildPreviewCode, isSpecialPropertyKey, type FilterOperator } from "./preview-code";
+  import CopyablePropertyText from "./CopyablePropertyText.svelte";
+  import { readBaseSelectorFromCode, replaceBaseSelectorInCode } from "./popup/base-selector";
+  import { getPqSelectorPreviewState } from "./popup/pq-selector-preview";
+  import { buildSelectorTemplateCode } from "./popup/selector";
+  import { createSelectorMatchPreviewController, type SelectorMatchPreviewController } from "./popup/selector-preview";
+  import log from "@/lib/logger";
 
   type PropertyItem = {
     key: string;
@@ -20,15 +26,30 @@
   };
 
   type Props = {
-    info: ElementInfo;
+    info: ElementInfo | null;
     propertyItems: PropertyItem[];
     onSave: (payload: SelectorSavePayload) => Promise<SelectorSaveResult>;
     onCancel: () => void;
     baseSelector: string;
     onBaseSelectorChange?: (nextSelector: string) => void;
+    active?: boolean;
+    onVisibilityChange?: (hidden: boolean) => void;
+    initialCode?: string;
   };
 
-  let { info, propertyItems, onSave, onCancel, baseSelector, onBaseSelectorChange }: Props = $props();
+  let {
+    info,
+    propertyItems,
+    onSave,
+    onCancel,
+    baseSelector,
+    onBaseSelectorChange,
+    active = true,
+    onVisibilityChange,
+    initialCode,
+  }: Props = $props();
+
+  const logger = log.getLogger("selector-popup");
 
   let editorHost = $state<HTMLDivElement | null>(null);
   let editorHandle = $state<MonacoCodeEditorHandle | null>(null);
@@ -44,64 +65,16 @@
   let selectedPropertyKey = $state<string | null>(null);
   let propertySearchTerm = $state("");
   let errorMessage = $state("");
+  let previewErrorMessage = $state<string | null>(null);
+  let selectorMatchCount = $state(0);
+  let isSelectorEditorFocused = $state(false);
+  let selectorPreviewController: SelectorMatchPreviewController | null = null;
+  let disposeEditorFocus = () => {};
+  let disposeEditorBlur = () => {};
+  const noMatchesErrorMessages = new Set(["Selector matches no elements.", "Selector does not match any elements"]);
 
   const transparentDragImage = new Image();
   transparentDragImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
-
-  const baseSelectorPattern = /(["']baseSelector["']\s*:\s*)(["'`])((?:\\.|(?!\2)[\s\S])*?)\2/;
-
-  const decodeStringLiteral = (value: string) => {
-    return value.replace(/\\([\\'"`nrt])/g, (_match, token: string) => {
-      if (token === "n") {
-        return "\n";
-      }
-      if (token === "r") {
-        return "\r";
-      }
-      if (token === "t") {
-        return "\t";
-      }
-      return token;
-    });
-  };
-
-  const escapeForQuote = (value: string, quote: string) => {
-    return value
-      .replace(/\\/g, "\\\\")
-      .replace(/\n/g, "\\n")
-      .replace(/\r/g, "\\r")
-      .replace(/\t/g, "\\t")
-      .replaceAll(quote, `\\${quote}`);
-  };
-
-  const readBaseSelectorFromCode = (code: string): string | null => {
-    const match = code.match(baseSelectorPattern);
-    if (!match) {
-      return null;
-    }
-
-    return decodeStringLiteral(match[3]);
-  };
-
-  const replaceBaseSelectorInCode = (code: string, nextSelector: string): string | null => {
-    if (!baseSelectorPattern.test(code)) {
-      return null;
-    }
-
-    return code.replace(baseSelectorPattern, (_match, prefix: string, quote: string) => {
-      return `${prefix}${quote}${escapeForQuote(nextSelector, quote)}${quote}`;
-    });
-  };
-
-  const buildDefaultCode = (selectorValue: string) => {
-    return [
-      `const Style_1 = pq.selector({`,
-      `  ${JSON.stringify("name")}: ${JSON.stringify("Style 1")},`,
-      `  ${JSON.stringify("baseSelector")}: ${JSON.stringify(selectorValue)},`,
-      `  ${JSON.stringify("matches")}: e => true,`,
-      "});",
-    ].join("\n");
-  };
 
   const activePropertyKey = $derived.by(() => {
     if (selectedPropertyKey && propertyItems.some((item) => item.key === selectedPropertyKey)) {
@@ -144,8 +117,19 @@
   );
 
   const isActiveSpecialProperty = $derived.by(() => isSpecialPropertyKey(activePropertyKey));
-  const currentBaseSelector = $derived.by(() => readBaseSelectorFromCode(editorValue) ?? info.selector);
+  const currentBaseSelector = $derived.by(() => readBaseSelectorFromCode(editorValue) ?? info?.selector ?? "body");
   const previewCode = $derived.by(() => buildPreviewCode(activePropertyItem, filterOperator));
+  const hasNoMatchingElements = $derived.by(
+    () => previewErrorMessage !== null && noMatchesErrorMessages.has(previewErrorMessage),
+  );
+
+  const formatMatchingElementsLabel = (count: number) => `${count} matching element${count === 1 ? "" : "s"}`;
+
+  const updateSelectorPreviewState = () => {
+    const previewState = getPqSelectorPreviewState(editorHandle?.editor.getValue() ?? editorValue);
+    previewErrorMessage = previewState.error;
+    selectorMatchCount = previewState.matchingElements.length;
+  };
 
   const setSelectorEditorCode = (nextCode: string) => {
     editorValue = nextCode;
@@ -192,7 +176,12 @@
     if (normalizedSnippet === " ") {
       return `${base} `;
     }
-    if (normalizedSnippet === "," || normalizedSnippet === ">" || normalizedSnippet === "+" || normalizedSnippet === "~") {
+    if (
+      normalizedSnippet === "," ||
+      normalizedSnippet === ">" ||
+      normalizedSnippet === "+" ||
+      normalizedSnippet === "~"
+    ) {
       return `${base} ${normalizedSnippet} `;
     }
     if (base.endsWith(",") || base.endsWith(">") || base.endsWith("+") || base.endsWith("~")) {
@@ -209,14 +198,21 @@
       return;
     }
 
-    const initialSelector = baseSelector.trim() || info.selector;
-    editorValue = buildDefaultCode(initialSelector);
+    const initialSelector = baseSelector.trim() || info?.selector || "body";
+    editorValue = initialCode?.trim() || buildSelectorTemplateCode(initialSelector);
+
+    logger.debug("Creating selector popup editor", {
+      initialSelector,
+      editorValue,
+    });
 
     editorHandle = createMonacoEditor(editorHost, editorValue, {
+      language: "javascript",
       modelUri: "inmemory://page-proxy/selector-popup-editor.js",
       onChange: (nextValue) => {
         editorValue = nextValue;
         errorMessage = "";
+        updateSelectorPreviewState();
 
         const nextSelector = readBaseSelectorFromCode(nextValue);
         if (!nextSelector) {
@@ -252,6 +248,24 @@
     editorDom.addEventListener("dragover", handleEditorDragOver, { capture: true });
     editorDom.addEventListener("drop", handleEditorDrop, { capture: true });
     editorDom.addEventListener("dragleave", handleEditorDragLeave, { capture: true });
+
+    const focusDisposable = editorHandle.editor.onDidFocusEditorText(() => {
+      isSelectorEditorFocused = true;
+    });
+    disposeEditorFocus = () => {
+      focusDisposable.dispose();
+      disposeEditorFocus = () => {};
+    };
+
+    const blurDisposable = editorHandle.editor.onDidBlurEditorText(() => {
+      isSelectorEditorFocused = false;
+    });
+    disposeEditorBlur = () => {
+      blurDisposable.dispose();
+      disposeEditorBlur = () => {};
+    };
+
+    isSelectorEditorFocused = editorHandle.editor.hasTextFocus();
   };
 
   const setupPreview = () => {
@@ -260,6 +274,7 @@
     }
 
     previewHandle = createMonacoEditor(previewHost, previewCode, {
+      language: "javascript",
       lineNumbers: "off",
       modelUri: "inmemory://page-proxy/selector-popup-preview.js",
       className: "pp-monaco-editor pp-monaco-preview scrollbar-stable",
@@ -293,7 +308,8 @@
     const payload: SelectorSavePayload = {
       name: null,
       code,
-      baseSelector: readBaseSelectorFromCode(code) ?? info.selector,
+      baseSelector: readBaseSelectorFromCode(code) ?? info?.selector ?? "body",
+      originalCode: initialCode?.trim() || undefined,
     };
 
     const result = await onSave(payload);
@@ -525,9 +541,29 @@
   onMount(() => {
     setupEditor();
     setupPreview();
+    updateSelectorPreviewState();
+
+    selectorPreviewController = createSelectorMatchPreviewController({
+      getSelectorCode: () => editorHandle?.editor.getValue() ?? editorValue,
+      isEnabled: () => active && !isSelectorEditorFocused,
+      onError: (message) => {
+        previewErrorMessage = message;
+      },
+      onPreviewStateChange: (previewing) => {
+        onVisibilityChange?.(previewing);
+      },
+    });
+    selectorPreviewController.mount();
   });
 
   onDestroy(() => {
+    selectorPreviewController?.dispose();
+    selectorPreviewController = null;
+    onVisibilityChange?.(false);
+
+    disposeEditorFocus();
+    disposeEditorBlur();
+
     if (editorHandle) {
       const editorDom = editorHandle.editor.getDomNode();
       if (editorDom instanceof HTMLElement) {
@@ -586,6 +622,29 @@
 
     setSelectorEditorCode(nextCode);
   });
+
+  $effect(() => {
+    const _previewSelector = currentBaseSelector;
+    if (!selectorPreviewController) {
+      return;
+    }
+    selectorPreviewController.refresh();
+  });
+
+  $effect(() => {
+    const _currentEditorValue = editorValue;
+    updateSelectorPreviewState();
+  });
+
+  $effect(() => {
+    if (active) {
+      return;
+    }
+
+    previewErrorMessage = null;
+    selectorPreviewController?.stop();
+    onVisibilityChange?.(false);
+  });
 </script>
 
 <Tooltip.Provider>
@@ -597,6 +656,9 @@
 
       {#if errorMessage}
         <div class="text-xs text-red-400">{errorMessage}</div>
+      {/if}
+      {#if previewErrorMessage}
+        <div class="text-xs text-amber-300">{previewErrorMessage}</div>
       {/if}
 
       <div class="flex gap-2">
@@ -616,162 +678,137 @@
     </div>
 
     <div class="flex flex-col w-64 max-w-64 min-w-0 border-l border-gray-800 bg-black/20 p-3 gap-3">
-      <div class="text-xs uppercase tracking-wide text-gray-500">Property filters</div>
-
-      {#if !isActiveSpecialProperty}
-        <div class="flex flex-col gap-1">
-          <select
-            value={filterOperator}
-            onchange={(event) => (filterOperator = event.currentTarget.value as FilterOperator)}
-            class="text-sm text-white bg-white/10 border border-white/15 py-1.5 px-2 rounded cursor-pointer"
-          >
-            <option value="contains">contains</option>
-            <option value="matches">matches</option>
-            <option value="keyExists">keyExists</option>
-          </select>
+      {#if hasNoMatchingElements}
+        <div class="flex h-full items-center justify-center text-center text-sm text-gray-400">
+          Selector does not match any elements
         </div>
-      {/if}
+      {:else}
+        <div class="text-xs uppercase tracking-wide text-gray-500">Property filters</div>
 
-      <div class="w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden">
-        <div class="flex h-12 w-full bg-gray-900">
-          <div class="h-full min-w-0 flex-1 pl-2" bind:this={previewHost}></div>
-          <div class="flex h-full w-8 shrink-0 items-center justify-center border-l border-gray-700/80">
-            <Tooltip.Root>
-              <Tooltip.Trigger>
-                {#snippet child({ props })}
-                  <div
-                    {...props}
-                    class="flex h-full w-full cursor-grab items-center justify-center text-accent-400 hover:bg-white/5 active:cursor-grabbing"
-                    draggable="true"
-                    ondragstart={handlePreviewDragStart}
-                    role="button"
-                    tabindex="0"
-                    aria-label="Drag the filter snippet into the editor to insert it."
+        {#if !isActiveSpecialProperty}
+          <div class="flex flex-col gap-1">
+            <select
+              value={filterOperator}
+              onchange={(event) => (filterOperator = event.currentTarget.value as FilterOperator)}
+              class="text-sm text-white bg-white/10 border border-white/15 py-1.5 px-2 rounded cursor-pointer"
+            >
+              <option value="contains">contains</option>
+              <option value="matches">matches</option>
+              <option value="keyExists">keyExists</option>
+            </select>
+          </div>
+        {/if}
+
+        <div class="w-full rounded-md border border-gray-800 bg-gray-950 overflow-hidden">
+          <div class="flex h-12 w-full bg-gray-900">
+            <div class="h-full min-w-0 flex-1 pl-2" bind:this={previewHost}></div>
+            <div class="flex h-full w-8 shrink-0 items-center justify-center border-l border-gray-700/80">
+              <Tooltip.Root>
+                <Tooltip.Trigger>
+                  {#snippet child({ props })}
+                    <div
+                      {...props}
+                      class="flex h-full w-full cursor-grab items-center justify-center text-accent-400 hover:bg-white/5 active:cursor-grabbing"
+                      draggable="true"
+                      ondragstart={handlePreviewDragStart}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Drag the filter snippet into the editor to insert it."
+                    >
+                      <GripVertical class="h-4 w-4" />
+                    </div>
+                  {/snippet}
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                  <Tooltip.Content
+                    sideOffset={6}
+                    class="rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-caption text-gray-100 shadow-lg"
                   >
-                    <GripVertical class="h-4 w-4" />
-                  </div>
-                {/snippet}
-              </Tooltip.Trigger>
-              <Tooltip.Portal>
-                <Tooltip.Content
-                  sideOffset={6}
-                  class="rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-caption text-gray-100 shadow-lg"
-                >
-                  Drag this snippet into the editor.
-                  <Tooltip.Arrow class="fill-gray-900" />
-                </Tooltip.Content>
-              </Tooltip.Portal>
-            </Tooltip.Root>
+                    Drag this snippet into the editor.
+                    <Tooltip.Arrow class="fill-gray-900" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            </div>
           </div>
         </div>
-      </div>
 
-      <p class="text-gray-400 text-xs -mt-2">Edit me or use the grip to drag me into the code editor on the left!</p>
+        <p class="text-gray-400 text-xs -mt-2">Edit me or use the grip to drag me into the code editor on the left!</p>
 
-      <div class="flex items-center justify-between gap-2">
-        <div class="text-xs uppercase tracking-wide text-gray-500">Properties</div>
-        <input
-          type="search"
-          bind:value={propertySearchTerm}
-          placeholder="Search"
-          class="h-6 w-28 rounded border border-white/15 bg-white/5 px-2 text-xs text-gray-100 placeholder:text-gray-500 focus:border-white/25 focus:outline-none"
-          aria-label="Search properties"
-        />
-      </div>
-
-      <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1">
-        <div class="flex flex-col gap-2">
-          {#each filteredSpecialPropertyItems as item (item.key)}
-            <button
-              type="button"
-              onclick={() => (selectedPropertyKey = item.key)}
-              class={`flex justify-between items-center text-left rounded-md border border-transparent px-2 py-1 cursor-pointer transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
-              aria-pressed={activePropertyKey === item.key}
-            >
-              <div title={item.key} class="font-mono text-xs text-accent-500 truncate max-w-24">
-                {item.key}
-              </div>
-              {#if item.value.length > 18}
-                <Tooltip.Root>
-                  <Tooltip.Trigger>
-                    {#snippet child({ props })}
-                      <div
-                        {...props}
-                        title={item.value}
-                        class="font-mono text-xs text-secondary-500 truncate text-right underline cursor-help"
-                      >
-                        {item.value.length} chars
-                      </div>
-                    {/snippet}
-                  </Tooltip.Trigger>
-                  <Tooltip.Portal>
-                    <Tooltip.Content
-                      sideOffset={6}
-                      class="max-w-96 break-all rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-caption text-gray-100 shadow-lg"
-                    >
-                      {item.value}
-                      <Tooltip.Arrow class="fill-gray-900" />
-                    </Tooltip.Content>
-                  </Tooltip.Portal>
-                </Tooltip.Root>
-              {:else}
-                <div class="font-mono text-xs text-secondary-500 truncate text-right">
-                  {truncate(item.value, 30)}
-                </div>
-              {/if}
-            </button>
-          {/each}
-
-          {#if filteredSpecialPropertyItems.length > 0 && filteredNonSpecialPropertyItems.length > 0}
-            <hr class="border-gray-800" />
-          {/if}
-
-          {#each filteredNonSpecialPropertyItems as item (item.key)}
-            <button
-              type="button"
-              onclick={() => (selectedPropertyKey = item.key)}
-              class={`flex justify-between items-center text-left rounded-md border border-transparent px-2 py-1 cursor-pointer transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
-              aria-pressed={activePropertyKey === item.key}
-            >
-              <div title={item.key} class="font-mono text-xs text-accent-500 truncate max-w-24">
-                {item.key}
-              </div>
-              {#if item.value.length > 18}
-                <Tooltip.Root>
-                  <Tooltip.Trigger>
-                    {#snippet child({ props })}
-                      <div
-                        {...props}
-                        title={item.value}
-                        class="font-mono text-xs text-secondary-500 truncate text-right underline cursor-help"
-                      >
-                        {item.value.length} chars
-                      </div>
-                    {/snippet}
-                  </Tooltip.Trigger>
-                  <Tooltip.Portal>
-                    <Tooltip.Content
-                      sideOffset={6}
-                      class="max-w-96 break-all rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-caption text-gray-100 shadow-lg"
-                    >
-                      {item.value}
-                      <Tooltip.Arrow class="fill-gray-900" />
-                    </Tooltip.Content>
-                  </Tooltip.Portal>
-                </Tooltip.Root>
-              {:else}
-                <div class="font-mono text-xs text-secondary-500 truncate text-right">
-                  {truncate(item.value, 30)}
-                </div>
-              {/if}
-            </button>
-          {/each}
-
-          {#if filteredSpecialPropertyItems.length === 0 && filteredNonSpecialPropertyItems.length === 0}
-            <div class="col-span-full text-xs text-gray-500 text-center p-4">No properties available.</div>
-          {/if}
+        <div class="flex items-center justify-between gap-2">
+          <div class="text-xs uppercase tracking-wide text-gray-500">Properties</div>
+          <input
+            type="search"
+            bind:value={propertySearchTerm}
+            placeholder="Search"
+            class="h-6 w-28 rounded border border-white/15 bg-white/5 px-2 text-xs text-gray-100 placeholder:text-gray-500 focus:border-white/25 focus:outline-none"
+            aria-label="Search properties"
+          />
         </div>
-      </div>
+
+        <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1">
+          <div class="flex flex-col gap-2">
+            {#each filteredSpecialPropertyItems as item (item.key)}
+              <button
+                type="button"
+                onclick={() => (selectedPropertyKey = item.key)}
+                class={`flex justify-between items-center text-left rounded-md border border-transparent px-2 py-1 cursor-pointer transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
+                aria-pressed={activePropertyKey === item.key}
+              >
+                <CopyablePropertyText
+                  text={item.key}
+                  align="left"
+                  class="max-w-24 text-accent-500"
+                  stopPropagation={true}
+                />
+                <CopyablePropertyText
+                  text={item.value}
+                  displayText={item.value.length > 18 ? `${item.value.length} chars` : truncate(item.value, 30)}
+                  title={item.value}
+                  class="max-w-28 text-secondary-500"
+                  stopPropagation={true}
+                />
+              </button>
+            {/each}
+
+            {#if filteredSpecialPropertyItems.length > 0 && filteredNonSpecialPropertyItems.length > 0}
+              <hr class="border-gray-800" />
+            {/if}
+
+            {#each filteredNonSpecialPropertyItems as item (item.key)}
+              <button
+                type="button"
+                onclick={() => (selectedPropertyKey = item.key)}
+                class={`flex justify-between items-center text-left rounded-md border border-transparent px-2 py-1 cursor-pointer transition-colors hover:bg-white/10 ${activePropertyKey === item.key ? "bg-white/10 border-white/10" : ""}`}
+                aria-pressed={activePropertyKey === item.key}
+              >
+                <CopyablePropertyText
+                  text={item.key}
+                  align="left"
+                  class="max-w-24 text-accent-500"
+                  stopPropagation={true}
+                />
+                <CopyablePropertyText
+                  text={item.value}
+                  displayText={item.value.length > 18 ? `${item.value.length} chars` : truncate(item.value, 30)}
+                  title={item.value}
+                  class="max-w-28 text-secondary-500"
+                  stopPropagation={true}
+                />
+              </button>
+            {/each}
+
+            {#if filteredSpecialPropertyItems.length === 0 && filteredNonSpecialPropertyItems.length === 0}
+              <div class="col-span-full text-xs text-gray-500 text-center p-4">No properties available.</div>
+            {/if}
+          </div>
+        </div>
+        <p class="mt-auto text-xs text-gray-500">
+          Hold <code>z</code> to highlight {formatMatchingElementsLabel(selectorMatchCount)}{isSelectorEditorFocused
+            ? " (unfocus code editor first)"
+            : ""}
+        </p>
+      {/if}
     </div>
   </div>
 </Tooltip.Provider>
