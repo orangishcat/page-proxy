@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CircleQuestionMark, Disc, MousePointer, Plus, Share } from "lucide-svelte";
+  import { CircleQuestionMark, Disc, MousePointer, Share } from "lucide-svelte";
   import Button from "@/lib/components/Button.svelte";
   import type { ToolId } from "./tools/state-storage";
   import type { SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
@@ -29,11 +29,10 @@
 
   const shortcutLabels: Record<ToolbarControlId, string> = {
     select: "⇧1",
-    create: "⇧2",
-    selectors: "⇧3",
-    record: "⇧4",
-    help: "⇧5",
-    share: "⇧6",
+    selectors: "⇧2",
+    record: "⇧3",
+    help: "⇧4",
+    share: "⇧5",
   };
 
   const activeToolLabel = $derived(toolLabels[activeTool]);
@@ -79,16 +78,6 @@
       onclick={() => ontoolselect("select")}
     >
       <MousePointer class={iconSize} />
-    </Button>
-    <Button
-      class={toolButtonClasses(activeTool === "create")}
-      variant="outline"
-      aria-label="Create tool"
-      onmouseenter={() => onHover("create")}
-      onmouseleave={onLeave}
-      onclick={() => ontoolselect("create")}
-    >
-      <Plus class={iconSize} />
     </Button>
     <Button
       class="{toolButtonClasses(activeTool === 'selectors')} text-sm"

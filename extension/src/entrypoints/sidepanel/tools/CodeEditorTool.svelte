@@ -43,6 +43,7 @@
   } from "./tool-errors";
   import { getToolContext } from "../context/tool.svelte";
   import { getEditorContext } from "../context/editor.svelte";
+  import { coerceToolPanelTool } from "@/lib/sidepanel-shortcuts";
 
   const toolCtx = getToolContext();
   const editorCtx = getEditorContext();
@@ -344,7 +345,7 @@
     const resolvedState = await resolveStoredToolStateForUrl(normalizedUrl, scriptFormatConfig);
     activeScriptName = resolvedState.scriptName;
     activeWebsiteGlob = resolvedState.websiteGlob;
-    toolCtx.activeTool = resolvedState.state.activeTool;
+    toolCtx.activeTool = coerceToolPanelTool(resolvedState.state.activeTool);
     editorCtx.allowedGrants = resolvedState.state.permissions.allowedGrants;
     const normalizedBaseContent = ensureDefineBlock(resolvedState.state.codeEditor.content, scriptFormatConfig);
     const contentWithWebsite = ensureWebsiteMetadata(normalizedBaseContent, resolvedState.websiteGlob);
