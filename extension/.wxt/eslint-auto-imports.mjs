@@ -45,6 +45,7 @@ const globals = {
   "defineWxtPlugin": true,
   "fakeBrowser": true,
   "getAllContexts": true,
+  "getAppConfig": true,
   "getContext": true,
   "hasContext": true,
   "injectScript": true,

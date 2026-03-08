@@ -18,6 +18,7 @@ declare global {
   const defineWxtPlugin: typeof import('wxt/utils/define-wxt-plugin').defineWxtPlugin
   const fakeBrowser: typeof import('wxt/testing').fakeBrowser
   const getAllContexts: typeof import('svelte').getAllContexts
+  const getAppConfig: typeof import('wxt/utils/app-config').getAppConfig
   const getContext: typeof import('svelte').getContext
   const hasContext: typeof import('svelte').hasContext
   const injectScript: typeof import('wxt/utils/inject-script').injectScript

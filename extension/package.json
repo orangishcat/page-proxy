@@ -18,7 +18,7 @@
     "acorn-walk": "^8.3.5",
     "bits-ui": "2.16.3",
     "css-selector-generator": "^3.8.1",
-    "css-tree": "^3.1.0",
+    "css-tree": "^3.2.1",
     "loglevel": "1.9.2",
     "lucide-svelte": "0.577.0",
     "monaco-editor": "0.55.1",
