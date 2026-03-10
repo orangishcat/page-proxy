@@ -2,7 +2,7 @@
 title: pt (Storage API)
 ---
 
-# pt module (v0.2.x)
+# pt module (v0.3.x)
 
 `pt` provides script-scoped local storage helpers.
 

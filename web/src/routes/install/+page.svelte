@@ -8,7 +8,7 @@
 
   const releaseLatestUrl = "https://github.com/orangishcat/page-proxy/releases/latest";
   const latestReleaseApiUrl = "https://api.github.com/repos/orangishcat/page-proxy/releases/latest";
-  const fallbackVersion = "0.2.2";
+  const fallbackVersion = "0.3.0";
   let selectedBrowser = $state<"chrome" | "firefox">("chrome");
   let selectedInstallMethod = $state<"load-unpacked" | "install-from-file">("load-unpacked");
   let browserDropdownOpen = $state(false);

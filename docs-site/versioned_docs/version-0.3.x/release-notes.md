@@ -2,7 +2,25 @@
 title: Release notes
 ---
 
-# Release notes (v0.2.x)
+# Release notes (v0.3.x)
+
+## New in v0.3.0
+
+- Added a record-to-code workflow:
+  - The Record tool now captures a selectable timeline for the active tab.
+  - Selected recording chains can be converted into editable code in a dedicated review popup before saving back to the editor.
+- Expanded element editing from the Select and Selectors tools:
+  - The Select tool now exposes click, copy, cut, paste, delete, and apply-style actions for the selected element.
+  - The Selectors tool now parses selector definitions from the editor content and can reopen entries directly for editing.
+- Improved selector and CSS authoring:
+  - Selector previews, specificity feedback, and in-place selector editing were refined.
+  - CSS/JS parsing now uses dedicated parser utilities instead of fragile regex-only handling.
+- Improved editor and sidepanel feedback:
+  - Tool and editor errors now flow through a shared status message system.
+  - Logging is standardized through `loglevel`, and more flows are covered by unit tests.
+- Expanded `@page-proxy/pp` runtime helpers:
+  - `pv` now includes `sleep`, `awaitAnimation`, and `awaitMicrotask`.
+  - `pa.moveNode` now supports before/after insertion and optional copy behavior.
 
 ## New in v0.2.2
 

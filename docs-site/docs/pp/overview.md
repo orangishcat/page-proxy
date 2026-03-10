@@ -2,11 +2,11 @@
 title: pp Library Overview
 ---
 
-# pp Library Overview (v0.2.x)
+# pp Library Overview (v0.3.x)
 
 `pp` scripting is grouped into:
 
-- `pa`: page-level API helpers (notifications, markdown rendering).
+- `pa`: page-level API helpers (notifications, markdown rendering, node movement).
 - `pn`: network wrapper around `fetch` with optional local cache.
 - `pq`: DOM querying and matching.
 - `ps`: style application helpers (`applyStyle`, `injectCSS`).
@@ -41,4 +41,4 @@ const response = await pn.get("/api/cards", { cache: true });
 console.log(await response.json());
 ```
 
-Use this version for scripts targeting `v0.2.x` runtime behavior.
+Use this version for scripts targeting `v0.3.x` runtime behavior.
