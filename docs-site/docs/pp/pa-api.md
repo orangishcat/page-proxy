@@ -2,7 +2,7 @@
 title: pa (Page API)
 ---
 
-# pa module (v0.2.x)
+# pa module (v0.3.x)
 
 `pa` exposes page-level helpers.
 
@@ -43,12 +43,14 @@ const html = pa.renderMarkdown("See [docs](https://orangishcat.github.io/page-pr
 document.querySelector("#help")?.insertAdjacentHTML("beforeend", html);
 ```
 
-## `moveNode(node, position = -1, parent = node.parentElement)`
+## `moveNode(node, position = -1, parent = node.parentElement, options)`
 
 Moves `node` to the `position`th child of `parent`.
 
 - If `position` is greater than child count, node is moved to the end.
 - If `position` is below `0`, it is treated as `position` places from the end (`-1` is last, `-2` is second last).
+- `options.pasteLocation` can be `"child"` (default), `"before"`, or `"after"`.
+- `options.copy` clones the node before inserting it instead of moving the original.
 
 ```js
 const list = document.querySelector(".todo-list");
@@ -56,5 +58,6 @@ const item = list?.querySelector(".todo-item");
 if (list && item) {
   pa.moveNode(item, 0, list); // move to first child
   pa.moveNode(item, -1, list); // move to last child
+  pa.moveNode(item, -1, item, { pasteLocation: "after", copy: true }); // duplicate after itself
 }
 ```

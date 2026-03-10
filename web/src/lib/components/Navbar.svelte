@@ -83,10 +83,10 @@
       <span class={itemClasses}>View</span>
       <span class={itemClasses}>Tools</span>
     {:else if variant === "landing"}
-      <a class={itemClasses} href={resolve("/") + "#tools"}>Tools</a>
-      <a class={itemClasses} href={resolve("/") + "#explore"}>Explore</a>
       <!-- Docs are hosted externally in production; keep the typecast to avoid typing errors. -->
       <a class={itemClasses} href={resolve("/docs" as any)}>Docs</a>
+      <a class={itemClasses} href={resolve("/") + "#tools"}>Tools</a>
+      <a class={itemClasses} href={resolve("/") + "#explore"}>Explore</a>
     {:else if variant === "dashboard"}
       <a class="{itemClasses} w-28 text-right" href={resolve("/")}>Explore</a>
       <a class={itemClasses} href={resolve("/")}>Dashboard</a>

@@ -2,7 +2,7 @@
 title: pq (Query API)
 ---
 
-# pq module (v0.2.x)
+# pq module (v0.3.x)
 
 `pq` provides query builders and reusable DOM matching helpers.
 

@@ -2,7 +2,7 @@
 title: pv (Event API)
 ---
 
-# pv module (v0.2.x)
+# pv module (v0.3.x)
 
 `pv` handles DOM creation and keyboard events.
 

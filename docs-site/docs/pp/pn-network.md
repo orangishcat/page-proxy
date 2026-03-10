@@ -2,7 +2,7 @@
 title: pn (Network API)
 ---
 
-# pn module (v0.2.x)
+# pn module (v0.3.x)
 
 `pn` wraps `fetch` and adds optional response caching.
 
