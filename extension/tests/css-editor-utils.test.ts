@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  buildInjectCssSnippet,
   parseCssDeclarations,
   removeCssDeclaration,
   upsertCssDeclaration,
@@ -80,5 +81,28 @@ describe("removeCssDeclaration", () => {
 
   test("is case-insensitive for property keys", () => {
     expect(removeCssDeclaration("color: red;", "COLOR")).toBe("");
+  });
+});
+
+describe("buildInjectCssSnippet", () => {
+  test("doubles selector backslashes before embedding CSS in a template literal", () => {
+    const selector =
+      "div.pb-\\[calc\\(var\\(--sidebar-section-margin-top\\)-var\\(--sidebar-section-first-margin-top\\)\\)\\]";
+
+    expect(buildInjectCssSnippet(selector, "")).toBe(`ps.injectCSS(\`
+div.pb-\\\\[calc\\\\(var\\\\(--sidebar-section-margin-top\\\\)-var\\\\(--sidebar-section-first-margin-top\\\\)\\\\)\\\\]
+{
+  
+}
+\`);`);
+  });
+
+  test("doubles declaration backslashes before embedding CSS in a template literal", () => {
+    expect(buildInjectCssSnippet(".icon", "content: \"\\2192\";")).toBe(`ps.injectCSS(\`
+.icon
+{
+  content: "\\\\2192";
+}
+\`);`);
   });
 });
