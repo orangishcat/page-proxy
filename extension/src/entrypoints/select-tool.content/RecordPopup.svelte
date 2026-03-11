@@ -12,7 +12,6 @@
   import ConverterStepsSidebar from "./record-converter/ConverterStepsSidebar.svelte";
   import {
     buildDefaultParentTraversalOption,
-    buildGeneratedReviewCode,
     resolveDefaultParentUntilSelector,
     buildStepSnippet,
     type ParentTraversalMode,
@@ -24,6 +23,7 @@
     startsWithSelectedElement,
     type SupportedRecordStep,
   } from "./record-converter/normalize";
+  import { buildReviewCodeFromStepPreviews } from "./record-converter/review-code";
   import { generateElementSelectorMatches } from "./popup/selector";
   import { readBaseSelectorFromCode, replaceBaseSelectorInCode } from "./popup/base-selector";
   import { attachPopupKeyboardOwnership, POPUP_SHARED_STYLE } from "./popup/container-shared";
@@ -115,8 +115,9 @@
   });
 
   const generatedReview = $derived.by(() =>
-    buildGeneratedReviewCode({
+    buildReviewCodeFromStepPreviews({
       steps: supportedSteps,
+      stepCodeByStepId: stepPreviewCodeByStepId,
       parentOptions,
       existingCode: payload.existingCode,
       defaultParentUntilSelector,

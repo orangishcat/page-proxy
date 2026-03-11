@@ -30,6 +30,7 @@ import {
 } from "./state";
 import {
   isRestrictedUrl,
+  type ActiveTabContext,
   readActiveTabContext,
   runContentSelectionToggle,
   sendSelectToolMessage,
@@ -193,6 +194,59 @@ const refreshDevtoolsIntegrationForActiveTab = () => {
 const recordSelectedParentElement = (selectorHint?: string | null) => {
   const detail = selectorHint && selectorHint.trim().length > 0 ? `selector: ${selectorHint.trim()}` : "";
   recordSidepanelAction("Selected parent element", detail);
+};
+
+const recordSelectedElement = (info: ElementInfo) => {
+  const selectorDetail = info.selector.trim();
+  recordSidepanelAction("Selected element", selectorDetail.length > 0 ? `selector: ${selectorDetail}` : "");
+};
+
+type ApplyDevtoolsSelectionChangedMessageDeps = {
+  readActiveTabContext: () => Promise<ActiveTabContext | null>;
+  setDevtoolsIntegrationDetected: (detected: boolean) => void;
+  isFollowingDevtoolsSelection: () => boolean;
+  setSelection: (info: ElementInfo | null, context?: Parameters<typeof setSelection>[1]) => void;
+  setSelectModeEnabled: (enabled: boolean) => void;
+  recordSelectedElement: (info: ElementInfo) => void;
+};
+
+const defaultApplyDevtoolsSelectionChangedMessageDeps: ApplyDevtoolsSelectionChangedMessageDeps = {
+  readActiveTabContext,
+  setDevtoolsIntegrationDetected,
+  isFollowingDevtoolsSelection,
+  setSelection,
+  setSelectModeEnabled,
+  recordSelectedElement,
+};
+
+export const applyDevtoolsSelectionChangedMessage = async (
+  message: DevtoolsSelectionChangedRuntimeMessage,
+  deps: ApplyDevtoolsSelectionChangedMessageDeps = defaultApplyDevtoolsSelectionChangedMessageDeps,
+) => {
+  const tabContext = await deps.readActiveTabContext();
+  if (!tabContext || tabContext.tabId !== message.tabId) {
+    return;
+  }
+
+  deps.setDevtoolsIntegrationDetected(true);
+
+  if (!deps.isFollowingDevtoolsSelection()) {
+    return;
+  }
+
+  if (!message.selection) {
+    deps.setSelection(null);
+    return;
+  }
+
+  deps.setSelection(message.selection.info, {
+    source: "devtools",
+    tabId: message.tabId,
+    frameId: message.selection.frameId,
+    frameUrl: message.selection.frameUrl,
+  });
+  deps.setSelectModeEnabled(false);
+  deps.recordSelectedElement(message.selection.info);
 };
 
 export const sendSelectionToggle = (enabled: boolean, options: { clearSelection?: boolean } = {}) => {
@@ -559,31 +613,7 @@ export const toggleFollowDevtoolsSelection = () => {
 };
 
 const updateSelectionFromDevtoolsMessage = (message: DevtoolsSelectionChangedRuntimeMessage) => {
-  void readActiveTabContext()
-    .then((tabContext) => {
-      if (!tabContext || tabContext.tabId !== message.tabId) {
-        return;
-      }
-      setDevtoolsIntegrationDetected(true);
-
-      if (!isFollowingDevtoolsSelection()) {
-        return;
-      }
-
-      if (!message.selection) {
-        setSelection(null);
-        return;
-      }
-
-      setSelection(message.selection.info, {
-        source: "devtools",
-        tabId: message.tabId,
-        frameId: message.selection.frameId,
-        frameUrl: message.selection.frameUrl,
-      });
-      setSelectModeEnabled(false);
-    })
-    .catch(() => undefined);
+  void applyDevtoolsSelectionChangedMessage(message).catch(() => undefined);
 };
 
 const updateDevtoolsStatusForActiveTab = (message: DevtoolsSelectionStatusChangedRuntimeMessage) => {
@@ -638,8 +668,7 @@ export const attachSelectionListener = () => {
       });
       if (message.payload) {
         if (!shouldSuppressSelectedElementRecord()) {
-          const selectorDetail = message.payload.selector.trim();
-          recordSidepanelAction("Selected element", selectorDetail.length > 0 ? `selector: ${selectorDetail}` : "");
+          recordSelectedElement(message.payload);
         }
       }
       setToolMessage(null, "error");

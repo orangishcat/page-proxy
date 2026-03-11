@@ -29,7 +29,7 @@
     "extension:lint": "bun run --cwd extension lint",
     "extension:test": "bun run --cwd extension test",
     "pp:test": "bun run --cwd packages/pp test",
-    "clean": "bun run --cwd extension clean && rm -rf node_modules/.vite && rm -rf extension/node_modules/.vite"
+    "clean": "bun run --cwd extension clean && rm -rf node_modules/.vite && rm -rf extension/node_modules"
   },
   "devDependencies": {
     "@types/bun": "^1.3.9",
