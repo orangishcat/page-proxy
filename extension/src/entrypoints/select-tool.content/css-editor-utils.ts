@@ -163,9 +163,11 @@ export const buildCssDocument = (selector: string, declarations: string) => {
   return `${selectorSection}\n{\n${declarationSection}\n}`;
 };
 
+const escapeCssForTemplateLiteral = (value: string) => value.replaceAll("\\", "\\\\");
+
 export const buildInjectCssSnippet = (selector: string, declarations: string) => {
   const cssDocument = buildCssDocument(selector, declarations);
-  return `ps.injectCSS(\`\n${cssDocument}\n\`);`;
+  return `ps.injectCSS(\`\n${escapeCssForTemplateLiteral(cssDocument)}\n\`);`;
 };
 
 const readDefaultComputedStyleValueMap = (sourceElement: Element) => {
