@@ -212,7 +212,7 @@ export const LANDING_HERO_TIMINGS = {
 } as const;
 
 export const LANDING_HERO_POINTS = {
-  cursorStart: { panelKey: "page", x: 0.58, y: 0.58 },
+  cursorStart: { panelKey: "page", x: 0.8, y: 0.2 },
   selectTool: { panelKey: "tool", x: 0.065, y: 0.05 },
   sidebar: { panelKey: "page", x: 0.905, y: 0.14 },
   menuButton: { panelKey: "tool", x: 0.925, y: 0.9 },
