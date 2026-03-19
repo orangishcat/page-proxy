@@ -1,6 +1,6 @@
 <script lang="ts">
   import { asset } from "$app/paths";
-  import { Disc, Navigation, Paintbrush, Save } from "lucide-svelte";
+  import { Disc, MousePointerIcon, Navigation, Paintbrush, Save } from "lucide-svelte";
   import { onMount, tick } from "svelte";
   import {
     LANDING_HERO_ASSETS,
@@ -424,14 +424,14 @@
   <div class="flex w-full min-w-200 max-w-[70vw] flex-col items-center">
     <div
       bind:this={rootEl}
-      class="relative grid w-full grid-cols-[minmax(0,1.331fr)_minmax(0,0.415fr)] gap-0"
+      class="relative grid w-full grid-cols-[minmax(0,1.331fr)_minmax(0,0.415fr)] gap-0 border rounded-lg border-gray-200 dark:border-gray-800"
       data-demo-ready={isPlaybackReady ? "true" : "false"}
       data-demo-step={visibleSceneId}
       data-testid="landing-demo"
     >
       <section
         bind:this={pagePanelEl}
-        class="relative overflow-hidden bg-[#11110f]"
+        class="relative rounded-lg overflow-hidden"
         style="aspect-ratio:2560 / 1926;"
         aria-label="Landing demo page"
       >
@@ -590,7 +590,7 @@
             class="relative z-10 flex place-items-center justify-center gap-2.5 text-center font-medium leading-none"
           >
             {#if tab.id === "select"}
-              <Navigation class="h-6 w-6 -scale-x-100" strokeWidth={2.15} />
+              <MousePointerIcon class="h-6 w-6" strokeWidth={2.15} />
             {:else if tab.id === "apply-style"}
               <Paintbrush class="h-6 w-6" />
             {:else if tab.id === "record"}
