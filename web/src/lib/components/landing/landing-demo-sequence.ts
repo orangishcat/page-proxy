@@ -184,9 +184,6 @@ export const LANDING_HERO_SCENES = [
 ] as const satisfies readonly LandingHeroScene[];
 
 export const LANDING_HERO_SCENE_IDS = LANDING_HERO_SCENES.map((scene) => scene.id);
-export const LANDING_HERO_SCENE_INDEX = Object.fromEntries(
-  LANDING_HERO_SCENE_IDS.map((sceneId, index) => [sceneId, index]),
-) as Record<LandingHeroSceneId, number>;
 
 export const LANDING_HERO_SCENE_MAP = Object.fromEntries(
   LANDING_HERO_SCENES.map((scene) => [scene.id, scene]),

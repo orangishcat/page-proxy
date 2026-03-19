@@ -9,7 +9,7 @@ describe("page background theme", () => {
   test("defines a shared page canvas color token", () => {
     expect(tailwindConfig.theme.extend.colors.page).toEqual({
       light: "#f2f3f2",
-      DEFAULT: "#282824",
+      DEFAULT: "#262621",
     });
   });
 

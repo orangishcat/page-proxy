@@ -18,11 +18,7 @@
   import { attachSelectionListener, sendSelectionToggle } from "./tools/select-tool/actions";
   import { setEditorMessage, setToolMessage, toolMessage } from "./tools/tool-errors";
   import { isGrantResolvedMessage } from "@/lib/grant-permissions";
-  import {
-    isSidepanelDevScreenshotMessage,
-    isSidepanelShortcutMessage,
-    type SidepanelShortcutId,
-  } from "@/lib/sidepanel-shortcuts";
+  import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
   import { codeEditorContent, selectorEntries } from "./tools/code-editor/state";
   import { readToolPanelHeightSetting, saveToolPanelHeightSetting, type ToolId } from "./tools/state-storage";
   import { createToolContext, setToolContext } from "./context/tool.svelte";
@@ -37,7 +33,6 @@
     saveRecordConverterDefinition,
   } from "./message-handler";
   import { recordSidepanelAction } from "./tools/record/state";
-  import { takeSidepanelDevScreenshots } from "./dev-screenshot";
 
   const toolCtx = createToolContext();
   setToolContext(toolCtx);
@@ -151,16 +146,6 @@
         return false;
       }
 
-      if (import.meta.env.DEV && isSidepanelDevScreenshotMessage(message)) {
-        const codeEditorPanel = document.querySelector('[aria-label="Code editor panel"]');
-        void takeSidepanelDevScreenshots(new KeyboardEvent("keydown", { metaKey: true, code: "F12" }), {
-          sidepanel: sidepanelRoot,
-          toolPanel: toolPanelSection,
-          codeEditor: codeEditorPanel,
-        });
-        return false;
-      }
-
       if (!isSidepanelShortcutMessage(message)) {
         return false;
       }
@@ -170,16 +155,6 @@
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (import.meta.env.DEV && (event.metaKey || event.ctrlKey) && event.code === "F12") {
-        const codeEditorPanel = document.querySelector('[aria-label="Code editor panel"]');
-        void takeSidepanelDevScreenshots(event, {
-          sidepanel: sidepanelRoot,
-          toolPanel: toolPanelSection,
-          codeEditor: codeEditorPanel,
-        });
-        return;
-      }
-
       if (
         isEditableTarget(event.target) ||
         isEditableTarget(document.activeElement) ||
