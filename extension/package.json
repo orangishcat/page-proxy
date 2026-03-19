@@ -23,25 +23,25 @@
     "lucide-svelte": "0.577.0",
     "monaco-editor": "0.55.1",
     "picomatch": "4.0.3",
-    "svelte": "5.53.8"
+    "svelte": "5.54.0"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
-    "@tailwindcss/postcss": "4.2.1",
-    "@types/chrome": "0.1.37",
+    "@tailwindcss/postcss": "4.2.2",
+    "@types/chrome": "0.1.38",
     "@types/css-tree": "^2.3.11",
     "@types/picomatch": "4.0.2",
-    "@wxt-dev/module-svelte": "2.0.4",
+    "@wxt-dev/module-svelte": "2.0.5",
     "eslint": "10.0.3",
-    "eslint-plugin-svelte": "3.15.1",
+    "eslint-plugin-svelte": "3.15.2",
     "globals": "17.4.0",
     "modern-screenshot": "^4.6.8",
     "postcss": "8.5.8",
     "svelte-check": "4.4.5",
     "svelte-eslint-parser": "1.6.0",
-    "tailwindcss": "4.2.1",
+    "tailwindcss": "4.2.2",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.57.0",
-    "wxt": "0.20.18"
+    "typescript-eslint": "8.57.1",
+    "wxt": "0.20.20"
   }
 }
