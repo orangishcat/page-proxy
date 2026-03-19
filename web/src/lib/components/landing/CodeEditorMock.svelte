@@ -1,31 +1,30 @@
-<script lang="ts">
-  type TokenTone = "plain" | "comment" | "keyword" | "string" | "function" | "type" | "number";
+<script lang="ts" module>
+  export type TokenTone = "plain" | "comment" | "keyword" | "string" | "function" | "type" | "number";
 
-  type CodeToken = {
+  export type CodeToken = {
     text: string;
     tone: TokenTone;
   };
 
-  type CodeLine = {
+  export type CodeLine = {
     id: string;
     tokens: CodeToken[];
   };
+</script>
 
+<script lang="ts">
   type Props = {
+    codeLines?: CodeLine[];
+    highlightedLineIds?: string[];
     showNotification?: boolean;
     notificationMessage?: string;
     websiteText?: string;
+    title?: string;
   };
 
-  let {
-    showNotification = false,
-    notificationMessage = "Build complete: 4 selectors applied.",
-    websiteText = "example.com/*",
-  }: Props = $props();
-
-  const codeLines: CodeLine[] = [
+  const defaultCodeLines: CodeLine[] = [
     {
-      id: "line-1",
+      id: "import-pq",
       tokens: [
         { text: "import", tone: "keyword" },
         { text: " * as ", tone: "plain" },
@@ -36,18 +35,7 @@
       ],
     },
     {
-      id: "line-2",
-      tokens: [
-        { text: "import", tone: "keyword" },
-        { text: " * as ", tone: "plain" },
-        { text: "ps", tone: "type" },
-        { text: " from ", tone: "plain" },
-        { text: '"@page-proxy/pp/pp-style"', tone: "string" },
-        { text: ";", tone: "plain" },
-      ],
-    },
-    {
-      id: "line-3",
+      id: "import-pv",
       tokens: [
         { text: "import", tone: "keyword" },
         { text: " * as ", tone: "plain" },
@@ -57,45 +45,25 @@
         { text: ";", tone: "plain" },
       ],
     },
-    { id: "line-4", tokens: [] },
-    { id: "line-5", tokens: [{ text: "// ==Page Proxy==", tone: "comment" }] },
-    { id: "line-6", tokens: [{ text: "// @title Demo mod", tone: "comment" }] },
-    {
-      id: "line-7",
-      tokens: [{ text: "// @website https://example.com/*", tone: "comment" }],
-    },
-    { id: "line-8", tokens: [{ text: "// @description Landing demo", tone: "comment" }] },
-    { id: "line-9", tokens: [{ text: "// @author Page Proxy", tone: "comment" }] },
-    { id: "line-10", tokens: [{ text: "// ==/Page Proxy==", tone: "comment" }] },
-    { id: "line-11", tokens: [] },
-    { id: "line-12", tokens: [{ text: "// ==Selectors==", tone: "comment" }] },
-    {
-      id: "line-13",
-      tokens: [
-        { text: "const", tone: "keyword" },
-        { text: " card = ", tone: "plain" },
-        { text: "pq", tone: "type" },
-        { text: ".", tone: "plain" },
-        { text: "selector", tone: "function" },
-        { text: "(", tone: "plain" },
-        { text: '".cta-card"', tone: "string" },
-        { text: ");", tone: "plain" },
-      ],
-    },
-    { id: "line-14", tokens: [{ text: "// ==/Selectors==", tone: "comment" }] },
-    { id: "line-15", tokens: [] },
-    {
-      id: "line-16",
-      tokens: [
-        { text: "pv", tone: "type" },
-        { text: ".", tone: "plain" },
-        { text: "notification", tone: "function" },
-        { text: "(", tone: "plain" },
-        { text: '"// TODO Finish the rest of the landing page later"', tone: "string" },
-        { text: ");", tone: "plain" },
-      ],
-    },
+    { id: "spacer-1", tokens: [] },
+    { id: "meta-1", tokens: [{ text: "// ==Page Proxy==", tone: "comment" }] },
+    { id: "meta-2", tokens: [{ text: "// @title Demo mod", tone: "comment" }] },
+    { id: "meta-3", tokens: [{ text: "// @website https://example.com/*", tone: "comment" }] },
+    { id: "meta-4", tokens: [{ text: "// ==/Page Proxy==", tone: "comment" }] },
+    { id: "spacer-2", tokens: [] },
+    { id: "placeholder", tokens: [{ text: "// Select a tool to generate code", tone: "comment" }] },
   ];
+
+  let {
+    codeLines = defaultCodeLines,
+    highlightedLineIds = [],
+    showNotification = false,
+    notificationMessage = "Build complete: 4 selectors applied.",
+    websiteText = "example.com/*",
+    title = "Demo mod",
+  }: Props = $props();
+
+  const highlightedLineIdSet = $derived(new Set(highlightedLineIds));
 
   const toneClasses = {
     plain: "text-[#efe2d4]",
@@ -108,10 +76,13 @@
   } satisfies Record<TokenTone, string>;
 </script>
 
-<section class="relative flex min-h-0 w-full flex-1 flex-col bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)]" aria-label="Code editor panel">
+<section
+  class="relative flex min-h-0 w-full flex-1 flex-col bg-[#282824] shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+  aria-label="Code editor panel"
+>
   <div class="flex h-11 w-full items-center justify-between bg-[#393a34] px-4">
     <div class="flex items-center gap-1.5 text-xs text-[#e7e8ea]">
-      <span>Demo mod</span>
+      <span>{title}</span>
       <span class="text-[#5e635e]">@</span>
       <span class="text-accent-500">{websiteText}</span>
     </div>
@@ -121,7 +92,11 @@
   <div class="relative min-h-0 flex-1 overflow-hidden">
     <div class="h-full overflow-auto px-2.5 pb-2.5 pt-2 font-mono text-xs leading-5 text-[#efe2d4]">
       {#each codeLines as line (line.id)}
-        <div class="min-h-5 whitespace-pre">
+        <div
+          class={`min-h-5 whitespace-pre rounded-md px-2 transition-all duration-300 ${
+            highlightedLineIdSet.has(line.id) ? "bg-accent-500/12 shadow-[inset_0_0_0_1px_rgba(187,147,72,0.35)]" : ""
+          }`}
+        >
           {#if line.tokens.length === 0}
             <span class="text-transparent">.</span>
           {:else}

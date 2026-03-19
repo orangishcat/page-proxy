@@ -6,6 +6,7 @@ import {
   readRecordPanelStateForTab,
   removeRecordPanelStateForTab,
   saveRecordPanelStateForTab,
+  trimStoredRecordPanelStates,
   type RecordPanelState,
   type RecordTimelineEntry,
 } from "../state-storage";
@@ -39,6 +40,31 @@ const normalizeTimeline = (timeline: RecordTimelineEntry[]) =>
     return left.id.localeCompare(right.id);
   });
 
+const resetRecordPanelState = () => {
+  recordPanelState.set({
+    isRecording: true,
+    timeline: [],
+    updatedAt: 0,
+  });
+};
+
+const loadRecordPanelStateForTab = async (tabId: number, currentLoadVersion: number) => {
+  const state = await readRecordPanelStateForTab(tabId);
+  if (currentLoadVersion !== loadVersion || activeTabId !== tabId) {
+    return;
+  }
+
+  const currentState = get(recordPanelState);
+  if (currentState.updatedAt > state.updatedAt) {
+    return;
+  }
+
+  recordPanelState.set({
+    ...state,
+    timeline: trimTimeline(normalizeTimeline(state.timeline)),
+  });
+};
+
 const persistRecordPanelState = () => {
   if (activeTabId === null) {
     return;
@@ -63,28 +89,9 @@ export const setRecordPanelActiveTab = (tabId: number | null) => {
     return;
   }
 
-  recordPanelState.set({
-    isRecording: true,
-    timeline: [],
-    updatedAt: 0,
-  });
+  resetRecordPanelState();
 
-  void readRecordPanelStateForTab(tabId)
-    .then((state) => {
-      if (currentLoadVersion !== loadVersion) {
-        return;
-      }
-
-      const currentState = get(recordPanelState);
-      if (currentState.updatedAt > state.updatedAt) {
-        return;
-      }
-
-      recordPanelState.set({
-        ...state,
-        timeline: trimTimeline(normalizeTimeline(state.timeline)),
-      });
-    })
+  void loadRecordPanelStateForTab(tabId, currentLoadVersion)
     .catch((error: unknown) => {
       if (currentLoadVersion !== loadVersion) {
         return;
@@ -93,6 +100,40 @@ export const setRecordPanelActiveTab = (tabId: number | null) => {
       logger.warn("Unable to read record tool state.", { tabId, error });
       recordPanelState.set(buildDefaultRecordPanelState());
     });
+};
+
+export const prepareRecordToolForDisplay = async () => {
+  const tabId = activeTabId;
+  const currentLoadVersion = loadVersion + 1;
+  loadVersion = currentLoadVersion;
+
+  if (tabId === null) {
+    try {
+      await trimStoredRecordPanelStates();
+    } catch (error: unknown) {
+      logger.warn("Unable to trim stored record tool state.", { error });
+    }
+    return;
+  }
+
+  resetRecordPanelState();
+
+  try {
+    await trimStoredRecordPanelStates();
+  } catch (error: unknown) {
+    logger.warn("Unable to trim stored record tool state.", { tabId, error });
+  }
+
+  try {
+    await loadRecordPanelStateForTab(tabId, currentLoadVersion);
+  } catch (error: unknown) {
+    if (currentLoadVersion !== loadVersion) {
+      return;
+    }
+
+    logger.warn("Unable to read record tool state.", { tabId, error });
+    recordPanelState.set(buildDefaultRecordPanelState());
+  }
 };
 
 export const recordSidepanelAction = (action: string, detail = "") => {

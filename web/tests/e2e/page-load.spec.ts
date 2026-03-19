@@ -20,3 +20,14 @@ test('loads landing page without page or console errors', async ({page}) => {
   expect(pageErrors).toEqual([]);
   expect(consoleErrors).toEqual([]);
 });
+
+test('landing demo advances to the saved state and loops back to the start', async ({page}) => {
+  await page.goto('/');
+  const demo = page.getByTestId('landing-demo');
+
+  await expect(demo).toBeVisible();
+  await expect(demo).toHaveAttribute('data-demo-step', 'initial');
+
+  await expect(demo).toHaveAttribute('data-demo-step', 'saved', {timeout: 15_000});
+  await expect(demo).toHaveAttribute('data-demo-step', 'initial', {timeout: 15_000});
+});

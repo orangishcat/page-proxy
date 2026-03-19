@@ -2,7 +2,14 @@ import { browser } from "wxt/browser";
 import { createShadowRootUi } from "wxt/utils/content-script-ui/shadow-root";
 import log from "@/lib/logger";
 import type { SelectElementAction, SelectElementActionResult, SelectToolMessage } from "@/lib/selection";
-import type { SidepanelShortcutMessage } from "@/lib/sidepanel-shortcuts";
+import type { SidepanelDevScreenshotMessage, SidepanelShortcutMessage } from "@/lib/sidepanel-shortcuts";
+import {
+  buildDevScreenshotFileName,
+  captureElementAsTransparentPng,
+  downloadPngDataUrl,
+  handleContentDevScreenshotShortcut,
+  isDevScreenshotShortcut,
+} from "@/lib/dev-screenshots";
 import { isEditableTarget } from "@/lib/utils/dom-checks";
 import { getShortcutTool } from "@/lib/utils/keyboard-shortcuts";
 import {
@@ -109,7 +116,7 @@ export class SelectionController {
     logger.debug("selection stopped", { reason });
   };
 
-  sendRuntimeMessage = (message: SelectToolMessage | SidepanelShortcutMessage): void => {
+  sendRuntimeMessage = (message: SelectToolMessage | SidepanelShortcutMessage | SidepanelDevScreenshotMessage): void => {
     logger.debug("runtime message sent", message);
     void browser.runtime.sendMessage(message).catch((error: unknown) => {
       if (this.isNoReceiverError(error)) {
@@ -147,6 +154,44 @@ export class SelectionController {
 
   runAction = (action: SelectElementAction, clipboardText?: string): Promise<SelectElementActionResult> =>
     Promise.resolve(runSelectElementAction(action, this.selectedTarget, this.clearSelectedAndNotify, clipboardText));
+
+  getPopupScreenshotCapture = () => this.recordManager.getScreenshotCapture() ?? this.selectorManager.getScreenshotCapture();
+
+  takePopupScreenshot = async () => {
+    if (!import.meta.env.DEV) {
+      return { open: false } as const;
+    }
+
+    const popupCapture = this.getPopupScreenshotCapture();
+    if (!popupCapture) {
+      return { open: false } as const;
+    }
+
+    const dataUrl = await captureElementAsTransparentPng(popupCapture.element as Element);
+    return {
+      open: true,
+      name: popupCapture.name,
+      dataUrl,
+    } as const;
+  };
+
+  private downloadPopupScreenshot = () => {
+    const popupCapture = this.getPopupScreenshotCapture();
+    if (!popupCapture) {
+      return false;
+    }
+
+    const timestamp = new Date();
+    void captureElementAsTransparentPng(popupCapture.element as Element)
+      .then((dataUrl) => {
+        downloadPngDataUrl(buildDevScreenshotFileName(popupCapture.name, timestamp), dataUrl);
+      })
+      .catch((error: unknown) => {
+        logger.error("popup screenshot failed", { error, name: popupCapture.name });
+      });
+
+    return true;
+  };
 
   private stopEvent = (event: Event): void => {
     event.preventDefault();
@@ -216,6 +261,17 @@ export class SelectionController {
   };
 
   onShortcutKeyDown = (event: KeyboardEvent): void => {
+    if (import.meta.env.DEV && isDevScreenshotShortcut(event)) {
+      void handleContentDevScreenshotShortcut(event, {
+        isDev: true,
+        downloadPopupScreenshot: () => this.downloadPopupScreenshot(),
+        requestSidepanelScreenshot: () => {
+          this.sendRuntimeMessage({ type: "sidepanel:dev-screenshot" } satisfies SidepanelDevScreenshotMessage);
+        },
+      });
+      return;
+    }
+
     if (this.isExcludedFromSelection(event.target) || this.isExcludedFromSelection(document.activeElement)) return;
     if (isEditableTarget(event.target) || isEditableTarget(document.activeElement)) return;
     if (event.key === "Escape" && this.selectionEnabled) {

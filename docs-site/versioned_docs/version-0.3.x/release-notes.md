@@ -9,12 +9,14 @@ title: Release notes
 - Added a record-to-code workflow:
   - The Record tool now captures a selectable timeline for the active tab.
   - Selected recording chains can be converted into editable code in a dedicated review popup before saving back to the editor.
+  - Follow-up fixes now keep the review step aligned with your earlier step edits instead of regenerating from stale code.
 - Expanded element editing from the Select and Selectors tools:
   - The Select tool now exposes click, copy, cut, paste, delete, and apply-style actions for the selected element.
   - The Selectors tool now parses selector definitions from the editor content and can reopen entries directly for editing.
 - Improved selector and CSS authoring:
   - Selector previews, specificity feedback, and in-place selector editing were refined.
   - CSS/JS parsing now uses dedicated parser utilities instead of fragile regex-only handling.
+  - CSS inspector snippet insertion now escapes backslashes correctly when generating `ps.injectCSS(...)` code.
 - Improved editor and sidepanel feedback:
   - Tool and editor errors now flow through a shared status message system.
   - Logging is standardized through `loglevel`, and more flows are covered by unit tests.

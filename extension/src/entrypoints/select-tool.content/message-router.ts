@@ -108,6 +108,16 @@ export const addMessageListener = (ctrl: SelectionController): void => {
       return true;
     }
 
+    if (msg.type === "dev:screenshot:popup") {
+      void ctrl.takePopupScreenshot()
+        .then((result) => sendResponse(result))
+        .catch((error: unknown) => {
+          logger.error("Failed to capture popup screenshot", { error });
+          sendResponse({ open: false });
+        });
+      return true;
+    }
+
     if (msg.type === "select:parent") {
       if (!ctrl.selectedTarget) {
         sendResponse({ ok: false, error: "Select an element first." });
