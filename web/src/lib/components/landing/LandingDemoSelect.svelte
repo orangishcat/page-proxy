@@ -140,7 +140,7 @@
     const stop = `${Math.max(0, Math.min(1, progress)) * 100}%`;
 
     if (!isActive) {
-      return "background: rgba(63, 61, 56, 0.92);";
+      return "background: rgba(63, 61, 56, 0.2);";
     }
 
     return `background: linear-gradient(90deg, rgba(146, 223, 70, 0.24) 0%, rgba(146, 223, 70, 0.12) ${stop}, rgba(63, 61, 56, 0.92) ${stop}, rgba(63, 61, 56, 0.92) 100%);`;
@@ -571,8 +571,10 @@
           type="button"
           aria-label={tab.label}
           class={`relative flex h-8 cursor-pointer items-center justify-center overflow-hidden border rounded-lg
-          px-6 py-5 text-center transition-[background,border-color,color] duration-300 ease-out ${
-            tab.isActive ? "border-[#4b5a2a] text-gray-100" : "border-[#3d3b2f] text-gray-400 hover:border-[#596542]"
+          px-6 py-5 text-center transition-all duration-700 ease-out ${
+            tab.isActive
+              ? "border-[#4b5a2a] dark:text-gray-100"
+              : "border-[#3d3b2f] text-gray-700 dark:text-gray-400 hover:border-[#596542]"
           }`}
           data-testid={`hero-tab-${tab.id}`}
           onclick={() => {
