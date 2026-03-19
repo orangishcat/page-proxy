@@ -1,19 +1,37 @@
 <script lang="ts">
   import { asset } from "$app/paths";
-  import { Navigation } from "lucide-svelte";
+  import { Disc, Navigation, Paintbrush, Save } from "lucide-svelte";
   import { onMount, tick } from "svelte";
   import {
     LANDING_HERO_ASSETS,
     LANDING_HERO_POINTS,
     LANDING_HERO_RECTS,
     LANDING_HERO_SCENE_MAP,
+    LANDING_HERO_SECTIONS,
     LANDING_HERO_STATIC_FRAMES,
     LANDING_HERO_TIMINGS,
     type HeroPanelKey,
     type LandingHeroPoint,
     type LandingHeroRect,
+    type LandingHeroSectionId,
     type LandingHeroSceneId,
   } from "$lib/components/landing/landing-demo-sequence";
+
+  type PlaybackTimeline = {
+    duration: () => number;
+    labels: Record<string, number>;
+    pause: () => unknown;
+    play: () => unknown;
+    seek: (position: string | number, suppressEvents?: boolean) => unknown;
+    time: () => number;
+  };
+
+  const heroTabs = [
+    { id: "select", label: "Select" },
+    { id: "apply-style", label: "Apply style" },
+    { id: "record", label: "Record" },
+    { id: "save-code", label: "Save code" },
+  ] as const satisfies readonly { id: LandingHeroSectionId; label: string }[];
 
   const pageImageSrc = {
     before: asset(LANDING_HERO_ASSETS.page.before),
@@ -24,6 +42,7 @@
     "select-empty": asset(LANDING_HERO_ASSETS.tool["select-empty"]),
     "select-selected": asset(LANDING_HERO_ASSETS.tool["select-selected"]),
     record: asset(LANDING_HERO_ASSETS.tool.record),
+    "record-selected": asset(LANDING_HERO_ASSETS.tool["record-selected"]),
   };
 
   const editorImageSrc = {
@@ -37,9 +56,11 @@
   };
 
   let sceneId = $state<LandingHeroSceneId>("initial");
+  let sceneOverrideId = $state<LandingHeroSceneId | null>(null);
   let isReducedMotion = $state(false);
 
-  const scene = $derived(LANDING_HERO_SCENE_MAP[sceneId]);
+  const visibleSceneId = $derived(sceneOverrideId ?? sceneId);
+  const scene = $derived(LANDING_HERO_SCENE_MAP[visibleSceneId]);
 
   let rootEl: HTMLDivElement | null = null;
   let pagePanelEl: HTMLElement | null = null;
@@ -47,6 +68,21 @@
   let editorPanelEl: HTMLElement | null = null;
   let cursorEl: HTMLDivElement | null = null;
   let pulseEl: HTMLDivElement | null = null;
+  let playbackTimeline: PlaybackTimeline | null = null;
+  let activeSectionId = $state<LandingHeroSectionId>("select");
+  let activeSectionProgress = $state(0);
+  let resumePlaybackTimeout = 0;
+  let pendingSectionId = $state<LandingHeroSectionId | null>(null);
+  let isPlaybackReady = $state(false);
+
+  const getSection = (sectionId: LandingHeroSectionId) => LANDING_HERO_SECTIONS.find((entry) => entry.id === sectionId);
+  const getSectionStartSceneId = (sectionId: LandingHeroSectionId | null) => {
+    if (!sectionId) {
+      return null;
+    }
+
+    return getSection(sectionId)?.startSceneId ?? null;
+  };
 
   const getPanelElement = (panelKey: HeroPanelKey) => {
     if (panelKey === "page") return pagePanelEl;
@@ -60,8 +96,8 @@
     `left:${toPercent(rect.x)};top:${toPercent(rect.y)};width:${toPercent(rect.width)};height:${toPercent(rect.height)};`;
 
   const imageLayerClasses = (visible: boolean) =>
-    `absolute inset-0 h-full w-full object-cover transition-all duration-500 ease-out ${
-      visible ? "opacity-100 scale-100" : "pointer-events-none opacity-0 scale-[1.01]"
+    `absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ease-out ${
+      visible ? "opacity-100" : "pointer-events-none opacity-0"
     }`;
 
   const getRootPoint = (point: LandingHeroPoint) => {
@@ -84,7 +120,82 @@
   };
 
   const resetStaticFrame = () => {
-    sceneId = isReducedMotion ? LANDING_HERO_STATIC_FRAMES.reducedMotion : "initial";
+    sceneOverrideId = null;
+    sceneId =
+      getSectionStartSceneId(pendingSectionId) ??
+      (isReducedMotion ? LANDING_HERO_STATIC_FRAMES.reducedMotion : "initial");
+  };
+
+  const tabProgress = $derived.by(() => {
+    return heroTabs.map((tab) => {
+      return {
+        ...tab,
+        isActive: tab.id === activeSectionId,
+        progress: tab.id === activeSectionId ? activeSectionProgress : 0,
+      };
+    });
+  });
+
+  const tabBackgroundStyle = (isActive: boolean, progress: number) => {
+    const stop = `${Math.max(0, Math.min(1, progress)) * 100}%`;
+
+    if (!isActive) {
+      return "background: rgba(63, 61, 56, 0.92);";
+    }
+
+    return `background: linear-gradient(90deg, rgba(146, 223, 70, 0.24) 0%, rgba(146, 223, 70, 0.12) ${stop}, rgba(63, 61, 56, 0.92) ${stop}, rgba(63, 61, 56, 0.92) 100%);`;
+  };
+
+  const updateSectionPlayback = (currentTime: number, labels: Record<string, number>, duration: number) => {
+    const sectionTimes = LANDING_HERO_SECTIONS.map((section, index) => {
+      const start = labels[section.startSceneId] ?? 0;
+      const nextStart = LANDING_HERO_SECTIONS[index + 1]?.startSceneId;
+      const end = nextStart ? (labels[nextStart] ?? duration) : duration;
+
+      return {
+        ...section,
+        end,
+        start,
+      };
+    });
+
+    const currentSection =
+      sectionTimes.find((section) => currentTime >= section.start && currentTime < section.end) ??
+      sectionTimes.at(-1) ??
+      sectionTimes[0];
+
+    const span = Math.max(0.001, currentSection.end - currentSection.start);
+    activeSectionId = currentSection.id;
+    activeSectionProgress = Math.min(1, Math.max(0, (currentTime - currentSection.start) / span));
+  };
+
+  const jumpToSection = (sectionId: LandingHeroSectionId) => {
+    const section = getSection(sectionId);
+    if (!section) {
+      return;
+    }
+
+    pendingSectionId = sectionId;
+    sceneOverrideId = section.startSceneId;
+    sceneId = section.startSceneId;
+    activeSectionId = sectionId;
+    activeSectionProgress = 0;
+
+    if (isReducedMotion || !playbackTimeline) {
+      return;
+    }
+
+    window.clearTimeout(resumePlaybackTimeout);
+    playbackTimeline.pause();
+    playbackTimeline.seek(section.startSceneId, true);
+    setScene(section.startSceneId);
+    updateSectionPlayback(playbackTimeline.time(), playbackTimeline.labels, playbackTimeline.duration());
+
+    resumePlaybackTimeout = window.setTimeout(() => {
+      sceneOverrideId = null;
+      pendingSectionId = null;
+      playbackTimeline?.play();
+    }, 220);
   };
 
   const buildPlayback = async () => {
@@ -99,6 +210,7 @@
     resetStaticFrame();
 
     if (isReducedMotion) {
+      isPlaybackReady = true;
       return () => {};
     }
 
@@ -140,7 +252,7 @@
       });
     };
 
-    const addPause = (timeline: GsapTimeline, duration = LANDING_HERO_TIMINGS.settle) => {
+    const addPause = (timeline: GsapTimeline, duration: number = LANDING_HERO_TIMINGS.settle) => {
       timeline.to({}, { duration });
     };
 
@@ -157,11 +269,18 @@
       });
       gsap.set(pulseEl, { opacity: 0, scale: 0.35 });
 
-      const timeline = gsap.timeline({
+      let timeline: GsapTimeline;
+
+      timeline = gsap.timeline({
+        onUpdate: () => {
+          updateSectionPlayback(timeline.time(), timeline.labels, timeline.duration());
+        },
         repeat: -1,
         repeatDelay: LANDING_HERO_TIMINGS.loopDelay,
       });
+      playbackTimeline = timeline;
 
+      timeline.addLabel("initial");
       timeline.call(() => {
         setScene("initial");
         const origin = getRootPoint(LANDING_HERO_POINTS.cursorStart);
@@ -171,6 +290,7 @@
 
       moveCursor(timeline, LANDING_HERO_POINTS.selectTool, 0.95);
       addPause(timeline);
+      timeline.addLabel("select-tool");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.selectTool);
         setScene("select-tool");
@@ -181,6 +301,7 @@
         setScene("sidebar-hover");
       });
       addPause(timeline);
+      timeline.addLabel("sidebar-selected");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.sidebar);
         setScene("sidebar-selected");
@@ -188,6 +309,7 @@
 
       moveCursor(timeline, LANDING_HERO_POINTS.menuButton, 0.9);
       addPause(timeline);
+      timeline.addLabel("menu-open");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.menuButton);
         setScene("menu-open");
@@ -195,6 +317,7 @@
 
       moveCursor(timeline, LANDING_HERO_POINTS.deleteElement);
       addPause(timeline);
+      timeline.addLabel("page-deleted");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.deleteElement);
         setScene("page-deleted");
@@ -202,6 +325,7 @@
 
       moveCursor(timeline, LANDING_HERO_POINTS.recordTool, 0.95);
       addPause(timeline);
+      timeline.addLabel("record-tool");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.recordTool);
         setScene("record-tool");
@@ -209,24 +333,62 @@
 
       moveCursor(timeline, LANDING_HERO_POINTS.recordConfirm);
       addPause(timeline);
+      timeline.addLabel("record-selected");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.recordConfirm);
+        setScene("record-selected");
+      });
+
+      moveCursor(timeline, LANDING_HERO_POINTS.convertCode);
+      addPause(timeline);
+      timeline.addLabel("convert-code");
+      timeline.call(() => {
+        clickPulse(LANDING_HERO_POINTS.convertCode);
+        setScene("convert-code");
+      });
+
+      addPause(timeline, LANDING_HERO_TIMINGS.settle * 0.8);
+      timeline.addLabel("record-popup");
+      timeline.call(() => {
         setScene("record-popup");
       });
 
       moveCursor(timeline, LANDING_HERO_POINTS.popupSave, 1.1);
       addPause(timeline);
+      timeline.addLabel("saved");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.popupSave);
         setScene("saved");
       });
 
       timeline.to({}, { duration: LANDING_HERO_TIMINGS.finalHold });
+
+      const initialSectionSceneId = getSectionStartSceneId(pendingSectionId);
+      if (initialSectionSceneId) {
+        timeline.pause();
+        timeline.seek(initialSectionSceneId, true);
+        setScene(initialSectionSceneId);
+        sceneOverrideId = initialSectionSceneId;
+        updateSectionPlayback(timeline.time(), timeline.labels, timeline.duration());
+        resumePlaybackTimeout = window.setTimeout(() => {
+          sceneOverrideId = null;
+          pendingSectionId = null;
+          timeline.play();
+        }, 220);
+      } else {
+        updateSectionPlayback(0, timeline.labels, timeline.duration());
+      }
+
+      isPlaybackReady = true;
     }, rootEl);
 
     const onMotionChange = (event: MediaQueryListEvent) => {
       isReducedMotion = event.matches;
+      isPlaybackReady = false;
       resetStaticFrame();
+      playbackTimeline = null;
+      window.clearTimeout(resumePlaybackTimeout);
+      sceneOverrideId = null;
 
       if (context) {
         context.revert();
@@ -237,6 +399,10 @@
 
     return () => {
       reducedMotionQuery.removeEventListener("change", onMotionChange);
+      isPlaybackReady = false;
+      playbackTimeline = null;
+      window.clearTimeout(resumePlaybackTimeout);
+      sceneOverrideId = null;
       context?.revert();
     };
   };
@@ -255,138 +421,187 @@
 </script>
 
 <div class="mx-auto flex w-full justify-center overflow-x-auto">
-  <div
-    bind:this={rootEl}
-    class="relative grid w-full min-w-200 max-w-[90vw] grid-cols-[minmax(0,1.331fr)_minmax(0,0.415fr)] gap-0"
-    data-demo-step={sceneId}
-    data-testid="landing-demo"
-  >
-    <section
-      bind:this={pagePanelEl}
-      class="relative overflow-hidden bg-[#11110f]"
-      style="aspect-ratio:2560 / 1926;"
-      aria-label="Landing demo page"
+  <div class="flex w-full min-w-200 max-w-[70vw] flex-col items-center">
+    <div
+      bind:this={rootEl}
+      class="relative grid w-full grid-cols-[minmax(0,1.331fr)_minmax(0,0.415fr)] gap-0"
+      data-demo-ready={isPlaybackReady ? "true" : "false"}
+      data-demo-step={visibleSceneId}
+      data-testid="landing-demo"
     >
-      <img
-        class={imageLayerClasses(scene.pageFrame === "before")}
-        src={pageImageSrc.before}
-        alt=""
-        aria-hidden="true"
-        draggable="false"
-      />
-      <img
-        class={imageLayerClasses(scene.pageFrame === "after")}
-        src={pageImageSrc.after}
-        alt=""
-        aria-hidden="true"
-        draggable="false"
-      />
-
-      <div
-        class={`absolute rounded-sm border-[0.16em] transition-all duration-300 ease-out ${
-          scene.sidebarState === "hidden"
-            ? "opacity-0"
-            : scene.sidebarState === "hover"
-              ? "border-[#91e046] shadow-[0_0_0_0.12em_rgba(145,224,70,0.22)]"
-              : "border-[#91e046] shadow-[0_0_0_0.12em_rgba(145,224,70,0.35)]"
-        }`}
-        style={rectStyle(LANDING_HERO_RECTS.sidebar)}
-      ></div>
-
-      <div
-        class={`absolute inset-0 bg-black/55 transition-opacity duration-400 ${
-          scene.scrimVisible ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
-      ></div>
-
-      <img
-        class={`absolute object-cover shadow-[0_1.6em_3.2em_-2em_rgba(0,0,0,0.6)] transition-all duration-500 ease-out ${
-          scene.popupVisible ? "opacity-100 scale-100" : "pointer-events-none opacity-0 scale-[0.96]"
-        }`}
-        style={`${rectStyle(LANDING_HERO_RECTS.popup)} aspect-ratio:2144 / 1318;`}
-        src={overlayImageSrc.popup}
-        alt=""
-        aria-hidden="true"
-        draggable="false"
-      />
-    </section>
-
-    <div class="grid grid-rows-[600fr_1322fr] gap-0">
       <section
-        bind:this={toolPanelEl}
-        class="relative overflow-visible bg-[#24241f]"
-        style="aspect-ratio:798 / 600;"
-        aria-label="Landing demo tool panel"
+        bind:this={pagePanelEl}
+        class="relative overflow-hidden bg-[#11110f]"
+        style="aspect-ratio:2560 / 1926;"
+        aria-label="Landing demo page"
       >
         <img
-          class={imageLayerClasses(scene.toolFrame === "select-empty")}
-          src={toolImageSrc["select-empty"]}
+          class={imageLayerClasses(scene.pageFrame === "before")}
+          src={pageImageSrc.before}
           alt=""
           aria-hidden="true"
           draggable="false"
         />
         <img
-          class={imageLayerClasses(scene.toolFrame === "select-selected")}
-          src={toolImageSrc["select-selected"]}
-          alt=""
-          aria-hidden="true"
-          draggable="false"
-        />
-        <img
-          class={imageLayerClasses(scene.toolFrame === "record")}
-          src={toolImageSrc.record}
+          class={imageLayerClasses(scene.pageFrame === "after")}
+          src={pageImageSrc.after}
           alt=""
           aria-hidden="true"
           draggable="false"
         />
 
-        <img
-          class={`absolute object-cover transition-all duration-300 ease-out ${
-            scene.menuVisible ? "opacity-100 translate-y-0" : "pointer-events-none opacity-0 -translate-y-[0.3em]"
+        <div
+          class={`absolute rounded-sm border-[0.16rem] transition-opacity duration-300 ease-out ${
+            scene.sidebarState === "hidden"
+              ? "opacity-0"
+              : scene.sidebarState === "hover"
+                ? "border-accent-500"
+                : "border-secondary-400"
           }`}
-          style={`${rectStyle(LANDING_HERO_RECTS.menu)} aspect-ratio:448 / 356;`}
-          src={overlayImageSrc.menu}
+          style={rectStyle(LANDING_HERO_RECTS.sidebar)}
+        ></div>
+
+        <div
+          class={`absolute inset-0 bg-black/55 transition-opacity duration-400 ${
+            scene.scrimVisible ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
+        ></div>
+
+        <img
+          class={`absolute object-cover shadow-[0_1.6em_3.2em_-2em_rgba(0,0,0,0.6)] transition-opacity duration-500 ease-out ${
+            scene.popupVisible ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
+          style={`${rectStyle(LANDING_HERO_RECTS.popup)} aspect-ratio:2144 / 1318;`}
+          src={overlayImageSrc.popup}
           alt=""
           aria-hidden="true"
           draggable="false"
         />
       </section>
 
-      <section
-        bind:this={editorPanelEl}
-        class="relative overflow-hidden bg-[#24241f]"
-        style="aspect-ratio:798 / 1322;"
-        aria-label="Landing demo code editor"
+      <div class="grid grid-rows-[600fr_1322fr] gap-0">
+        <section
+          bind:this={toolPanelEl}
+          class="relative overflow-visible bg-[#24241f]"
+          style="aspect-ratio:798 / 600;"
+          aria-label="Landing demo tool panel"
+        >
+          <img
+            class={imageLayerClasses(scene.toolFrame === "select-empty")}
+            src={toolImageSrc["select-empty"]}
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+          />
+          <img
+            class={imageLayerClasses(scene.toolFrame === "select-selected")}
+            src={toolImageSrc["select-selected"]}
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+          />
+          <img
+            class={imageLayerClasses(scene.toolFrame === "record")}
+            src={toolImageSrc.record}
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+          />
+          <img
+            class={imageLayerClasses(scene.toolFrame === "record-selected")}
+            src={toolImageSrc["record-selected"]}
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+          />
+
+          <img
+            class={`absolute object-cover transition-all duration-300 ease-out ${
+              scene.menuVisible ? "opacity-100 translate-y-0" : "pointer-events-none opacity-0 -translate-y-[0.3em]"
+            }`}
+            style={`${rectStyle(LANDING_HERO_RECTS.menu)} aspect-ratio:448 / 356;`}
+            src={overlayImageSrc.menu}
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+          />
+        </section>
+
+        <section
+          bind:this={editorPanelEl}
+          class="relative overflow-hidden bg-[#24241f]"
+          style="aspect-ratio:798 / 1322;"
+          aria-label="Landing demo code editor"
+        >
+          <img
+            class={imageLayerClasses(scene.editorFrame === "empty")}
+            src={editorImageSrc.empty}
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+          />
+          <img
+            class={imageLayerClasses(scene.editorFrame === "saved")}
+            src={editorImageSrc.saved}
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+          />
+        </section>
+      </div>
+
+      <div
+        bind:this={pulseEl}
+        class="pointer-events-none absolute left-0 top-0 z-20 h-[1.1em] w-[1.1em] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#a8ef52]/70 bg-[#9ee34a]/30 opacity-0"
+      ></div>
+
+      <div
+        bind:this={cursorEl}
+        class={`pointer-events-none absolute left-0 top-0 z-30 -translate-x-[0.7em] -translate-y-[0.38em] ${
+          isReducedMotion ? "hidden" : "block"
+        }`}
       >
-        <img
-          class={imageLayerClasses(scene.editorFrame === "empty")}
-          src={editorImageSrc.empty}
-          alt=""
-          aria-hidden="true"
-          draggable="false"
-        />
-        <img
-          class={imageLayerClasses(scene.editorFrame === "saved")}
-          src={editorImageSrc.saved}
-          alt=""
-          aria-hidden="true"
-          draggable="false"
-        />
-      </section>
+        <Navigation class="h-[1.6em] w-[1.6em] -scale-x-100 fill-black text-white" strokeWidth={2.15} />
+      </div>
     </div>
 
-    <div
-      bind:this={pulseEl}
-      class="pointer-events-none absolute left-0 top-0 z-20 h-[1.1em] w-[1.1em] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#a8ef52]/70 bg-[#9ee34a]/30 opacity-0"
-    ></div>
-
-    <div
-      bind:this={cursorEl}
-      class={`pointer-events-none absolute left-0 top-0 z-30 -translate-x-[0.7em] -translate-y-[0.38em] ${
-        isReducedMotion ? "hidden" : "block"
-      }`}
-    >
-      <Navigation class="h-[1.6em] w-[1.6em] -scale-x-100 fill-black text-white" strokeWidth={2.15} />
+    <div class="pointer-events-auto relative z-50 mt-8 flex items-center justify-center gap-4 text-md tracking-wide">
+      {#each tabProgress as tab (tab.id)}
+        <button
+          type="button"
+          aria-label={tab.label}
+          class={`relative flex h-8 cursor-pointer items-center justify-center overflow-hidden rounded-xl border
+          px-6 py-5 text-center transition-[background,border-color,color] duration-300 ease-out ${
+            tab.isActive ? "border-[#4b5a2a] text-gray-100" : "border-[#3d3b2f] text-gray-400 hover:border-[#596542]"
+          }`}
+          data-testid={`hero-tab-${tab.id}`}
+          onclick={() => {
+            jumpToSection(tab.id);
+          }}
+          onpointerdown={() => {
+            jumpToSection(tab.id);
+          }}
+          onfocus={() => {
+            jumpToSection(tab.id);
+          }}
+          style={tabBackgroundStyle(tab.isActive, tab.progress)}
+        >
+          <div
+            class="relative z-10 flex place-items-center justify-center gap-2.5 text-center font-medium leading-none"
+          >
+            {#if tab.id === "select"}
+              <Navigation class="h-6 w-6 -scale-x-100" strokeWidth={2.15} />
+            {:else if tab.id === "apply-style"}
+              <Paintbrush class="h-6 w-6" />
+            {:else if tab.id === "record"}
+              <Disc class="h-6 w-6" />
+            {:else}
+              <Save class="h-6 w-6" />
+            {/if}
+            <span>{tab.label}</span>
+          </div>
+        </button>
+      {/each}
     </div>
   </div>
 </div>
