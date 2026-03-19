@@ -431,7 +431,7 @@
     >
       <section
         bind:this={pagePanelEl}
-        class="relative rounded-lg overflow-hidden"
+        class="relative rounded-l-lg overflow-hidden"
         style="aspect-ratio:2560 / 1926;"
         aria-label="Landing demo page"
       >
@@ -479,7 +479,7 @@
         />
       </section>
 
-      <div class="grid grid-rows-[600fr_1322fr] gap-0">
+      <div class="grid grid-rows-[600fr_1322fr] gap-0 rounded-r-lg overflow-hidden">
         <section
           bind:this={toolPanelEl}
           class="relative overflow-visible bg-[#24241f]"
@@ -570,7 +570,7 @@
         <button
           type="button"
           aria-label={tab.label}
-          class={`relative flex h-8 cursor-pointer items-center justify-center overflow-hidden rounded-xl border
+          class={`relative flex h-8 cursor-pointer items-center justify-center overflow-hidden border rounded-lg
           px-6 py-5 text-center transition-[background,border-color,color] duration-300 ease-out ${
             tab.isActive ? "border-[#4b5a2a] text-gray-100" : "border-[#3d3b2f] text-gray-400 hover:border-[#596542]"
           }`}
