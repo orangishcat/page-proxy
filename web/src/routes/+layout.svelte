@@ -43,7 +43,7 @@
 </script>
 
 <svelte:head>
-  <link rel="icon" href={asset('/icon.png')} />
+  <link rel="icon" href={asset('/icon.avif')} />
 </svelte:head>
 
 {@render children()}

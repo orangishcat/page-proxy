@@ -94,7 +94,7 @@ const pageProxyPrismLightTheme = {
 const config: Config = {
   title: "Page Proxy Docs",
   tagline: "Documentation for the pp library",
-  favicon: "img/logo_filled.png",
+  favicon: "img/logo_filled.avif",
   url: process.env.NODE_ENV === "development" ? "http://localhost:3288" : "https://orangishcat.github.io",
   baseUrl: "/page-proxy/docs/",
   organizationName: "orangishcat",
@@ -147,7 +147,7 @@ const config: Config = {
       title: "Page Proxy",
       logo: {
         alt: "Page Proxy",
-        src: "img/logo_filled.png",
+        src: "img/logo_filled.avif",
         href: "https://orangishcat.github.io/page-proxy",
       },
       items: [

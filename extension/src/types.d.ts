@@ -3,6 +3,11 @@ declare module '*.png' {
   export default src;
 }
 
+declare module '*.avif' {
+  const src: string;
+  export default src;
+}
+
 declare module '*.svelte' {
   const component: import('svelte').Component;
   export default component;
