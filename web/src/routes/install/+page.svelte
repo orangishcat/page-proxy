@@ -69,7 +69,7 @@
   <title>Install</title>
 </svelte:head>
 
-<main class="flex min-h-screen w-full items-center bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+<main class="flex min-h-screen w-full items-center bg-page-light text-gray-900 dark:bg-page dark:text-gray-100">
   <div class="mx-auto flex h-screen w-full max-w-7xl flex-col gap-10 px-6 py-6">
     <Navbar variant="landing" />
 

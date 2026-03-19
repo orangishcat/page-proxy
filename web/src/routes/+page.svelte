@@ -11,7 +11,7 @@
   <title>Page Proxy</title>
 </svelte:head>
 
-<main class="min-h-screen bg-[#f2f3f2] text-[#20211f] dark:bg-[#282824] dark:text-white">
+<main class="min-h-screen text-[#20211f] dark:text-white">
   <div class="mx-auto flex w-full max-w-7xl flex-col px-6 pt-5 sm:px-10 lg:px-16">
     <Navbar variant="landing" />
   </div>
@@ -31,7 +31,7 @@
             <Button variant="primary" class="w-32">Install</Button>
           </a>
           <a href={githubUrl} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" class="rounded-lg border border-gray-700 px-5 py-2.5 text-white dark:text-white">
+            <Button variant="outline" class="rounded-lg border border-gray-700 px-5 py-2.5 text-black dark:text-white">
               View on GitHub
             </Button>
           </a>
@@ -40,9 +40,9 @@
     </section>
 
     <section class="flex flex-col items-center" id="tools">
-      <h2 class="text-center text-4xl font-bold text-gray-900 dark:text-white">Robust, integrated tooling.</h2>
+      <h2 class="text-center text-4xl font-bold text-gray-900 dark:text-white">Simple, robust workflow.</h2>
       <p class="text-subtitle text-[#5e635e] dark:text-[#c1c6c1] mt-4">
-        Spend more time on designing, and less on converting it to code.
+        Perform an action, record it, then convert it to code to keep your changes.
       </p>
 
       <div class="mt-9 w-full">
@@ -63,7 +63,7 @@
           <Button variant="primary">Install</Button>
         </a>
         <a href={githubUrl} target="_blank" rel="noopener noreferrer">
-          <Button variant="outline" class="rounded-lg border border-gray-700 px-5 py-2.5 text-white dark:text-white">
+          <Button variant="outline" class="rounded-lg border border-gray-700 px-5 py-2.5 text-black dark:text-white">
             View on GitHub
           </Button>
         </a>

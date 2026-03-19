@@ -2,65 +2,67 @@
 @config "../tailwind.config.cjs";
 
 @layer base {
-    html {
-        color-scheme: light;
-    }
+  html {
+    @apply bg-page-light;
+    color-scheme: light;
+  }
 
-    html.dark {
-        color-scheme: dark;
-    }
+  html.dark {
+    @apply bg-page;
+    color-scheme: dark;
+  }
 
-    body {
-        @apply bg-gray-50 text-gray-900 font-sans dark:bg-gray-950 dark:text-gray-100;
-    }
+  body {
+    @apply bg-page-light text-gray-900 font-sans dark:bg-page dark:text-gray-100;
+  }
 }
 
 @layer components {
-    a {
-        @apply text-accent-400 dark:text-accent-500 hover:opacity-75;
-    }
+  a {
+    @apply text-accent-400 dark:text-accent-500 hover:opacity-75;
+  }
 
-    .text-display {
-        @apply text-6xl font-bold tracking-wide;
-    }
+  .text-display {
+    @apply text-6xl font-bold tracking-wide;
+  }
 
-    .text-heading {
-        @apply text-4xl font-bold tracking-normal;
-    }
+  .text-heading {
+    @apply text-4xl font-bold tracking-normal;
+  }
 
-    .text-lead {
-        @apply text-lg font-medium;
-    }
+  .text-lead {
+    @apply text-lg font-medium;
+  }
 
-    .text-title {
-        @apply text-xl font-bold;
-    }
+  .text-title {
+    @apply text-xl font-bold;
+  }
 
-    .text-subtitle {
-        @apply text-base font-medium;
-    }
+  .text-subtitle {
+    @apply text-base font-medium;
+  }
 
-    .text-body {
-        @apply text-base font-normal;
-    }
+  .text-body {
+    @apply text-base font-normal;
+  }
 
-    .text-caption {
-        @apply text-sm font-normal;
-    }
+  .text-caption {
+    @apply text-sm font-normal;
+  }
 
-    .text-button {
-        @apply text-base font-medium;
-    }
+  .text-button {
+    @apply text-base font-medium;
+  }
 
-    .text-nav {
-        @apply text-base font-medium;
-    }
+  .text-nav {
+    @apply text-base font-medium;
+  }
 
-    .text-eyebrow {
-        @apply text-sm font-semibold uppercase tracking-widest;
-    }
+  .text-eyebrow {
+    @apply text-sm font-semibold uppercase tracking-widest;
+  }
 
-    .text-label {
-        @apply text-xs font-semibold uppercase tracking-widest;
-    }
+  .text-label {
+    @apply text-xs font-semibold uppercase tracking-widest;
+  }
 }
