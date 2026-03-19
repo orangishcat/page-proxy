@@ -32,18 +32,6 @@ export type SelectorSavePayload = {
 
 export type SelectorPopupMode = "pp-api" | "css";
 
-export type DevPopupScreenshotName = "selector-popup" | "css-inspector" | "record-converter";
-
-export type DevPopupScreenshotResult =
-  | {
-      open: false;
-    }
-  | {
-      open: true;
-      name: DevPopupScreenshotName;
-      dataUrl: string;
-    };
-
 export type SelectorSaveResult =
   | {
       ok: true;
@@ -130,9 +118,6 @@ export type SelectToolMessage =
   | {
       type: "record:converter:save";
       payload: RecordConverterSavePayload;
-    }
-  | {
-      type: "dev:screenshot:popup";
     }
   | {
       type: 'selector:save';

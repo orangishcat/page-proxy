@@ -9,7 +9,6 @@ import type {
   RecordConverterSaveResult,
   SelectToolMessage,
 } from "@/lib/selection";
-import type { DevScreenshotCaptureTarget } from "@/lib/dev-screenshots";
 import RecordPopup from "./RecordPopup.svelte";
 
 type ContentScriptContext = Parameters<typeof createShadowRootUi>[0];
@@ -21,18 +20,6 @@ export class RecordConverterPopupManager {
   private shadowUi: Awaited<ReturnType<typeof createShadowRootUi>> | null = null;
 
   constructor(private readonly ctx: ContentScriptContext) {}
-
-  getScreenshotCapture(): DevScreenshotCaptureTarget | null {
-    const popupRoot = this.shadowUi?.shadowHost.shadowRoot?.querySelector(`.${contentUiRootClass}`);
-    if (!(popupRoot instanceof HTMLElement)) {
-      return null;
-    }
-
-    return {
-      element: popupRoot,
-      name: "record-converter",
-    };
-  }
 
   clear(): void {
     if (this.popupApp) {

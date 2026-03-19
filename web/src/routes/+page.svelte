@@ -11,7 +11,7 @@
   <title>Page Proxy</title>
 </svelte:head>
 
-<main class="min-h-screen text-[#20211f] dark:text-white">
+<main class="min-h-screen bg-page-light text-[#20211f] dark:bg-page dark:text-white">
   <div class="mx-auto flex w-full max-w-7xl flex-col px-6 pt-5 sm:px-10 lg:px-16">
     <Navbar variant="landing" />
   </div>

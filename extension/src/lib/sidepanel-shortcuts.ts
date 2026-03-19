@@ -9,10 +9,6 @@ export type SidepanelShortcutMessage = {
   };
 };
 
-export type SidepanelDevScreenshotMessage = {
-  type: "sidepanel:dev-screenshot";
-};
-
 export const coerceToolPanelTool = (tool: ToolId): ToolId => (tool === "create" ? "none" : tool);
 
 export const isSidepanelShortcutMessage = (
@@ -30,10 +26,3 @@ export const isSidepanelShortcutMessage = (
   return (message as { type?: string }).type === "sidepanel:shortcut" &&
     typeof (payload as { tool?: unknown }).tool === "string";
 };
-
-export const isSidepanelDevScreenshotMessage = (
-  message: unknown
-): message is SidepanelDevScreenshotMessage =>
-  Boolean(message) &&
-  typeof message === "object" &&
-  (message as { type?: unknown }).type === "sidepanel:dev-screenshot";
