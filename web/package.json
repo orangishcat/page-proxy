@@ -17,6 +17,7 @@
     "appwrite": "23.0.0",
     "axios": "1.13.6",
     "bits-ui": "2.16.3",
+    "gsap": "3.13.0",
     "lucide-svelte": "0.577.0",
     "svelte": "5.53.8"
   },

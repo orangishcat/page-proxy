@@ -1,170 +1,392 @@
 <script lang="ts">
+  import { asset } from "$app/paths";
   import { Navigation } from "lucide-svelte";
-  import Button from "$lib/components/Button.svelte";
-  import CodeEditorMock from "$lib/components/landing/CodeEditorMock.svelte";
-  import LandingDemoToolbar from "$lib/components/landing/LandingDemoToolbar.svelte";
+  import { onMount, tick } from "svelte";
+  import {
+    LANDING_HERO_ASSETS,
+    LANDING_HERO_POINTS,
+    LANDING_HERO_RECTS,
+    LANDING_HERO_SCENE_MAP,
+    LANDING_HERO_STATIC_FRAMES,
+    LANDING_HERO_TIMINGS,
+    type HeroPanelKey,
+    type LandingHeroPoint,
+    type LandingHeroRect,
+    type LandingHeroSceneId,
+  } from "$lib/components/landing/landing-demo-sequence";
 
-  const propertyRows = [
-    { label: "ID", value: "semicircle-top-right" },
-    { label: "Class", value: "semicircle tile highlighted" },
-    { label: "Name", value: "Top-right semicircle" },
-    { label: "Selector", value: "main > section > .semicircle-top-right" },
-    { label: "BBox", value: "412, 131 @ 129, 64" },
-  ];
+  const pageImageSrc = {
+    before: asset(LANDING_HERO_ASSETS.page.before),
+    after: asset(LANDING_HERO_ASSETS.page.after),
+  };
+
+  const toolImageSrc = {
+    "select-empty": asset(LANDING_HERO_ASSETS.tool["select-empty"]),
+    "select-selected": asset(LANDING_HERO_ASSETS.tool["select-selected"]),
+    record: asset(LANDING_HERO_ASSETS.tool.record),
+  };
+
+  const editorImageSrc = {
+    empty: asset(LANDING_HERO_ASSETS.editor.empty),
+    saved: asset(LANDING_HERO_ASSETS.editor.saved),
+  };
+
+  const overlayImageSrc = {
+    menu: asset(LANDING_HERO_ASSETS.overlays.menu),
+    popup: asset(LANDING_HERO_ASSETS.overlays.popup),
+  };
+
+  let sceneId = $state<LandingHeroSceneId>("initial");
+  let isReducedMotion = $state(false);
+
+  const scene = $derived(LANDING_HERO_SCENE_MAP[sceneId]);
+
+  let rootEl: HTMLDivElement | null = null;
+  let pagePanelEl: HTMLElement | null = null;
+  let toolPanelEl: HTMLElement | null = null;
+  let editorPanelEl: HTMLElement | null = null;
+  let cursorEl: HTMLDivElement | null = null;
+  let pulseEl: HTMLDivElement | null = null;
+
+  const getPanelElement = (panelKey: HeroPanelKey) => {
+    if (panelKey === "page") return pagePanelEl;
+    if (panelKey === "tool") return toolPanelEl;
+    return editorPanelEl;
+  };
+
+  const toPercent = (value: number) => `${value * 100}%`;
+
+  const rectStyle = (rect: LandingHeroRect) =>
+    `left:${toPercent(rect.x)};top:${toPercent(rect.y)};width:${toPercent(rect.width)};height:${toPercent(rect.height)};`;
+
+  const imageLayerClasses = (visible: boolean) =>
+    `absolute inset-0 h-full w-full object-cover transition-all duration-500 ease-out ${
+      visible ? "opacity-100 scale-100" : "pointer-events-none opacity-0 scale-[1.01]"
+    }`;
+
+  const getRootPoint = (point: LandingHeroPoint) => {
+    const panelEl = getPanelElement(point.panelKey);
+    if (!rootEl || !panelEl) {
+      return { x: 0, y: 0 };
+    }
+
+    const rootRect = rootEl.getBoundingClientRect();
+    const panelRect = panelEl.getBoundingClientRect();
+
+    return {
+      x: panelRect.left - rootRect.left + panelRect.width * point.x,
+      y: panelRect.top - rootRect.top + panelRect.height * point.y,
+    };
+  };
+
+  const setScene = (nextSceneId: LandingHeroSceneId) => {
+    sceneId = nextSceneId;
+  };
+
+  const resetStaticFrame = () => {
+    sceneId = isReducedMotion ? LANDING_HERO_STATIC_FRAMES.reducedMotion : "initial";
+  };
+
+  const buildPlayback = async () => {
+    await tick();
+
+    if (!rootEl || !cursorEl || !pulseEl) {
+      return () => {};
+    }
+
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    isReducedMotion = reducedMotionQuery.matches;
+    resetStaticFrame();
+
+    if (isReducedMotion) {
+      return () => {};
+    }
+
+    const { gsap } = await import("gsap");
+    type GsapTimeline = ReturnType<typeof gsap.timeline>;
+
+    const clickPulse = (point: LandingHeroPoint) => {
+      if (!cursorEl || !pulseEl) {
+        return;
+      }
+
+      const { x, y } = getRootPoint(point);
+
+      gsap.killTweensOf(pulseEl);
+      gsap.set(pulseEl, { x, y, opacity: 0.48, scale: 0.35 });
+      gsap.to(pulseEl, {
+        opacity: 0,
+        scale: 2.05,
+        duration: 0.38,
+        ease: "power2.out",
+      });
+      gsap.to(cursorEl, {
+        scale: 0.84,
+        duration: LANDING_HERO_TIMINGS.click / 2,
+        repeat: 1,
+        yoyo: true,
+        ease: "power1.inOut",
+        overwrite: "auto",
+      });
+    };
+
+    const moveCursor = (timeline: GsapTimeline, point: LandingHeroPoint, hold = 1) => {
+      const nextPoint = getRootPoint(point);
+      timeline.to(cursorEl, {
+        x: nextPoint.x,
+        y: nextPoint.y,
+        duration: LANDING_HERO_TIMINGS.move * hold,
+        ease: "power2.inOut",
+      });
+    };
+
+    const addPause = (timeline: GsapTimeline, duration = LANDING_HERO_TIMINGS.settle) => {
+      timeline.to({}, { duration });
+    };
+
+    let context: { revert: () => void } | null = null;
+
+    context = gsap.context(() => {
+      const startPoint = getRootPoint(LANDING_HERO_POINTS.cursorStart);
+
+      gsap.set(cursorEl, {
+        x: startPoint.x,
+        y: startPoint.y,
+        opacity: 1,
+        scale: 1,
+      });
+      gsap.set(pulseEl, { opacity: 0, scale: 0.35 });
+
+      const timeline = gsap.timeline({
+        repeat: -1,
+        repeatDelay: LANDING_HERO_TIMINGS.loopDelay,
+      });
+
+      timeline.call(() => {
+        setScene("initial");
+        const origin = getRootPoint(LANDING_HERO_POINTS.cursorStart);
+        gsap.set(cursorEl, { x: origin.x, y: origin.y, scale: 1 });
+        gsap.set(pulseEl, { opacity: 0, scale: 0.35 });
+      });
+
+      moveCursor(timeline, LANDING_HERO_POINTS.selectTool, 0.95);
+      addPause(timeline);
+      timeline.call(() => {
+        clickPulse(LANDING_HERO_POINTS.selectTool);
+        setScene("select-tool");
+      });
+
+      moveCursor(timeline, LANDING_HERO_POINTS.sidebar);
+      timeline.call(() => {
+        setScene("sidebar-hover");
+      });
+      addPause(timeline);
+      timeline.call(() => {
+        clickPulse(LANDING_HERO_POINTS.sidebar);
+        setScene("sidebar-selected");
+      });
+
+      moveCursor(timeline, LANDING_HERO_POINTS.menuButton, 0.9);
+      addPause(timeline);
+      timeline.call(() => {
+        clickPulse(LANDING_HERO_POINTS.menuButton);
+        setScene("menu-open");
+      });
+
+      moveCursor(timeline, LANDING_HERO_POINTS.deleteElement);
+      addPause(timeline);
+      timeline.call(() => {
+        clickPulse(LANDING_HERO_POINTS.deleteElement);
+        setScene("page-deleted");
+      });
+
+      moveCursor(timeline, LANDING_HERO_POINTS.recordTool, 0.95);
+      addPause(timeline);
+      timeline.call(() => {
+        clickPulse(LANDING_HERO_POINTS.recordTool);
+        setScene("record-tool");
+      });
+
+      moveCursor(timeline, LANDING_HERO_POINTS.recordConfirm);
+      addPause(timeline);
+      timeline.call(() => {
+        clickPulse(LANDING_HERO_POINTS.recordConfirm);
+        setScene("record-popup");
+      });
+
+      moveCursor(timeline, LANDING_HERO_POINTS.popupSave, 1.1);
+      addPause(timeline);
+      timeline.call(() => {
+        clickPulse(LANDING_HERO_POINTS.popupSave);
+        setScene("saved");
+      });
+
+      timeline.to({}, { duration: LANDING_HERO_TIMINGS.finalHold });
+    }, rootEl);
+
+    const onMotionChange = (event: MediaQueryListEvent) => {
+      isReducedMotion = event.matches;
+      resetStaticFrame();
+
+      if (context) {
+        context.revert();
+      }
+    };
+
+    reducedMotionQuery.addEventListener("change", onMotionChange);
+
+    return () => {
+      reducedMotionQuery.removeEventListener("change", onMotionChange);
+      context?.revert();
+    };
+  };
+
+  onMount(() => {
+    let cleanup = () => {};
+
+    void buildPlayback().then((dispose) => {
+      cleanup = dispose;
+    });
+
+    return () => {
+      cleanup();
+    };
+  });
 </script>
 
-<div class="flex h-138 w-full overflow-hidden rounded-2xl border border-gray-800 bg-gray-900">
-  <section class="relative h-full flex-1 overflow-hidden bg-gray-900">
-    <div class="absolute left-16.5 top-55.5 h-23 w-23 rounded-full border-2 border-gray-500 bg-gray-600 transition-colors duration-150 hover:border-accent-400"></div>
-    <div class="absolute left-52.5 top-54.5 h-27 w-11 rounded border-2 border-gray-500 bg-gray-600 transition-colors duration-150 hover:border-accent-400"></div>
-    <div class="absolute left-87.5 top-57.5 h-18 w-24 bg-gray-500 transition-colors duration-150 hover:bg-accent-400 [clip-path:polygon(50%_0%,0%_100%,100%_100%)]">
-      <div class="absolute inset-px bg-gray-600 [clip-path:polygon(50%_0%,0%_100%,100%_100%)]"></div>
-    </div>
-    <div class="absolute left-49.5 top-29.25 h-20 w-20 rounded border-2 border-gray-500 bg-gray-600 transition-colors duration-150 hover:border-accent-400"></div>
+<div class="mx-auto flex w-full justify-center overflow-x-auto">
+  <div
+    bind:this={rootEl}
+    class="relative grid w-full min-w-200 max-w-[90vw] grid-cols-[minmax(0,1.331fr)_minmax(0,0.415fr)] gap-0"
+    data-demo-step={sceneId}
+    data-testid="landing-demo"
+  >
+    <section
+      bind:this={pagePanelEl}
+      class="relative overflow-hidden bg-[#11110f]"
+      style="aspect-ratio:2560 / 1926;"
+      aria-label="Landing demo page"
+    >
+      <img
+        class={imageLayerClasses(scene.pageFrame === "before")}
+        src={pageImageSrc.before}
+        alt=""
+        aria-hidden="true"
+        draggable="false"
+      />
+      <img
+        class={imageLayerClasses(scene.pageFrame === "after")}
+        src={pageImageSrc.after}
+        alt=""
+        aria-hidden="true"
+        draggable="false"
+      />
 
-    <div class="absolute bottom-12.5 left-53.5 h-35 w-48 border-2 border-gray-500 bg-gray-600 transition-colors duration-150 hover:border-accent-400"></div>
-    <div class="absolute bottom-12.5 left-63.75 h-21 w-28 rounded-t-full border-2 border-gray-500 bg-gray-900 transition-colors duration-150 hover:border-accent-400"></div>
+      <div
+        class={`absolute rounded-sm border-[0.16em] transition-all duration-300 ease-out ${
+          scene.sidebarState === "hidden"
+            ? "opacity-0"
+            : scene.sidebarState === "hover"
+              ? "border-[#91e046] shadow-[0_0_0_0.12em_rgba(145,224,70,0.22)]"
+              : "border-[#91e046] shadow-[0_0_0_0.12em_rgba(145,224,70,0.35)]"
+        }`}
+        style={rectStyle(LANDING_HERO_RECTS.sidebar)}
+      ></div>
 
-    <div class="semicircle-top-right target-focus absolute left-86.75 top-32.25 h-16 w-32 rounded-t-full border-2 border-gray-500 bg-gray-600 transition-colors duration-150 hover:border-accent-400"></div>
+      <div
+        class={`absolute inset-0 bg-black/55 transition-opacity duration-400 ${
+          scene.scrimVisible ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      ></div>
 
-    <div class="cursor-selector absolute left-0 top-0 z-20 p-1">
-      <Navigation class="h-6 w-6 -scale-x-100 fill-gray-950 text-gray-100" strokeWidth={2.1} />
-    </div>
-  </section>
-
-  <aside class="flex h-full w-2/5 min-w-85 flex-col border-l border-gray-800 bg-gray-950">
-    <section class="flex w-full shrink-0 flex-col bg-gray-900" aria-label="Tool panel">
-      <LandingDemoToolbar title="Select" isPointerSelected={true} />
-
-      <div class="relative flex h-62 min-h-0 flex-col px-4 py-4">
-        <div class="empty-state flex min-h-0 flex-1 items-center justify-center text-xs text-gray-500">
-          <div class="flex flex-col items-center gap-2">
-            <span>Select an element to preview</span>
-            <span>(Esc to cancel)</span>
-          </div>
-        </div>
-
-        <div class="properties-state absolute inset-0 px-4 py-4 flex flex-col justify-between">
-          <div class="grid grid-cols-[fit-content(112px)_minmax(0,1fr)] gap-x-4 gap-y-2 text-xs">
-            {#each propertyRows as property (property.label)}
-              <span class="truncate text-right text-gray-500">{property.label}</span>
-              <span class="truncate text-left font-mono text-gray-100">{property.value}</span>
-            {/each}
-          </div>
-
-          <div class="save-selector-wrap mt-4 flex justify-center">
-            <Button class="w-36! px-3! py-2! text-xs" variant="primary">Save selector</Button>
-          </div>
-        </div>
-      </div>
+      <img
+        class={`absolute object-cover shadow-[0_1.6em_3.2em_-2em_rgba(0,0,0,0.6)] transition-all duration-500 ease-out ${
+          scene.popupVisible ? "opacity-100 scale-100" : "pointer-events-none opacity-0 scale-[0.96]"
+        }`}
+        style={`${rectStyle(LANDING_HERO_RECTS.popup)} aspect-ratio:2144 / 1318;`}
+        src={overlayImageSrc.popup}
+        alt=""
+        aria-hidden="true"
+        draggable="false"
+      />
     </section>
 
-    <div class="h-2 w-full shrink-0 bg-gray-900"></div>
+    <div class="grid grid-rows-[600fr_1322fr] gap-0">
+      <section
+        bind:this={toolPanelEl}
+        class="relative overflow-visible bg-[#24241f]"
+        style="aspect-ratio:798 / 600;"
+        aria-label="Landing demo tool panel"
+      >
+        <img
+          class={imageLayerClasses(scene.toolFrame === "select-empty")}
+          src={toolImageSrc["select-empty"]}
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+        />
+        <img
+          class={imageLayerClasses(scene.toolFrame === "select-selected")}
+          src={toolImageSrc["select-selected"]}
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+        />
+        <img
+          class={imageLayerClasses(scene.toolFrame === "record")}
+          src={toolImageSrc.record}
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+        />
 
-    <CodeEditorMock websiteText="example.com/*" />
-  </aside>
+        <img
+          class={`absolute object-cover transition-all duration-300 ease-out ${
+            scene.menuVisible ? "opacity-100 translate-y-0" : "pointer-events-none opacity-0 -translate-y-[0.3em]"
+          }`}
+          style={`${rectStyle(LANDING_HERO_RECTS.menu)} aspect-ratio:448 / 356;`}
+          src={overlayImageSrc.menu}
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+        />
+      </section>
+
+      <section
+        bind:this={editorPanelEl}
+        class="relative overflow-hidden bg-[#24241f]"
+        style="aspect-ratio:798 / 1322;"
+        aria-label="Landing demo code editor"
+      >
+        <img
+          class={imageLayerClasses(scene.editorFrame === "empty")}
+          src={editorImageSrc.empty}
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+        />
+        <img
+          class={imageLayerClasses(scene.editorFrame === "saved")}
+          src={editorImageSrc.saved}
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+        />
+      </section>
+    </div>
+
+    <div
+      bind:this={pulseEl}
+      class="pointer-events-none absolute left-0 top-0 z-20 h-[1.1em] w-[1.1em] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#a8ef52]/70 bg-[#9ee34a]/30 opacity-0"
+    ></div>
+
+    <div
+      bind:this={cursorEl}
+      class={`pointer-events-none absolute left-0 top-0 z-30 -translate-x-[0.7em] -translate-y-[0.38em] ${
+        isReducedMotion ? "hidden" : "block"
+      }`}
+    >
+      <Navigation class="h-[1.6em] w-[1.6em] -scale-x-100 fill-black text-white" strokeWidth={2.15} />
+    </div>
+  </div>
 </div>
-
-<style>
-  .cursor-selector {
-    animation: cursor-slide-select 3s cubic-bezier(0.22, 0.89, 0.34, 1) infinite;
-  }
-
-  .target-focus {
-    animation: target-selected 3s ease-in-out infinite;
-  }
-
-  .empty-state {
-    animation: empty-state-fade 3s ease-in-out infinite;
-  }
-
-  .properties-state,
-  .save-selector-wrap {
-    animation: properties-fade 3s ease-in-out infinite;
-  }
-
-  @keyframes cursor-slide-select {
-    0% {
-      opacity: 0;
-      transform: translate(624px, 336px) scale(1);
-    }
-
-    6% {
-      opacity: 1;
-    }
-
-    34% {
-      opacity: 1;
-      transform: translate(382px, 160px) scale(1);
-    }
-
-    38% {
-      opacity: 1;
-      transform: translate(382px, 160px) scale(0.88);
-    }
-
-    42% {
-      opacity: 1;
-      transform: translate(382px, 160px) scale(1);
-    }
-
-    46% {
-      opacity: 1;
-      transform: translate(382px, 160px) scale(1);
-    }
-
-    50%,
-    83.33% {
-      opacity: 1;
-      transform: translate(382px, 160px) scale(1);
-    }
-
-    90%,
-    100% {
-      opacity: 0;
-      transform: translate(382px, 160px) scale(1);
-    }
-  }
-
-  @keyframes target-selected {
-    0%,
-    35% {
-      border-color: #787d78;
-      box-shadow: 0 0 0 0 rgba(187, 147, 72, 0);
-    }
-
-    40%,
-    100% {
-      border-color: #bb9348;
-      box-shadow: 0 0 0 4px rgba(187, 147, 72, 0.3);
-    }
-  }
-
-  @keyframes empty-state-fade {
-    0%,
-    35% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    40%,
-    100% {
-      opacity: 0;
-      transform: translateY(-4px);
-    }
-  }
-
-  @keyframes properties-fade {
-    0%,
-    36% {
-      opacity: 0;
-      transform: translateY(6px);
-    }
-
-    42%,
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-</style>

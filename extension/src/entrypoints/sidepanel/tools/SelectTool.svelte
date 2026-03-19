@@ -121,7 +121,13 @@
               {/snippet}
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
-              <DropdownMenu.Content class={actionMenuClasses} align="end" side="top" sideOffset={6}>
+              <DropdownMenu.Content
+                class={actionMenuClasses}
+                align="end"
+                side="top"
+                sideOffset={6}
+                data-dev-screenshot-target="select-actions-menu"
+              >
                 <DropdownMenu.Item class={actionMenuItemClasses} onclick={sendClickSelection}>
                   <MousePointerClick class="h-4 w-4 text-gray-500 dark:text-gray-300" />
                   Click selected element

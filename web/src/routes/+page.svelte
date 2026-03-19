@@ -3,7 +3,6 @@
   import Navbar from "$lib/components/Navbar.svelte";
   import Button from "$lib/components/Button.svelte";
   import LandingDemoSelect from "$lib/components/landing/LandingDemoSelect.svelte";
-  import LandingDemoNotification from "$lib/components/landing/LandingDemoNotification.svelte";
 
   const githubUrl = "https://github.com/orangishcat/page-proxy";
 </script>
@@ -17,7 +16,7 @@
     <Navbar variant="landing" />
   </div>
 
-  <div class="mx-auto flex w-full max-w-6xl flex-col space-y-80 px-6 pb-56 pt-40 sm:px-10 lg:px-16">
+  <div class="mx-auto flex w-full flex-col space-y-80 px-6 pb-56 pt-40 sm:px-10 lg:px-16">
     <section>
       <div class="mx-auto flex flex-col items-center gap-4 text-center space-y-2">
         <h1 class="text-display text-[#20211f] dark:text-white">
@@ -29,18 +28,10 @@
 
         <div class="mt-2 flex items-center gap-5">
           <a href={resolve("/install")}>
-            <Button
-              variant="primary"
-              class="w-32"
-            >
-              Install
-            </Button>
+            <Button variant="primary" class="w-32">Install</Button>
           </a>
           <a href={githubUrl} target="_blank" rel="noopener noreferrer">
-            <Button
-              variant="outline"
-              class="rounded-lg border border-gray-700 px-5 py-2.5 text-white dark:text-white"
-            >
+            <Button variant="outline" class="rounded-lg border border-gray-700 px-5 py-2.5 text-white dark:text-white">
               View on GitHub
             </Button>
           </a>
@@ -49,24 +40,13 @@
     </section>
 
     <section class="flex flex-col items-center" id="tools">
-      <h2 class="text-center text-4xl font-bold text-gray-900 dark:text-white">
-        Robust, integrated tooling.
-      </h2>
-      <p class="text-subtitle text-[#5e635e] dark:text-[#c1c6c1] mt-4">Spend more time on designing, and less on converting it to code.</p>
+      <h2 class="text-center text-4xl font-bold text-gray-900 dark:text-white">Robust, integrated tooling.</h2>
+      <p class="text-subtitle text-[#5e635e] dark:text-[#c1c6c1] mt-4">
+        Spend more time on designing, and less on converting it to code.
+      </p>
 
       <div class="mt-9 w-full">
         <LandingDemoSelect />
-      </div>
-    </section>
-
-    <section class="flex flex-col items-center">
-      <h2 class="text-center text-3xl font-bold text-gray-900 dark:text-white">
-        Always in the toolbar, ready when you are.
-      </h2>
-      <p class="text-subtitle text-[#5e635e] dark:text-[#c1c6c1] mt-4">One click to access.</p>
-
-      <div class="mt-11 w-full">
-        <LandingDemoNotification />
       </div>
     </section>
 
@@ -80,17 +60,10 @@
 
       <div class="flex items-center gap-5">
         <a href={resolve("/install")}>
-          <Button
-            variant="primary"
-          >
-            Install
-          </Button>
+          <Button variant="primary">Install</Button>
         </a>
         <a href={githubUrl} target="_blank" rel="noopener noreferrer">
-          <Button
-            variant="outline"
-            class="rounded-lg border border-gray-700 px-5 py-2.5 text-white dark:text-white"
-          >
+          <Button variant="outline" class="rounded-lg border border-gray-700 px-5 py-2.5 text-white dark:text-white">
             View on GitHub
           </Button>
         </a>

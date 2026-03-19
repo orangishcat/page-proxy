@@ -15,6 +15,7 @@ import { ensureSelectionStyles } from "./HoverManager";
 import { readBaseSelectorFromCode } from "./popup/base-selector";
 import { normalizeSelectorFromCssEditor, readDeclarationSourceFromCssEditor, parseCssDeclarations } from "./css-editor-utils";
 import PopupContainer from "./PopupContainer.svelte";
+import type { DevScreenshotCaptureTarget } from "@/lib/dev-screenshots";
 
 type ContentScriptContext = Parameters<typeof createShadowRootUi>[0];
 
@@ -25,6 +26,7 @@ export class SelectorPopupManager {
   private shadowUi: Awaited<ReturnType<typeof createShadowRootUi>> | null = null;
   private popupTarget: Element | null = null;
   private popupFrame: number | null = null;
+  private popupMode: SelectorPopupMode | null = null;
   resumeSelectionAfterPopup = false;
   private applyStyleMode = false;
 
@@ -44,6 +46,7 @@ export class SelectorPopupManager {
 
   clear({ resumeSelection = true }: { resumeSelection?: boolean } = {}): void {
     this.applyStyleMode = false;
+    this.popupMode = null;
     const hadPopup =
       this.popupApp !== null || this.shadowUi !== null || this.popupTarget !== null || this.popupFrame !== null;
     if (this.popupApp) {
@@ -67,6 +70,18 @@ export class SelectorPopupManager {
         this.setSelectionEnabled(true);
       }
     }
+  }
+
+  getScreenshotCapture(): DevScreenshotCaptureTarget | null {
+    const popupRoot = this.shadowUi?.shadowHost.shadowRoot?.querySelector(`.${contentUiRootClass}`);
+    if (!(popupRoot instanceof HTMLElement)) {
+      return null;
+    }
+
+    return {
+      element: popupRoot,
+      name: this.popupMode === "css" ? "css-inspector" : "selector-popup",
+    };
   }
 
   private resolveTarget(requestedInfo: ElementInfo | null): Element | null {
@@ -173,6 +188,7 @@ export class SelectorPopupManager {
     this.clear({ resumeSelection: false });
     // Set applyStyleMode after clear() to avoid being wiped by the reset inside clear().
     this.applyStyleMode = options?.applyStyle === true;
+    this.popupMode = mode;
     if (this.isSelectionEnabled()) {
       this.resumeSelectionAfterPopup = true;
       this.setSelectionEnabled(false, { clearSelection: false });

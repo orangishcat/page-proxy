@@ -6,7 +6,12 @@
   import Button from "@/lib/components/Button.svelte";
   import { openRecordConverter } from "./record/actions";
   import { getRecordTimelineEntryIds, hasFullRecordSelection } from "./record/selection";
-  import { clearRecordPanelState, recordPanelState, toggleRecordPanelRecording } from "./record/state";
+  import {
+    clearRecordPanelState,
+    prepareRecordToolForDisplay,
+    recordPanelState,
+    toggleRecordPanelRecording,
+  } from "./record/state";
   import type { RecordTimelineEntry } from "./state-storage";
 
   const recordState = $derived($recordPanelState);
@@ -42,6 +47,8 @@
   };
 
   onMount(() => {
+    void prepareRecordToolForDisplay().finally(() => tick().then(scrollTimelineToBottom));
+
     const handleWindowPointerMove = (event: PointerEvent) => {
       if (dragSelectionMode === "none") {
         return;
@@ -88,7 +95,6 @@
     window.addEventListener("pointermove", handleWindowPointerMove);
     window.addEventListener("pointerup", handleWindowPointerUp);
     window.addEventListener("blur", handleWindowBlur);
-    void tick().then(scrollTimelineToBottom);
 
     return () => {
       window.removeEventListener("pointermove", handleWindowPointerMove);
