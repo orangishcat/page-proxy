@@ -1,6 +1,7 @@
 # OS + editor
 .DS_Store
 .idea
+*.iml
 .vscode
 .zed
 
@@ -21,7 +22,14 @@ dev
 test-results
 
 # WXT / web-ext
+.wxt/
+extension/.wxt/
 web-ext.config.ts
+
+# Local env
+.env
+.env.*
+*.local
 
 # Local artifacts
 latest

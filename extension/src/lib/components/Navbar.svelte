@@ -1,20 +1,18 @@
 <script lang="ts" module>
-  export type NavbarVariant = 'app' | 'dashboard' | 'landing';
+  export type NavbarVariant = 'app' | 'landing';
 </script>
 
 <script lang="ts">
   import {Bell, Moon, Sun} from 'lucide-svelte';
-  import AccountWidget from './AccountWidget.svelte';
   import {onMount} from 'svelte';
   import Button from './Button.svelte';
   import logoUrl from '../../assets/logo.png';
 
   type Props = {
     variant?: NavbarVariant;
-    onNewFile?: () => void;
   };
 
-  let {variant = 'app', onNewFile}: Props = $props();
+  let {variant = 'app'}: Props = $props();
 
   let isDarkMode = $state(true);
   const homeHref = $derived(variant === 'landing' ? '/' : '/app');
@@ -76,12 +74,6 @@
       <a class={itemClasses} href="/">Explore</a>
       <a class={itemClasses} href="/">Export</a>
       <a class={itemClasses} href="/">Creator</a>
-    {:else}
-      <a class="{itemClasses} w-28 text-right" href="/">Explore</a>
-      <a class={itemClasses} href="/">Dashboard</a>
-      <button class="{itemClasses} w-28 text-left" type="button" onclick={() => onNewFile?.()}>
-        New
-      </button>
     {/if}
   </div>
 
@@ -107,7 +99,6 @@
       <Button variant="outline" class={iconButtonClasses} type="button" aria-label="Notifications">
         <Bell class="h-4 w-4" strokeWidth={2.5} aria-hidden="true"/>
       </Button>
-      <AccountWidget/>
     {/if}
   </div>
 </nav>

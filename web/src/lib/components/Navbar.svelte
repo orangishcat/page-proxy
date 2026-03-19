@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  export type NavbarVariant = "app" | "dashboard" | "landing";
+  export type NavbarVariant = "app" | "landing";
 </script>
 
 <script lang="ts">
@@ -10,10 +10,9 @@
 
   type Props = {
     variant?: NavbarVariant;
-    onNewFile?: () => void;
   };
 
-  let { variant = "app", onNewFile }: Props = $props();
+  let { variant = "app" }: Props = $props();
 
   let isDarkMode = $state(true);
 
@@ -87,10 +86,6 @@
       <a class={itemClasses} href={resolve("/docs" as any)}>Docs</a>
       <a class={itemClasses} href={resolve("/") + "#tools"}>Tools</a>
       <a class={itemClasses} href={resolve("/") + "#explore"}>Explore</a>
-    {:else if variant === "dashboard"}
-      <a class="{itemClasses} w-28 text-right" href={resolve("/")}>Explore</a>
-      <a class={itemClasses} href={resolve("/")}>Dashboard</a>
-      <button class="{itemClasses} w-28 text-left" type="button" onclick={() => onNewFile?.()}> New </button>
     {/if}
   </div>
 
