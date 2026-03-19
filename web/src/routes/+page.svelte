@@ -55,7 +55,7 @@
     </div>
 
     <section class="flex flex-col items-center space-y-6">
-      <img src={asset("/logo_filled.png")} alt="Page Proxy logo" class="h-50 w-50" draggable="false" />
+      <img src={asset("/logo_filled.avif")} alt="Page Proxy logo" class="h-50 w-50" draggable="false" />
       <h3 class="text-heading mt-4 text-center text-[#20211f] dark:text-white">Want to try it out?</h3>
 
       <div class="flex items-center gap-5">

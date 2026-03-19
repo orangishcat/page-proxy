@@ -6,7 +6,7 @@
   import {Bell, Moon, Sun} from 'lucide-svelte';
   import {onMount} from 'svelte';
   import Button from './Button.svelte';
-  import logoUrl from '../../assets/logo.png';
+  import logoUrl from '../../assets/logo.avif';
 
   type Props = {
     variant?: NavbarVariant;

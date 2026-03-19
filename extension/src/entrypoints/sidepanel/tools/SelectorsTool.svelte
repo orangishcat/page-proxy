@@ -54,11 +54,11 @@
       <div class="min-h-0 h-full space-y-2 overflow-y-auto">
         {#each $selectorEntriesDisplay as entry (entry.key)}
           <Collapsible.Root
-            class="rounded-lg border border-[#4f4a38] bg-[#2d2b25] text-gray-100 group"
+            class="rounded-lg border border-[#4f4a38] bg-[#2d2b25] hover:bg-[#37332c] text-gray-100 group"
             onmouseenter={() => handleSelectorMouseEnter(entry)}
             onmouseleave={handleSelectorMouseLeave}
           >
-            <div class="flex w-full items-center gap-2 px-3 py-2 hover:bg-[#37332c]">
+            <div class="flex w-full items-center gap-2 px-3 py-2">
               <Collapsible.Trigger class="flex min-w-0 flex-1 items-center gap-2 text-left">
                 <span
                   class="w-3 shrink-0 text-center text-2xl text-gray-300 transition-transform duration-200 group-data-[state=open]:rotate-90"

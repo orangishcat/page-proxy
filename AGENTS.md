@@ -21,7 +21,6 @@
     - Network: `axios`
     - Test: `vitest`
     - [Figma file](https://www.figma.com/file/1E8P0X0wBphOq6kbXWMhbW/page-proxy--)
-- Auth, Database, Storage: Appwrite
 - Always use `bits-ui` for components wherever possible.
 
 ### Development guidelines
@@ -30,8 +29,8 @@
 - Prefer Svelte runes to old Svelte.
 - Use the Svelte MCP's `svelte-autofixer` tool lint all code added.
 - Use base tailwind classes instead of defining custom units.
-- Use `loglevel` for logging.
-- Use `em` as the CSS unit in all places (for consistent sizing across webpages).
+- Use `loglevel` and named loggers for logging.
+- Use `em` as the CSS unit in all places in the extension (for consistent sizing across webpages), and `rem` in the web and docs-site.
 - Use components wherever possible.
 - Use classes in `app.css` for typography.
 - Use `axios` for all network requests.

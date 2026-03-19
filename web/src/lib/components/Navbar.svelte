@@ -63,7 +63,7 @@
       href={resolve("/")}
       aria-label="Page Proxy"
     >
-      <img src={asset("/logo_text.png")} alt="" class="h-13" draggable="false" />
+      <img src={asset("/logo_text.avif")} alt="" class="h-13" draggable="false" />
     </a>
   {:else}
     <a
@@ -71,7 +71,7 @@
       href={resolve("/")}
       aria-label="Page Proxy"
     >
-      <img src={asset("/logo_text.png")} alt="" class="h-13" draggable="false" />
+      <img src={asset("/logo_text.avif")} alt="" class="h-13" draggable="false" />
     </a>
   {/if}
 

@@ -51,22 +51,22 @@ export type LandingHeroSection = {
 
 export const LANDING_HERO_ASSETS = {
   page: {
-    before: "/assets/page_before_run.png",
-    after: "/assets/page_after_run.png",
+    before: "/assets/page_before_run.avif",
+    after: "/assets/page_after_run.avif",
   },
   tool: {
-    "select-empty": "/assets/select_tool_empty.png",
-    "select-selected": "/assets/select_tool_selected.png",
-    record: "/assets/record_tool_noselect.png",
-    "record-selected": "/assets/record_tool_selected.png",
+    "select-empty": "/assets/select_tool_empty.avif",
+    "select-selected": "/assets/select_tool_selected.avif",
+    record: "/assets/record_tool_noselect.avif",
+    "record-selected": "/assets/record_tool_selected.avif",
   },
   editor: {
-    empty: "/assets/code_editor_empty.png",
-    saved: "/assets/code_editor_saved.png",
+    empty: "/assets/code_editor_empty.avif",
+    saved: "/assets/code_editor_saved.avif",
   },
   overlays: {
-    menu: "/assets/select_menu.png",
-    popup: "/assets/record_popup.png",
+    menu: "/assets/select_menu.avif",
+    popup: "/assets/record_popup.avif",
   },
 } as const;
 
