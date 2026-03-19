@@ -3,6 +3,7 @@ import {
   LANDING_HERO_POINTS,
   LANDING_HERO_SCENES,
   LANDING_HERO_SCENE_IDS,
+  LANDING_HERO_SECTIONS,
   LANDING_HERO_STATIC_FRAMES,
   LANDING_HERO_TIMINGS,
 } from "../../src/lib/components/landing/landing-demo-sequence";
@@ -17,6 +18,8 @@ describe("landing hero sequence", () => {
       "menu-open",
       "page-deleted",
       "record-tool",
+      "record-selected",
+      "convert-code",
       "record-popup",
       "saved",
     ]);
@@ -39,16 +42,22 @@ describe("landing hero sequence", () => {
       menuVisible: true,
     });
 
+    expect(LANDING_HERO_SCENES.find((scene) => scene.id === "record-selected")).toMatchObject({
+      pageFrame: "after",
+      toolFrame: "record-selected",
+      popupVisible: false,
+    });
+
     expect(LANDING_HERO_SCENES.find((scene) => scene.id === "record-popup")).toMatchObject({
       pageFrame: "after",
-      toolFrame: "record",
+      toolFrame: "record-selected",
       popupVisible: true,
     });
 
     expect(LANDING_HERO_SCENES.at(-1)).toMatchObject({
       id: "saved",
       pageFrame: "after",
-      toolFrame: "record",
+      toolFrame: "record-selected",
       editorFrame: "saved",
       popupVisible: false,
     });
@@ -64,5 +73,14 @@ describe("landing hero sequence", () => {
 
   test("starts the cursor away from the first click target", () => {
     expect(LANDING_HERO_POINTS.cursorStart).not.toEqual(LANDING_HERO_POINTS.selectTool);
+  });
+
+  test("defines tab sections at the requested animation anchors", () => {
+    expect(LANDING_HERO_SECTIONS.map((section) => section.startSceneId)).toEqual([
+      "initial",
+      "menu-open",
+      "record-tool",
+      "convert-code",
+    ]);
   });
 });

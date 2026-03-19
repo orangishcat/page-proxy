@@ -114,7 +114,8 @@
     const normalized = entry.detail.trim();
     return normalized.length > 0 ? normalized : null;
   };
-  const isSelectedElementEntry = (entry: RecordTimelineEntry) => entry.action.trim().toLowerCase() === "selected element";
+  const isSelectedElementEntry = (entry: RecordTimelineEntry) =>
+    entry.action.trim().toLowerCase() === "selected element";
 
   const isModifierHeld = (event: MouseEvent | PointerEvent | KeyboardEvent) => event.metaKey || event.ctrlKey;
 
@@ -211,21 +212,21 @@
                 aria-pressed={isEntrySelected(entry.id)}
                 onpointerdown={(event) => handleEntryPointerDown(event, entry.id)}
                 onkeydown={(event) => handleEntryKeyDown(event, entry.id)}
-                >
-                  <div class="flex items-start justify-between gap-3">
-                    <span class="min-w-0 text-body text-gray-800 dark:text-gray-100">{entry.action}</span>
-                    <span class="shrink-0 text-caption text-gray-500 dark:text-gray-400">
-                      {formatTimestamp(entry.timestamp)}
-                    </span>
-                  </div>
-                  {#if entryDetail}
-                    <p
-                      class={`mt-1 text-caption text-gray-600 dark:text-gray-400 ${shouldTruncateDetail ? "truncate" : ""}`}
-                      title={shouldTruncateDetail ? entryDetail : null}
-                    >
-                      {entryDetail}
-                    </p>
-                  {/if}
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <span class="min-w-0 text-body text-gray-800 dark:text-gray-100">{entry.action}</span>
+                  <span class="shrink-0 text-caption text-gray-500 dark:text-gray-400">
+                    {formatTimestamp(entry.timestamp)}
+                  </span>
+                </div>
+                {#if entryDetail}
+                  <p
+                    class={`mt-1 text-caption text-gray-600 dark:text-gray-400 ${shouldTruncateDetail ? "truncate" : ""}`}
+                    title={shouldTruncateDetail ? entryDetail : null}
+                  >
+                    {entryDetail}
+                  </p>
+                {/if}
               </button>
             </li>
           {/each}
@@ -283,7 +284,7 @@
                 {...props}
                 class={`h-8 w-8 rounded-full p-0! ${
                   isRecording
-                    ? "!border-red-400 !bg-red-500/85 text-red-50 hover:opacity-100"
+                    ? "border-red-400! bg-red-500/85! text-red-50 hover:opacity-100"
                     : "border-gray-700 bg-gray-700 text-gray-200"
                 }`}
                 variant="outline"
@@ -306,7 +307,9 @@
           {isRecording ? "Recording" : "Paused"}
         </span>
       </div>
-      <span class="justify-self-center text-caption text-gray-500 dark:text-gray-400">{timelineEntries.length} events</span>
+      <span class="justify-self-center text-caption text-gray-500 dark:text-gray-400"
+        >{timelineEntries.length} events</span
+      >
       <div class="flex items-center justify-self-end gap-2">
         <Tooltip.Root>
           <Tooltip.Trigger>

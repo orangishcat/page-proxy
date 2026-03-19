@@ -28,6 +28,19 @@ test('landing demo advances to the saved state and loops back to the start', asy
   await expect(demo).toBeVisible();
   await expect(demo).toHaveAttribute('data-demo-step', 'initial');
 
-  await expect(demo).toHaveAttribute('data-demo-step', 'saved', {timeout: 15_000});
-  await expect(demo).toHaveAttribute('data-demo-step', 'initial', {timeout: 15_000});
+  await expect(demo).toHaveAttribute('data-demo-step', 'saved', {timeout: 20_000});
+  await expect(demo).toHaveAttribute('data-demo-step', 'initial', {timeout: 20_000});
+});
+
+test('landing demo tabs jump to the requested animation sections', async ({page}) => {
+  await page.goto('/');
+  const demo = page.getByTestId('landing-demo');
+
+  await expect(demo).toHaveAttribute('data-demo-ready', 'true');
+
+  await page.getByTestId('hero-tab-record').click();
+  await expect(demo).toHaveAttribute('data-demo-step', 'record-tool');
+
+  await page.getByTestId('hero-tab-save-code').click();
+  await expect(demo).toHaveAttribute('data-demo-step', 'convert-code');
 });
