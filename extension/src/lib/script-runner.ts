@@ -1,3 +1,5 @@
+import { isRecord } from "@/lib/utils/type-guards";
+
 export type ScriptRunRequest = {
   type: 'script:run';
   requestId: string;
@@ -59,9 +61,6 @@ export type ScriptRunSelectorEntry = {
   mode?: ScriptRunSelectorMode;
   cssText?: string;
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === 'object' && !Array.isArray(value);
 
 export const isScriptRunRequest = (value: unknown): value is ScriptRunRequest => {
   if (!isRecord(value)) {

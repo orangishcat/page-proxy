@@ -1,5 +1,6 @@
 import { browser } from "wxt/browser";
 import log from "@/lib/logger";
+import { isRecord } from "@/lib/utils/type-guards";
 
 import type {
   DevtoolsSelectionChangedRuntimeMessage,
@@ -10,8 +11,6 @@ import type {
 
 const logger = log.getLogger("select-tool-devtools");
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
 
 const isStatusResponse = (value: unknown): value is DevtoolsSelectionStatusResponseMessage =>
   isRecord(value) && typeof value.open === "boolean";

@@ -1,4 +1,5 @@
 import { supportedScriptGrants, type ScriptGrantValue } from "@/lib/grants";
+import { isRecord } from "@/lib/utils/type-guards";
 
 export type GrantPermissionRequestPayload = {
   scriptName: string;
@@ -35,8 +36,6 @@ export type GrantResolvedMessage = {
   };
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
 
 const supportedScriptGrantSet = new Set<string>(supportedScriptGrants);
 

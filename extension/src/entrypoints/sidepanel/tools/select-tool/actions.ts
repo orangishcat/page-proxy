@@ -78,8 +78,7 @@ const shouldSuppressSelectedElementRecord = () => {
   return false;
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
+import { isRecord } from "@/lib/utils/type-guards";
 
 const hasType = <T extends string>(value: unknown, type: T): value is { type: T } =>
   isRecord(value) && value.type === type;
