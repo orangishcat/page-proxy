@@ -36,3 +36,9 @@ pa.notification("Hello", { page: location.href });
 ```
 
 And the notification will have an object viewer.
+
+## Next Steps
+
+Familiarize yourself with [extension usage](./extension-usage/) and the [API](./pp/overview)!
+
+Most importantly, start using the [Record tool](./extension-usage/record-tool).

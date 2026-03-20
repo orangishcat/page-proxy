@@ -15,7 +15,17 @@ Use Select to inspect elements on the current page, and write selectors and CSS 
 
 ## Select tool panel
 
-Includes selected element details, quick property copy, and parent traversal controls.
+Shows selected element details.
+
+On the bottom bar:
+
+- Left: Select parent element
+    - Changes the selected element to the element's parent.
+- Middle: Selector, CSS buttons
+    - Selector: Opens the Selector Popup, generating `pq.selector` code.
+    - CSS: Opens the CSS Inspector, generating a CSS selector matching the element.
+- Right: DevTools selected element
+    - If a DevTools window is opened on the active tab, a wrench icon will appear. Clicking it will sync the selected element with DevTools' currently selected element.
 
 </div>
 
@@ -40,9 +50,11 @@ Includes selected element details, quick property copy, and parent traversal con
 Open from **Select -> Selector**.
 
 - Edit generated `pq.selector(...)` code.
-- Use the property preview snippets.
+- Click on each property to show preview snippets.
 - Drag preview fragments into your selector code.
-- Save to insert into the Selectors block.
+- Special properties are shown first, above the horizontal rule, and require custom functions to match.
+- Below the horizontal rule are the element's attributes.
+- Save to insert into the `//==Selectors==//` block in the side panel code editor.
 
 </div>
 
@@ -63,10 +75,12 @@ Open from **Select -> Selector**.
 Open from **Select -> CSS** (or popup mode switch).
 
 - Edit CSS selector + declarations.
-- Inspect and edit computed property values.
-- Preview selectors/styles and save a `ps.injectCSS(...)` snippet.
-- New in v0.3.0: inserted CSS snippets now preserve backslashes correctly, which matters for escaped selectors and values.
-- New in v0.3.1: Monaco-backed popup editors now load more reliably across Chrome and Firefox, including the selector editor and CSS inspector.
+- Selector syncs with the `baseSelector` property in the selector popup.
+- Newlines are added for easier selector visualization, but are removed when `baseSelector` is updated or the code is saved into the side panel's editor.
+- The current cursor position in the editor is used to display CSS documentation.
+- Computed CSS properties are provided as reference.
+- Preview selectors/styles via holding down `z` and `x`.
+- Upon save, a `ps.injectCSS(...)` snippet is inserted into the side panel code editor.
 
 </div>
 
