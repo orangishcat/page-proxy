@@ -43,7 +43,6 @@
     saveToolState,
     resetScriptToDefault as resetScriptToDefaultImpl,
     unsavedTabSwitchWarning,
-    saveFailurePrefix,
     type EditorActionsDeps,
   } from "./code-editor/editor-actions";
   import EditorToolbar from "./code-editor/EditorToolbar.svelte";

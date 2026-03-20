@@ -4,6 +4,18 @@ title: Release notes
 
 # Release notes (v0.3.x)
 
+## New in v0.3.1
+
+- Improved Monaco editor reliability across extension contexts:
+  - Popup editors now choose the correct worker strategy for page-hosted popups versus extension pages.
+  - Monaco worker assets are exposed explicitly so Chrome and Firefox can load selector, CSS inspector, and record-review editors more reliably.
+- Improved Firefox compatibility in `@page-proxy/pp`:
+  - `ElementCreatedObserver` now wraps `MutationObserver` instead of subclassing it directly.
+  - The observer still exposes `observe`, `disconnect`, `takeRecords`, and `runOnTargetNode()`.
+- Refined the web and docs experience:
+  - The landing page demo and install flow were refreshed.
+  - Documentation images now use AVIF assets for smaller downloads.
+
 ## New in v0.3.0
 
 - Added a record-to-code workflow:

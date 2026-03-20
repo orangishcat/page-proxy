@@ -24,7 +24,10 @@ Capture interactions with the DOM for conversion into code, for easy creation of
 
 <div className="col col--6 margin-bottom--xl">
 
-<img src={useBaseUrl("/img/editor_usage/record_timeline.avif", { absolute: true })} alt="Page Proxy Record tool timeline" />
+<img
+    src={useBaseUrl("/img/editor_usage/record_timeline.avif", { absolute: true })}
+    alt="Page Proxy Record tool timeline"
+/>
 <img
     src={useBaseUrl("/img/editor_usage/record_timeline_selected.avif", { absolute: true })}
     alt="Page Proxy Record tool timeline with selected events"
@@ -71,11 +74,10 @@ Selecting timeline events exposes the action menu for the current recording chai
 
 The review step combines the supported recorded actions into editable code.
 
-> New in v0.3.0: the review step now reuses the latest code from previous steps, so edits made earlier in the converter carry through to the final combined output.
-
-- Step through the generated sequence in the sidebar.
-- Edit the final code before saving.
-- Save the reviewed result back into the sidepanel code editor.
+- Step through the generated sequence in the sidebar, reviewing each step.
+    - The review step combines the code from previous steps, so edits in previous steps persist in the review step.
+- Edit and review the final code before saving.
+- Click the Save button to add the edited result back into the sidepanel code editor.
 
 </div>
 
@@ -89,3 +91,68 @@ The review step combines the supported recorded actions into editable code.
 </div>
 
 </div>
+
+## Tips and tricks
+
+The record tool is far from perfect, so the end result will need some polish and fixes.
+
+### Name collisions
+
+The tool will often produce variable name collisions, for example:
+
+```js
+let selectedElement = null;
+
+// later...
+
+const selectedElement = selector.awaitUntilMatch();
+```
+
+Those will need to be renamed.
+
+### Await until match pattern
+
+The generated code
+
+```js
+const selectedElement = selector.awaitUntilMatch();
+
+// example logic
+if (selectedElement) {
+    selectedElement.remove();
+}
+```
+
+will only run the script for the first match.
+
+To run the script for all matches, just enclose your relevant functionality in an `onElementMatches` call.
+
+For example:
+
+```js
+selector.onElementMatches((e) => {
+    if (e) {
+        e.remove();
+    }
+});
+```
+
+### Unnecessary null checks
+
+JS doesn't have type safety, so the checks are a bit bulky.
+
+```js
+if (selectedElement) {
+    selectedElement.remove();
+}
+```
+
+So if the check isn't neccessary just remove it.
+
+```js
+selectedElement.remove();
+```
+
+It's hard to keep generated code general enough to cover most situations, so there's always room for improvement.
+
+These patterns are going to be added in the future, hopefully.

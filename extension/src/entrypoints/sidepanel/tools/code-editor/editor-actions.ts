@@ -65,7 +65,7 @@ export const saveToolState = async (content: string, deps: EditorActionsDeps): P
     if (e instanceof Error) {
       deps.setEditorMessage(`${saveFailurePrefix} ${e.message}`, "error", typeof e.stack === "string" ? e.stack : null);
     } else {
-      deps.setEditorMessage(`${saveFailurePrefix} ${e}`, "error");
+      deps.setEditorMessage(`${saveFailurePrefix} ${String(e)}`, "error");
     }
   }
 };

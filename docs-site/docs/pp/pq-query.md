@@ -104,12 +104,14 @@ console.log("Resolved match:", match);
 
 Starts observing DOM insertions and runs `func` for matches.
 
-- returns an `ElementCreatedObserver` (built on `MutationObserver`)
+- returns an `ElementCreatedObserver` wrapper over `MutationObserver`
 - runs once on the current subtree immediately
 - continues for future added nodes
 - default options:
     - `targetNode`: `document.body || document.documentElement`
     - `observerOptions`: `{ childList: true, subtree: true }`
+
+> New in v0.3.1: the returned observer now wraps `MutationObserver` instead of subclassing it directly, while keeping the same `observe`, `disconnect`, `takeRecords`, and `runOnTargetNode()` API.
 
 ```js
 var observer = premiumCards.onElementMatches(
