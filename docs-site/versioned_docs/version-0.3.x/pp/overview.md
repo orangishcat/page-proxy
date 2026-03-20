@@ -7,7 +7,7 @@ title: pp Library Overview
 `pp` scripting is grouped into:
 
 - `pa`: page-level API helpers (notifications, markdown rendering, node movement).
-- `pn`: network wrapper around `fetch` with optional local cache.
+- `pn`: network wrapper around `fetch` with additional features such as local cache.
 - `pq`: DOM querying and matching.
 - `ps`: style application helpers (`applyStyle`, `injectCSS`).
 - `pt`: script-scoped storage helpers.
