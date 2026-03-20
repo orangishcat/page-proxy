@@ -1,5 +1,6 @@
 import log from "@/lib/logger";
 import { get } from "svelte/store";
+import { isRecord } from "@/lib/utils/type-guards";
 
 import type { RecordConverterOpenResult, SelectToolMessage } from "@/lib/selection";
 import { codeEditorContent } from "../code-editor/state";
@@ -9,8 +10,6 @@ import { setToolMessage } from "../tool-errors";
 
 const logger = log.getLogger("record-tool-actions");
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
 
 const isRecordConverterOpenResult = (value: unknown): value is RecordConverterOpenResult =>
   isRecord(value) &&

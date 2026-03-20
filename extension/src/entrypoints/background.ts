@@ -9,6 +9,7 @@ import {
   type GrantResolvedMessage,
 } from "@/lib/grant-permissions";
 import { isRestrictedUrl } from "@/lib/utils/website-glob";
+import { isNoReceiverError } from "@/lib/utils/error-detection";
 import { isScriptRunResponse, type ScriptRunRequest } from "@/lib/script-runner";
 import { createTabBadgeUpdater } from "@/lib/background/tab-badge";
 import { createDevtoolsSelectionRuntimeHandler } from "@/lib/background/devtools-selection";
@@ -175,15 +176,6 @@ const buildRunRequest = (code: string): ScriptRunRequest => ({
   requestId: buildRequestId(),
   code,
 });
-
-const isNoReceiverError = (error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
-  return (
-    message.includes("Receiving end does not exist") ||
-    message.includes("Could not establish connection") ||
-    message.includes("No receiving end")
-  );
-};
 
 const sendRunRequestToTab = (tabId: number, code: string) =>
   browser.tabs.sendMessage(tabId, buildRunRequest(code), { frameId: 0 }).catch((error: unknown) => {
@@ -358,7 +350,7 @@ export default defineBackground(() => {
               type: "grant:resolved",
               payload: { allowedGrants: result.allowedGrants, allow },
             } satisfies GrantResolvedMessage)
-            .catch(() => {});
+            .catch(() => { logger.debug("No sidepanel receiver for grant:resolved message."); });
         }
       })
       .catch((error: unknown) => {
@@ -420,7 +412,7 @@ export default defineBackground(() => {
   });
 
   browser.windows.onFocusChanged.addListener((windowId) => {
-    void badgeUpdater.refreshBadgeForWindowFocus(windowId).catch(() => {});
+    void badgeUpdater.refreshBadgeForWindowFocus(windowId).catch(() => { logger.debug("Badge refresh on window focus failed."); });
   });
 
   browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {

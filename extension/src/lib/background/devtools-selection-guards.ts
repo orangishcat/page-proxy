@@ -5,9 +5,7 @@ import type {
   DevtoolsSelectionStatusRequestMessage,
   DevtoolsSelectionUpdateMessage,
 } from "@/lib/devtools-selection";
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
+import { isRecord } from "@/lib/utils/type-guards";
 
 export const isStatusRequestMessage = (value: unknown): value is DevtoolsSelectionStatusRequestMessage =>
   isRecord(value) && value.type === "devtools:status:get" && typeof value.tabId === "number";

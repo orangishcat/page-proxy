@@ -8,6 +8,7 @@ import {
   type DevtoolsSelectionCommandResultMessage,
   type DevtoolsSelectionUpdateMessage,
 } from "@/lib/devtools-selection";
+import { isRecord } from "@/lib/utils/type-guards";
 
 type EvalSelectionResult = {
   ok: boolean;
@@ -152,9 +153,6 @@ const selectionEvalSource = (selectParent: boolean) => `(() => {
     };
   }
 })()`;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
 
 const getMessageType = (message: unknown) => {
   if (!isRecord(message)) {

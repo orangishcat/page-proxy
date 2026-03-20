@@ -5,6 +5,7 @@ import type {
   SelectorSaveResult,
 } from "@/lib/selection";
 import { normalizeSelector, parseCssRuleBlocksWithRanges } from "@/lib/utils/css-rule-parsing";
+import { isRecord } from "@/lib/utils/type-guards";
 import {
   extractPqSelectorDefinitionBlocks,
   findPqSelectorDefinitionBlockByVariableName,
@@ -21,8 +22,6 @@ export type MessageHandlerDeps = {
   setError: (message: string | null) => void;
 };
 
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
 
 export const isSelectorSaveMessage = (
   message: unknown,

@@ -9,6 +9,7 @@ import {
 } from "@/lib/script-runner";
 import { ensureCodeRunnerUserscript, getUserscriptEnableMessage } from "@/lib/userscript-runner";
 import { isRestrictedUrl } from "@/lib/utils/website-glob";
+import { isNoReceiverError } from "@/lib/utils/error-detection";
 
 const emptyRunResult: ScriptRunResult = { errors: [], errorStacks: [], logs: [], selectors: [] };
 const responseTimeoutMs = 1800;
@@ -35,15 +36,6 @@ const wait = (ms: number) =>
   });
 
 const toError = (error: unknown) => (error instanceof Error ? error : new Error(String(error)));
-
-const isNoReceiverError = (error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
-  return (
-    message.includes("Receiving end does not exist") ||
-    message.includes("Could not establish connection") ||
-    message.includes("No receiving end")
-  );
-};
 
 const isClosedMessageChannelError = (error: unknown) => {
   const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
