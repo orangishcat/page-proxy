@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { wrenchStateClasses } from "../src/entrypoints/sidepanel/tools/select-tool/view";
 
-describe("getFollowDevtoolsButtonStateClasses", () => {
+describe("wrenchStateClasses", () => {
   test("uses the accent background when following the DevTools selection", () => {
     expect(wrenchStateClasses(true)).toContain("bg-accent-500");
     expect(wrenchStateClasses(true)).toContain("opacity-100");
