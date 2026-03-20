@@ -19,8 +19,17 @@
     propertyItems,
     selectModeEnabled,
   } from "./select-tool/state";
-  import { getFollowDevtoolsButtonStateClasses } from "./select-tool/view";
-  import { ArrowUpIcon, ClipboardPaste, Copy, MousePointerClick, Palette, Scissors, Trash2, Wrench } from "lucide-svelte";
+  import { wrenchStateClasses } from "./select-tool/view";
+  import {
+    ArrowUpIcon,
+    ClipboardPaste,
+    Copy,
+    MousePointerClick,
+    Palette,
+    Scissors,
+    Trash2,
+    Wrench,
+  } from "lucide-svelte";
   import { fly } from "svelte/transition";
 
   const iconActionButtonClass =
@@ -29,8 +38,6 @@
     "z-20 min-w-56 rounded-md border border-gray-300 bg-gray-50 p-1 text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100";
   const actionMenuItemClasses =
     "text-body flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-900/60 dark:active:bg-gray-900";
-
-
 </script>
 
 <div class="flex w-full min-h-0 shrink-0 flex-1 flex-col px-4 py-4">
@@ -122,12 +129,7 @@
               {/snippet}
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
-              <DropdownMenu.Content
-                class={actionMenuClasses}
-                align="end"
-                side="top"
-                sideOffset={6}
-              >
+              <DropdownMenu.Content class={actionMenuClasses} align="end" side="top" sideOffset={6}>
                 <DropdownMenu.Item class={actionMenuItemClasses} onclick={sendClickSelection}>
                   <MousePointerClick class="h-4 w-4 text-gray-500 dark:text-gray-300" />
                   Click selected element
@@ -163,7 +165,7 @@
               {#snippet child({ props })}
                 <Button
                   {...props}
-                  class={`${iconActionButtonClass} ${getFollowDevtoolsButtonStateClasses($followDevtoolsSelection)}`}
+                  class={`${iconActionButtonClass} ${wrenchStateClasses($followDevtoolsSelection)}`}
                   variant="outline"
                   aria-label="Toggle follow DevTools selected element"
                   aria-pressed={$followDevtoolsSelection}
