@@ -19,6 +19,7 @@
     propertyItems,
     selectModeEnabled,
   } from "./select-tool/state";
+  import { getFollowDevtoolsButtonStateClasses } from "./select-tool/view";
   import { ArrowUpIcon, ClipboardPaste, Copy, MousePointerClick, Palette, Scissors, Trash2, Wrench } from "lucide-svelte";
   import { fly } from "svelte/transition";
 
@@ -162,7 +163,7 @@
               {#snippet child({ props })}
                 <Button
                   {...props}
-                  class={`${iconActionButtonClass} ${$followDevtoolsSelection ? "text-accent-500 opacity-100" : "opacity-55 hover:opacity-80"}`}
+                  class={`${iconActionButtonClass} ${getFollowDevtoolsButtonStateClasses($followDevtoolsSelection)}`}
                   variant="outline"
                   aria-label="Toggle follow DevTools selected element"
                   aria-pressed={$followDevtoolsSelection}
