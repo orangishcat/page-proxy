@@ -12,13 +12,12 @@ const wxtConfigSource = readFileSync(
 );
 
 describe("monaco worker environment", () => {
-  test("resolves worker assets through extension runtime URLs for page contexts", () => {
+  test("uses inline workers for page contexts and extension URLs for extension pages", () => {
+    expect(environmentSource).toContain("?worker&inline");
     expect(environmentSource).toContain("?worker&url");
+    expect(environmentSource).toContain("location.protocol");
     expect(environmentSource).toContain("chrome.runtime.getURL");
-    expect(environmentSource).not.toContain("?worker\";");
     expect(environmentSource).not.toContain('from "wxt/browser"');
-    expect(environmentSource).not.toContain("new tsWorker()");
-    expect(environmentSource).not.toContain("new editorWorker()");
   });
 
   test("exposes Monaco worker assets as web accessible resources", () => {
