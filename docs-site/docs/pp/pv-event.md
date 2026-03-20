@@ -12,7 +12,9 @@ import { pv } from "@page-proxy/pp";
 
 ## `onElementCreated(func, targetNode, observerOptions)`
 
-Creates an `ElementCreatedObserver` (a child class of the built-in JavaScript `MutationObserver`) and starts it immediately.
+Creates an `ElementCreatedObserver` wrapper around the built-in JavaScript `MutationObserver` and starts it immediately.
+
+> New in v0.3.1: `ElementCreatedObserver` now wraps `MutationObserver` instead of subclassing it directly, which preserves the observer API while avoiding Firefox-specific inheritance issues.
 
 Defaults:
 
@@ -36,6 +38,9 @@ const observer = pv.onElementCreated((el) => {
 
 `ElementCreatedObserver` also provides:
 
+- `observe(target, options)` to start observing manually
+- `disconnect()` to stop observing
+- `takeRecords()` to read queued mutation records
 - `runOnTargetNode()` to manually re-scan current target subtree
 
 ```js

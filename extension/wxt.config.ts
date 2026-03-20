@@ -28,12 +28,12 @@ export default defineConfig({
     },
     build: {
       assetsInlineLimit: 0,
-      sourcemap: false,
+      sourcemap: true,
     },
   }),
   manifest: ({ browser }) => ({
     name: "Page Proxy",
-    version: "0.3.0",
+    version: "0.3.1",
     description: "Proxy and restyle pages with an extension-based UI.",
     action: {
       default_title: "Page Proxy",
