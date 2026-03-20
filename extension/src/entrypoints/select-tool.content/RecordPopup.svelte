@@ -26,7 +26,11 @@
   import { buildReviewCodeFromStepPreviews } from "./record-converter/review-code";
   import { generateElementSelectorMatches } from "./popup/selector";
   import { readBaseSelectorFromCode, replaceBaseSelectorInCode } from "./popup/base-selector";
-  import { attachPopupKeyboardOwnership, POPUP_SHARED_STYLE } from "./popup/container-shared";
+  import {
+    attachPopupKeyboardOwnership,
+    POPUP_SHARED_CLASS,
+    POPUP_SHARED_STYLE,
+  } from "./popup/container-shared";
   import ModalOverlay from "./ModalOverlay.svelte";
   import { createSelectorMatchPreviewController, type SelectorMatchPreviewController } from "./popup/selector-preview";
 
@@ -510,7 +514,7 @@
 <ModalOverlay class={isSelectElementPreviewing ? "invisible" : ""}>
   <section
     bind:this={popupContainerEl}
-    class="pp-no-select-tool flex w-full h-full max-w-5xl max-h-[40em] min-h-0 flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-900 text-white shadow-2xl"
+    class={`${POPUP_SHARED_CLASS} flex h-full max-h-[40em] min-h-0 w-full max-w-5xl flex-col overflow-hidden rounded-xl text-white shadow-2xl`}
     style={POPUP_SHARED_STYLE}
     aria-label="Record converter popup"
   >

@@ -2,7 +2,7 @@
   import type { ElementInfo, SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
   import { Tooltip } from "bits-ui";
   import { onMount } from "svelte";
-  import { createMonacoEditor, type MonacoCodeEditorHandle, updateMonacoEditorValue } from "@/lib/code-editor";
+  import { type MonacoCodeEditorHandle, updateMonacoEditorValue } from "@/lib/code-editor";
   import { parseCssSelectorParts, type CssSelectorPart } from "./css-inspector";
   import {
     buildCssDocument,
@@ -80,11 +80,21 @@
   const previewManager = createPreviewManager({
     getCssEditorValue: () => cssEditorValue,
     getCssEditorHandle: () => cssEditorHandle,
-    setIsMatchPreviewing: (v) => { isMatchPreviewing = v; },
-    setIsCssStylePreviewing: (v) => { isCssStylePreviewing = v; },
-    setHighlightedPreviewCount: (v) => { highlightedPreviewCount = v; },
-    setMatchingElementCount: (v) => { matchingElementCount = v; },
-    setCssPreviewErrorMessage: (v) => { cssPreviewErrorMessage = v; },
+    setIsMatchPreviewing: (v) => {
+      isMatchPreviewing = v;
+    },
+    setIsCssStylePreviewing: (v) => {
+      isCssStylePreviewing = v;
+    },
+    setHighlightedPreviewCount: (v) => {
+      highlightedPreviewCount = v;
+    },
+    setMatchingElementCount: (v) => {
+      matchingElementCount = v;
+    },
+    setCssPreviewErrorMessage: (v) => {
+      cssPreviewErrorMessage = v;
+    },
     getIsMatchPreviewing: () => isMatchPreviewing,
     getIsCssStylePreviewing: () => isCssStylePreviewing,
   });
@@ -213,12 +223,22 @@
     disposeCssEditor = initCssEditor({
       getHost: () => cssEditorHost,
       getHandle: () => cssEditorHandle,
-      setHandle: (v) => { cssEditorHandle = v; },
+      setHandle: (v) => {
+        cssEditorHandle = v;
+      },
       getCssEditorValue: () => cssEditorValue,
-      setCssEditorValue: (v) => { cssEditorValue = v; },
-      setHoveredCssOffset: (v) => { hoveredCssOffset = v; },
-      setIsCssEditorFocused: (v) => { isCssEditorFocused = v; },
-      setErrorMessage: (v) => { errorMessage = v; },
+      setCssEditorValue: (v) => {
+        cssEditorValue = v;
+      },
+      setHoveredCssOffset: (v) => {
+        hoveredCssOffset = v;
+      },
+      setIsCssEditorFocused: (v) => {
+        isCssEditorFocused = v;
+      },
+      setErrorMessage: (v) => {
+        errorMessage = v;
+      },
       onBaseSelectorChange,
       applyPreviewHighlights: previewManager.applyPreviewHighlights,
       applyCssStylePreview: previewManager.applyCssStylePreview,
@@ -334,7 +354,7 @@
 
     <CssPropertySidebar
       {activeCssPart}
-      cssPropertyItems={cssPropertyItems}
+      {cssPropertyItems}
       {cssComputedStyleProperties}
       {cssPreviewErrorMessage}
       {matchingElementCount}

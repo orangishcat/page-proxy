@@ -2,7 +2,7 @@
   import Button from "@/lib/components/Button.svelte";
   import type { ScriptGrantValue } from "@/lib/grants";
   import ModalOverlay from "./ModalOverlay.svelte";
-  import { POPUP_SHARED_STYLE } from "./popup/container-shared";
+  import { POPUP_SHARED_CLASS, POPUP_SHARED_STYLE } from "./popup/container-shared";
 
   type Props = {
     scriptName: string;
@@ -33,7 +33,7 @@
 
 <ModalOverlay>
   <div
-    class="pp-no-select-tool rounded-2xl border border-[#4f4a38] bg-[#24231f] p-4 space-y-3 w-full max-w-sm pp-content-ui-root"
+    class={`${POPUP_SHARED_CLASS} w-full max-w-sm space-y-3 rounded-2xl p-4`}
     style={POPUP_SHARED_STYLE}
   >
     <h2 class="text-title text-gray-100">Grant permissions</h2>
