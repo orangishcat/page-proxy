@@ -2,8 +2,12 @@ import editorWorkerInline from "monaco-editor/esm/vs/editor/editor.worker?worker
 import editorWorkerUrl from "monaco-editor/esm/vs/editor/editor.worker?worker&url";
 import tsWorkerInline from "monaco-editor/esm/vs/language/typescript/ts.worker?worker&inline";
 import tsWorkerUrl from "monaco-editor/esm/vs/language/typescript/ts.worker?worker&url";
+import log from "../logger";
+import { resolveMonacoWorkerMode } from "./worker-strategy";
 
 export const MONACO_WORKER_ERROR_EVENT = "pp:monaco-worker-error";
+
+const logger = log.getLogger("monaco-environment");
 
 type MonacoEnvironment = {
   getWorker?: (moduleId: string, label: string) => Worker;
@@ -18,7 +22,7 @@ const notifyWorkerError = (label: string, error: unknown) => {
     label,
     message: error instanceof Error ? error.message : "Unknown Monaco worker error",
   };
-  console.error("Monaco worker error", detail);
+  logger.error("Monaco worker error", detail);
   globalThis.dispatchEvent(new CustomEvent(MONACO_WORKER_ERROR_EVENT, { detail }));
 };
 
@@ -27,7 +31,7 @@ const resolveWorkerUrl = (workerUrl: string) => {
   return chrome.runtime.getURL(assetPath);
 };
 
-const isExtensionPage = () => location.protocol === "chrome-extension:" || location.protocol === "moz-extension:";
+const hasRuntimeGetUrl = () => typeof chrome !== "undefined" && typeof chrome.runtime?.getURL === "function";
 
 const attachWorkerErrorListeners = (worker: Worker, label: string) => {
   worker.addEventListener("error", (event: ErrorEvent) => {
@@ -44,14 +48,16 @@ const createInlineWorker = (label: string) => {
   return attachWorkerErrorListeners(new WorkerFactory({ name: label }), label);
 };
 
-const createExtensionWorker = (label: string) => {
+const createExtensionUrlWorker = (label: string) => {
   const workerUrl = label === "typescript" || label === "javascript" ? tsWorkerUrl : editorWorkerUrl;
   return attachWorkerErrorListeners(new Worker(resolveWorkerUrl(workerUrl), { name: label, type: "module" }), label);
 };
 
 const createWorker = (label: string) => {
   try {
-    return isExtensionPage() ? createExtensionWorker(label) : createInlineWorker(label);
+    return resolveMonacoWorkerMode({ hasRuntimeGetUrl: hasRuntimeGetUrl() }) === "extension-url"
+      ? createExtensionUrlWorker(label)
+      : createInlineWorker(label);
   } catch (error: unknown) {
     notifyWorkerError(label, error);
     throw error;
