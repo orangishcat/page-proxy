@@ -1101,8 +1101,6 @@
 
     "big.js": ["big.js@5.2.2", "", {}, "sha512-vyL2OymJxmarO8gxMr0mhChsO9QGwhynfuu4+MHTAW6czfq9humCB7rKpUjDd9YUiDPU4mzpyupFSvOClAwbmQ=="],
 
-    "bignumber.js": ["bignumber.js@9.3.1", "", {}, "sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ=="],
-
     "binary-extensions": ["binary-extensions@2.3.0", "", {}, "sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw=="],
 
     "bits-ui": ["bits-ui@2.16.3", "", { "dependencies": { "@floating-ui/core": "^1.7.1", "@floating-ui/dom": "^1.7.1", "esm-env": "^1.1.2", "runed": "^0.35.1", "svelte-toolbelt": "^0.10.6", "tabbable": "^6.2.0" }, "peerDependencies": { "@internationalized/date": "^3.8.1", "svelte": "^5.33.0" } }, "sha512-5hJ5dEhf5yPzkRFcxzgQHScGodeo0gK0MUUXrdLlRHWaBOBGZiacWLG96j/wwFatKwZvouw7q+sn14i0fx3RIg=="],
@@ -1812,8 +1810,6 @@
     "jsdom": ["jsdom@29.0.0", "", { "dependencies": { "@asamuzakjp/css-color": "^5.0.1", "@asamuzakjp/dom-selector": "^7.0.2", "@bramus/specificity": "^2.4.2", "@csstools/css-syntax-patches-for-csstree": "^1.1.1", "@exodus/bytes": "^1.15.0", "css-tree": "^3.2.1", "data-urls": "^7.0.0", "decimal.js": "^10.6.0", "html-encoding-sniffer": "^6.0.0", "is-potential-custom-element-name": "^1.0.1", "lru-cache": "^11.2.7", "parse5": "^8.0.0", "saxes": "^6.0.0", "symbol-tree": "^3.2.4", "tough-cookie": "^6.0.1", "undici": "^7.24.3", "w3c-xmlserializer": "^5.0.0", "webidl-conversions": "^8.0.1", "whatwg-mimetype": "^5.0.0", "whatwg-url": "^16.0.1", "xml-name-validator": "^5.0.0" }, "peerDependencies": { "canvas": "^3.0.0" }, "optionalPeers": ["canvas"] }, "sha512-9FshNB6OepopZ08unmmGpsF7/qCjxGPbo3NbgfJAnPeHXnsODE9WWffXZtRFRFe0ntzaAOcSKNJFz8wiyvF1jQ=="],
 
     "jsesc": ["jsesc@3.1.0", "", { "bin": { "jsesc": "bin/jsesc" } }, "sha512-/sM3dO2FOzXjKQhJuo0Q173wf2KOo8t4I8vHy6lF9poUp7bKT0/NHE8fPX23PwfhnykfqnC2xRxOnVw5XuGIaA=="],
-
-    "json-bigint": ["json-bigint@1.0.0", "", { "dependencies": { "bignumber.js": "^9.0.0" } }, "sha512-SiPv/8VpZuWbvLSMtTDU8hEfrZWg/mH/nV/b4o0CYbSxu1UIQPLdwKOCIyLQX+VIPO5vrLX3i8qtqFyhdPSUSQ=="],
 
     "json-buffer": ["json-buffer@3.0.1", "", {}, "sha512-4bV5BfR2mqfQTJm+V5tPPdf+ZpuhiIvTuAB5g8kcrXOZpTT/QwwVRWBywX1ozr6lEuPdbHxwaJlm9G6mI2sfSQ=="],
 
