@@ -460,6 +460,12 @@ export const pressKey = (keys: string, options: OnKeyPressedOptions = {}) => {
   });
 };
 
+export const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+
+export const awaitAnimation = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+export const awaitMicrotask = () => new Promise<void>((resolve) => queueMicrotask(resolve));
+
 export const pageModificationFunctions = [
   "pa.notification",
   "pt.setItem",

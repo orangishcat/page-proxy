@@ -4,26 +4,35 @@ title: Your first script
 
 # Your first script
 
-This quick example runs a basic "Hello World" script with Page Proxy.
+When navigating to a tab that Page Proxy has access to, opening the sidepanel should greet you with a tool panel and code editor, which contains code like this:
 
 ## Hello World
 
 ```ts
-import { pa } from "@page-proxy/pp";
+import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";
 
-// Imports, metadata, etc...
+// ==Page Proxy==
+// @title Page Proxy
+// @website https://website.com/*
+// @description
+// @author
+// @grant
+// ==/Page Proxy==
 
-pa.notification("Hello World");
+// ==Selectors==
+// ==/Selectors==
+
+pa.notification("Hello world!");
 ```
 
-When this script runs, Page Proxy logs the message and shows an in-page notification.
+The script runs on the active tab, and will only appear on websites that match the `@website` glob. Switching to a different tab loads a different script.
 
-`console.log` works too, but there isn't an in-page notification. You'll have to open the browser console, which is too much work for a lazy person like me.
+Running the code should log an in-page notification saying "Hello world"!
 
-You can pass multiple values too! For example
+You can pass multiple values too. For example
 
 ```js
 pa.notification("Hello", { page: location.href });
 ```
 
-And it will have an object viewer.
+And the notification will have an object viewer.

@@ -97,12 +97,24 @@ Returns a Promise that resolves after `ms` milliseconds.
 await pv.sleep(250);
 ```
 
+This is the same as calling:
+
+```js
+await new Promise((resolve) => window.setTimeout(resolve, 250));
+```
+
 ## `awaitAnimation()`
 
 Returns a Promise that resolves on the next animation frame.
 
 ```js
 await pv.awaitAnimation();
+```
+
+This is the same as calling:
+
+```js
+await new Promise((resolve) => requestAnimationFrame(() => resolve()));
 ```
 
 ## `awaitMicrotask()`
@@ -113,4 +125,10 @@ Returns a Promise that resolves in the next microtask.
 await pv.awaitMicrotask();
 ```
 
-Always use `await` when calling these Promise-returning helpers.
+This is the same as calling:
+
+```js
+await new Promise((resolve) => queueMicrotask(resolve));
+```
+
+Don't forget to await these statements, so that they run on the main thread and become blocking functions.
