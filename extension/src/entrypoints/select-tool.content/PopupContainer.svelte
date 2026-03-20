@@ -4,7 +4,12 @@
   import { onDestroy, onMount } from "svelte";
   import SelectorPopup from "./SelectorPopup.svelte";
   import CssInspector from "./CssInspector.svelte";
-  import { attachPopupKeyboardOwnership, POPUP_BASE_FONT_SIZE_PX, POPUP_SHARED_STYLE } from "./popup/container-shared";
+  import {
+    attachPopupKeyboardOwnership,
+    POPUP_BASE_FONT_SIZE_PX,
+    POPUP_SHARED_CLASS,
+    POPUP_SHARED_STYLE,
+  } from "./popup/container-shared";
   import { readBaseSelectorFromCode } from "./popup/base-selector";
   import { normalizeSelectorFromCssEditor } from "./css-editor-utils";
   import ModalOverlay from "./ModalOverlay.svelte";
@@ -214,18 +219,18 @@
 <ModalOverlay centered={false} class={visible && !popupHidden ? "" : "invisible"}>
 <div
   bind:this={containerEl}
-  class="pp-no-select-tool absolute pointer-events-auto"
+  class="absolute pointer-events-auto"
   style="top: {position.top}px; left: {position.left}px; width: min(45.3125em, 92vw); height: min(28.0625em, 80vh);"
 >
   {#if direction !== "center"}
     <div
-      class="absolute w-3 h-3 bg-gray-950 border border-gray-800 rotate-45 {arrowClasses[direction]}"
+      class="absolute h-3 w-3 rotate-45 border border-[#4f4a38] bg-[#24231f] {arrowClasses[direction]}"
       style={direction === "top" || direction === "bottom" ? `left: ${arrowOffset.left}` : `top: ${arrowOffset.top}`}
     ></div>
   {/if}
 
   <div
-    class="flex flex-col w-full h-full overflow-hidden rounded-lg border border-gray-800 bg-gray-950 text-gray-100 font-sans text-sm shadow-2xl pp-content-ui-root"
+    class={`${POPUP_SHARED_CLASS} flex h-full w-full flex-col overflow-hidden rounded-lg text-gray-100 shadow-2xl`}
     style={POPUP_SHARED_STYLE}
   >
     <div class="flex items-center h-12 px-4 gap-2.5 bg-gray-900 border-b border-gray-800">
