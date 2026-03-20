@@ -27,7 +27,7 @@ const resolveWorkerUrl = (workerUrl: string) => {
   return chrome.runtime.getURL(assetPath);
 };
 
-const isExtensionPage = () => location.protocol === "chrome-extension:" || location.protocol === "moz-extension:";
+const _isExtensionPage = () => location.protocol === "chrome-extension:" || location.protocol === "moz-extension:";
 
 const attachWorkerErrorListeners = (worker: Worker, label: string) => {
   worker.addEventListener("error", (event: ErrorEvent) => {
