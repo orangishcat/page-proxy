@@ -61,6 +61,10 @@ export default defineConfig({
         resources: ["page-wrapper.js", "code-runner-main-world.js", "tailwindcss.min.js"],
         matches: ["<all_urls>"],
       },
+      {
+        resources: ["assets/*.worker-*.js"],
+        matches: ["<all_urls>"],
+      },
     ],
   }),
   hooks: {

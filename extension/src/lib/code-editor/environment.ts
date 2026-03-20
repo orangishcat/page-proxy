@@ -1,5 +1,5 @@
-import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker&inline";
-import tsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker&inline";
+import editorWorkerUrl from "monaco-editor/esm/vs/editor/editor.worker?worker&url";
+import tsWorkerUrl from "monaco-editor/esm/vs/language/typescript/ts.worker?worker&url";
 
 export const MONACO_WORKER_ERROR_EVENT = "pp:monaco-worker-error";
 
@@ -20,9 +20,15 @@ const notifyWorkerError = (label: string, error: unknown) => {
   globalThis.dispatchEvent(new CustomEvent(MONACO_WORKER_ERROR_EVENT, { detail }));
 };
 
+const resolveWorkerUrl = (workerUrl: string) => {
+  const assetPath = workerUrl.startsWith("/") ? workerUrl.slice(1) : workerUrl;
+  return chrome.runtime.getURL(assetPath);
+};
+
 const createWorker = (label: string) => {
   try {
-    const worker = label === "typescript" || label === "javascript" ? new tsWorker() : new editorWorker();
+    const workerUrl = label === "typescript" || label === "javascript" ? tsWorkerUrl : editorWorkerUrl;
+    const worker = new Worker(resolveWorkerUrl(workerUrl), { name: label, type: "module" });
     worker.addEventListener("error", (event: ErrorEvent) => {
       notifyWorkerError(label, event.error ?? event.message ?? event);
     });

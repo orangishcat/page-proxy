@@ -16,3 +16,8 @@ declare module "*?worker&inline" {
   };
   export default workerFactory;
 }
+
+declare module "*?worker&url" {
+  const workerUrl: string;
+  export default workerUrl;
+}

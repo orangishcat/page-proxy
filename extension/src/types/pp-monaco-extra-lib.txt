@@ -161,10 +161,14 @@ declare module "@page-proxy/pp/pp-event" {
       keyAction?: KeyAction[];
       cancel?: boolean;
   };
-  export declare class ElementCreatedObserver extends MutationObserver {
+  export declare class ElementCreatedObserver {
       private readonly func;
       private readonly targetNode;
+      private readonly observer;
       constructor(func: OnElementCreatedHandler, targetNode: Node);
+      observe(target: Node, options?: MutationObserverInit): void;
+      disconnect(): void;
+      takeRecords(): MutationRecord[];
       runOnTargetNode(): void;
   }
   export declare const onElementCreated: (func: OnElementCreatedHandler, targetNode?: Node, observerOptions?: MutationObserverInit) => ElementCreatedObserver;

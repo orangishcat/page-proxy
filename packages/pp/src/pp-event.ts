@@ -358,12 +358,15 @@ const runOnCreatedElements = (node: Node, func: OnElementCreatedHandler) => {
   getNodeCreatedElements(node).forEach(func);
 };
 
-export class ElementCreatedObserver extends MutationObserver {
+export class ElementCreatedObserver {
   private readonly func: OnElementCreatedHandler;
   private readonly targetNode: Node;
+  private readonly observer: MutationObserver;
 
   constructor(func: OnElementCreatedHandler, targetNode: Node) {
-    super((mutations) => {
+    this.func = func;
+    this.targetNode = targetNode;
+    this.observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.type !== "childList" || mutation.addedNodes.length === 0) {
           return;
@@ -374,8 +377,18 @@ export class ElementCreatedObserver extends MutationObserver {
         });
       });
     });
-    this.func = func;
-    this.targetNode = targetNode;
+  }
+
+  observe(target: Node, options?: MutationObserverInit) {
+    this.observer.observe(target, options);
+  }
+
+  disconnect() {
+    this.observer.disconnect();
+  }
+
+  takeRecords() {
+    return this.observer.takeRecords();
   }
 
   runOnTargetNode() {
