@@ -27,7 +27,7 @@ const resolveWorkerUrl = (workerUrl: string) => {
   return chrome.runtime.getURL(assetPath);
 };
 
-const _isExtensionPage = () => location.protocol === "chrome-extension:" || location.protocol === "moz-extension:";
+const isExtensionPage = () => location.protocol === "chrome-extension:" || location.protocol === "moz-extension:";
 
 const attachWorkerErrorListeners = (worker: Worker, label: string) => {
   worker.addEventListener("error", (event: ErrorEvent) => {
@@ -44,7 +44,7 @@ const createInlineWorker = (label: string) => {
   return attachWorkerErrorListeners(new WorkerFactory({ name: label }), label);
 };
 
-const _createURLWorker = (label: string) => {
+const createURLWorker = (label: string) => {
   const workerUrl = label === "typescript" || label === "javascript" ? tsWorkerUrl : editorWorkerUrl;
   return attachWorkerErrorListeners(new Worker(resolveWorkerUrl(workerUrl), { name: label, type: "module" }), label);
 };
@@ -52,7 +52,9 @@ const _createURLWorker = (label: string) => {
 const createWorker = (label: string) => {
   try {
     // idk keep it like this
-    return createInlineWorker(label);
+    return isExtensionPage() && import.meta.env.BROWSER === "firefox"
+      ? createURLWorker(label)
+      : createInlineWorker(label);
   } catch (error: unknown) {
     notifyWorkerError(label, error);
     throw error;
