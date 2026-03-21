@@ -68,7 +68,7 @@ jobs:
         run: |
           crx3 -p extension/.output/${EXTENSION_NAME}.pem \
             -o extension/.output/${CHROME_CRX_FILE} \
-            extension/.output/chrome-mv3
+            "${CHROME_SOURCE_DIR}"
 
       - name: Create Firefox XPI
         run: |
