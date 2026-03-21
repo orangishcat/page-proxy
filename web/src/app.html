@@ -3,8 +3,7 @@
   <head>
     <script>
       const storedTheme = localStorage.getItem('theme');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const theme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : prefersDark ? 'dark' : 'light';
+      const theme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark';
 
       if (theme === 'dark') {
         document.documentElement.classList.add('dark');
