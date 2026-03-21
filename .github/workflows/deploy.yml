@@ -1,79 +1,79 @@
 name: GitHub Pages deployment
 
 on:
-    push:
-        branches:
-            - main
-    workflow_dispatch:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
 permissions:
-    contents: read
-    pages: write
-    id-token: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-    group: pages
-    cancel-in-progress: true
+  group: pages
+  cancel-in-progress: true
 
 jobs:
-    build:
-        runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v6
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
-            - name: Setup Node
-              uses: actions/setup-node@v6
-              with:
-                  node-version: 24
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
 
-            - name: Setup Bun
-              uses: oven-sh/setup-bun@v2
-              with:
-                  bun-version: latest
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
-            - name: Install dependencies
-              run: |
-                  bun install --frozen-lockfile
-                  cd docs-site
-                  bun install --frozen-lockfile
+      - name: Install dependencies
+        run: |
+          bun install --frozen-lockfile
+          cd docs-site
+          bun install --frozen-lockfile
 
-            - name: Build website
-              run: bun run web:build
+      - name: Build website
+        run: bun run web:build
 
-            - name: Build docs site
-              run: bun run docs:build
+      - name: Build docs site
+        run: bun run docs:build
 
-            - name: Prepare Pages artifact
-              run: |
-                  mkdir -p web/pages-artifact
-                  if [ -d web/build ]; then
-                    cp -R web/build/. web/pages-artifact/
-                  fi
-                  website_file_count=$(find web/pages-artifact -type f | wc -l)
-                  if [ "$website_file_count" -eq 0 ]; then
-                    echo "No website build files found in web/build"
-                    exit 1
-                  fi
-                  mkdir -p web/pages-artifact/docs
-                  if [ -d docs-site/build ]; then
-                    cp -R docs-site/build/. web/pages-artifact/docs/
-                  fi
+      - name: Prepare Pages artifact
+        run: |
+          mkdir -p web/pages-artifact
+          if [ -d web/build ]; then
+            cp -R web/build/. web/pages-artifact/
+          fi
+          website_file_count=$(find web/pages-artifact -type f | wc -l)
+          if [ "$website_file_count" -eq 0 ]; then
+            echo "No website build files found in web/build"
+            exit 1
+          fi
+          mkdir -p web/pages-artifact/docs
+          if [ -d docs-site/build ]; then
+            cp -R docs-site/build/. web/pages-artifact/docs/
+          fi
 
-            - name: Upload Pages artifact
-              uses: actions/upload-pages-artifact@v4
-              with:
-                  path: web/pages-artifact
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: web/pages-artifact
 
-    deploy:
-        runs-on: ubuntu-latest
-        needs: build
-        environment:
-            name: github-pages
-            url: ${{ steps.deployment.outputs.page_url }}
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
-        steps:
-            - name: Deploy to GitHub Pages
-              id: deployment
-              uses: actions/deploy-pages@v4
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
