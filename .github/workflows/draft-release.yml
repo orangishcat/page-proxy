@@ -19,7 +19,7 @@ jobs:
       - name: Resolve project version
         run: |
           PROJECT_VERSION="$(jq -r '.version' package.json)"
-          [ -n "$PROJECT_VERSION" ]
+          PROJECT_VERSION="${PROJECT_VERSION/#v/}" && PROJECT_VERSION="v$PROJECT_VERSION"   # append v if missing (1.2.3 -> v1.2.3)
           echo "PROJECT_VERSION=$PROJECT_VERSION" >> "$GITHUB_ENV"
 
       - name: Resolve build workflow run ID for latest commit
@@ -135,18 +135,6 @@ jobs:
             exit 1
           fi
 
-      - name: Normalize version tag
-        run: |
-          set -euo pipefail
-          case "${{ inputs.version_tag }}" in
-            v*)
-              VERSION_TAG="${{ inputs.version_tag }}"
-              ;;
-            *)
-              VERSION_TAG="v${{ inputs.version_tag }}"
-              ;;
-          esac
-          echo "VERSION_TAG=$VERSION_TAG" >> "$GITHUB_ENV"
       - name: Create draft release
         uses: softprops/action-gh-release@v2
         with:
