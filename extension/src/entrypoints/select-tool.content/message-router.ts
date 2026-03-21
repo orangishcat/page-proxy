@@ -127,7 +127,7 @@ export const addMessageListener = (ctrl: SelectionController): void => {
 
     if (msg.type === "select:action") {
       void ctrl
-        .runAction(msg.action, msg.clipboardText)
+        .runAction(msg.action, msg.pasteHtml)
         .then((result) => sendResponse(result))
         .catch((error: unknown) => {
           const errorMsg = error instanceof Error ? error.message : "Unable to update the selected element.";

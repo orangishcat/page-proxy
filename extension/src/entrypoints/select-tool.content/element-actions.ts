@@ -4,7 +4,7 @@ export const runSelectElementAction = (
   action: SelectElementAction,
   selectedTarget: Element | null,
   clearSelectedAndNotify: () => void,
-  clipboardText?: string,
+  pasteHtml?: string,
 ): SelectElementActionResult => {
   const target = selectedTarget;
   if (!target?.isConnected) return { ok: false, error: "Select an element first." };
@@ -26,8 +26,8 @@ export const runSelectElementAction = (
   }
 
   if (action === "paste") {
-    const pasted = clipboardText?.trim();
-    if (!pasted) return { ok: false, error: "Clipboard is empty or unavailable." };
+    const pasted = pasteHtml?.trim();
+    if (!pasted) return { ok: false, error: "Nothing to paste." };
     if (!target.parentElement) return { ok: false, error: "Selected element has no parent element." };
     target.insertAdjacentHTML("afterend", pasted);
     return { ok: true };

@@ -101,7 +101,7 @@ export type SelectToolMessage =
   | {
       type: "select:action";
       action: SelectElementAction;
-      clipboardText?: string;
+      pasteHtml?: string;
     }
   | {
       type: 'selector:open';

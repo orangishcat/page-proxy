@@ -46,7 +46,7 @@ const logger = log.getLogger("select-tool-sidepanel");
 const selectedElementRecordSuppressionMs = 1000;
 let suppressSelectedElementRecordUntil = 0;
 let suppressNextSelectedElementRecord = false;
-let internalClipboardHtml: string | null = null;
+let copyBufferHtml: string | null = null;
 
 const armSelectedElementRecordSuppression = () => {
   suppressNextSelectedElementRecord = true;
@@ -494,13 +494,13 @@ const sendSelectionAction = (action: SelectElementAction) => {
 
       const context = getSelectionContext();
 
-      let clipboardText: string | undefined;
+      let pasteHtml: string | undefined;
       if (action === "paste") {
-        if (!internalClipboardHtml) {
+        if (!copyBufferHtml) {
           setToolMessage("Nothing to paste. Copy or cut an element first.", "error");
           return;
         }
-        clipboardText = internalClipboardHtml;
+        pasteHtml = copyBufferHtml;
       }
 
       const response: unknown = await sendSelectToolMessage(
@@ -508,7 +508,7 @@ const sendSelectionAction = (action: SelectElementAction) => {
         {
           type: "select:action",
           action,
-          clipboardText,
+          pasteHtml,
         } satisfies SelectToolMessage,
         context.frameId ?? 0,
       ).catch(() => null);
@@ -529,7 +529,7 @@ const sendSelectionAction = (action: SelectElementAction) => {
       }
 
       if (response.html !== undefined) {
-        internalClipboardHtml = response.html;
+        copyBufferHtml = response.html;
       }
 
       if (action === "copy") {
