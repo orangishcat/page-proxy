@@ -1,5 +1,6 @@
 import { defineConfig } from "wxt";
 import { fileURLToPath } from "node:url";
+import rootPkg from "../package.json" with { type: "json" };
 
 const monacoMainCssStubPath = fileURLToPath(new URL("./src/lib/code-editor/empty-monaco-main.css", import.meta.url));
 
@@ -33,6 +34,7 @@ export default defineConfig({
   }),
   manifest: ({ browser }) => ({
     name: "Page Proxy",
+    version: rootPkg.version,
     description: "Proxy and restyle pages with an extension-based UI.",
     action: {
       default_title: "Page Proxy",

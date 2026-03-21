@@ -34,7 +34,7 @@ jobs:
 
             - name: Resolve versioned artifact names
               run: |
-                  EXTENSION_VERSION="$(grep -oE 'version: "[^"]+"' extension/wxt.config.ts | head -n 1 | sed -E 's/version: "([^"]+)"/\1/')"
+                  EXTENSION_VERSION="$(jq -r '.version' package.json)"
                   [ -n "$EXTENSION_VERSION" ]
                   echo "EXTENSION_VERSION=$EXTENSION_VERSION" >> "$GITHUB_ENV"
                   echo "CHROME_SOURCE_ARTIFACT=pp-chrome-source-v${EXTENSION_VERSION}" >> "$GITHUB_ENV"
