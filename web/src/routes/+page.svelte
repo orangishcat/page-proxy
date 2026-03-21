@@ -32,7 +32,7 @@
           </a>
           <a href={githubUrl} target="_blank" rel="noopener noreferrer">
             <Button variant="outline" class="rounded-lg border border-gray-700 px-5 py-2.5 text-black dark:text-white">
-              View on GitHub
+              Star on GitHub
             </Button>
           </a>
         </div>
@@ -64,7 +64,7 @@
         </a>
         <a href={githubUrl} target="_blank" rel="noopener noreferrer">
           <Button variant="outline" class="rounded-lg border border-gray-700 px-5 py-2.5 text-black dark:text-white">
-            View on GitHub
+            Star on GitHub
           </Button>
         </a>
       </div>
