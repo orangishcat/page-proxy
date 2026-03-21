@@ -1,106 +1,106 @@
 name: Build extension
 
 on:
-    pull_request:
-    push:
-    workflow_dispatch:
+  pull_request:
+  push:
+  workflow_dispatch:
 
 jobs:
-    build-extension:
-        runs-on: ubuntu-latest
-        env:
-            EXTENSION_NAME: page-proxy
-            CHROME_CRX_PRIVATE_KEY: ${{ secrets.CHROME_CRX_PRIVATE_KEY }}
+  build-extension:
+    runs-on: ubuntu-latest
+    env:
+      EXTENSION_NAME: page-proxy
+      CHROME_CRX_PRIVATE_KEY: ${{ secrets.CHROME_CRX_PRIVATE_KEY }}
 
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v6
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
-            - name: Setup Node
-              uses: actions/setup-node@v6
-              with:
-                  node-version: 24
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
 
-            - name: Setup Bun
-              uses: oven-sh/setup-bun@v2
-              with:
-                  bun-version: latest
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
-            - name: Install dependencies
-              run: bun install --frozen-lockfile
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
-            - name: Install CRX3
-              run: bun install -g crx3
+      - name: Install CRX3
+        run: bun install -g crx3
 
-            - name: Resolve versioned artifact names
-              run: |
-                  PROJECT_VERSION="$(jq -r '.version' package.json)"
-                  [ -n "$PROJECT_VERSION" ]
-                  echo "PROJECT_VERSION=$PROJECT_VERSION" >> "$GITHUB_ENV"
-                  echo "CHROME_SOURCE_ARTIFACT=pp-chrome-source-v${PROJECT_VERSION}" >> "$GITHUB_ENV"
-                  echo "FIREFOX_SOURCE_ARTIFACT=pp-ff-source-v${PROJECT_VERSION}" >> "$GITHUB_ENV"
-                  echo "CHROME_CRX_FILE=pp-chrome-crx-v${PROJECT_VERSION}.crx" >> "$GITHUB_ENV"
-                  echo "FIREFOX_XPI_FILE=pp-ff-xpi-v${PROJECT_VERSION}.xpi" >> "$GITHUB_ENV"
+      - name: Resolve versioned artifact names
+        run: |
+          PROJECT_VERSION="$(jq -r '.version' package.json)"
+          [ -n "$PROJECT_VERSION" ]
+          echo "PROJECT_VERSION=$PROJECT_VERSION" >> "$GITHUB_ENV"
+          echo "CHROME_SOURCE_ARTIFACT=pp-chrome-source-v${PROJECT_VERSION}" >> "$GITHUB_ENV"
+          echo "FIREFOX_SOURCE_ARTIFACT=pp-ff-source-v${PROJECT_VERSION}" >> "$GITHUB_ENV"
+          echo "CHROME_CRX_FILE=pp-chrome-crx-v${PROJECT_VERSION}.crx" >> "$GITHUB_ENV"
+          echo "FIREFOX_XPI_FILE=pp-ff-xpi-v${PROJECT_VERSION}.xpi" >> "$GITHUB_ENV"
 
-            - name: Build Chrome and Firefox bundles
-              run: |
-                  cd extension
-                  bun x wxt zip --browser chrome
-                  bun x wxt zip --browser firefox
+      - name: Build Chrome and Firefox bundles
+        run: |
+          cd extension
+          bun x wxt zip --browser chrome
+          bun x wxt zip --browser firefox
 
-            - name: Resolve Chrome and Firefox source directories
-              run: |
-                  CHROME_SOURCE_DIR="$(find extension/.output -maxdepth 1 -type d -name 'chrome-*' | head -n 1)"
-                  FIREFOX_SOURCE_DIR="$(find extension/.output -maxdepth 1 -type d -name 'firefox-*' | head -n 1)"
-                  [ -n "$CHROME_SOURCE_DIR" ]
-                  [ -n "$FIREFOX_SOURCE_DIR" ]
-                  echo "CHROME_SOURCE_DIR=$CHROME_SOURCE_DIR" >> "$GITHUB_ENV"
-                  echo "FIREFOX_SOURCE_DIR=$FIREFOX_SOURCE_DIR" >> "$GITHUB_ENV"
+      - name: Resolve Chrome and Firefox source directories
+        run: |
+          CHROME_SOURCE_DIR="$(find extension/.output -maxdepth 1 -type d -name 'chrome-*' | head -n 1)"
+          FIREFOX_SOURCE_DIR="$(find extension/.output -maxdepth 1 -type d -name 'firefox-*' | head -n 1)"
+          [ -n "$CHROME_SOURCE_DIR" ]
+          [ -n "$FIREFOX_SOURCE_DIR" ]
+          echo "CHROME_SOURCE_DIR=$CHROME_SOURCE_DIR" >> "$GITHUB_ENV"
+          echo "FIREFOX_SOURCE_DIR=$FIREFOX_SOURCE_DIR" >> "$GITHUB_ENV"
 
-            - name: Prepare CRX key
-              if: ${{ env.CHROME_CRX_PRIVATE_KEY != '' }}
-              run: |
-                  mkdir -p extension/.output
-                  printf '%s' "$CHROME_CRX_PRIVATE_KEY" > extension/.output/${EXTENSION_NAME}.pem
+      - name: Prepare CRX key
+        if: ${{ env.CHROME_CRX_PRIVATE_KEY != '' }}
+        run: |
+          mkdir -p extension/.output
+          printf '%s' "$CHROME_CRX_PRIVATE_KEY" > extension/.output/${EXTENSION_NAME}.pem
 
-            - name: Create Chrome CRX
-              if: ${{ env.CHROME_CRX_PRIVATE_KEY != '' }}
-              run: |
-                  crx3 -p extension/.output/${EXTENSION_NAME}.pem \
-                    -o extension/.output/${CHROME_CRX_FILE} \
-                    extension/.output/chrome-mv3
+      - name: Create Chrome CRX
+        if: ${{ env.CHROME_CRX_PRIVATE_KEY != '' }}
+        run: |
+          crx3 -p extension/.output/${EXTENSION_NAME}.pem \
+            -o extension/.output/${CHROME_CRX_FILE} \
+            extension/.output/chrome-mv3
 
-            - name: Create Firefox XPI
-              run: |
-                  for file in extension/.output/*-firefox.zip; do
-                    cp "$file" "extension/.output/${FIREFOX_XPI_FILE}"
-                  done
+      - name: Create Firefox XPI
+        run: |
+          for file in extension/.output/*-firefox.zip; do
+            cp "$file" "extension/.output/${FIREFOX_XPI_FILE}"
+          done
 
-            - name: Upload Chrome CRX
-              if: ${{ env.CHROME_CRX_PRIVATE_KEY != '' }}
-              uses: actions/upload-artifact@v7
-              with:
-                  name: ${{ env.CHROME_CRX_FILE }}
-                  path: extension/.output/${{ env.CHROME_CRX_FILE }}
-                  if-no-files-found: error
+      - name: Upload Chrome CRX
+        if: ${{ env.CHROME_CRX_PRIVATE_KEY != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.CHROME_CRX_FILE }}
+          path: extension/.output/${{ env.CHROME_CRX_FILE }}
+          if-no-files-found: error
 
-            - name: Upload Chrome source
-              uses: actions/upload-artifact@v7
-              with:
-                  name: ${{ env.CHROME_SOURCE_ARTIFACT }}
-                  path: ${{ env.CHROME_SOURCE_DIR }}
-                  if-no-files-found: error
+      - name: Upload Chrome source
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.CHROME_SOURCE_ARTIFACT }}
+          path: ${{ env.CHROME_SOURCE_DIR }}
+          if-no-files-found: error
 
-            - name: Upload Firefox XPI
-              uses: actions/upload-artifact@v7
-              with:
-                  name: ${{ env.FIREFOX_XPI_FILE }}
-                  path: extension/.output/${{ env.FIREFOX_XPI_FILE }}
-                  if-no-files-found: error
+      - name: Upload Firefox XPI
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.FIREFOX_XPI_FILE }}
+          path: extension/.output/${{ env.FIREFOX_XPI_FILE }}
+          if-no-files-found: error
 
-            - name: Upload Firefox source
-              uses: actions/upload-artifact@v7
-              with:
-                  name: ${{ env.FIREFOX_SOURCE_ARTIFACT }}
-                  path: ${{ env.FIREFOX_SOURCE_DIR }}
-                  if-no-files-found: error
+      - name: Upload Firefox source
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.FIREFOX_SOURCE_ARTIFACT }}
+          path: ${{ env.FIREFOX_SOURCE_DIR }}
+          if-no-files-found: error
