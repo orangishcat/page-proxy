@@ -135,22 +135,23 @@ jobs:
             exit 1
           fi
 
-      - name: Validate version tag format
+      - name: Normalize version tag
         run: |
           set -euo pipefail
           case "${{ inputs.version_tag }}" in
             v*)
+              VERSION_TAG="${{ inputs.version_tag }}"
               ;;
             *)
-              echo "version_tag must include a leading 'v' (for example: v1.2.3)."
-              exit 1
+              VERSION_TAG="v${{ inputs.version_tag }}"
               ;;
           esac
+          echo "VERSION_TAG=$VERSION_TAG" >> "$GITHUB_ENV"
       - name: Create draft release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.version_tag }}
-          name: ${{ inputs.version_tag }}
+          tag_name: ${{ env.VERSION_TAG }}
+          name: ${{ env.VERSION_TAG }}
           draft: true
           files: |
             release-assets/final/*
