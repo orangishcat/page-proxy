@@ -51,8 +51,7 @@
       return;
     }
 
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    applyTheme(prefersDark ? "dark" : "light");
+    applyTheme("dark");
   });
 </script>
 
