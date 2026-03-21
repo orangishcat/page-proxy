@@ -1,5 +1,6 @@
 # Page Proxy
 
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/ojadokjjbdkpheppfonpfcckaehafnkk?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=4285F4)](https://chromewebstore.google.com/detail/page-proxy/ojadokjjbdkpheppfonpfcckaehafnkk)
 [![Figma](https://img.shields.io/badge/Figma-page--proxy-F24E1E?logo=figma&logoColor=white)](https://www.figma.com/file/1E8P0X0wBphOq6kbXWMhbW/page-proxy--)
 [![Svelte 5](https://img.shields.io/badge/Svelte-5-FF3E00?logo=svelte&logoColor=white)](https://svelte.dev/)
 [![WXT](https://img.shields.io/badge/WXT-0.20-111111)](https://wxt.dev/)

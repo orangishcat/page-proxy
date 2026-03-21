@@ -3,14 +3,19 @@
   import axios from "axios";
   import { DropdownMenu } from "bits-ui";
   import Navbar from "$lib/components/Navbar.svelte";
-  import { ChevronDown, Chromium, Globe } from "lucide-svelte";
+  import { ChevronDown } from "lucide-svelte";
+  import { SiGooglechrome, SiFirefoxbrowser } from "@icons-pack/svelte-simple-icons";
   import { onMount } from "svelte";
 
   const releaseLatestUrl = "https://github.com/orangishcat/page-proxy/releases/latest";
   const latestReleaseApiUrl = "https://api.github.com/repos/orangishcat/page-proxy/releases/latest";
   const fallbackVersion = "0.3.2";
+  const chromeWebStoreUrl =
+    "https://chromewebstore.google.com/detail/page-proxy/ojadokjjbdkpheppfonpfcckaehafnkk";
   let selectedBrowser = $state<"chrome" | "firefox">("chrome");
-  let selectedInstallMethod = $state<"load-unpacked" | "install-from-file">("load-unpacked");
+  let selectedInstallMethod = $state<"load-unpacked" | "install-from-file" | "chrome-web-store">(
+    "chrome-web-store",
+  );
   let browserDropdownOpen = $state(false);
   let installMethodDropdownOpen = $state(false);
   let version = $state(fallbackVersion);
@@ -23,6 +28,7 @@
   const installMethodLabel = {
     "load-unpacked": "Load unpacked",
     "install-from-file": "Install from file",
+    "chrome-web-store": "Chrome Web Store",
   } as const;
 
   const triggerClasses =
@@ -88,9 +94,9 @@
               <DropdownMenu.Trigger class={triggerClasses}>
                 <span class="flex items-center gap-2">
                   {#if selectedBrowser === "chrome"}
-                    <Chromium class="h-4 w-4" />
+                    <SiGooglechrome class="h-4 w-4" />
                   {:else}
-                    <Globe class="h-4 w-4" />
+                    <SiFirefoxbrowser class="h-4 w-4" />
                   {/if}
                   <span>{browserLabel[selectedBrowser]}</span>
                 </span>
@@ -104,11 +110,12 @@
                     class={itemClasses}
                     onclick={() => {
                       selectedBrowser = "chrome";
+                      selectedInstallMethod = "chrome-web-store";
                       browserDropdownOpen = false;
                     }}
                   >
                     <span class="flex items-center gap-2">
-                      <Chromium class="h-4 w-4" />
+                      <SiGooglechrome class="h-4 w-4" />
                       <span>Chrome</span>
                     </span>
                   </DropdownMenu.Item>
@@ -116,11 +123,14 @@
                     class={itemClasses}
                     onclick={() => {
                       selectedBrowser = "firefox";
+                      if (selectedInstallMethod === "chrome-web-store") {
+                        selectedInstallMethod = "load-unpacked";
+                      }
                       browserDropdownOpen = false;
                     }}
                   >
                     <span class="flex items-center gap-2">
-                      <Globe class="h-4 w-4" />
+                      <SiFirefoxbrowser class="h-4 w-4" />
                       <span>Firefox</span>
                     </span>
                   </DropdownMenu.Item>
@@ -137,6 +147,17 @@
               </DropdownMenu.Trigger>
               <DropdownMenu.Portal>
                 <DropdownMenu.Content class={contentClasses} preventScroll={false}>
+                  {#if selectedBrowser === "chrome"}
+                    <DropdownMenu.Item
+                      class={itemClasses}
+                      onclick={() => {
+                        selectedInstallMethod = "chrome-web-store";
+                        installMethodDropdownOpen = false;
+                      }}
+                    >
+                      Chrome Web Store
+                    </DropdownMenu.Item>
+                  {/if}
                   <DropdownMenu.Item
                     class={itemClasses}
                     onclick={() => {
@@ -169,7 +190,7 @@
             </div>
           {/if}
 
-          {#if usingFallbackVersion}
+          {#if usingFallbackVersion && selectedInstallMethod !== "chrome-web-store"}
             <div
               class="mt-3 rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
             >
@@ -177,7 +198,20 @@
             </div>
           {/if}
 
-          {#if selectedBrowser === "chrome" && selectedInstallMethod === "load-unpacked"}
+          {#if selectedInstallMethod === "chrome-web-store"}
+            <div class="mt-4 flex flex-col items-center gap-4 text-center">
+              <p class="text-gray-700 dark:text-gray-300">
+                The extension got approved. Get it on the Chrome Web Store!
+              </p>
+              <a href={chromeWebStoreUrl} target="_blank" rel="noopener noreferrer">
+                <img
+                  src={asset("/chrome-web-store-badge.avif")}
+                  alt="Available in the Chrome Web Store"
+                  class="h-auto w-52 rounded-lg border border-gray-200 dark:border-gray-700"
+                />
+              </a>
+            </div>
+          {:else if selectedBrowser === "chrome" && selectedInstallMethod === "load-unpacked"}
             <ol class={olClasses}>
               <li>
                 Download <code>pp-chrome-source-v{version}.zip</code> from
