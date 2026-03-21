@@ -34,13 +34,13 @@ jobs:
 
             - name: Resolve versioned artifact names
               run: |
-                  EXTENSION_VERSION="$(jq -r '.version' package.json)"
-                  [ -n "$EXTENSION_VERSION" ]
-                  echo "EXTENSION_VERSION=$EXTENSION_VERSION" >> "$GITHUB_ENV"
-                  echo "CHROME_SOURCE_ARTIFACT=pp-chrome-source-v${EXTENSION_VERSION}" >> "$GITHUB_ENV"
-                  echo "FIREFOX_SOURCE_ARTIFACT=pp-ff-source-v${EXTENSION_VERSION}" >> "$GITHUB_ENV"
-                  echo "CHROME_CRX_FILE=pp-chrome-crx-v${EXTENSION_VERSION}.crx" >> "$GITHUB_ENV"
-                  echo "FIREFOX_XPI_FILE=pp-ff-xpi-v${EXTENSION_VERSION}.xpi" >> "$GITHUB_ENV"
+                  PROJECT_VERSION="$(jq -r '.version' package.json)"
+                  [ -n "$PROJECT_VERSION" ]
+                  echo "PROJECT_VERSION=$PROJECT_VERSION" >> "$GITHUB_ENV"
+                  echo "CHROME_SOURCE_ARTIFACT=pp-chrome-source-v${PROJECT_VERSION}" >> "$GITHUB_ENV"
+                  echo "FIREFOX_SOURCE_ARTIFACT=pp-ff-source-v${PROJECT_VERSION}" >> "$GITHUB_ENV"
+                  echo "CHROME_CRX_FILE=pp-chrome-crx-v${PROJECT_VERSION}.crx" >> "$GITHUB_ENV"
+                  echo "FIREFOX_XPI_FILE=pp-ff-xpi-v${PROJECT_VERSION}.xpi" >> "$GITHUB_ENV"
 
             - name: Build Chrome and Firefox bundles
               run: |
