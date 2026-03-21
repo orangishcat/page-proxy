@@ -10,12 +10,9 @@
   const releaseLatestUrl = "https://github.com/orangishcat/page-proxy/releases/latest";
   const latestReleaseApiUrl = "https://api.github.com/repos/orangishcat/page-proxy/releases/latest";
   const fallbackVersion = "0.3.2";
-  const chromeWebStoreUrl =
-    "https://chromewebstore.google.com/detail/page-proxy/ojadokjjbdkpheppfonpfcckaehafnkk";
+  const chromeWebStoreUrl = "https://chromewebstore.google.com/detail/page-proxy/ojadokjjbdkpheppfonpfcckaehafnkk";
   let selectedBrowser = $state<"chrome" | "firefox">("chrome");
-  let selectedInstallMethod = $state<"load-unpacked" | "install-from-file" | "chrome-web-store">(
-    "chrome-web-store",
-  );
+  let selectedInstallMethod = $state<"load-unpacked" | "install-from-file" | "chrome-web-store">("chrome-web-store");
   let browserDropdownOpen = $state(false);
   let installMethodDropdownOpen = $state(false);
   let version = $state(fallbackVersion);
@@ -201,7 +198,8 @@
           {#if selectedInstallMethod === "chrome-web-store"}
             <div class="mt-4 flex flex-col items-center gap-4 text-center">
               <p class="text-gray-700 dark:text-gray-300">
-                The extension got approved. Get it on the Chrome Web Store!
+                The extension got approved yippee.<br />
+                Get it on the Chrome Web Store!
               </p>
               <a href={chromeWebStoreUrl} target="_blank" rel="noopener noreferrer">
                 <img
