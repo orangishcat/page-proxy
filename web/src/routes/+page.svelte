@@ -3,7 +3,9 @@
   import Navbar from "$lib/components/Navbar.svelte";
   import Button from "$lib/components/Button.svelte";
   import LandingDemoSelect from "$lib/components/landing/LandingDemoSelect.svelte";
-  import LandingFeatureList from "$lib/components/landing/LandingFeatureList.svelte";
+  import LandingFeatureCursorDemo from "$lib/components/landing/LandingFeatureCursorDemo.svelte";
+  import LandingFeatureModuleTree from "$lib/components/landing/LandingFeatureModuleTree.svelte";
+  import LandingFeatureEditorPreview from "$lib/components/landing/LandingFeatureEditorPreview.svelte";
 
   const githubUrl = "https://github.com/orangishcat/page-proxy";
 </script>
@@ -43,39 +45,86 @@
       </div>
     </section>
 
-    <section class="py-16 flex flex-col items-center bg-[#f3f4f3] dark:bg-[#2a2a25]" id="tools">
-      <div class="mx-auto w-full text-center max-w-7xl">
-        <h2 class="text-4xl font-bold text-gray-900 dark:text-white">Simple, robust workflow.</h2>
-        <p class="text-subtitle text-gray-600 mt-4 dark:text-gray-300">
-          Perform an action, record it, then convert it to code to keep your changes.
-        </p>
+    <div
+      class="[&>*:nth-child(odd)]:bg-[#f3f4f3] [&>*:nth-child(odd)]:dark:bg-[#2a2a25] [&>*:nth-child(even)]:bg-[#ededec] [&>*:nth-child(even)]:dark:bg-[#252520]"
+    >
+      <section class="py-16 flex flex-col items-center" id="tools">
+        <div class="mx-auto w-full text-center max-w-7xl">
+          <h2 class="text-4xl font-bold text-gray-900 dark:text-white">Simple, robust workflow.</h2>
+          <p class="text-subtitle text-gray-600 mt-4 dark:text-gray-300">
+            Perform an action, record it, then convert it to code to keep your changes.
+          </p>
 
-        <div class="mt-9 w-full">
-          <LandingDemoSelect />
-        </div>
-      </div>
-    </section>
-
-    <LandingFeatureList />
-
-    <div id="explore"></div>
-
-    <div class="bg-[#f3f4f3] dark:bg-[#2a2a25]">
-      <section class="mx-auto flex w-full max-w-7xl flex-col items-center space-y-6 py-16">
-        <img src={asset("/logo_filled.avif")} alt="Page Proxy logo" class="h-50 w-50" draggable="false" />
-        <h3 class="text-heading mt-4 text-center text-[#20211f] dark:text-white">Want to try it out?</h3>
-
-        <div class="flex items-center gap-5">
-          <a href={resolve("/install")}>
-            <Button variant="primary">Install</Button>
-          </a>
-          <a href={githubUrl} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" class="rounded-lg border border-gray-700 px-5 py-2.5 text-black dark:text-white">
-              Star on GitHub
-            </Button>
-          </a>
+          <div class="mt-9 w-full">
+            <LandingDemoSelect />
+          </div>
         </div>
       </section>
+
+      <div class="h-140 flex justify-center place-items-center w-full overflow-hidden">
+        <div class="mx-auto w-full max-w-7xl h-full grid grid-cols-2 items-center gap-20">
+          <div class="max-w-2xl space-y-5">
+            <h3 class="text-heading text-gray-950 dark:text-white">More designing, less tinkering.</h3>
+            <p class="text-xl leading-relaxed text-gray-600 dark:text-gray-300">
+              Easy-to-use GUI-based tools will handle it all. Iterate quickly with robust popups, instant previews, and
+              more.
+            </p>
+          </div>
+
+          <LandingFeatureCursorDemo />
+        </div>
+      </div>
+
+      <div class="h-140 flex justify-center place-items-center w-full overflow-hidden">
+        <div class="mx-auto w-full max-w-7xl h-full grid grid-cols-2 items-center gap-20">
+          <LandingFeatureModuleTree />
+
+          <div class="max-w-2xl space-y-5 justify-self-end text-right">
+            <h3 class="text-heading text-gray-950 dark:text-white">Powerful scripting API.</h3>
+            <p class="text-xl leading-relaxed text-gray-600 dark:text-gray-300">
+              Implement your desired functionality easily with our API's many helper methods.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="h-140 flex justify-center place-items-center w-full overflow-hidden">
+        <div class="mx-auto w-full max-w-7xl h-full grid grid-cols-2 items-center gap-20">
+          <div class="max-w-2xl space-y-5">
+            <h3 class="text-heading text-gray-950 dark:text-white">Editor included.</h3>
+            <p class="text-xl leading-relaxed text-gray-600 dark:text-gray-300">
+              Our
+              <a href="https://microsoft.github.io/monaco-editor/" target="_blank" rel="noopener noreferrer">Monaco</a
+              >-powered editor allows you to edit your scripts without ever leaving the extension.
+            </p>
+          </div>
+
+          <div class="relative h-full mt-40 flex justify-end">
+            <LandingFeatureEditorPreview />
+          </div>
+        </div>
+      </div>
+
+      <div id="explore">
+        <section class="mx-auto flex w-full max-w-7xl flex-col items-center space-y-6 py-32">
+          <img src={asset("/logo_filled.avif")} alt="Page Proxy logo" class="h-50 w-50" draggable="false" />
+          <h3 class="text-heading mt-4 text-center text-[#20211f] dark:text-white">Want to try it out?</h3>
+
+          <div class="flex items-center gap-5">
+            <a href={resolve("/install")}>
+              <Button variant="primary">Install</Button>
+            </a>
+            <a href={githubUrl} target="_blank" rel="noopener noreferrer">
+              <Button
+                variant="outline"
+                class="rounded-lg border border-gray-700 px-5 py-2.5 text-black dark:text-white"
+              >
+                Star on GitHub
+              </Button>
+            </a>
+          </div>
+        </section>
+      </div>
     </div>
   </div>
 </main>
