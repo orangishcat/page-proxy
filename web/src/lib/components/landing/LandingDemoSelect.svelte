@@ -17,16 +17,14 @@
     type LandingHeroSectionId,
     type LandingHeroSceneId,
   } from "$lib/components/landing/landing-demo-sequence";
-
-  type PlaybackTimeline = {
-    duration: () => number;
-    labels: Record<string, number>;
-    pause: () => unknown;
-    paused: () => boolean;
-    play: () => unknown;
-    seek: (position: string | number, suppressEvents?: boolean) => unknown;
-    time: () => number;
-  };
+  import {
+    addTimelinePause,
+    getPointInRoot,
+    moveTimelineTarget,
+    setTargetPoint,
+    tapCursor,
+    type PlaybackTimeline,
+  } from "$lib/components/landing/landing-motion";
 
   type PlaybackSnapshot = {
     paused: boolean;
@@ -109,18 +107,7 @@
     }`;
 
   const getRootPoint = (point: LandingHeroPoint) => {
-    const panelEl = getPanelElement(point.panelKey);
-    if (!rootEl || !panelEl) {
-      return { x: 0, y: 0 };
-    }
-
-    const rootRect = rootEl.getBoundingClientRect();
-    const panelRect = panelEl.getBoundingClientRect();
-
-    return {
-      x: panelRect.left - rootRect.left + panelRect.width * point.x,
-      y: panelRect.top - rootRect.top + panelRect.height * point.y,
-    };
+    return getPointInRoot(rootEl, getPanelElement(point.panelKey), point);
   };
 
   const setScene = (nextSceneId: LandingHeroSceneId) => {
@@ -266,28 +253,7 @@
         duration: 0.38,
         ease: "power2.out",
       });
-      gsap.to(cursorEl, {
-        scale: 0.84,
-        duration: LANDING_HERO_TIMINGS.click / 2,
-        repeat: 1,
-        yoyo: true,
-        ease: "power1.inOut",
-        overwrite: "auto",
-      });
-    };
-
-    const moveCursor = (timeline: GsapTimeline, point: LandingHeroPoint, hold = 1) => {
-      const nextPoint = getRootPoint(point);
-      timeline.to(cursorEl, {
-        x: nextPoint.x,
-        y: nextPoint.y,
-        duration: LANDING_HERO_TIMINGS.move * hold,
-        ease: "power2.inOut",
-      });
-    };
-
-    const addPause = (timeline: GsapTimeline, duration: number = LANDING_HERO_TIMINGS.settle) => {
-      timeline.to({}, { duration });
+      tapCursor(gsap, cursorEl, LANDING_HERO_TIMINGS.click);
     };
 
     let context: { revert: () => void } | null = null;
@@ -295,12 +261,7 @@
     context = gsap.context(() => {
       const startPoint = getRootPoint(LANDING_HERO_POINTS.cursorStart);
 
-      gsap.set(cursorEl, {
-        x: startPoint.x,
-        y: startPoint.y,
-        opacity: 1,
-        scale: 1,
-      });
+      setTargetPoint(gsap, cursorEl, startPoint, { opacity: 1, scale: 1 });
       gsap.set(pulseEl, { opacity: 0, scale: 0.35 });
 
       let timeline: GsapTimeline;
@@ -318,78 +279,78 @@
       timeline.call(() => {
         setScene("initial");
         const origin = getRootPoint(LANDING_HERO_POINTS.cursorStart);
-        gsap.set(cursorEl, { x: origin.x, y: origin.y, scale: 1 });
+        setTargetPoint(gsap, cursorEl, origin, { scale: 1 });
         gsap.set(pulseEl, { opacity: 0, scale: 0.35 });
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.selectTool, 0.95);
-      addPause(timeline);
+      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.selectTool), LANDING_HERO_TIMINGS.move, 0.95);
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("select-tool");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.selectTool);
         setScene("select-tool");
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.sidebar);
+      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.sidebar), LANDING_HERO_TIMINGS.move);
       timeline.addLabel("sidebar-hover");
       timeline.call(() => {
         setScene("sidebar-hover");
       });
-      addPause(timeline);
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("sidebar-selected");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.sidebar);
         setScene("sidebar-selected");
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.menuButton, 0.9);
-      addPause(timeline);
+      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.menuButton), LANDING_HERO_TIMINGS.move, 0.9);
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("menu-open");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.menuButton);
         setScene("menu-open");
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.deleteElement);
-      addPause(timeline);
+      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.deleteElement), LANDING_HERO_TIMINGS.move);
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("page-deleted");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.deleteElement);
         setScene("page-deleted");
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.recordTool, 0.95);
-      addPause(timeline);
+      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.recordTool), LANDING_HERO_TIMINGS.move, 0.95);
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("record-tool");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.recordTool);
         setScene("record-tool");
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.recordConfirm);
-      addPause(timeline);
+      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.recordConfirm), LANDING_HERO_TIMINGS.move);
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("record-selected");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.recordConfirm);
         setScene("record-selected");
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.convertCode);
-      addPause(timeline);
+      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.convertCode), LANDING_HERO_TIMINGS.move);
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("convert-code");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.convertCode);
         setScene("convert-code");
       });
 
-      addPause(timeline, LANDING_HERO_TIMINGS.settle * 0.8);
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle * 0.8);
       timeline.addLabel("record-popup");
       timeline.call(() => {
         setScene("record-popup");
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.popupSave, 1.1);
-      addPause(timeline);
+      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.popupSave), LANDING_HERO_TIMINGS.move, 1.1);
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("saved");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.popupSave);
