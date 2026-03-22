@@ -80,7 +80,8 @@ test('landing demo recalculates cursor coordinates after resize', async ({page})
   const beforeResize = await getDemoCursorMetrics(page);
 
   await page.setViewportSize({width: 960, height: 900});
-  await page.waitForTimeout(50);
+  await expect(demo).toHaveAttribute('data-demo-ready', 'false');
+  await expect(demo).toHaveAttribute('data-demo-ready', 'true');
 
   const afterResize = await getDemoCursorMetrics(page);
   const cursorDeltaX = afterResize.cursorOffsetX - beforeResize.cursorOffsetX;
