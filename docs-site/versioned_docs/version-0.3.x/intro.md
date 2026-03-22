@@ -7,6 +7,6 @@ slug: /
 
 This version documents the `pp` library APIs available in **v0.3.x**.
 
-Guides and tutorials are also found here.
+You can also find detailed guides and tutorials for the extension and API here.
 
-The latest patch version is `v0.3.2`. View [New in v0.3.2](./release-notes#new-in-v032) to learn more.
+The latest patch version is `v0.3.4`. View [New in v0.3.4](./release-notes#new-in-v034) to learn more.

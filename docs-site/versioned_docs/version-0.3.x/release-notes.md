@@ -4,6 +4,18 @@ title: Release notes
 
 # Release notes (v0.3.x)
 
+## New in v0.3.4
+
+- Improved GitHub Actions release workflow:
+    - Version is now read automatically from the root `package.json` rather than requiring a manual input.
+    - Version normalisation is more robust and no longer crashes on unexpected formats.
+- Removed unused clipboard utilities and unnecessary clipboard permissions from the Select tool content script.
+
+## New in v0.3.3
+
+- Improved Monaco editor reliability in Firefox:
+    - The sidepanel editor now uses URL-based workers when running in Firefox, matching the strategy already used for popup editors and fixing worker-load failures in the Firefox sidepanel context.
+
 ## New in v0.3.2
 
 - Improved Monaco editor reliability in the extension UI:
