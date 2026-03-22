@@ -5,7 +5,7 @@
 </script>
 
 <div
-  class="mx-auto h-96 w-full max-w-lg overflow-hidden shadow-2xl border border-gray-300 dark:border-gray-800 rounded-sm"
+  class="mx-auto absolute w-full max-w-lg overflow-hidden shadow-2xl border border-gray-300 dark:border-gray-800 rounded-sm"
   aria-hidden="true"
 >
   <img src={editorPreviewSrc} alt="" class="block w-full select-none object-cover object-top" draggable="false" />
