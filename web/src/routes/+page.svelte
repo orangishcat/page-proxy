@@ -13,13 +13,11 @@
 </svelte:head>
 
 <main class="min-h-screen bg-page-light text-[#20211f] dark:bg-page dark:text-white">
-  <div class="mx-auto flex w-full max-w-7xl flex-col px-6 pt-5 sm:px-10 lg:px-16">
-    <Navbar variant="landing" />
-  </div>
+  <Navbar variant="landing" />
 
-  <div class="flex w-full flex-col py-16">
+  <div class="flex w-full flex-col mt-12">
     <section>
-      <div class="mx-auto w-full max-w-7xl py-32">
+      <div class="mx-auto w-full max-w-7xl py-48">
         <div class="mx-auto flex flex-col items-center gap-4 text-center space-y-2">
           <h1 class="text-display text-[#20211f] dark:text-white">
             Customization at your <span class="text-accent-500">fingertips.</span>
@@ -45,8 +43,8 @@
       </div>
     </section>
 
-    <section class="py-16 flex flex-col items-center" id="tools">
-      <div class="mx-auto w-full text-center max-w-7xl py-16">
+    <section class="py-16 flex flex-col items-center bg-[#f3f4f3] dark:bg-[#2a2a25]" id="tools">
+      <div class="mx-auto w-full text-center max-w-7xl">
         <h2 class="text-4xl font-bold text-gray-900 dark:text-white">Simple, robust workflow.</h2>
         <p class="text-subtitle text-gray-600 mt-4 dark:text-gray-300">
           Perform an action, record it, then convert it to code to keep your changes.
@@ -58,26 +56,26 @@
       </div>
     </section>
 
-    <div class="py-16">
-      <LandingFeatureList />
-    </div>
+    <LandingFeatureList />
 
     <div id="explore"></div>
 
-    <section class="mx-auto flex w-full max-w-7xl flex-col items-center space-y-6 py-16">
-      <img src={asset("/logo_filled.avif")} alt="Page Proxy logo" class="h-50 w-50" draggable="false" />
-      <h3 class="text-heading mt-4 text-center text-[#20211f] dark:text-white">Want to try it out?</h3>
+    <div class="bg-[#f3f4f3] dark:bg-[#2a2a25]">
+      <section class="mx-auto flex w-full max-w-7xl flex-col items-center space-y-6 py-16">
+        <img src={asset("/logo_filled.avif")} alt="Page Proxy logo" class="h-50 w-50" draggable="false" />
+        <h3 class="text-heading mt-4 text-center text-[#20211f] dark:text-white">Want to try it out?</h3>
 
-      <div class="flex items-center gap-5">
-        <a href={resolve("/install")}>
-          <Button variant="primary">Install</Button>
-        </a>
-        <a href={githubUrl} target="_blank" rel="noopener noreferrer">
-          <Button variant="outline" class="rounded-lg border border-gray-700 px-5 py-2.5 text-black dark:text-white">
-            Star on GitHub
-          </Button>
-        </a>
-      </div>
-    </section>
+        <div class="flex items-center gap-5">
+          <a href={resolve("/install")}>
+            <Button variant="primary">Install</Button>
+          </a>
+          <a href={githubUrl} target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" class="rounded-lg border border-gray-700 px-5 py-2.5 text-black dark:text-white">
+              Star on GitHub
+            </Button>
+          </a>
+        </div>
+      </section>
+    </div>
   </div>
 </main>

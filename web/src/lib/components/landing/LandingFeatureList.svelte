@@ -4,10 +4,10 @@
   import LandingFeatureModuleTree from "$lib/components/landing/LandingFeatureModuleTree.svelte";
 </script>
 
-<section aria-labelledby="feature-list-heading">
+<section aria-labelledby="feature-list-heading py-16">
   <h2 id="feature-list-heading" class="sr-only">Feature list</h2>
 
-  <div class="bg-[#f3f4f3] dark:bg-[#2a2a25] h-140 flex justify-center place-items-center w-full overflow-hidden">
+  <div class="bg-[#ededec] dark:bg-[#252520] h-140 flex justify-center place-items-center w-full overflow-hidden">
     <div class="mx-auto w-full max-w-7xl h-full grid grid-cols-2 items-center gap-20">
       <div class="max-w-2xl space-y-5">
         <h3 class="text-heading text-gray-950 dark:text-white">More designing, less tinkering.</h3>
@@ -21,7 +21,7 @@
     </div>
   </div>
 
-  <div class="bg-[#ededec] dark:bg-[#252520] h-140 flex justify-center place-items-center w-full overflow-hidden">
+  <div class="bg-[#f3f4f3] dark:bg-[#2a2a25] h-140 flex justify-center place-items-center w-full overflow-hidden">
     <div class="mx-auto w-full max-w-7xl h-full grid grid-cols-2 items-center gap-20">
       <LandingFeatureModuleTree />
 
@@ -34,7 +34,7 @@
     </div>
   </div>
 
-  <div class="bg-[#f3f4f3] dark:bg-[#2a2a25] h-140 flex justify-center place-items-center w-full overflow-hidden">
+  <div class="bg-[#ededec] dark:bg-[#252520] h-140 flex justify-center place-items-center w-full overflow-hidden">
     <div class="mx-auto w-full max-w-7xl h-full grid grid-cols-2 items-center gap-20">
       <div class="max-w-2xl space-y-5">
         <h3 class="text-heading text-gray-950 dark:text-white">Editor included.</h3>

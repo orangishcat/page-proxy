@@ -17,7 +17,7 @@
   let isDarkMode = $state(true);
 
   const navClasses =
-    "grid w-full max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-8 rounded-2xl bg-gray-200 px-8 py-3 text-gray-950 shadow-lg dark:bg-gray-900 dark:text-gray-100";
+    "fixed top-3 left-1/2 -translate-x-1/2 z-999 shadow-2xl grid w-full max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-8 rounded-2xl bg-gray-200 px-8 py-3 text-gray-950 dark:bg-gray-900/70 dark:text-gray-100 backdrop-blur-sm";
   const itemClasses =
     "text-nav rounded-full px-4 py-1.5 text-black dark:text-white hover:underline underline-offset-4 opacity-60 hover:opacity-100 active:opacity-80 transition-all duration-150 cursor-pointer";
 
