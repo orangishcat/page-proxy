@@ -17,9 +17,9 @@
     <Navbar variant="landing" />
   </div>
 
-  <div class="flex w-full flex-col pb-56 pt-40">
+  <div class="flex w-full flex-col py-16">
     <section>
-      <div class="mx-auto w-full max-w-7xl px-6 sm:px-10 lg:px-16">
+      <div class="mx-auto w-full max-w-7xl py-32">
         <div class="mx-auto flex flex-col items-center gap-4 text-center space-y-2">
           <h1 class="text-display text-[#20211f] dark:text-white">
             Customization at your <span class="text-accent-500">fingertips.</span>
@@ -45,8 +45,8 @@
       </div>
     </section>
 
-    <section class="mt-80 flex flex-col items-center" id="tools">
-      <div class="mx-auto w-full text-center max-w-7xl px-6 sm:px-10 lg:px-16">
+    <section class="py-16 flex flex-col items-center" id="tools">
+      <div class="mx-auto w-full text-center max-w-7xl py-16">
         <h2 class="text-4xl font-bold text-gray-900 dark:text-white">Simple, robust workflow.</h2>
         <p class="text-subtitle text-gray-600 mt-4 dark:text-gray-300">
           Perform an action, record it, then convert it to code to keep your changes.
@@ -58,13 +58,13 @@
       </div>
     </section>
 
-    <div class="mt-32">
+    <div class="py-16">
       <LandingFeatureList />
     </div>
 
     <div id="explore"></div>
 
-    <section class="mx-auto mt-40 flex w-full max-w-7xl flex-col items-center space-y-6 px-6 sm:px-10 lg:px-16">
+    <section class="mx-auto flex w-full max-w-7xl flex-col items-center space-y-6 py-16">
       <img src={asset("/logo_filled.avif")} alt="Page Proxy logo" class="h-50 w-50" draggable="false" />
       <h3 class="text-heading mt-4 text-center text-[#20211f] dark:text-white">Want to try it out?</h3>
 
