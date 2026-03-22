@@ -14,8 +14,6 @@
 
   const cursorPoints = {
     top: { x: 0.79, y: 0.2 },
-    topCross: { x: 0.72, y: 0.27 },
-    bottomCross: { x: 0.26, y: 0.58 },
     bottom: { x: 0.32, y: 0.67 },
   } as const;
 
@@ -51,8 +49,6 @@
     const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const { gsap } = await import("gsap");
     const topPoint = getPointInRoot(rootEl, rootEl, cursorPoints.top);
-    const topCrossPoint = getPointInRoot(rootEl, rootEl, cursorPoints.topCross);
-    const bottomCrossPoint = getPointInRoot(rootEl, rootEl, cursorPoints.bottomCross);
     const bottomPoint = getPointInRoot(rootEl, rootEl, cursorPoints.bottom);
 
     const setHoverTarget = (target: HoverTarget) => {
@@ -83,29 +79,20 @@
         setTargetPoint(gsap, cursorEl, topPoint, { scale: 1 });
         setHoverTarget("top");
       });
-      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.call(() => {
         tapCursor(gsap, cursorEl, LANDING_HERO_TIMINGS.click);
         setHoverTarget("top");
       });
-
-      moveTimelineTarget(timeline, cursorEl, bottomCrossPoint, LANDING_HERO_TIMINGS.move, 0.76);
-      timeline.call(() => {
-        setHoverTarget("bottom");
-      });
-      moveTimelineTarget(timeline, cursorEl, bottomPoint, LANDING_HERO_TIMINGS.move, 0.24);
       addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
+
+      moveTimelineTarget(timeline, cursorEl, bottomPoint, LANDING_HERO_TIMINGS.move);
       timeline.call(() => {
         tapCursor(gsap, cursorEl, LANDING_HERO_TIMINGS.click);
         setHoverTarget("bottom");
       });
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
 
-      moveTimelineTarget(timeline, cursorEl, topCrossPoint, LANDING_HERO_TIMINGS.move, 0.76);
-      timeline.call(() => {
-        setHoverTarget("top");
-      });
-      moveTimelineTarget(timeline, cursorEl, topPoint, LANDING_HERO_TIMINGS.move, 0.24);
-      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle * 0.8);
+      moveTimelineTarget(timeline, cursorEl, topPoint, LANDING_HERO_TIMINGS.move);
     }, rootEl);
 
     return () => {
