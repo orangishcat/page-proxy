@@ -19,7 +19,7 @@
 
   <div class="flex w-full flex-col mt-12">
     <section>
-      <div class="mx-auto w-full max-w-7xl py-48">
+      <div class="mx-auto w-full max-w-7xl py-56">
         <div class="mx-auto flex flex-col items-center gap-4 text-center space-y-2">
           <h1 class="text-display text-[#20211f] dark:text-white">
             Customization at your <span class="text-accent-500">fingertips.</span>

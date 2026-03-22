@@ -1,9 +1,10 @@
 <script lang="ts">
   import { asset } from "$app/paths";
   import { DropdownMenu } from "bits-ui";
+  import { SiFirefoxbrowser, SiGooglechrome } from "@icons-pack/svelte-simple-icons";
   import Navbar from "$lib/components/Navbar.svelte";
   import { releaseVersion } from "$lib/utils/release-version";
-  import { ChevronDown, Chromium, Globe } from "lucide-svelte";
+  import { ChevronDown } from "lucide-svelte";
   import { onMount } from "svelte";
 
   const releaseLatestUrl = "https://github.com/orangishcat/page-proxy/releases/latest";
@@ -29,6 +30,7 @@
   const itemClasses =
     "text-body cursor-pointer rounded-lg px-3 py-2 text-left hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-700 dark:active:bg-gray-600";
   const olClasses = "mt-3 list-decimal space-y-1 pl-7 text-gray-700 dark:text-gray-300 space-y-3 [&>li]:pl-1";
+  const browserIconClasses = "h-4 w-4 shrink-0";
 
   onMount(() => {
     const userAgent = navigator.userAgent.toLowerCase();
@@ -63,9 +65,9 @@
               <DropdownMenu.Trigger class={triggerClasses}>
                 <span class="flex items-center gap-2">
                   {#if selectedBrowser === "chrome"}
-                    <Chromium class="h-4 w-4" />
+                    <SiGooglechrome class={browserIconClasses} title="Chrome" />
                   {:else}
-                    <Globe class="h-4 w-4" />
+                    <SiFirefoxbrowser class={browserIconClasses} title="Firefox" />
                   {/if}
                   <span>{browserLabel[selectedBrowser]}</span>
                 </span>
@@ -83,7 +85,7 @@
                     }}
                   >
                     <span class="flex items-center gap-2">
-                      <Chromium class="h-4 w-4" />
+                      <SiGooglechrome class={browserIconClasses} title="Chrome" />
                       <span>Chrome</span>
                     </span>
                   </DropdownMenu.Item>
@@ -95,7 +97,7 @@
                     }}
                   >
                     <span class="flex items-center gap-2">
-                      <Globe class="h-4 w-4" />
+                      <SiFirefoxbrowser class={browserIconClasses} title="Firefox" />
                       <span>Firefox</span>
                     </span>
                   </DropdownMenu.Item>
