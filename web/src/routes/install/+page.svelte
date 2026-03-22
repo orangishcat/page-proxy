@@ -1,20 +1,17 @@
 <script lang="ts">
   import { asset } from "$app/paths";
-  import axios from "axios";
   import { DropdownMenu } from "bits-ui";
   import Navbar from "$lib/components/Navbar.svelte";
+  import { releaseVersion } from "$lib/utils/release-version";
   import { ChevronDown, Chromium, Globe } from "lucide-svelte";
   import { onMount } from "svelte";
 
   const releaseLatestUrl = "https://github.com/orangishcat/page-proxy/releases/latest";
-  const latestReleaseApiUrl = "https://api.github.com/repos/orangishcat/page-proxy/releases/latest";
-  const fallbackVersion = "0.3.2";
   let selectedBrowser = $state<"chrome" | "firefox">("chrome");
   let selectedInstallMethod = $state<"load-unpacked" | "install-from-file">("load-unpacked");
   let browserDropdownOpen = $state(false);
   let installMethodDropdownOpen = $state(false);
-  let version = $state(fallbackVersion);
-  let usingFallbackVersion = $state(false);
+  const version = releaseVersion;
 
   const browserLabel = {
     chrome: "Chrome",
@@ -33,10 +30,6 @@
     "text-body cursor-pointer rounded-lg px-3 py-2 text-left hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-700 dark:active:bg-gray-600";
   const olClasses = "mt-3 list-decimal space-y-1 pl-7 text-gray-700 dark:text-gray-300 space-y-3 [&>li]:pl-1";
 
-  function normalizeVersion(tagName: string): string {
-    return tagName.startsWith("v") ? tagName.slice(1) : tagName;
-  }
-
   onMount(() => {
     const userAgent = navigator.userAgent.toLowerCase();
     if (userAgent.includes("firefox")) {
@@ -44,24 +37,6 @@
     } else {
       selectedBrowser = "chrome";
     }
-
-    void axios
-      .get<{ tag_name?: string }>(latestReleaseApiUrl, {
-        headers: {
-          Accept: "application/vnd.github+json",
-        },
-      })
-      .then((response) => {
-        const latestTag = response.data.tag_name;
-        if (latestTag == null || latestTag.length === 0) {
-          usingFallbackVersion = true;
-          return;
-        }
-        version = normalizeVersion(latestTag);
-      })
-      .catch(() => {
-        usingFallbackVersion = true;
-      });
   });
 </script>
 
@@ -79,7 +54,7 @@
       </div>
 
       <div class="flex w-full flex-col place-items-start justify-center space-y-4 md:col-span-3 h-[60vh]">
-        <h1 class="text-display mt-8 mb-8">Install</h1>
+        <h1 class="text-display mt-8 mb-8">v{version}</h1>
         <div
           class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-4 text-base dark:border-gray-800 dark:bg-gray-900"
         >
@@ -166,14 +141,6 @@
             >
               Recommended: use <span class="font-semibold">Load unpacked</span>. Installing from a file may cause
               unexpected issues.
-            </div>
-          {/if}
-
-          {#if usingFallbackVersion}
-            <div
-              class="mt-3 rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-            >
-              Could not verify the latest release version. Showing fallback version <code>{fallbackVersion}</code>.
             </div>
           {/if}
 
