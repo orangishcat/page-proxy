@@ -1,11 +1,11 @@
 <script lang="ts">
   const modules = [
     { label: "pq", x: 72, y: 228 },
-    { label: "pa", x: 160, y: 228 },
-    { label: "ps", x: 248, y: 228 },
+    { label: "ps", x: 160, y: 228 },
+    { label: "pv", x: 248, y: 228 },
     { label: "pn", x: 336, y: 228 },
-    { label: "pe", x: 424, y: 228 },
-    { label: "pst", x: 512, y: 228 },
+    { label: "pt", x: 424, y: 228 },
+    { label: "pa", x: 512, y: 228 },
   ] as const;
 </script>
 
@@ -15,7 +15,12 @@
     <path class="stroke-gray-300 dark:stroke-gray-700" stroke-width="8" stroke-linecap="round" d="M92 154H492"></path>
 
     {#each modules as module}
-      <path class="stroke-gray-300 dark:stroke-gray-700" stroke-width="4" stroke-linecap="round" d={`M${module.x} 154V188`}></path>
+      <path
+        class="stroke-gray-300 dark:stroke-gray-700"
+        stroke-width="4"
+        stroke-linecap="round"
+        d={`M${module.x} 154V188`}
+      ></path>
     {/each}
 
     <text x="292" y="56" text-anchor="middle" class="fill-gray-950 text-lg font-semibold dark:fill-white">
@@ -23,7 +28,12 @@
     </text>
 
     {#each modules as module}
-      <text x={module.x} y={module.y} text-anchor="middle" class="fill-gray-700 text-base font-semibold dark:fill-gray-300">
+      <text
+        x={module.x}
+        y={module.y}
+        text-anchor="middle"
+        class="fill-gray-700 text-base font-semibold dark:fill-gray-300"
+      >
         {module.label}
       </text>
     {/each}
