@@ -172,11 +172,7 @@
       .filter((scene) => scene.start <= duration)
       .sort((left, right) => left.start - right.start);
 
-    return (
-      sceneTimes.findLast((scene) => currentTime >= scene.start)?.sceneId ??
-      sceneTimes[0]?.sceneId ??
-      "initial"
-    );
+    return sceneTimes.findLast((scene) => currentTime >= scene.start)?.sceneId ?? sceneTimes[0]?.sceneId ?? "initial";
   };
 
   const getPlaybackSnapshot = (): PlaybackSnapshot | null => {
@@ -283,7 +279,13 @@
         gsap.set(pulseEl, { opacity: 0, scale: 0.35 });
       });
 
-      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.selectTool), LANDING_HERO_TIMINGS.move, 0.95);
+      moveTimelineTarget(
+        timeline,
+        cursorEl,
+        getRootPoint(LANDING_HERO_POINTS.selectTool),
+        LANDING_HERO_TIMINGS.move,
+        0.95,
+      );
       addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("select-tool");
       timeline.call(() => {
@@ -303,7 +305,13 @@
         setScene("sidebar-selected");
       });
 
-      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.menuButton), LANDING_HERO_TIMINGS.move, 0.9);
+      moveTimelineTarget(
+        timeline,
+        cursorEl,
+        getRootPoint(LANDING_HERO_POINTS.menuButton),
+        LANDING_HERO_TIMINGS.move,
+        0.9,
+      );
       addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("menu-open");
       timeline.call(() => {
@@ -311,7 +319,12 @@
         setScene("menu-open");
       });
 
-      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.deleteElement), LANDING_HERO_TIMINGS.move);
+      moveTimelineTarget(
+        timeline,
+        cursorEl,
+        getRootPoint(LANDING_HERO_POINTS.deleteElement),
+        LANDING_HERO_TIMINGS.move,
+      );
       addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("page-deleted");
       timeline.call(() => {
@@ -319,7 +332,13 @@
         setScene("page-deleted");
       });
 
-      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.recordTool), LANDING_HERO_TIMINGS.move, 0.95);
+      moveTimelineTarget(
+        timeline,
+        cursorEl,
+        getRootPoint(LANDING_HERO_POINTS.recordTool),
+        LANDING_HERO_TIMINGS.move,
+        0.95,
+      );
       addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("record-tool");
       timeline.call(() => {
@@ -327,7 +346,12 @@
         setScene("record-tool");
       });
 
-      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.recordConfirm), LANDING_HERO_TIMINGS.move);
+      moveTimelineTarget(
+        timeline,
+        cursorEl,
+        getRootPoint(LANDING_HERO_POINTS.recordConfirm),
+        LANDING_HERO_TIMINGS.move,
+      );
       addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("record-selected");
       timeline.call(() => {
@@ -349,7 +373,13 @@
         setScene("record-popup");
       });
 
-      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.popupSave), LANDING_HERO_TIMINGS.move, 1.1);
+      moveTimelineTarget(
+        timeline,
+        cursorEl,
+        getRootPoint(LANDING_HERO_POINTS.popupSave),
+        LANDING_HERO_TIMINGS.move,
+        1.1,
+      );
       addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("saved");
       timeline.call(() => {
@@ -482,7 +512,7 @@
 </script>
 
 <div class="mx-auto flex w-full justify-center overflow-x-auto">
-  <div class="flex w-full min-w-200 max-w-[70vw] flex-col items-center">
+  <div class="flex w-full min-w-200 max-w-[72vw] px-4 flex-col items-center">
     <div
       bind:this={rootEl}
       class="relative grid w-full grid-cols-[minmax(0,1.331fr)_minmax(0,0.415fr)] gap-0 border rounded-lg border-gray-200 dark:border-gray-800"
@@ -618,9 +648,7 @@
 
       <div
         bind:this={cursorEl}
-        class={`pointer-events-none absolute left-0 top-0 z-30 -translate-x-[0.7em] -translate-y-[0.38em] ${
-          isReducedMotion ? "hidden" : "block"
-        }`}
+        class={`pointer-events-none absolute left-0 top-0 z-30 -translate-x-[0.7em] -translate-y-[0.38em] ${isReducedMotion ? "hidden" : "block"}`}
       >
         <Navigation class="h-[1.6em] w-[1.6em] -scale-x-100 fill-black text-white" strokeWidth={2.15} />
       </div>

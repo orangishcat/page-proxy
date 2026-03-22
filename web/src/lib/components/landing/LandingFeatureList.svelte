@@ -7,7 +7,7 @@
 <section aria-labelledby="feature-list-heading">
   <h2 id="feature-list-heading" class="sr-only">Feature list</h2>
 
-  <div class="bg-white/50 dark:bg-background/50">
+  <div class="bg-[#f3f4f3] dark:bg-[#2a2a25]">
     <div
       class="mx-auto w-full max-w-7xl px-6 py-24 sm:px-10 lg:grid lg:grid-cols-2 lg:items-center lg:gap-20 lg:px-16 lg:py-28"
     >
@@ -23,7 +23,7 @@
     </div>
   </div>
 
-  <div class="bg-white/30 dark:bg-background/70">
+  <div class="bg-[#ededec] dark:bg-[#252520]">
     <div
       class="mx-auto w-full max-w-7xl px-6 py-24 sm:px-10 lg:grid lg:grid-cols-2 lg:items-center lg:gap-20 lg:px-16 lg:py-28"
     >
@@ -40,9 +40,9 @@
     </div>
   </div>
 
-  <div class="bg-white/50 dark:bg-background/50">
+  <div class="bg-[#f3f4f3] dark:bg-[#2a2a25]">
     <div
-      class="mx-auto w-full max-w-7xl px-6 py-24 overflow-hidden h-142 sm:px-10 lg:grid lg:grid-cols-2 lg:items-center lg:gap-20 lg:px-16 lg:py-28"
+      class="mx-auto w-full max-w-7xl px-6 py-24 sm:px-10 lg:grid lg:grid-cols-2 lg:items-center lg:gap-20 lg:px-16 lg:py-28"
     >
       <div class="max-w-2xl space-y-5">
         <h3 class="text-heading text-gray-950 dark:text-white">Editor included.</h3>

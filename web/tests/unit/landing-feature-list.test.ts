@@ -60,4 +60,27 @@ describe("LandingFeatureList", () => {
     expect(cursorDemoMarkup).not.toContain("@keyframes");
     expect(moduleTreeMarkup).not.toContain("url(#module-accent)");
   });
+
+  test("keeps the feature band contrast subtle relative to the page background", async () => {
+    const markup = await Bun.file(featureListPath).text();
+
+    expect(markup).toContain("bg-[#f3f4f3] dark:bg-[#2a2a25]");
+    expect(markup).toContain("bg-[#ededec] dark:bg-[#252520]");
+  });
+
+  test("anchors the tooltips just above the rectangle corner with small rounding", async () => {
+    const markup = await Bun.file(cursorDemoPath).text();
+
+    expect(markup).toContain("rounded-sm");
+    expect(markup).toContain("transform: translateY(-100%);");
+    expect(markup).toContain("calc(14% - 0.25rem)");
+    expect(markup).toContain("calc(58% - 0.25rem)");
+  });
+
+  test("separates hover activation from cursor arrival timing", async () => {
+    const markup = await Bun.file(cursorDemoPath).text();
+
+    expect(markup).toContain("bottomCross");
+    expect(markup).toContain("topCross");
+  });
 });
