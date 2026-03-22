@@ -1,22 +1,20 @@
 <script lang="ts">
   import { asset } from "$app/paths";
-  import axios from "axios";
   import { DropdownMenu } from "bits-ui";
+  import { SiFirefoxbrowser, SiGooglechrome } from "@icons-pack/svelte-simple-icons";
   import Navbar from "$lib/components/Navbar.svelte";
+  import { releaseVersion } from "$lib/utils/release-version";
   import { ChevronDown } from "lucide-svelte";
-  import { SiGooglechrome, SiFirefoxbrowser } from "@icons-pack/svelte-simple-icons";
   import { onMount } from "svelte";
 
   const releaseLatestUrl = "https://github.com/orangishcat/page-proxy/releases/latest";
-  const latestReleaseApiUrl = "https://api.github.com/repos/orangishcat/page-proxy/releases/latest";
-  const fallbackVersion = "0.3.2";
   const chromeWebStoreUrl = "https://chromewebstore.google.com/detail/page-proxy/ojadokjjbdkpheppfonpfcckaehafnkk";
+
   let selectedBrowser = $state<"chrome" | "firefox">("chrome");
   let selectedInstallMethod = $state<"load-unpacked" | "install-from-file" | "chrome-web-store">("chrome-web-store");
   let browserDropdownOpen = $state(false);
   let installMethodDropdownOpen = $state(false);
-  let version = $state(fallbackVersion);
-  let usingFallbackVersion = $state(false);
+  const version = releaseVersion;
 
   const browserLabel = {
     chrome: "Chrome",
@@ -35,10 +33,7 @@
   const itemClasses =
     "text-body cursor-pointer rounded-lg px-3 py-2 text-left hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-700 dark:active:bg-gray-600";
   const olClasses = "mt-3 list-decimal space-y-1 pl-7 text-gray-700 dark:text-gray-300 space-y-3 [&>li]:pl-1";
-
-  function normalizeVersion(tagName: string): string {
-    return tagName.startsWith("v") ? tagName.slice(1) : tagName;
-  }
+  const browserIconClasses = "h-4 w-4 shrink-0";
 
   onMount(() => {
     const userAgent = navigator.userAgent.toLowerCase();
@@ -47,24 +42,6 @@
     } else {
       selectedBrowser = "chrome";
     }
-
-    void axios
-      .get<{ tag_name?: string }>(latestReleaseApiUrl, {
-        headers: {
-          Accept: "application/vnd.github+json",
-        },
-      })
-      .then((response) => {
-        const latestTag = response.data.tag_name;
-        if (latestTag == null || latestTag.length === 0) {
-          usingFallbackVersion = true;
-          return;
-        }
-        version = normalizeVersion(latestTag);
-      })
-      .catch(() => {
-        usingFallbackVersion = true;
-      });
   });
 </script>
 
@@ -76,13 +53,13 @@
   <div class="mx-auto flex h-screen w-full max-w-7xl flex-col gap-10 px-6 py-6">
     <Navbar variant="landing" />
 
-    <section class="mx-auto grid w-full items-center gap-8 md:grid-cols-5">
+    <section class="mx-auto grid w-full items-center gap-8 md:grid-cols-5 mt-12">
       <div class="flex justify-center md:col-span-2">
         <img src={asset("/logo_filled.avif")} alt="Page Proxy" class="h-auto w-72" />
       </div>
 
       <div class="flex w-full flex-col place-items-start justify-center space-y-4 md:col-span-3 h-[60vh]">
-        <h1 class="text-display mt-8 mb-8">Install</h1>
+        <h1 class="text-display mt-8 mb-8">v{version}</h1>
         <div
           class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-4 text-base dark:border-gray-800 dark:bg-gray-900"
         >
@@ -91,9 +68,9 @@
               <DropdownMenu.Trigger class={triggerClasses}>
                 <span class="flex items-center gap-2">
                   {#if selectedBrowser === "chrome"}
-                    <SiGooglechrome class="h-4 w-4" />
+                    <SiGooglechrome class={browserIconClasses} title="Chrome" />
                   {:else}
-                    <SiFirefoxbrowser class="h-4 w-4" />
+                    <SiFirefoxbrowser class={browserIconClasses} title="Firefox" />
                   {/if}
                   <span>{browserLabel[selectedBrowser]}</span>
                 </span>
@@ -112,7 +89,7 @@
                     }}
                   >
                     <span class="flex items-center gap-2">
-                      <SiGooglechrome class="h-4 w-4" />
+                      <SiGooglechrome class={browserIconClasses} title="Chrome" />
                       <span>Chrome</span>
                     </span>
                   </DropdownMenu.Item>
@@ -127,7 +104,7 @@
                     }}
                   >
                     <span class="flex items-center gap-2">
-                      <SiFirefoxbrowser class="h-4 w-4" />
+                      <SiFirefoxbrowser class={browserIconClasses} title="Firefox" />
                       <span>Firefox</span>
                     </span>
                   </DropdownMenu.Item>
@@ -187,19 +164,10 @@
             </div>
           {/if}
 
-          {#if usingFallbackVersion && selectedInstallMethod !== "chrome-web-store"}
-            <div
-              class="mt-3 rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-            >
-              Could not verify the latest release version. Showing fallback version <code>{fallbackVersion}</code>.
-            </div>
-          {/if}
-
           {#if selectedInstallMethod === "chrome-web-store"}
             <div class="mt-4 flex flex-col items-center gap-4 text-center">
               <p class="text-gray-700 dark:text-gray-300">
-                The extension got approved yippee.<br />
-                Get it on the Chrome Web Store!
+                The extension got approved! Get it on the Chrome Web Store!
               </p>
               <a href={chromeWebStoreUrl} target="_blank" rel="noopener noreferrer">
                 <img

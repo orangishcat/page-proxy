@@ -7,6 +7,7 @@
     LANDING_HERO_POINTS,
     LANDING_HERO_RECTS,
     LANDING_HERO_SCENE_MAP,
+    LANDING_HERO_SCENE_IDS,
     LANDING_HERO_SECTIONS,
     LANDING_HERO_STATIC_FRAMES,
     LANDING_HERO_TIMINGS,
@@ -16,14 +17,19 @@
     type LandingHeroSectionId,
     type LandingHeroSceneId,
   } from "$lib/components/landing/landing-demo-sequence";
+  import {
+    addTimelinePause,
+    getPointInRoot,
+    moveTimelineTarget,
+    setTargetPoint,
+    tapCursor,
+    type PlaybackTimeline,
+  } from "$lib/components/landing/landing-motion";
 
-  type PlaybackTimeline = {
-    duration: () => number;
-    labels: Record<string, number>;
-    pause: () => unknown;
-    play: () => unknown;
-    seek: (position: string | number, suppressEvents?: boolean) => unknown;
-    time: () => number;
+  type PlaybackSnapshot = {
+    paused: boolean;
+    sceneId: LandingHeroSceneId;
+    time: number;
   };
 
   const heroTabs = [
@@ -101,18 +107,7 @@
     }`;
 
   const getRootPoint = (point: LandingHeroPoint) => {
-    const panelEl = getPanelElement(point.panelKey);
-    if (!rootEl || !panelEl) {
-      return { x: 0, y: 0 };
-    }
-
-    const rootRect = rootEl.getBoundingClientRect();
-    const panelRect = panelEl.getBoundingClientRect();
-
-    return {
-      x: panelRect.left - rootRect.left + panelRect.width * point.x,
-      y: panelRect.top - rootRect.top + panelRect.height * point.y,
-    };
+    return getPointInRoot(rootEl, getPanelElement(point.panelKey), point);
   };
 
   const setScene = (nextSceneId: LandingHeroSceneId) => {
@@ -169,6 +164,29 @@
     activeSectionProgress = Math.min(1, Math.max(0, (currentTime - currentSection.start) / span));
   };
 
+  const getSceneAtTime = (currentTime: number, labels: Record<string, number>, duration: number) => {
+    const sceneTimes = LANDING_HERO_SCENE_IDS.map((sceneId) => ({
+      sceneId,
+      start: labels[sceneId] ?? duration,
+    }))
+      .filter((scene) => scene.start <= duration)
+      .sort((left, right) => left.start - right.start);
+
+    return sceneTimes.findLast((scene) => currentTime >= scene.start)?.sceneId ?? sceneTimes[0]?.sceneId ?? "initial";
+  };
+
+  const getPlaybackSnapshot = (): PlaybackSnapshot | null => {
+    if (isReducedMotion || !playbackTimeline) {
+      return null;
+    }
+
+    return {
+      paused: playbackTimeline.paused(),
+      sceneId,
+      time: playbackTimeline.time(),
+    };
+  };
+
   const jumpToSection = (sectionId: LandingHeroSectionId) => {
     const section = getSection(sectionId);
     if (!section) {
@@ -198,15 +216,14 @@
     }, 220);
   };
 
-  const buildPlayback = async () => {
+  const buildPlayback = async (snapshot: PlaybackSnapshot | null = null) => {
     await tick();
 
     if (!rootEl || !cursorEl || !pulseEl) {
       return () => {};
     }
 
-    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    isReducedMotion = reducedMotionQuery.matches;
+    isReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     resetStaticFrame();
 
     if (isReducedMotion) {
@@ -232,28 +249,7 @@
         duration: 0.38,
         ease: "power2.out",
       });
-      gsap.to(cursorEl, {
-        scale: 0.84,
-        duration: LANDING_HERO_TIMINGS.click / 2,
-        repeat: 1,
-        yoyo: true,
-        ease: "power1.inOut",
-        overwrite: "auto",
-      });
-    };
-
-    const moveCursor = (timeline: GsapTimeline, point: LandingHeroPoint, hold = 1) => {
-      const nextPoint = getRootPoint(point);
-      timeline.to(cursorEl, {
-        x: nextPoint.x,
-        y: nextPoint.y,
-        duration: LANDING_HERO_TIMINGS.move * hold,
-        ease: "power2.inOut",
-      });
-    };
-
-    const addPause = (timeline: GsapTimeline, duration: number = LANDING_HERO_TIMINGS.settle) => {
-      timeline.to({}, { duration });
+      tapCursor(gsap, cursorEl, LANDING_HERO_TIMINGS.click);
     };
 
     let context: { revert: () => void } | null = null;
@@ -261,12 +257,7 @@
     context = gsap.context(() => {
       const startPoint = getRootPoint(LANDING_HERO_POINTS.cursorStart);
 
-      gsap.set(cursorEl, {
-        x: startPoint.x,
-        y: startPoint.y,
-        opacity: 1,
-        scale: 1,
-      });
+      setTargetPoint(gsap, cursorEl, startPoint, { opacity: 1, scale: 1 });
       gsap.set(pulseEl, { opacity: 0, scale: 0.35 });
 
       let timeline: GsapTimeline;
@@ -284,77 +275,112 @@
       timeline.call(() => {
         setScene("initial");
         const origin = getRootPoint(LANDING_HERO_POINTS.cursorStart);
-        gsap.set(cursorEl, { x: origin.x, y: origin.y, scale: 1 });
+        setTargetPoint(gsap, cursorEl, origin, { scale: 1 });
         gsap.set(pulseEl, { opacity: 0, scale: 0.35 });
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.selectTool, 0.95);
-      addPause(timeline);
+      moveTimelineTarget(
+        timeline,
+        cursorEl,
+        getRootPoint(LANDING_HERO_POINTS.selectTool),
+        LANDING_HERO_TIMINGS.move,
+        0.95,
+      );
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("select-tool");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.selectTool);
         setScene("select-tool");
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.sidebar);
+      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.sidebar), LANDING_HERO_TIMINGS.move);
+      timeline.addLabel("sidebar-hover");
       timeline.call(() => {
         setScene("sidebar-hover");
       });
-      addPause(timeline);
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("sidebar-selected");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.sidebar);
         setScene("sidebar-selected");
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.menuButton, 0.9);
-      addPause(timeline);
+      moveTimelineTarget(
+        timeline,
+        cursorEl,
+        getRootPoint(LANDING_HERO_POINTS.menuButton),
+        LANDING_HERO_TIMINGS.move,
+        0.9,
+      );
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("menu-open");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.menuButton);
         setScene("menu-open");
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.deleteElement);
-      addPause(timeline);
+      moveTimelineTarget(
+        timeline,
+        cursorEl,
+        getRootPoint(LANDING_HERO_POINTS.deleteElement),
+        LANDING_HERO_TIMINGS.move,
+      );
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("page-deleted");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.deleteElement);
         setScene("page-deleted");
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.recordTool, 0.95);
-      addPause(timeline);
+      moveTimelineTarget(
+        timeline,
+        cursorEl,
+        getRootPoint(LANDING_HERO_POINTS.recordTool),
+        LANDING_HERO_TIMINGS.move,
+        0.95,
+      );
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("record-tool");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.recordTool);
         setScene("record-tool");
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.recordConfirm);
-      addPause(timeline);
+      moveTimelineTarget(
+        timeline,
+        cursorEl,
+        getRootPoint(LANDING_HERO_POINTS.recordConfirm),
+        LANDING_HERO_TIMINGS.move,
+      );
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("record-selected");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.recordConfirm);
         setScene("record-selected");
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.convertCode);
-      addPause(timeline);
+      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.convertCode), LANDING_HERO_TIMINGS.move);
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("convert-code");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.convertCode);
         setScene("convert-code");
       });
 
-      addPause(timeline, LANDING_HERO_TIMINGS.settle * 0.8);
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle * 0.8);
       timeline.addLabel("record-popup");
       timeline.call(() => {
         setScene("record-popup");
       });
 
-      moveCursor(timeline, LANDING_HERO_POINTS.popupSave, 1.1);
-      addPause(timeline);
+      moveTimelineTarget(
+        timeline,
+        cursorEl,
+        getRootPoint(LANDING_HERO_POINTS.popupSave),
+        LANDING_HERO_TIMINGS.move,
+        1.1,
+      );
+      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("saved");
       timeline.call(() => {
         clickPulse(LANDING_HERO_POINTS.popupSave);
@@ -363,42 +389,39 @@
 
       timeline.to({}, { duration: LANDING_HERO_TIMINGS.finalHold });
 
-      const initialSectionSceneId = getSectionStartSceneId(pendingSectionId);
-      if (initialSectionSceneId) {
+      if (snapshot) {
         timeline.pause();
-        timeline.seek(initialSectionSceneId, true);
-        setScene(initialSectionSceneId);
-        sceneOverrideId = initialSectionSceneId;
+        timeline.seek(snapshot.time, true);
+        setScene(getSceneAtTime(snapshot.time, timeline.labels, timeline.duration()) ?? snapshot.sceneId);
+        sceneOverrideId = null;
+        pendingSectionId = null;
         updateSectionPlayback(timeline.time(), timeline.labels, timeline.duration());
-        resumePlaybackTimeout = window.setTimeout(() => {
-          sceneOverrideId = null;
-          pendingSectionId = null;
+
+        if (!snapshot.paused) {
           timeline.play();
-        }, 220);
+        }
       } else {
-        updateSectionPlayback(0, timeline.labels, timeline.duration());
+        const initialSectionSceneId = getSectionStartSceneId(pendingSectionId);
+        if (initialSectionSceneId) {
+          timeline.pause();
+          timeline.seek(initialSectionSceneId, true);
+          setScene(initialSectionSceneId);
+          sceneOverrideId = initialSectionSceneId;
+          updateSectionPlayback(timeline.time(), timeline.labels, timeline.duration());
+          resumePlaybackTimeout = window.setTimeout(() => {
+            sceneOverrideId = null;
+            pendingSectionId = null;
+            timeline.play();
+          }, 220);
+        } else {
+          updateSectionPlayback(0, timeline.labels, timeline.duration());
+        }
       }
 
       isPlaybackReady = true;
     }, rootEl);
 
-    const onMotionChange = (event: MediaQueryListEvent) => {
-      isReducedMotion = event.matches;
-      isPlaybackReady = false;
-      resetStaticFrame();
-      playbackTimeline = null;
-      window.clearTimeout(resumePlaybackTimeout);
-      sceneOverrideId = null;
-
-      if (context) {
-        context.revert();
-      }
-    };
-
-    reducedMotionQuery.addEventListener("change", onMotionChange);
-
     return () => {
-      reducedMotionQuery.removeEventListener("change", onMotionChange);
       isPlaybackReady = false;
       playbackTimeline = null;
       window.clearTimeout(resumePlaybackTimeout);
@@ -409,19 +432,87 @@
 
   onMount(() => {
     let cleanup = () => {};
+    let rebuildToken = 0;
+    let resizeFrame = 0;
+    let lastObservedWidth = 0;
+    let lastObservedHeight = 0;
 
-    void buildPlayback().then((dispose) => {
-      cleanup = dispose;
+    const rebuildPlayback = async (preserveState: boolean) => {
+      const nextToken = ++rebuildToken;
+      const snapshot = preserveState ? getPlaybackSnapshot() : null;
+
+      cleanup();
+      cleanup = () => {};
+
+      const nextCleanup = await buildPlayback(snapshot);
+      if (nextToken !== rebuildToken) {
+        nextCleanup();
+        return;
+      }
+
+      cleanup = nextCleanup;
+    };
+
+    const schedulePlaybackRefresh = () => {
+      if (resizeFrame !== 0) {
+        return;
+      }
+
+      resizeFrame = window.requestAnimationFrame(() => {
+        resizeFrame = 0;
+        void rebuildPlayback(true);
+      });
+    };
+
+    const onMotionChange = () => {
+      void rebuildPlayback(true);
+    };
+
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      if (!entry) {
+        return;
+      }
+
+      const { height, width } = entry.contentRect;
+      if (lastObservedWidth === 0 && lastObservedHeight === 0) {
+        lastObservedWidth = width;
+        lastObservedHeight = height;
+        return;
+      }
+
+      if (width === lastObservedWidth && height === lastObservedHeight) {
+        return;
+      }
+
+      lastObservedWidth = width;
+      lastObservedHeight = height;
+      schedulePlaybackRefresh();
     });
 
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    if (rootEl) {
+      resizeObserver.observe(rootEl);
+    }
+
+    window.addEventListener("resize", schedulePlaybackRefresh);
+    reducedMotionQuery.addEventListener("change", onMotionChange);
+
+    void rebuildPlayback(false);
+
     return () => {
+      rebuildToken += 1;
+      window.cancelAnimationFrame(resizeFrame);
+      window.removeEventListener("resize", schedulePlaybackRefresh);
+      reducedMotionQuery.removeEventListener("change", onMotionChange);
+      resizeObserver.disconnect();
       cleanup();
     };
   });
 </script>
 
 <div class="mx-auto flex w-full justify-center overflow-x-auto">
-  <div class="flex w-full min-w-200 max-w-[70vw] flex-col items-center">
+  <div class="flex w-full min-w-200 max-w-[72vw] px-4 flex-col items-center">
     <div
       bind:this={rootEl}
       class="relative grid w-full grid-cols-[minmax(0,1.331fr)_minmax(0,0.415fr)] gap-0 border rounded-lg border-gray-200 dark:border-gray-800"
@@ -557,9 +648,7 @@
 
       <div
         bind:this={cursorEl}
-        class={`pointer-events-none absolute left-0 top-0 z-30 -translate-x-[0.7em] -translate-y-[0.38em] ${
-          isReducedMotion ? "hidden" : "block"
-        }`}
+        class={`pointer-events-none absolute left-0 top-0 z-30 -translate-x-[0.7em] -translate-y-[0.38em] ${isReducedMotion ? "hidden" : "block"}`}
       >
         <Navigation class="h-[1.6em] w-[1.6em] -scale-x-100 fill-black text-white" strokeWidth={2.15} />
       </div>

@@ -10,6 +10,7 @@ Refer to the [extension usage guide](https://orangishcat.github.io/page-proxy/do
 ## Known issues
 
 - Select tool cannot inspect inside iframes.
+- Monaco worker can be blocked by CSP in extension-owned popups. This leads to functions such as autocomplete breaking in popups on strict-CSP sites such as Github.
 - Loading the extension directly from a CRX or XPI often fails, loading unpacked is recommended.
 
 [Report an issue](https://github.com/orangishcat/page-proxy/issues)
