@@ -14,6 +14,8 @@
 
   const cursorPoints = {
     top: { x: 0.79, y: 0.2 },
+    topCross: { x: 0.72, y: 0.27 },
+    bottomCross: { x: 0.26, y: 0.58 },
     bottom: { x: 0.32, y: 0.67 },
   } as const;
 
@@ -28,8 +30,8 @@
   } as const;
 
   const tooltipStyles = {
-    top: "right: 0; top: 5%;",
-    bottom: "left: 10%; top: 82%;",
+    top: "left: 70%; top: 6%; transform: translateY(-100%);",
+    bottom: "left: 16%; top: 50%; transform: translateY(-100%);",
   } as const;
 
   let rootEl: HTMLDivElement | null = null;
@@ -49,6 +51,8 @@
     const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const { gsap } = await import("gsap");
     const topPoint = getPointInRoot(rootEl, rootEl, cursorPoints.top);
+    const topCrossPoint = getPointInRoot(rootEl, rootEl, cursorPoints.topCross);
+    const bottomCrossPoint = getPointInRoot(rootEl, rootEl, cursorPoints.bottomCross);
     const bottomPoint = getPointInRoot(rootEl, rootEl, cursorPoints.bottom);
 
     const setHoverTarget = (target: HoverTarget) => {
@@ -85,14 +89,22 @@
         setHoverTarget("top");
       });
 
-      moveTimelineTarget(timeline, cursorEl, bottomPoint, LANDING_HERO_TIMINGS.move);
+      moveTimelineTarget(timeline, cursorEl, bottomCrossPoint, LANDING_HERO_TIMINGS.move, 0.76);
+      timeline.call(() => {
+        setHoverTarget("bottom");
+      });
+      moveTimelineTarget(timeline, cursorEl, bottomPoint, LANDING_HERO_TIMINGS.move, 0.24);
       addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.call(() => {
         tapCursor(gsap, cursorEl, LANDING_HERO_TIMINGS.click);
         setHoverTarget("bottom");
       });
 
-      moveTimelineTarget(timeline, cursorEl, topPoint, LANDING_HERO_TIMINGS.move);
+      moveTimelineTarget(timeline, cursorEl, topCrossPoint, LANDING_HERO_TIMINGS.move, 0.76);
+      timeline.call(() => {
+        setHoverTarget("top");
+      });
+      moveTimelineTarget(timeline, cursorEl, topPoint, LANDING_HERO_TIMINGS.move, 0.24);
       addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle * 0.8);
     }, rootEl);
 
@@ -203,14 +215,14 @@
 
   <div
     bind:this={topTooltipEl}
-    class="absolute border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 opacity-0 whitespace-nowrap dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+    class="absolute border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 opacity-0 rounded-sm whitespace-nowrap dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
     style={tooltipStyles.top}
   >
     div.top-right-rectangle.rounded-xl
   </div>
   <div
     bind:this={bottomTooltipEl}
-    class="absolute border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 opacity-0 whitespace-nowrap dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+    class="absolute border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 opacity-0 rounded-sm whitespace-nowrap dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
     style={tooltipStyles.bottom}
   >
     section.demo-card[data-preview]
