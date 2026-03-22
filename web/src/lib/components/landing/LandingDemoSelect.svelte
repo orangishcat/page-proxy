@@ -7,6 +7,7 @@
     LANDING_HERO_POINTS,
     LANDING_HERO_RECTS,
     LANDING_HERO_SCENE_MAP,
+    LANDING_HERO_SCENE_IDS,
     LANDING_HERO_SECTIONS,
     LANDING_HERO_STATIC_FRAMES,
     LANDING_HERO_TIMINGS,
@@ -21,9 +22,16 @@
     duration: () => number;
     labels: Record<string, number>;
     pause: () => unknown;
+    paused: () => boolean;
     play: () => unknown;
     seek: (position: string | number, suppressEvents?: boolean) => unknown;
     time: () => number;
+  };
+
+  type PlaybackSnapshot = {
+    paused: boolean;
+    sceneId: LandingHeroSceneId;
+    time: number;
   };
 
   const heroTabs = [
@@ -169,6 +177,33 @@
     activeSectionProgress = Math.min(1, Math.max(0, (currentTime - currentSection.start) / span));
   };
 
+  const getSceneAtTime = (currentTime: number, labels: Record<string, number>, duration: number) => {
+    const sceneTimes = LANDING_HERO_SCENE_IDS.map((sceneId) => ({
+      sceneId,
+      start: labels[sceneId] ?? duration,
+    }))
+      .filter((scene) => scene.start <= duration)
+      .sort((left, right) => left.start - right.start);
+
+    return (
+      sceneTimes.findLast((scene) => currentTime >= scene.start)?.sceneId ??
+      sceneTimes[0]?.sceneId ??
+      "initial"
+    );
+  };
+
+  const getPlaybackSnapshot = (): PlaybackSnapshot | null => {
+    if (isReducedMotion || !playbackTimeline) {
+      return null;
+    }
+
+    return {
+      paused: playbackTimeline.paused(),
+      sceneId,
+      time: playbackTimeline.time(),
+    };
+  };
+
   const jumpToSection = (sectionId: LandingHeroSectionId) => {
     const section = getSection(sectionId);
     if (!section) {
@@ -198,15 +233,14 @@
     }, 220);
   };
 
-  const buildPlayback = async () => {
+  const buildPlayback = async (snapshot: PlaybackSnapshot | null = null) => {
     await tick();
 
     if (!rootEl || !cursorEl || !pulseEl) {
       return () => {};
     }
 
-    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    isReducedMotion = reducedMotionQuery.matches;
+    isReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     resetStaticFrame();
 
     if (isReducedMotion) {
@@ -297,6 +331,7 @@
       });
 
       moveCursor(timeline, LANDING_HERO_POINTS.sidebar);
+      timeline.addLabel("sidebar-hover");
       timeline.call(() => {
         setScene("sidebar-hover");
       });
@@ -363,42 +398,39 @@
 
       timeline.to({}, { duration: LANDING_HERO_TIMINGS.finalHold });
 
-      const initialSectionSceneId = getSectionStartSceneId(pendingSectionId);
-      if (initialSectionSceneId) {
+      if (snapshot) {
         timeline.pause();
-        timeline.seek(initialSectionSceneId, true);
-        setScene(initialSectionSceneId);
-        sceneOverrideId = initialSectionSceneId;
+        timeline.seek(snapshot.time, true);
+        setScene(getSceneAtTime(snapshot.time, timeline.labels, timeline.duration()) ?? snapshot.sceneId);
+        sceneOverrideId = null;
+        pendingSectionId = null;
         updateSectionPlayback(timeline.time(), timeline.labels, timeline.duration());
-        resumePlaybackTimeout = window.setTimeout(() => {
-          sceneOverrideId = null;
-          pendingSectionId = null;
+
+        if (!snapshot.paused) {
           timeline.play();
-        }, 220);
+        }
       } else {
-        updateSectionPlayback(0, timeline.labels, timeline.duration());
+        const initialSectionSceneId = getSectionStartSceneId(pendingSectionId);
+        if (initialSectionSceneId) {
+          timeline.pause();
+          timeline.seek(initialSectionSceneId, true);
+          setScene(initialSectionSceneId);
+          sceneOverrideId = initialSectionSceneId;
+          updateSectionPlayback(timeline.time(), timeline.labels, timeline.duration());
+          resumePlaybackTimeout = window.setTimeout(() => {
+            sceneOverrideId = null;
+            pendingSectionId = null;
+            timeline.play();
+          }, 220);
+        } else {
+          updateSectionPlayback(0, timeline.labels, timeline.duration());
+        }
       }
 
       isPlaybackReady = true;
     }, rootEl);
 
-    const onMotionChange = (event: MediaQueryListEvent) => {
-      isReducedMotion = event.matches;
-      isPlaybackReady = false;
-      resetStaticFrame();
-      playbackTimeline = null;
-      window.clearTimeout(resumePlaybackTimeout);
-      sceneOverrideId = null;
-
-      if (context) {
-        context.revert();
-      }
-    };
-
-    reducedMotionQuery.addEventListener("change", onMotionChange);
-
     return () => {
-      reducedMotionQuery.removeEventListener("change", onMotionChange);
       isPlaybackReady = false;
       playbackTimeline = null;
       window.clearTimeout(resumePlaybackTimeout);
@@ -409,12 +441,80 @@
 
   onMount(() => {
     let cleanup = () => {};
+    let rebuildToken = 0;
+    let resizeFrame = 0;
+    let lastObservedWidth = 0;
+    let lastObservedHeight = 0;
 
-    void buildPlayback().then((dispose) => {
-      cleanup = dispose;
+    const rebuildPlayback = async (preserveState: boolean) => {
+      const nextToken = ++rebuildToken;
+      const snapshot = preserveState ? getPlaybackSnapshot() : null;
+
+      cleanup();
+      cleanup = () => {};
+
+      const nextCleanup = await buildPlayback(snapshot);
+      if (nextToken !== rebuildToken) {
+        nextCleanup();
+        return;
+      }
+
+      cleanup = nextCleanup;
+    };
+
+    const schedulePlaybackRefresh = () => {
+      if (resizeFrame !== 0) {
+        return;
+      }
+
+      resizeFrame = window.requestAnimationFrame(() => {
+        resizeFrame = 0;
+        void rebuildPlayback(true);
+      });
+    };
+
+    const onMotionChange = () => {
+      void rebuildPlayback(true);
+    };
+
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      if (!entry) {
+        return;
+      }
+
+      const { height, width } = entry.contentRect;
+      if (lastObservedWidth === 0 && lastObservedHeight === 0) {
+        lastObservedWidth = width;
+        lastObservedHeight = height;
+        return;
+      }
+
+      if (width === lastObservedWidth && height === lastObservedHeight) {
+        return;
+      }
+
+      lastObservedWidth = width;
+      lastObservedHeight = height;
+      schedulePlaybackRefresh();
     });
 
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    if (rootEl) {
+      resizeObserver.observe(rootEl);
+    }
+
+    window.addEventListener("resize", schedulePlaybackRefresh);
+    reducedMotionQuery.addEventListener("change", onMotionChange);
+
+    void rebuildPlayback(false);
+
     return () => {
+      rebuildToken += 1;
+      window.cancelAnimationFrame(resizeFrame);
+      window.removeEventListener("resize", schedulePlaybackRefresh);
+      reducedMotionQuery.removeEventListener("change", onMotionChange);
+      resizeObserver.disconnect();
       cleanup();
     };
   });
