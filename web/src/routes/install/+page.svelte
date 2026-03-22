@@ -73,7 +73,7 @@
   <div class="mx-auto flex h-screen w-full max-w-7xl flex-col gap-10 px-6 py-6">
     <Navbar variant="landing" />
 
-    <section class="mx-auto grid w-full items-center gap-8 md:grid-cols-5">
+    <section class="mx-auto grid w-full items-center gap-8 md:grid-cols-5 mt-12">
       <div class="flex justify-center md:col-span-2">
         <img src={asset("/logo_filled.avif")} alt="Page Proxy" class="h-auto w-72" />
       </div>
