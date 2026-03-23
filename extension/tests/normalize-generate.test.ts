@@ -1,7 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
-import { buildGeneratedReviewCode, type ParentTraversalOptionsByStepId, type SelectElementOptionsByStepId } from "./generate";
-import { normalizeRecordTimeline } from "./normalize";
+import {
+  buildGeneratedReviewCode,
+  type ParentTraversalOptionsByStepId,
+  type SelectElementOptionsByStepId,
+} from "../src/entrypoints/select-tool.content/record-converter/generate";
+import { normalizeRecordTimeline } from "../src/entrypoints/select-tool.content/record-converter/normalize";
 
 describe("record converter click support", () => {
   test("normalizeRecordTimeline supports click action labels", () => {
@@ -12,8 +16,16 @@ describe("record converter click support", () => {
     ]);
 
     expect(normalized.supportedSteps).toHaveLength(3);
-    expect(normalized.supportedSteps.map((step) => step.kind)).toEqual(["select-element", "click-element", "click-element"]);
-    expect(normalized.supportedSteps.map((step) => step.label)).toEqual(["Selected element", "Click element", "Click element"]);
+    expect(normalized.supportedSteps.map((step) => step.kind)).toEqual([
+      "select-element",
+      "click-element",
+      "click-element",
+    ]);
+    expect(normalized.supportedSteps.map((step) => step.label)).toEqual([
+      "Selected element",
+      "Click element",
+      "Click element",
+    ]);
   });
 
   test("buildGeneratedReviewCode emits click() for click-element steps", () => {
@@ -103,10 +115,7 @@ describe("record converter: new step kinds — generate", () => {
 
   test("cut: combined mode removes element and nulls selectedElement", () => {
     const code = generate({
-      entries: [
-        { action: "Selected element", detail: "selector: .foo" },
-        { action: "Cut element" },
-      ],
+      entries: [{ action: "Selected element", detail: "selector: .foo" }, { action: "Cut element" }],
     });
     expect(code.byMode.combined.rawCode).toContain("clipboardHtml");
     expect(code.byMode.combined.rawCode).toContain(".remove()");
@@ -115,10 +124,7 @@ describe("record converter: new step kinds — generate", () => {
 
   test("cut: functions mode returns [null, clipboardHtml]", () => {
     const code = generate({
-      entries: [
-        { action: "Selected element", detail: "selector: .foo" },
-        { action: "Cut element" },
-      ],
+      entries: [{ action: "Selected element", detail: "selector: .foo" }, { action: "Cut element" }],
     });
     expect(code.byMode.functions.rawCode).toContain("clipboardHtml");
     expect(code.byMode.functions.rawCode).toContain(".remove()");
@@ -127,10 +133,7 @@ describe("record converter: new step kinds — generate", () => {
 
   test("copy: combined mode captures outerHTML", () => {
     const code = generate({
-      entries: [
-        { action: "Selected element", detail: "selector: .foo" },
-        { action: "Copied element" },
-      ],
+      entries: [{ action: "Selected element", detail: "selector: .foo" }, { action: "Copied element" }],
     });
     expect(code.byMode.combined.rawCode).toContain("clipboardHtml");
     expect(code.byMode.combined.rawCode).toContain("outerHTML");
@@ -139,20 +142,14 @@ describe("record converter: new step kinds — generate", () => {
 
   test("copy: functions mode returns [selectedElement, clipboardHtml]", () => {
     const code = generate({
-      entries: [
-        { action: "Selected element", detail: "selector: .foo" },
-        { action: "Copied element" },
-      ],
+      entries: [{ action: "Selected element", detail: "selector: .foo" }, { action: "Copied element" }],
     });
     expect(code.byMode.functions.rawCode).toContain("return [selectedElement, clipboardHtml]");
   });
 
   test("paste: combined mode calls insertAdjacentHTML", () => {
     const code = generate({
-      entries: [
-        { action: "Selected element", detail: "selector: .foo" },
-        { action: "Pasted element" },
-      ],
+      entries: [{ action: "Selected element", detail: "selector: .foo" }, { action: "Pasted element" }],
     });
     expect(code.byMode.combined.rawCode).toContain("insertAdjacentHTML");
     expect(code.byMode.combined.rawCode).toContain("clipboardHtml");
@@ -160,10 +157,7 @@ describe("record converter: new step kinds — generate", () => {
 
   test("paste: functions mode accepts clipboardHtml param and returns it", () => {
     const code = generate({
-      entries: [
-        { action: "Selected element", detail: "selector: .foo" },
-        { action: "Pasted element" },
-      ],
+      entries: [{ action: "Selected element", detail: "selector: .foo" }, { action: "Pasted element" }],
     });
     expect(code.byMode.functions.rawCode).toContain("clipboardHtml");
     expect(code.byMode.functions.rawCode).toContain("insertAdjacentHTML");
@@ -210,10 +204,7 @@ describe("record converter: new step kinds — generate", () => {
 
   test("combined mode does not seed selectedElement before the first step", () => {
     const code = generate({
-      entries: [
-        { action: "Selected element", detail: "selector: .foo" },
-        { action: "Clicked element" },
-      ],
+      entries: [{ action: "Selected element", detail: "selector: .foo" }, { action: "Clicked element" }],
       selectOptions: {
         "step-1": {
           mode: "wait-until-match",
@@ -228,10 +219,7 @@ describe("record converter: new step kinds — generate", () => {
 
   test("default select mode uses onElementMatches", () => {
     const code = generate({
-      entries: [
-        { action: "Selected element", detail: "selector: .foo" },
-        { action: "Clicked element" },
-      ],
+      entries: [{ action: "Selected element", detail: "selector: .foo" }, { action: "Clicked element" }],
     });
 
     expect(code.byMode.combined.rawCode).toContain("selector1.onElementMatches(async (selectedElement) => {");
@@ -261,10 +249,7 @@ describe("record converter: new step kinds — generate", () => {
 
   test("select observer mode keeps step helpers and emits a suffix runner in functions mode", () => {
     const code = generate({
-      entries: [
-        { action: "Selected element", detail: "selector: .foo" },
-        { action: "Clicked element" },
-      ],
+      entries: [{ action: "Selected element", detail: "selector: .foo" }, { action: "Clicked element" }],
       selectOptions: {
         "step-1": {
           mode: "on-element-matches",
