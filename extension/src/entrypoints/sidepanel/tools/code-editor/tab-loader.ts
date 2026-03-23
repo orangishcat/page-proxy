@@ -1,3 +1,4 @@
+import { defaultBlankScriptTitle } from "@/lib/script-names";
 import { browser } from "wxt/browser";
 import { isRestrictedUrl } from "@/lib/utils/website-glob";
 import {
@@ -8,6 +9,7 @@ import {
   resolveStoredToolStateForUrl,
   type ScriptFormatConfig,
 } from "../state-loading";
+import { resolveBlankScriptName } from "../state-storage";
 import { getTabUrl, resolveActiveTab, shouldHandleTabUpdate, type ActiveTab } from "./tabs";
 import { coerceToolPanelTool } from "@/lib/sidepanel-shortcuts";
 import type { AutosaveManager } from "./autosave";
@@ -42,11 +44,12 @@ export const loadStateForUrl = async (url: string | null, deps: TabLoaderDeps): 
   const normalizedUrl = url?.trim() ?? "";
 
   if (!normalizedUrl) {
-    state.activeScriptName = null;
+    const blankScriptName = await resolveBlankScriptName(defaultBlankScriptTitle);
+    state.activeScriptName = blankScriptName;
     state.activeWebsiteGlob = null;
     deps.setActiveToolId("none");
     deps.setAllowedGrants([]);
-    const baseContent = buildDefaultScript("", scriptFormatConfig);
+    const baseContent = buildDefaultScript("", scriptFormatConfig, blankScriptName);
     const displayContent = state.isProtectedPage
       ? buildProtectedDisplay(baseContent, scriptFormatConfig)
       : baseContent;

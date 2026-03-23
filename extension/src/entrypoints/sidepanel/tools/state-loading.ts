@@ -1,8 +1,9 @@
+import { defaultBlankScriptTitle } from "@/lib/script-names";
 import { parseScriptMetadata } from "@/lib/utils/script-metadata";
 import { buildWebsiteGlobForUrl, matchWebsiteGlob } from "@/lib/utils/website-glob";
 import { buildDefaultScript, type DefaultScriptConfig } from "@/lib/default-script";
 
-import { findStoredToolStateForUrl, type StoredToolState } from "./state-storage";
+import { findStoredToolStateForUrl, resolveBlankScriptName, type StoredToolState } from "./state-storage";
 
 export type ScriptFormatConfig = DefaultScriptConfig & {
   protectedComment: string;
@@ -131,11 +132,15 @@ export const resolveWebsiteGlob = (content: string, activeTabUrl: string | null,
   return activeWebsiteGlob ?? "";
 };
 
-export const buildDefaultToolState = (websiteGlob: string, config: ScriptFormatConfig): StoredToolState => ({
-  scriptName: "Page Proxy",
+export const buildDefaultToolState = (
+  websiteGlob: string,
+  config: ScriptFormatConfig,
+  scriptName = defaultBlankScriptTitle,
+): StoredToolState => ({
+  scriptName,
   activeTool: "none",
   codeEditor: {
-    content: normalizeContentForStorage(buildDefaultScript(websiteGlob, config), false, config),
+    content: normalizeContentForStorage(buildDefaultScript(websiteGlob, config, scriptName), false, config),
   },
   selectorPanel: {
     entries: [],
@@ -148,17 +153,26 @@ export const buildDefaultToolState = (websiteGlob: string, config: ScriptFormatC
 });
 
 export const isDefaultToolState = (state: StoredToolState, config: ScriptFormatConfig) => {
-  const defaultState = buildDefaultToolState(state.websiteGlob, config);
+  const defaultState = buildDefaultToolState(state.websiteGlob, config, state.scriptName);
   return state.activeTool === defaultState.activeTool && state.codeEditor.content === defaultState.codeEditor.content;
 };
 
 export const resolveStoredToolStateForUrl = async (url: string, config: ScriptFormatConfig) => {
   const matched = await findStoredToolStateForUrl(url);
   const fallbackWebsiteGlob = buildWebsiteGlobForUrl(url);
-  const state = matched?.state ?? buildDefaultToolState(fallbackWebsiteGlob, config);
+  if (matched) {
+    return {
+      scriptName: matched.scriptName,
+      websiteGlob: matched.matchedWebsiteGlob,
+      state: matched.state,
+    };
+  }
+
+  const scriptName = await resolveBlankScriptName(defaultBlankScriptTitle);
+  const state = buildDefaultToolState(fallbackWebsiteGlob, config, scriptName);
   return {
-    scriptName: matched?.scriptName ?? state.scriptName,
-    websiteGlob: matched?.matchedWebsiteGlob ?? fallbackWebsiteGlob,
+    scriptName,
+    websiteGlob: fallbackWebsiteGlob,
     state,
   };
 };
