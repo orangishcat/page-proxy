@@ -12,11 +12,14 @@
   import ConverterStepsSidebar from "./record-converter/ConverterStepsSidebar.svelte";
   import {
     buildDefaultParentTraversalOption,
+    buildDefaultSelectElementOption,
     resolveDefaultParentUntilSelector,
     buildStepSnippet,
     type ParentTraversalMode,
     type ParentTraversalOptionsByStepId,
     type ReviewCodeMode,
+    type SelectElementMode,
+    type SelectElementOptionsByStepId,
   } from "./record-converter/generate";
   import {
     normalizeRecordTimeline,
@@ -59,6 +62,10 @@
     const option = parentOptions[step.id];
     return option ?? buildDefaultParentTraversalOption(step.count, getStepDefaultParentUntilSelector(step));
   };
+  const getSelectOption = (step: SupportedRecordStep) => {
+    const option = selectOptions[step.id];
+    return option ?? buildDefaultSelectElementOption();
+  };
   const supportsSelector = (value: string) => {
     if (!value) {
       return false;
@@ -84,6 +91,7 @@
   let reviewCodeMode = $state<ReviewCodeMode>("combined");
   let hasInitializedActiveStep = false;
   let parentOptions = $state<ParentTraversalOptionsByStepId>({});
+  let selectOptions = $state<SelectElementOptionsByStepId>({});
   let reviewCode = $state("");
   let reviewEditorError = $state("");
   let saveError = $state("");
@@ -123,6 +131,7 @@
       steps: supportedSteps,
       stepCodeByStepId: stepPreviewCodeByStepId,
       parentOptions,
+      selectOptions,
       existingCode: payload.existingCode,
       defaultParentUntilSelector,
     }),
@@ -135,7 +144,7 @@
     }
     return (
       stepPreviewCodeByStepId[activeStep.id] ??
-      buildStepSnippet(activeStep, parentOptions, getStepDefaultParentUntilSelector(activeStep))
+      buildStepSnippet(activeStep, parentOptions, getStepDefaultParentUntilSelector(activeStep), selectOptions)
     );
   });
   const activeParentOption = $derived.by(() => {
@@ -143,6 +152,12 @@
       return null;
     }
     return getParentOption(activeStep);
+  });
+  const activeSelectOption = $derived.by(() => {
+    if (!activeStep || activeStep.kind !== "select-element") {
+      return null;
+    }
+    return getSelectOption(activeStep);
   });
   const activeSelectElementBaseSelector = $derived.by(() => {
     if (!activeStep || activeStep.kind !== "select-element") {
@@ -274,6 +289,17 @@
     saveError = "";
   };
 
+  const updateSelectMode = (step: SupportedRecordStep, mode: SelectElementMode) => {
+    const currentOption = getSelectOption(step);
+    selectOptions = {
+      ...selectOptions,
+      [step.id]: {
+        ...currentOption,
+        mode,
+      },
+    };
+  };
+
   const updateParentMode = (step: SupportedRecordStep, mode: ParentTraversalMode) => {
     const currentOption = getParentOption(step);
     parentOptions = {
@@ -306,7 +332,8 @@
       };
     }
 
-    const hasLocalEdit = nextCode !== buildStepSnippet(step, parentOptions, getStepDefaultParentUntilSelector(step));
+    const hasLocalEdit =
+      nextCode !== buildStepSnippet(step, parentOptions, getStepDefaultParentUntilSelector(step), selectOptions);
     if ((stepPreviewHasLocalEditsByStepId[step.id] ?? false) !== hasLocalEdit) {
       stepPreviewHasLocalEditsByStepId = {
         ...stepPreviewHasLocalEditsByStepId,
@@ -400,18 +427,27 @@
   $effect(() => {
     const stepList = supportedSteps;
     const nextOptions = { ...parentOptions };
+    const nextSelectOptions = { ...selectOptions };
     let hasOptionChanges = false;
+    let hasSelectOptionChanges = false;
 
     stepList.forEach((step) => {
-      if (step.kind !== "select-parent" || nextOptions[step.id]) {
-        return;
+      if (step.kind === "select-parent" && !nextOptions[step.id]) {
+        nextOptions[step.id] = buildDefaultParentTraversalOption(step.count, getStepDefaultParentUntilSelector(step));
+        hasOptionChanges = true;
       }
-      nextOptions[step.id] = buildDefaultParentTraversalOption(step.count, getStepDefaultParentUntilSelector(step));
-      hasOptionChanges = true;
+
+      if (step.kind === "select-element" && !nextSelectOptions[step.id]) {
+        nextSelectOptions[step.id] = buildDefaultSelectElementOption();
+        hasSelectOptionChanges = true;
+      }
     });
 
     if (hasOptionChanges) {
       parentOptions = nextOptions;
+    }
+    if (hasSelectOptionChanges) {
+      selectOptions = nextSelectOptions;
     }
 
     if (activeStepId !== reviewStepId && !stepList.some((step) => step.id === activeStepId)) {
@@ -429,7 +465,7 @@
     const nextPreviewHasLocalEditsByStepId: Record<string, boolean> = {};
 
     supportedSteps.forEach((step) => {
-      const generatedCode = buildStepSnippet(step, parentOptions, getStepDefaultParentUntilSelector(step));
+      const generatedCode = buildStepSnippet(step, parentOptions, getStepDefaultParentUntilSelector(step), selectOptions);
       const hasLocalEdit = stepPreviewHasLocalEditsByStepId[step.id] ?? false;
       nextPreviewHasLocalEditsByStepId[step.id] = hasLocalEdit;
       nextPreviewCodeByStepId[step.id] = hasLocalEdit
@@ -564,7 +600,9 @@
           <ConverterStepPreview
             {activeStep}
             parentOption={activeParentOption}
+            selectOption={activeSelectOption}
             stepPreviewCode={activeStepPreviewCode}
+            onSelectModeChange={updateSelectMode}
             onParentModeChange={updateParentMode}
             onParentCountChange={updateParentCount}
             onStepPreviewCodeChange={updateStepPreviewCode}

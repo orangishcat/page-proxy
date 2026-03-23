@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { buildGeneratedReviewCode } from "./generate";
+import { buildGeneratedReviewCode, type ParentTraversalOptionsByStepId, type SelectElementOptionsByStepId } from "./generate";
 import { normalizeRecordTimeline } from "./normalize";
 
 describe("record converter click support", () => {
@@ -82,97 +82,250 @@ describe("record converter: new step kinds — generate", () => {
   const makeTimeline = (entries: { action: string; detail?: string }[]) =>
     entries.map((e, i) => ({ id: `e${i + 1}`, action: e.action, detail: e.detail ?? "", timestamp: i + 1 }));
 
-  const generate = (entries: { action: string; detail?: string }[]) => {
+  const generate = ({
+    entries,
+    parentOptions = {},
+    selectOptions = {},
+  }: {
+    entries: { action: string; detail?: string }[];
+    parentOptions?: ParentTraversalOptionsByStepId;
+    selectOptions?: SelectElementOptionsByStepId;
+  }) => {
     const { supportedSteps } = normalizeRecordTimeline(makeTimeline(entries));
-    return buildGeneratedReviewCode({ steps: supportedSteps, parentOptions: {}, existingCode: "", defaultParentUntilSelector: "body" });
+    return buildGeneratedReviewCode({
+      steps: supportedSteps,
+      parentOptions,
+      selectOptions,
+      existingCode: "",
+      defaultParentUntilSelector: "body",
+    });
   };
 
   test("cut: combined mode removes element and nulls selectedElement", () => {
-    const code = generate([
-      { action: "Selected element", detail: "selector: .foo" },
-      { action: "Cut element" },
-    ]);
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: .foo" },
+        { action: "Cut element" },
+      ],
+    });
     expect(code.byMode.combined.rawCode).toContain("clipboardHtml");
     expect(code.byMode.combined.rawCode).toContain(".remove()");
     expect(code.byMode.combined.rawCode).toContain("selectedElement = null");
   });
 
   test("cut: functions mode returns [null, clipboardHtml]", () => {
-    const code = generate([
-      { action: "Selected element", detail: "selector: .foo" },
-      { action: "Cut element" },
-    ]);
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: .foo" },
+        { action: "Cut element" },
+      ],
+    });
     expect(code.byMode.functions.rawCode).toContain("clipboardHtml");
     expect(code.byMode.functions.rawCode).toContain(".remove()");
     expect(code.byMode.functions.rawCode).toContain("return [null, clipboardHtml]");
   });
 
   test("copy: combined mode captures outerHTML", () => {
-    const code = generate([
-      { action: "Selected element", detail: "selector: .foo" },
-      { action: "Copied element" },
-    ]);
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: .foo" },
+        { action: "Copied element" },
+      ],
+    });
     expect(code.byMode.combined.rawCode).toContain("clipboardHtml");
     expect(code.byMode.combined.rawCode).toContain("outerHTML");
     expect(code.byMode.combined.rawCode).not.toContain(".remove()");
   });
 
   test("copy: functions mode returns [selectedElement, clipboardHtml]", () => {
-    const code = generate([
-      { action: "Selected element", detail: "selector: .foo" },
-      { action: "Copied element" },
-    ]);
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: .foo" },
+        { action: "Copied element" },
+      ],
+    });
     expect(code.byMode.functions.rawCode).toContain("return [selectedElement, clipboardHtml]");
   });
 
   test("paste: combined mode calls insertAdjacentHTML", () => {
-    const code = generate([
-      { action: "Selected element", detail: "selector: .foo" },
-      { action: "Pasted element" },
-    ]);
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: .foo" },
+        { action: "Pasted element" },
+      ],
+    });
     expect(code.byMode.combined.rawCode).toContain("insertAdjacentHTML");
     expect(code.byMode.combined.rawCode).toContain("clipboardHtml");
   });
 
   test("paste: functions mode accepts clipboardHtml param and returns it", () => {
-    const code = generate([
-      { action: "Selected element", detail: "selector: .foo" },
-      { action: "Pasted element" },
-    ]);
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: .foo" },
+        { action: "Pasted element" },
+      ],
+    });
     expect(code.byMode.functions.rawCode).toContain("clipboardHtml");
     expect(code.byMode.functions.rawCode).toContain("insertAdjacentHTML");
   });
 
   test("apply-style: combined mode emits ps.applyStyle with cssValues", () => {
-    const code = generate([
-      { action: "Selected element", detail: "selector: .foo" },
-      { action: "Applied style", detail: JSON.stringify({ color: "red", "font-size": "14px" }) },
-    ]);
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: .foo" },
+        { action: "Applied style", detail: JSON.stringify({ color: "red", "font-size": "14px" }) },
+      ],
+    });
     expect(code.byMode.combined.rawCode).toContain("ps.applyStyle");
     expect(code.byMode.combined.rawCode).toContain('"color"');
     expect(code.byMode.combined.rawCode).toContain('"red"');
   });
 
   test("apply-style: functions mode emits ps.applyStyle and returns selectedElement", () => {
-    const code = generate([
-      { action: "Selected element", detail: "selector: .foo" },
-      { action: "Applied style", detail: JSON.stringify({ color: "red" }) },
-    ]);
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: .foo" },
+        { action: "Applied style", detail: JSON.stringify({ color: "red" }) },
+      ],
+    });
     expect(code.byMode.functions.rawCode).toContain("ps.applyStyle");
     expect(code.byMode.functions.rawCode).toContain("return [selectedElement]");
   });
 
   test("clipboardHtml chains: select → copy → select → paste → paste", () => {
-    const code = generate([
-      { action: "Selected element", detail: "selector: .a" },
-      { action: "Copied element" },
-      { action: "Selected element", detail: "selector: .b" },
-      { action: "Pasted element" },
-      { action: "Selected element", detail: "selector: .c" },
-      { action: "Pasted element" },
-    ]);
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: .a" },
+        { action: "Copied element" },
+        { action: "Selected element", detail: "selector: .b" },
+        { action: "Pasted element" },
+        { action: "Selected element", detail: "selector: .c" },
+        { action: "Pasted element" },
+      ],
+    });
     const fnCode = code.byMode.functions.rawCode;
     expect(fnCode.match(/insertAdjacentHTML/g)?.length).toBe(2);
     expect(fnCode).toContain("clipboardHtml");
+  });
+
+  test("combined mode does not seed selectedElement before the first step", () => {
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: .foo" },
+        { action: "Clicked element" },
+      ],
+      selectOptions: {
+        "step-1": {
+          mode: "wait-until-match",
+        },
+      },
+    });
+
+    expect(code.byMode.combined.rawCode).not.toContain("let selectedElement = null");
+    expect(code.byMode.combined.rawCode).toContain("let selectedElement = await selector1.waitUntilMatch()");
+    expect(code.byMode.combined.rawCode).not.toContain("\n\n");
+  });
+
+  test("default select mode uses onElementMatches", () => {
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: .foo" },
+        { action: "Clicked element" },
+      ],
+    });
+
+    expect(code.byMode.combined.rawCode).toContain("selector1.onElementMatches(async (selectedElement) => {");
+    expect(code.byMode.combined.rawCode).not.toContain("await selector1.waitUntilMatch()");
+  });
+
+  test("select observer mode wraps the remaining steps in combined mode", () => {
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: .foo" },
+        { action: "Copied element" },
+        { action: "Selected element", detail: "selector: .bar" },
+        { action: "Pasted element" },
+      ],
+      selectOptions: {
+        "step-1": {
+          mode: "on-element-matches",
+        },
+      },
+    });
+
+    expect(code.byMode.combined.rawCode).toContain("selector1.onElementMatches(async (selectedElement) => {");
+    expect(code.byMode.combined.rawCode).not.toContain("let selectedElement = matchedElement");
+    expect(code.byMode.combined.rawCode).toContain('selectedElement.insertAdjacentHTML("afterend", clipboardHtml)');
+    expect(code.byMode.combined.rawCode).not.toContain("await selector1.waitUntilMatch()");
+  });
+
+  test("select observer mode keeps step helpers and emits a suffix runner in functions mode", () => {
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: .foo" },
+        { action: "Clicked element" },
+      ],
+      selectOptions: {
+        "step-1": {
+          mode: "on-element-matches",
+        },
+      },
+    });
+
+    expect(code.byMode.functions.rawCode).toContain("async function step1()");
+    expect(code.byMode.functions.rawCode).toContain("async function step2(selectedElement)");
+    expect(code.byMode.functions.rawCode).toContain("async function runAfterStep1(selectedElement)");
+    expect(code.byMode.functions.rawCode).toContain("selector.onElementMatches((selectedElement) => {");
+    expect(code.byMode.functions.rawCode).toContain("void runAfterStep1(selectedElement)");
+  });
+
+  test("parent selector re-select mode uses pq.selector instead of traversal", () => {
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: .child" },
+        { action: "Selected parent element", detail: "selector: .parent" },
+        { action: "Deleted element" },
+      ],
+      parentOptions: {
+        "step-2": {
+          mode: "selector-reselect",
+          untilSelector: ".parent",
+          count: 1,
+        },
+      },
+    });
+
+    expect(code.byMode.combined.rawCode).toContain("const selector2 = pq.selector({");
+    expect(code.byMode.combined.rawCode).toContain('baseSelector: ".parent"');
+    expect(code.byMode.combined.rawCode).toContain("selector2.onElementMatches(async (selectedElement) => {");
+    expect(code.byMode.combined.rawCode).not.toContain("await selector2.waitUntilMatch()");
+    expect(code.byMode.combined.rawCode).not.toContain("pq.traverseParents");
+  });
+
+  test("mixed chains keep observer selection and parent selector re-select behavior", () => {
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: .card" },
+        { action: "Selected parent element", detail: "selector: .list" },
+        { action: "Deleted element" },
+      ],
+      selectOptions: {
+        "step-1": {
+          mode: "on-element-matches",
+        },
+      },
+      parentOptions: {
+        "step-2": {
+          mode: "selector-reselect",
+          untilSelector: ".list",
+          count: 1,
+        },
+      },
+    });
+
+    expect(code.byMode.combined.rawCode).toContain("selector1.onElementMatches(async (selectedElement) => {");
+    expect(code.byMode.combined.rawCode).toContain("const selector2 = pq.selector({");
+    expect(code.byMode.combined.rawCode).toContain("selector2.onElementMatches(async (selectedElement) => {");
+    expect(code.byMode.combined.rawCode).toContain("selectedElement.remove()");
   });
 });

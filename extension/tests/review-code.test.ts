@@ -43,6 +43,11 @@ describe("buildReviewCodeFromStepPreviews", () => {
           "}",
         ].join("\n"),
       },
+      selectOptions: {
+        "step-1": {
+          mode: "wait-until-match",
+        },
+      },
       existingCode: "",
     });
 
@@ -86,5 +91,142 @@ describe("buildReviewCodeFromStepPreviews", () => {
     expect(generated.byMode.combined.rawCode).toContain("selectedElement ? selectedElement.innerHTML : null");
     expect(generated.byMode.combined.rawCode).toContain('selectedElement.insertAdjacentHTML("beforeend", clipboardHtml)');
     expect(generated.byMode.combined.rawCode).not.toContain("return [selectedElement, clipboardHtml]");
+  });
+
+  test("combined review mode does not inject a top-level selectedElement seed", () => {
+    const { supportedSteps } = normalizeRecordTimeline(
+      buildTimeline([
+        { action: "Selected element", detail: "selector: .original" },
+        { action: "Clicked element" },
+      ]),
+    );
+
+    const generated = buildReviewCodeFromStepPreviews({
+      steps: supportedSteps,
+      selectOptions: {
+        "step-1": {
+          mode: "wait-until-match",
+        },
+      },
+      existingCode: "",
+    });
+
+    expect(generated.byMode.combined.rawCode).not.toContain("let selectedElement = null");
+    expect(generated.byMode.combined.rawCode).toContain("let selectedElement = await selector.waitUntilMatch()");
+    expect(generated.byMode.combined.rawCode).not.toContain("\n\n");
+  });
+
+  test("combined review mode wraps edited later steps inside onElementMatches when configured", () => {
+    const { supportedSteps } = normalizeRecordTimeline(
+      buildTimeline([
+        { action: "Selected element", detail: "selector: .original" },
+        { action: "Copied element" },
+        { action: "Selected element", detail: "selector: .target" },
+        { action: "Pasted element" },
+      ]),
+    );
+
+    const generated = buildReviewCodeFromStepPreviews({
+      steps: supportedSteps,
+      stepCodeByStepId: {
+        "step-2": [
+          "async function step2(selectedElement) {",
+          "  const clipboardHtml = selectedElement ? selectedElement.innerHTML : null",
+          "  return [selectedElement, clipboardHtml]",
+          "}",
+        ].join("\n"),
+        "step-4": [
+          "async function step4(selectedElement, clipboardHtml) {",
+          "  if (selectedElement && clipboardHtml) {",
+          '    selectedElement.insertAdjacentHTML("beforeend", clipboardHtml)',
+          "  }",
+          "  return [selectedElement, clipboardHtml]",
+          "}",
+        ].join("\n"),
+      },
+      selectOptions: {
+        "step-1": {
+          mode: "on-element-matches",
+        },
+      },
+      existingCode: "",
+    });
+
+    expect(generated.byMode.combined.rawCode).toContain("selector.onElementMatches(async (selectedElement) => {");
+    expect(generated.byMode.combined.rawCode).not.toContain("let selectedElement = matchedElement");
+    expect(generated.byMode.combined.rawCode).toContain("selectedElement ? selectedElement.innerHTML : null");
+    expect(generated.byMode.combined.rawCode).toContain('selectedElement.insertAdjacentHTML("beforeend", clipboardHtml)');
+  });
+
+  test("combined review mode defaults select steps to onElementMatches", () => {
+    const { supportedSteps } = normalizeRecordTimeline(
+      buildTimeline([
+        { action: "Selected element", detail: "selector: .original" },
+        { action: "Clicked element" },
+      ]),
+    );
+
+    const generated = buildReviewCodeFromStepPreviews({
+      steps: supportedSteps,
+      existingCode: "",
+    });
+
+    expect(generated.byMode.combined.rawCode).toContain("selector.onElementMatches(async (selectedElement) => {");
+    expect(generated.byMode.combined.rawCode).not.toContain("await selector.waitUntilMatch()");
+  });
+
+  test("combined review mode collapses blank lines from edited step snippets", () => {
+    const { supportedSteps } = normalizeRecordTimeline(
+      buildTimeline([
+        { action: "Selected element", detail: "selector: .original" },
+        { action: "Clicked element" },
+      ]),
+    );
+
+    const generated = buildReviewCodeFromStepPreviews({
+      steps: supportedSteps,
+      stepCodeByStepId: {
+        "step-1": [
+          "async function step1() {",
+          "",
+          "  const selector = pq.selector({",
+          "",
+          '    name: "Selector 1",',
+          "",
+          '    baseSelector: ".original",',
+          "",
+          "    matches: e => true",
+          "",
+          "  })",
+          "",
+          "  let selectedElement = await selector.waitUntilMatch()",
+          "",
+          "  return [selectedElement]",
+          "}",
+        ].join("\n"),
+      },
+      existingCode: "",
+    });
+
+    expect(generated.byMode.combined.rawCode).not.toContain("\n\n");
+  });
+
+  test("combined review mode reassigns selectedElement from parent traversal outputs", () => {
+    const { supportedSteps } = normalizeRecordTimeline(
+      buildTimeline([
+        { action: "Selected element", detail: "selector: .child" },
+        { action: "Selected parent element", detail: "selector: .parent" },
+        { action: "Deleted element" },
+      ]),
+    );
+
+    const generated = buildReviewCodeFromStepPreviews({
+      steps: supportedSteps,
+      existingCode: "",
+    });
+
+    expect(generated.byMode.combined.rawCode).toContain("const nextSelectedElement = selectedElement");
+    expect(generated.byMode.combined.rawCode).toContain("selectedElement = nextSelectedElement");
+    expect(generated.byMode.combined.rawCode).toContain("selectedElement.remove()");
   });
 });
