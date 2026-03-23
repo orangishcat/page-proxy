@@ -1,15 +1,6 @@
 import type { SupportedRecordStep } from "../../normalize";
-import type {
-  BuiltStepCode,
-  CombinedLinesContext,
-  CombinedLinesResult,
-  CombinedObserverContext,
-  FunctionCodeContext,
-  ModeImpl,
-  SelectElementMode,
-  SelectElementOption,
-  StepGenerator,
-} from "../types";
+import type { ModeImpl, SelectElementMode, SelectElementOption } from "../types";
+import { ModeBasedStep } from "../types";
 import {
   buildRunnerFunctionName,
   buildSelectorLines,
@@ -125,37 +116,8 @@ const modeImpls: Record<SelectElementMode, ModeImpl> = {
   },
 };
 
-export class SelectElementStep implements StepGenerator {
-  private readonly impl: ModeImpl;
-
-  constructor(
-    private step: SupportedRecordStep,
-    option: SelectElementOption,
-  ) {
-    this.impl = modeImpls[option.mode];
-  }
-
-  buildFunctionCode(ctx: FunctionCodeContext): BuiltStepCode {
-    return this.impl.buildFunctionCode(this.step, ctx);
-  }
-
-  buildCombinedLines(ctx: CombinedLinesContext): CombinedLinesResult {
-    return this.impl.buildCombinedLines(this.step, ctx);
-  }
-
-  buildCombinedObserverLines(ctx: CombinedObserverContext): string[] {
-    return this.impl.buildCombinedObserverLines!(this.step, ctx);
-  }
-
-  getOutputNames(inputNames: string[]): string[] {
-    return this.impl.getOutputNames(this.step, inputNames);
-  }
-
-  isObserverBoundary(): boolean {
-    return this.impl.isObserverBoundary;
-  }
-
-  describe(): string {
-    return this.impl.describe(this.step);
+export class SelectElementStep extends ModeBasedStep {
+  constructor(step: SupportedRecordStep, option: SelectElementOption) {
+    super(step, modeImpls[option.mode]);
   }
 }

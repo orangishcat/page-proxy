@@ -82,11 +82,42 @@ export interface StepGenerator {
   describe(): string;
 }
 
-export type ModeImpl<TStep extends SupportedRecordStep = SupportedRecordStep> = {
-  buildFunctionCode(step: TStep, ctx: FunctionCodeContext): BuiltStepCode;
-  buildCombinedLines(step: TStep, ctx: CombinedLinesContext): CombinedLinesResult;
-  buildCombinedObserverLines?(step: TStep, ctx: CombinedObserverContext): string[];
-  getOutputNames(step: TStep, inputNames: string[]): string[];
+export type ModeImpl = {
+  buildFunctionCode(step: SupportedRecordStep, ctx: FunctionCodeContext): BuiltStepCode;
+  buildCombinedLines(step: SupportedRecordStep, ctx: CombinedLinesContext): CombinedLinesResult;
+  buildCombinedObserverLines?(step: SupportedRecordStep, ctx: CombinedObserverContext): string[];
+  getOutputNames(step: SupportedRecordStep, inputNames: string[]): string[];
   isObserverBoundary: boolean;
-  describe(step: TStep): string;
+  describe(step: SupportedRecordStep): string;
 };
+
+export class ModeBasedStep implements StepGenerator {
+  constructor(
+    private readonly step: SupportedRecordStep,
+    private readonly impl: ModeImpl,
+  ) {}
+
+  buildFunctionCode(ctx: FunctionCodeContext): BuiltStepCode {
+    return this.impl.buildFunctionCode(this.step, ctx);
+  }
+
+  buildCombinedLines(ctx: CombinedLinesContext): CombinedLinesResult {
+    return this.impl.buildCombinedLines(this.step, ctx);
+  }
+
+  buildCombinedObserverLines(ctx: CombinedObserverContext): string[] {
+    return this.impl.buildCombinedObserverLines!(this.step, ctx);
+  }
+
+  getOutputNames(inputNames: string[]): string[] {
+    return this.impl.getOutputNames(this.step, inputNames);
+  }
+
+  isObserverBoundary(): boolean {
+    return this.impl.isObserverBoundary;
+  }
+
+  describe(): string {
+    return this.impl.describe(this.step);
+  }
+}

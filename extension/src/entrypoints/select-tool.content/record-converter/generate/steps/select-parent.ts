@@ -1,14 +1,6 @@
 import type { SupportedRecordStep } from "../../normalize";
-import type {
-  BuiltStepCode,
-  CombinedLinesContext,
-  CombinedLinesResult,
-  CombinedObserverContext,
-  FunctionCodeContext,
-  ParentTraversalMode,
-  ParentTraversalOption,
-  StepGenerator,
-} from "../types";
+import type { ModeImpl, ParentTraversalMode, ParentTraversalOption } from "../types";
+import { ModeBasedStep } from "../types";
 import {
   buildRunnerFunctionName,
   buildSelectorLines,
@@ -21,20 +13,11 @@ import {
   toNextSelectedElementName,
 } from "../utils";
 
-type ParentModeImpl = {
-  isObserverBoundary: boolean;
-  buildFunctionCode(step: SupportedRecordStep, option: ParentTraversalOption, ctx: FunctionCodeContext): BuiltStepCode;
-  buildCombinedLines(step: SupportedRecordStep, option: ParentTraversalOption, ctx: CombinedLinesContext): CombinedLinesResult;
-  buildCombinedObserverLines?(step: SupportedRecordStep, option: ParentTraversalOption, ctx: CombinedObserverContext): string[];
-  getOutputNames(inputNames: string[]): string[];
-  describe(option: ParentTraversalOption): string;
-};
-
-const modeImpls: Record<ParentTraversalMode, ParentModeImpl> = {
-  "traverse-until": {
+const modeImpls: Record<ParentTraversalMode, (option: ParentTraversalOption) => ModeImpl> = {
+  "traverse-until": (option) => ({
     isObserverBoundary: false,
 
-    buildFunctionCode(_step, option, { functionName, inputNames, stepNumber }) {
+    buildFunctionCode(_step, { functionName, inputNames, stepNumber }) {
       const untilSelector = normalizeUntilSelector(option.untilSelector);
       const selectedElementInput = inputNames.includes(stepInputOutputName) ? stepInputOutputName : "null";
       const nextElementName = toNextSelectedElementName();
@@ -64,7 +47,7 @@ const modeImpls: Record<ParentTraversalMode, ParentModeImpl> = {
       };
     },
 
-    buildCombinedLines(_step, option, { stepNumber, state }) {
+    buildCombinedLines(_step, { stepNumber, state }) {
       const untilSelector = normalizeUntilSelector(option.untilSelector);
       return {
         lines: [
@@ -82,19 +65,19 @@ const modeImpls: Record<ParentTraversalMode, ParentModeImpl> = {
       };
     },
 
-    getOutputNames(inputNames) {
+    getOutputNames(_step, inputNames) {
       return [stepInputOutputName, ...getPassthroughExtras(inputNames, stepInputOutputName)];
     },
 
-    describe(option) {
+    describe() {
       return `Select parent element: Traverse until (${normalizeUntilSelector(option.untilSelector)})`;
     },
-  },
+  }),
 
-  "traverse-n-times": {
+  "traverse-n-times": (option) => ({
     isObserverBoundary: false,
 
-    buildFunctionCode(_step, option, { functionName, inputNames }) {
+    buildFunctionCode(_step, { functionName, inputNames }) {
       const count = normalizeTraversalCount(option.count);
       const nextElementName = toNextSelectedElementName();
       const selectedElementInput = inputNames.includes(stepInputOutputName) ? stepInputOutputName : "null";
@@ -125,7 +108,7 @@ const modeImpls: Record<ParentTraversalMode, ParentModeImpl> = {
       };
     },
 
-    buildCombinedLines(_step, option, { stepNumber, state }) {
+    buildCombinedLines(_step, { stepNumber, state }) {
       const count = normalizeTraversalCount(option.count);
       return {
         lines: [
@@ -144,19 +127,19 @@ const modeImpls: Record<ParentTraversalMode, ParentModeImpl> = {
       };
     },
 
-    getOutputNames(inputNames) {
+    getOutputNames(_step, inputNames) {
       return [stepInputOutputName, ...getPassthroughExtras(inputNames, stepInputOutputName)];
     },
 
-    describe(option) {
+    describe() {
       return `Select parent element: Traverse n times (${normalizeTraversalCount(option.count)})`;
     },
-  },
+  }),
 
-  "selector-reselect": {
+  "selector-reselect": (option) => ({
     isObserverBoundary: true,
 
-    buildFunctionCode(_step, option, { functionName, inputNames, stepNumber }) {
+    buildFunctionCode(_step, { functionName, inputNames, stepNumber }) {
       const selectorValue = normalizeUntilSelector(option.untilSelector);
       const extras = getPassthroughExtras(inputNames, stepInputOutputName);
       const runnerName = buildRunnerFunctionName(stepNumber);
@@ -179,11 +162,11 @@ const modeImpls: Record<ParentTraversalMode, ParentModeImpl> = {
       };
     },
 
-    buildCombinedLines(_step, _option, { state }) {
+    buildCombinedLines(_step, { state }) {
       return { lines: [], state };
     },
 
-    buildCombinedObserverLines(_step, option, { stepNumber, callbackLines }) {
+    buildCombinedObserverLines(_step, { stepNumber, callbackLines }) {
       return [
         ...buildSelectorLines({
           selectorName: `selector${stepNumber}`,
@@ -196,47 +179,18 @@ const modeImpls: Record<ParentTraversalMode, ParentModeImpl> = {
       ];
     },
 
-    getOutputNames(inputNames) {
+    getOutputNames(_step, inputNames) {
       return [stepInputOutputName, ...getPassthroughExtras(inputNames, stepInputOutputName)];
     },
 
-    describe(option) {
+    describe() {
       return `Select parent element: Selector re-select (${normalizeUntilSelector(option.untilSelector)})`;
     },
-  },
+  }),
 };
 
-export class SelectParentStep implements StepGenerator {
-  private readonly impl: ParentModeImpl;
-
-  constructor(
-    private step: SupportedRecordStep,
-    private option: ParentTraversalOption,
-  ) {
-    this.impl = modeImpls[option.mode];
-  }
-
-  buildFunctionCode(ctx: FunctionCodeContext): BuiltStepCode {
-    return this.impl.buildFunctionCode(this.step, this.option, ctx);
-  }
-
-  buildCombinedLines(ctx: CombinedLinesContext): CombinedLinesResult {
-    return this.impl.buildCombinedLines(this.step, this.option, ctx);
-  }
-
-  buildCombinedObserverLines(ctx: CombinedObserverContext): string[] {
-    return this.impl.buildCombinedObserverLines!(this.step, this.option, ctx);
-  }
-
-  getOutputNames(inputNames: string[]): string[] {
-    return this.impl.getOutputNames(inputNames);
-  }
-
-  isObserverBoundary(): boolean {
-    return this.impl.isObserverBoundary;
-  }
-
-  describe(): string {
-    return this.impl.describe(this.option);
+export class SelectParentStep extends ModeBasedStep {
+  constructor(step: SupportedRecordStep, option: ParentTraversalOption) {
+    super(step, modeImpls[option.mode](option));
   }
 }
