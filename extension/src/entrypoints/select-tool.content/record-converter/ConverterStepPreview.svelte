@@ -2,13 +2,20 @@
   import { onDestroy } from "svelte";
 
   import { createMonacoEditor, type MonacoCodeEditorHandle, updateMonacoEditorValue } from "@/lib/code-editor";
-  import type { ParentTraversalMode, ParentTraversalOption } from "./generate";
+  import type {
+    ParentTraversalMode,
+    ParentTraversalOption,
+    SelectElementMode,
+    SelectElementOption,
+  } from "./generate";
   import type { SupportedRecordStep } from "./normalize";
 
   type Props = {
     activeStep: SupportedRecordStep | null;
     parentOption: ParentTraversalOption | null;
+    selectOption: SelectElementOption | null;
     stepPreviewCode: string;
+    onSelectModeChange: (step: SupportedRecordStep, mode: SelectElementMode) => void;
     onParentModeChange: (step: SupportedRecordStep, mode: ParentTraversalMode) => void;
     onParentCountChange: (step: SupportedRecordStep, nextCount: string) => void;
     onStepPreviewCodeChange: (step: SupportedRecordStep, nextCode: string) => void;
@@ -17,7 +24,9 @@
   let {
     activeStep,
     parentOption,
+    selectOption,
     stepPreviewCode,
+    onSelectModeChange,
     onParentModeChange,
     onParentCountChange,
     onStepPreviewCodeChange,
@@ -41,6 +50,18 @@
     if (kind === "delete-element") {
       return "Delete element";
     }
+    if (kind === "cut-element") {
+      return "Cut element";
+    }
+    if (kind === "copy-element") {
+      return "Copy element";
+    }
+    if (kind === "paste-element") {
+      return "Paste element";
+    }
+    if (kind === "apply-style-element") {
+      return "Apply style";
+    }
     return "Select parent element";
   };
 
@@ -53,6 +74,18 @@
     }
     if (kind === "delete-element") {
       return "Review this step before removing the currently selected element from the page.";
+    }
+    if (kind === "cut-element") {
+      return "Review this step before removing the selected element and storing its HTML in the clipboard variable.";
+    }
+    if (kind === "copy-element") {
+      return "Review this step before copying the selected element HTML into the clipboard variable.";
+    }
+    if (kind === "paste-element") {
+      return "Review this step before inserting the clipboard HTML after the selected element.";
+    }
+    if (kind === "apply-style-element") {
+      return "Review this step before applying the recorded CSS declarations to the selected element.";
     }
     return "Choose how to traverse to a parent element so we can target the correct container.";
   };
@@ -135,6 +168,30 @@
     <div class="shrink-0 border-b border-gray-700 px-4 py-3">
       <h3 class="text-lead">{stepTitle}</h3>
       <p class="mt-1 text-caption text-gray-300">{stepDescription}</p>
+      {#if activeStep.kind === "select-element" && selectOption}
+        <div class="mt-3 flex flex-wrap items-center gap-3">
+          <div class="inline-flex rounded-lg border border-gray-600 bg-gray-900 p-1">
+            <button
+              type="button"
+              class={`rounded-md px-3 py-1 text-caption transition ${
+                selectOption.mode === "wait-until-match" ? "bg-gray-700 text-white" : "text-gray-300 hover:text-white"
+              }`}
+              onclick={() => onSelectModeChange(activeStep, "wait-until-match")}
+            >
+              Wait until match
+            </button>
+            <button
+              type="button"
+              class={`rounded-md px-3 py-1 text-caption transition ${
+                selectOption.mode === "on-element-matches" ? "bg-gray-700 text-white" : "text-gray-300 hover:text-white"
+              }`}
+              onclick={() => onSelectModeChange(activeStep, "on-element-matches")}
+            >
+              On element matches
+            </button>
+          </div>
+        </div>
+      {/if}
       {#if activeStep.kind === "select-parent" && parentOption}
         <div class="mt-3 flex flex-wrap items-center gap-3">
           <div class="inline-flex rounded-lg border border-gray-600 bg-gray-900 p-1">
@@ -155,6 +212,15 @@
               onclick={() => onParentModeChange(activeStep, "traverse-n-times")}
             >
               Traverse n times
+            </button>
+            <button
+              type="button"
+              class={`rounded-md px-3 py-1 text-caption transition ${
+                parentOption.mode === "selector-reselect" ? "bg-gray-700 text-white" : "text-gray-300 hover:text-white"
+              }`}
+              onclick={() => onParentModeChange(activeStep, "selector-reselect")}
+            >
+              Selector re-select
             </button>
           </div>
 
