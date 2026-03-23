@@ -1,9 +1,10 @@
 import { get } from "svelte/store";
 import type { ScriptGrantValue } from "@/lib/grants";
+import { defaultBlankScriptTitle } from "@/lib/script-names";
 import type { ToolId } from "../state-storage";
 import { saveState } from "./save";
 import { selectorEntries } from "./state";
-import { removeStoredToolState } from "../state-storage";
+import { removeStoredToolState, resolveBlankScriptName } from "../state-storage";
 import {
   buildDefaultScript,
   ensureDefineBlock,
@@ -91,7 +92,8 @@ export const resetScriptToDefault = async (deps: EditorActionsDeps): Promise<voi
     });
   }
 
-  const defaultContent = buildDefaultScript(websiteGlob, deps.scriptFormatConfig);
+  const defaultScriptName = await resolveBlankScriptName(defaultBlankScriptTitle, scriptNamesToRemove);
+  const defaultContent = buildDefaultScript(websiteGlob, deps.scriptFormatConfig, defaultScriptName);
   const normalizedContent = ensureWebsiteMetadata(ensureDefineBlock(defaultContent, deps.scriptFormatConfig), websiteGlob);
   deps.tabState.activeWebsiteGlob = websiteGlob || null;
   deps.tabState.activeScriptName = null;

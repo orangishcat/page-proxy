@@ -1,3 +1,4 @@
+import { defaultBlankScriptTitle } from "@/lib/script-names";
 import { parseScriptMetadata } from "@/lib/utils/script-metadata";
 import type { ScriptGrantValue } from "@/lib/grants";
 import { matchWebsiteGlob } from "@/lib/utils/website-glob";
@@ -9,6 +10,7 @@ import {
   type ScriptFormatConfig,
 } from "../state-loading";
 import {
+  hasStoredScriptNameConflict,
   removeStoredToolState,
   saveStoredToolState,
   type StoredSelectorEntry,
@@ -50,7 +52,8 @@ export const saveState = async (options: SaveStateOptions) => {
     throw new Error(error instanceof Error ? error.message : "Invalid script metadata or selector block.");
   }
 
-  const scriptName = metadata.title.trim() || "Page Proxy";
+  const scriptName = metadata.title.trim() || defaultBlankScriptTitle;
+  const activeScriptName = options.activeScriptName?.trim() ?? "";
   let websiteGlob: string;
   try {
     websiteGlob = resolveWebsiteGlob(normalizedContent, options.activeTabUrl, options.activeWebsiteGlob);
@@ -74,10 +77,14 @@ export const saveState = async (options: SaveStateOptions) => {
     throw new Error(`Website glob "${websiteGlob}" does not match the current website (${options.activeTabUrl}).`);
   }
 
+  if (await hasStoredScriptNameConflict(scriptName, activeScriptName ? [activeScriptName] : [])) {
+    throw new Error(`A script named "${scriptName}" already exists.`);
+  }
+
   const contentWithWebsite = ensureWebsiteMetadata(normalizedContent, websiteGlob);
 
-  if (options.activeScriptName && options.activeScriptName !== scriptName) {
-    await removeStoredToolState(options.activeScriptName).catch(() => {
+  if (activeScriptName && activeScriptName !== scriptName) {
+    await removeStoredToolState(activeScriptName).catch(() => {
       throw new Error("Unable to save script state to extension storage.");
     });
   }

@@ -1,4 +1,5 @@
 import { browser } from "wxt/browser";
+import { buildAutoNumberedScriptName, matchesScriptName } from "@/lib/script-names";
 import {
   coerceStoredToolState,
   findBestMatchingWebsiteGlob,
@@ -62,6 +63,39 @@ export const listStoredToolStates = async () => {
   });
 
   return Array.from(dedupedStates.values());
+};
+
+export const listStoredScriptNames = async () =>
+  (await listStoredToolStates()).map((entry) => entry.scriptName);
+
+export const resolveBlankScriptName = async (
+  baseScriptName: string,
+  excludedScriptNames: readonly string[] = [],
+) => {
+  const storedScriptNames = await listStoredScriptNames();
+  const filteredStoredScriptNames = storedScriptNames.filter(
+    (scriptName) => !excludedScriptNames.some((excludedScriptName) => matchesScriptName(scriptName, excludedScriptName)),
+  );
+  return buildAutoNumberedScriptName(baseScriptName, filteredStoredScriptNames);
+};
+
+export const hasStoredScriptNameConflict = async (
+  scriptName: string,
+  excludedScriptNames: readonly string[] = [],
+) => {
+  const normalizedScriptName = scriptName.trim();
+  if (!normalizedScriptName) {
+    return false;
+  }
+
+  const storedScriptNames = await listStoredScriptNames();
+  return storedScriptNames.some((storedScriptName) => {
+    if (!matchesScriptName(storedScriptName, normalizedScriptName)) {
+      return false;
+    }
+
+    return !excludedScriptNames.some((excludedScriptName) => matchesScriptName(storedScriptName, excludedScriptName));
+  });
 };
 
 export const saveStoredToolState = async (state: StoredToolState) => {

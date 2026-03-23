@@ -120,7 +120,9 @@ const ensureDefineBlock = (content: string) => {
 const normalizeContentForStorage = (content: string) => ensureDefineBlock(content);
 
 const isDefaultScriptState = (state: StoredToolState) => {
-  const defaultContent = normalizeContentForStorage(buildDefaultScript(state.websiteGlob, defaultScriptConfig));
+  const defaultContent = normalizeContentForStorage(
+    buildDefaultScript(state.websiteGlob, defaultScriptConfig, state.scriptName),
+  );
   return state.codeEditor.content === defaultContent;
 };
 
