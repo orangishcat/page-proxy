@@ -1,8 +1,13 @@
 name: Web Tests
 
 on:
-  pull_request:
   push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   web-e2e:
