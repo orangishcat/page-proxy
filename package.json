@@ -12,6 +12,7 @@
   "scripts": {
     "postinstall": "bun run --cwd extension prepare",
     "check": "bun run --cwd web check && bun run --cwd extension check",
+    "lint": "bun run --cwd web lint && bun run --cwd extension lint",
     "test:unit": "bun run --cwd web test && bun run --cwd extension test && bun run --cwd packages/pp test",
     "web:dev": "bun run --cwd web dev",
     "web:build": "bun run --cwd web build",
