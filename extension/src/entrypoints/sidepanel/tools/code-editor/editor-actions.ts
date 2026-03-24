@@ -5,6 +5,7 @@ import type { ToolId } from "../state-storage";
 import { saveState } from "./save";
 import { selectorEntries } from "./state";
 import { removeStoredToolState, resolveBlankScriptName } from "../state-storage";
+import { clearSelectedScriptForHostname, writeSelectedScriptForHostname } from "../script-selection-session";
 import {
   buildDefaultScript,
   ensureDefineBlock,
@@ -33,12 +34,27 @@ export type EditorActionsDeps = {
   updateEditorContent: (content: string, opts?: { persist?: boolean }) => void;
 };
 
+const getHostnameFromUrl = (url: string | null) => {
+  if (!url) {
+    return "";
+  }
+
+  try {
+    return new URL(url).hostname.trim().toLowerCase();
+  } catch {
+    return "";
+  }
+};
+
 const shouldClearErrorOnSuccessfulSave = (message: EditorMessage): boolean => {
   if (!message || message.status !== "error") return false;
   return message.text === unsavedTabSwitchWarning || message.text.startsWith(saveFailurePrefix);
 };
 
 export const saveToolState = async (content: string, deps: EditorActionsDeps): Promise<void> => {
+  const previousActiveScriptName = deps.tabState.activeScriptName?.trim() ?? "";
+  const previousDefaultScriptName = deps.tabState.defaultScriptName?.trim() ?? "";
+
   try {
     await saveState({
       content,
@@ -54,6 +70,24 @@ export const saveToolState = async (content: string, deps: EditorActionsDeps): P
       setActiveWebsiteGlob: (v) => { deps.tabState.activeWebsiteGlob = v; },
       setActiveScriptName: (v) => { deps.tabState.activeScriptName = v; },
     });
+    const nextActiveScriptName = deps.tabState.activeScriptName?.trim() ?? "";
+    if (previousActiveScriptName && nextActiveScriptName && previousActiveScriptName !== nextActiveScriptName) {
+      deps.tabState.availableScriptOptions = deps.tabState.availableScriptOptions.map((option) =>
+        option.scriptName === previousActiveScriptName
+          ? { ...option, scriptName: nextActiveScriptName }
+          : option);
+
+      if (previousDefaultScriptName === previousActiveScriptName) {
+        deps.tabState.defaultScriptName = nextActiveScriptName;
+      }
+
+      const hostname = getHostnameFromUrl(deps.tabState.activeTabUrl);
+      const wasNonDefaultSelection =
+        previousDefaultScriptName.length > 0 && previousDefaultScriptName !== previousActiveScriptName;
+      if (hostname && wasNonDefaultSelection) {
+        await writeSelectedScriptForHostname(hostname, nextActiveScriptName);
+      }
+    }
     deps.setHasUnsavedChanges(false);
     const shouldRefreshPendingTab = deps.autosaveOnSaveSuccess();
     if (shouldClearErrorOnSuccessfulSave(deps.getEditorMessage())) {
@@ -92,11 +126,18 @@ export const resetScriptToDefault = async (deps: EditorActionsDeps): Promise<voi
     });
   }
 
+  const hostname = getHostnameFromUrl(deps.tabState.activeTabUrl);
+  if (hostname && activeScript && deps.tabState.defaultScriptName && activeScript !== deps.tabState.defaultScriptName) {
+    await clearSelectedScriptForHostname(hostname);
+  }
+
   const defaultScriptName = await resolveBlankScriptName(defaultBlankScriptTitle, scriptNamesToRemove);
   const defaultContent = buildDefaultScript(websiteGlob, deps.scriptFormatConfig, defaultScriptName);
   const normalizedContent = ensureWebsiteMetadata(ensureDefineBlock(defaultContent, deps.scriptFormatConfig), websiteGlob);
   deps.tabState.activeWebsiteGlob = websiteGlob || null;
   deps.tabState.activeScriptName = null;
+  deps.tabState.defaultScriptName = null;
+  deps.tabState.availableScriptOptions = [];
   deps.updateEditorContent(normalizedContent, { persist: false });
   deps.setEditorMessage(null, "error");
 };

@@ -35,7 +35,7 @@ export {
   saveUserscriptReloadBannerDismissedSetting,
 } from "./storage/banners";
 
-type StoredStateMatch = {
+export type StoredStateMatch = {
   scriptName: string;
   matchedWebsiteGlob: string;
   state: StoredToolState;
@@ -114,7 +114,7 @@ export const removeStoredToolState = async (scriptName: string) => {
   await browser.storage.local.remove(toStorageKey(normalized));
 };
 
-export const findStoredToolStateForUrl = async (url: string) => {
+export const findStoredToolStatesForUrl = async (url: string) => {
   const states = await listStoredToolStates();
   const matches: StoredStateMatch[] = [];
 
@@ -132,14 +132,14 @@ export const findStoredToolStateForUrl = async (url: string) => {
     });
   });
 
-  return (
-    matches.sort((left, right) => {
-      const byGlobLength = right.matchedWebsiteGlob.length - left.matchedWebsiteGlob.length;
-      if (byGlobLength !== 0) {
-        return byGlobLength;
-      }
+  return matches.sort((left, right) => {
+    const byGlobLength = right.matchedWebsiteGlob.length - left.matchedWebsiteGlob.length;
+    if (byGlobLength !== 0) {
+      return byGlobLength;
+    }
 
-      return right.state.updatedAt - left.state.updatedAt;
-    })[0] ?? null
-  );
+    return right.state.updatedAt - left.state.updatedAt;
+  });
 };
+
+export const findStoredToolStateForUrl = async (url: string) => (await findStoredToolStatesForUrl(url))[0] ?? null;

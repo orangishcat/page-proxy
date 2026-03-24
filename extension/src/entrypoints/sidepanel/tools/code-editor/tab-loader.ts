@@ -7,18 +7,36 @@ import {
   ensureDefineBlock,
   ensureWebsiteMetadata,
   resolveStoredToolStateForUrl,
+  type ResolvedScriptMatch,
   type ScriptFormatConfig,
 } from "../state-loading";
 import { resolveBlankScriptName } from "../state-storage";
+import { clearSelectedScriptForHostname, writeSelectedScriptForHostname } from "../script-selection-session";
 import { getTabUrl, resolveActiveTab, shouldHandleTabUpdate, type ActiveTab } from "./tabs";
 import { coerceToolPanelTool } from "@/lib/sidepanel-shortcuts";
 import type { AutosaveManager } from "./autosave";
+import type { ScriptSelectionOption } from "./state";
+
+const getHostnameFromUrl = (url: string) => {
+  try {
+    return new URL(url).hostname.trim().toLowerCase();
+  } catch {
+    return "";
+  }
+};
+
+const toScriptSelectionOption = (match: ResolvedScriptMatch): ScriptSelectionOption => ({
+  scriptName: match.scriptName,
+  websiteGlob: match.websiteGlob,
+});
 
 export type TabLoaderState = {
   activeTabId: number | null;
   activeTabUrl: string | null;
   activeWebsiteGlob: string | null;
   activeScriptName: string | null;
+  defaultScriptName: string | null;
+  availableScriptOptions: ScriptSelectionOption[];
   isProtectedPage: boolean;
   canPersistEditorChanges: boolean;
   hasUnsavedChanges: boolean;
@@ -46,7 +64,9 @@ export const loadStateForUrl = async (url: string | null, deps: TabLoaderDeps): 
   if (!normalizedUrl) {
     const blankScriptName = await resolveBlankScriptName(defaultBlankScriptTitle);
     state.activeScriptName = blankScriptName;
+    state.defaultScriptName = null;
     state.activeWebsiteGlob = null;
+    state.availableScriptOptions = [];
     deps.setActiveToolId("none");
     deps.setAllowedGrants([]);
     const baseContent = buildDefaultScript("", scriptFormatConfig, blankScriptName);
@@ -59,7 +79,9 @@ export const loadStateForUrl = async (url: string | null, deps: TabLoaderDeps): 
 
   const resolvedState = await resolveStoredToolStateForUrl(normalizedUrl, scriptFormatConfig);
   state.activeScriptName = resolvedState.scriptName;
+  state.defaultScriptName = resolvedState.defaultMatch.scriptName;
   state.activeWebsiteGlob = resolvedState.websiteGlob;
+  state.availableScriptOptions = resolvedState.matches.map(toScriptSelectionOption);
   deps.setActiveToolId(coerceToolPanelTool(resolvedState.state.activeTool));
   deps.setAllowedGrants(resolvedState.state.permissions.allowedGrants);
   const normalizedBaseContent = ensureDefineBlock(resolvedState.state.codeEditor.content, scriptFormatConfig);
@@ -87,6 +109,8 @@ export const applyActiveTab = async (tab: ActiveTab | null, deps: TabLoaderDeps)
     deps.setAllowedGrants([]);
     state.activeWebsiteGlob = null;
     state.activeScriptName = null;
+    state.defaultScriptName = null;
+    state.availableScriptOptions = [];
     deps.setActiveToolId("none");
     const protectedContent = buildProtectedDisplay(buildDefaultScript("", scriptFormatConfig), scriptFormatConfig);
     deps.updateEditorContent(protectedContent, { persist: false });
@@ -124,6 +148,35 @@ export const refreshActiveTab = (deps: TabLoaderDeps): void => {
         state.canPersistEditorChanges = true;
       });
     });
+};
+
+export const selectScriptForCurrentTab = async (scriptName: string, deps: TabLoaderDeps): Promise<void> => {
+  const { state } = deps;
+  const normalizedScriptName = scriptName.trim();
+  if (!normalizedScriptName || !state.activeTabUrl || state.isProtectedPage || !state.canPersistEditorChanges) {
+    return;
+  }
+
+  if (state.activeScriptName?.trim() === normalizedScriptName) {
+    return;
+  }
+
+  if (deps.autosave.queuePendingTabRefresh(state.editorValue, state.hasUnsavedChanges, state.isProgrammaticUpdate)) {
+    return;
+  }
+
+  const hostname = getHostnameFromUrl(state.activeTabUrl);
+  if (!hostname) {
+    return;
+  }
+
+  if (state.defaultScriptName === normalizedScriptName) {
+    await clearSelectedScriptForHostname(hostname);
+  } else {
+    await writeSelectedScriptForHostname(hostname, normalizedScriptName);
+  }
+
+  await loadStateForUrl(state.activeTabUrl, deps);
 };
 
 export const handleTabActivated = (activeInfo: { tabId: number }, deps: TabLoaderDeps): void => {
