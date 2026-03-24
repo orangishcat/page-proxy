@@ -11,6 +11,7 @@ import {
 } from "../state-loading";
 import {
   hasStoredScriptNameConflict,
+  readStoredToolState,
   removeStoredToolState,
   saveStoredToolState,
   type StoredSelectorEntry,
@@ -82,6 +83,9 @@ export const saveState = async (options: SaveStateOptions) => {
   }
 
   const contentWithWebsite = ensureWebsiteMetadata(normalizedContent, websiteGlob);
+  const existingState =
+    (activeScriptName ? await readStoredToolState(activeScriptName) : null) ??
+    (scriptName ? await readStoredToolState(scriptName) : null);
 
   if (activeScriptName && activeScriptName !== scriptName) {
     await removeStoredToolState(activeScriptName).catch(() => {
@@ -103,6 +107,10 @@ export const saveState = async (options: SaveStateOptions) => {
     },
     websiteGlob,
     updatedAt: Date.now(),
+    runtimeStorage: existingState?.runtimeStorage ?? {
+      pt: {},
+      pn: {},
+    },
   };
 
   options.setActiveWebsiteGlob(websiteGlob);

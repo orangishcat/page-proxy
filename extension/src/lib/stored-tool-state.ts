@@ -1,4 +1,9 @@
 import { coerceScriptGrantValues, type ScriptGrantValue } from "./grants";
+import {
+  coerceStoredRuntimeStorage,
+  createEmptyStoredRuntimeStorage,
+  type StoredRuntimeStorage,
+} from "./script-runtime-storage";
 import { parseScriptMetadata } from "./utils/script-metadata";
 import { matchWebsiteGlob } from "./utils/website-glob";
 
@@ -20,6 +25,7 @@ export type StoredToolState = {
   permissions: { allowedGrants: ScriptGrantValue[] };
   websiteGlob: string;
   updatedAt: number;
+  runtimeStorage: StoredRuntimeStorage;
 };
 
 export const storageKeyPrefix = "pageproxy:";
@@ -89,6 +95,7 @@ export const coerceStoredToolState = (value: unknown, scriptNameFromKey: string)
     permissions?: unknown;
     websiteGlob?: unknown;
     updatedAt?: unknown;
+    runtimeStorage?: unknown;
   };
   if (!isToolId(data.activeTool)) return null;
   const codeEditor = data.codeEditor as { content?: unknown } | undefined;
@@ -117,6 +124,8 @@ export const coerceStoredToolState = (value: unknown, scriptNameFromKey: string)
         ? data.websiteGlob
         : fallbackWebsiteGlob,
     updatedAt: typeof data.updatedAt === "number" ? data.updatedAt : Date.now(),
+    runtimeStorage: data.runtimeStorage
+      ? coerceStoredRuntimeStorage(data.runtimeStorage)
+      : createEmptyStoredRuntimeStorage(),
   };
 };
-

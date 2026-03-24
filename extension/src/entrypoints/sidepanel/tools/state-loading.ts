@@ -1,4 +1,5 @@
 import { defaultBlankScriptTitle } from "@/lib/script-names";
+import { createEmptyStoredRuntimeStorage } from "@/lib/script-runtime-storage";
 import { parseScriptMetadata } from "@/lib/utils/script-metadata";
 import { buildWebsiteGlobForUrl, matchWebsiteGlob } from "@/lib/utils/website-glob";
 import { buildDefaultScript, type DefaultScriptConfig } from "@/lib/default-script";
@@ -179,6 +180,7 @@ export const buildDefaultToolState = (
   },
   websiteGlob,
   updatedAt: Date.now(),
+  runtimeStorage: createEmptyStoredRuntimeStorage(),
 });
 
 export const isDefaultToolState = (state: StoredToolState, config: ScriptFormatConfig) => {

@@ -14,6 +14,7 @@ import { isScriptRunResponse, type ScriptRunRequest } from "@/lib/script-runner"
 import { createTabBadgeUpdater } from "@/lib/background/tab-badge";
 import { createDevtoolsSelectionRuntimeHandler } from "@/lib/background/devtools-selection";
 import { buildDefaultScript } from "@/lib/default-script";
+import { createEmptyStoredRuntimeStorage } from "@/lib/script-runtime-storage";
 import { ensureCodeRunnerUserscript } from "@/lib/userscript-runner";
 import {
   coerceStoredToolState,
@@ -173,32 +174,43 @@ const buildRequestId = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-const buildRunRequest = (code: string): ScriptRunRequest => ({
+const buildRunRequest = (state: StoredToolState, code: string): ScriptRunRequest => ({
   type: "script:run",
   requestId: buildRequestId(),
   code,
+  scriptName: state.scriptName,
+  runtimeStorage: state.runtimeStorage ?? createEmptyStoredRuntimeStorage(),
 });
 
-const sendRunRequestToTab = (tabId: number, code: string) =>
-  browser.tabs.sendMessage(tabId, buildRunRequest(code), { frameId: 0 }).catch((error: unknown) => {
+const sendRunRequestToTab = (tabId: number, state: StoredToolState, code: string) =>
+  browser.tabs.sendMessage(tabId, buildRunRequest(state, code), { frameId: 0 }).catch((error: unknown) => {
     if (!isNoReceiverError(error)) {
       throw error;
     }
 
-    return browser.tabs.sendMessage(tabId, buildRunRequest(code));
+    return browser.tabs.sendMessage(tabId, buildRunRequest(state, code));
   });
 
-const runScriptInTab = async (tabId: number, code: string) => {
+const runScriptInTab = async (tabId: number, state: StoredToolState, code: string) => {
   const userscriptStatus = await ensureCodeRunnerUserscript();
   if (!userscriptStatus.ok) {
-    return false;
+    return null;
   }
 
-  const response: unknown = await sendRunRequestToTab(tabId, code);
+  const response: unknown = await sendRunRequestToTab(tabId, state, code);
   if (!isScriptRunResponse(response)) {
-    return false;
+    return null;
   }
-  return response.error === null;
+
+  const latestState = await readStoredToolState(state.scriptName);
+  if (latestState) {
+    await saveStoredToolState({
+      ...latestState,
+      runtimeStorage: response.runtimeStorage,
+    });
+  }
+
+  return response;
 };
 
 const requestGrantPermissions = (payload: GrantPermissionRequestMessage["payload"]) =>
@@ -256,7 +268,7 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
   const matchedStates = await findStoredToolStatesForUrl(tabUrl);
   logger.debug("runMatchingScriptsForTab: matched states", { count: matchedStates.length, tabUrl });
 
-  const scripts: string[] = [];
+  const scripts: Array<{ code: string; state: StoredToolState }> = [];
   const permissionRequests = new Map<string, Set<ScriptGrantValue>>();
 
   matchedStates.forEach((entry) => {
@@ -292,7 +304,10 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
     }
 
     logger.debug("runMatchingScriptsForTab: script ready to run", { scriptName: entry.scriptName });
-    scripts.push(content);
+    scripts.push({
+      code: content,
+      state: entry.state,
+    });
   });
 
   logger.debug("runMatchingScriptsForTab: summary", {
@@ -319,8 +334,10 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
     return 0;
   }
 
-  const runResults = await Promise.all(scripts.map((code) => runScriptInTab(tabId, code).catch(() => false)));
-  return runResults.filter(Boolean).length;
+  const runResults = await Promise.all(
+    scripts.map(({ code, state }) => runScriptInTab(tabId, state, code).catch(() => null)),
+  );
+  return runResults.filter((response) => response?.error === null).length;
 };
 
 export default defineBackground(() => {

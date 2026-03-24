@@ -14,11 +14,12 @@ export type UpdateRunErrorDeps = {
 export type RunScriptDeps = UpdateRunErrorDeps & {
   getIsRunning: () => boolean;
   setIsRunning: (v: boolean) => void;
+  getActiveScriptName: () => string | null;
   saveNow: (content: string) => void;
   getDefinitionBlock: (content: string) => string;
   setEditorMessageFromUnknown: (err: unknown, fallback: string) => void;
   parseScriptMetadata: (content: string) => unknown;
-  requestScriptRun: (content: string) => Promise<{ errors: string[]; errorStacks: string[] }>;
+  requestScriptRun: (content: string, scriptName: string) => Promise<{ errors: string[]; errorStacks: string[] }>;
 };
 
 export const updateRunError = (errors: string[], errorStacks: string[] = [], deps: UpdateRunErrorDeps): void => {
@@ -67,8 +68,9 @@ export const runScript = (editorValue: string, deps: RunScriptDeps): void => {
 
   deps.setIsRunning(true);
   deps.saveNow(editorValue);
+  const resolvedScriptName = deps.getActiveScriptName()?.trim() || (deps.parseScriptMetadata(editorValue) as { title?: string }).title?.trim() || "Page Proxy";
   void deps
-    .requestScriptRun(editorValue)
+    .requestScriptRun(editorValue, resolvedScriptName)
     .then((result) => {
       deps.saveNow(editorValue);
       updateRunError(result.errors, result.errorStacks, deps);

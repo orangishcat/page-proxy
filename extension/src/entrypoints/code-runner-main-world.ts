@@ -5,9 +5,14 @@ import {
   isScriptRunRequest,
   type ScriptRunLogEntry,
   type ScriptRunLogValue,
+  type ScriptRunRequest,
   type ScriptRunSelectorEntry,
   type ScriptRunResponse
 } from '@/lib/script-runner';
+import {
+  cloneStoredRuntimeStorage,
+  createStoredRuntimeStorageAdapter,
+} from '@/lib/script-runtime-storage';
 import {pa, pn, pq, ps, pt, pv} from '@page-proxy/pp';
 import { extractCssSelectorsFromStyleText } from '@/lib/utils/css-rule-parsing';
 
@@ -377,47 +382,18 @@ const getTargetOrigin = () => {
 
 const isWindowSource = (source: MessageEventSource | null) => source === window || source === null;
 
-const metadataBlockPattern = /\/\/\s*==\s*Page\s*Proxy\s*==([\s\S]*?)\/\/\s*==\s*\/\s*Page\s*Proxy\s*==/m;
-
-const extractMetadataField = (metadataBlock: string, field: string) => {
-  const match = metadataBlock.match(new RegExp(`^\\/\\/\\s*@${field}(?:\\s*:?\\s*)(.*)$`, 'm'));
-  return match?.[1]?.trim() ?? '';
-};
-
-const hashString = (value: string) => {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  return (hash >>> 0).toString(16).padStart(8, '0');
-};
-
-const buildScriptStorageScope = (code: string) => {
-  const metadataBlock = code.match(metadataBlockPattern)?.[1] ?? '';
-  const title = extractMetadataField(metadataBlock, 'title');
-  const website = extractMetadataField(metadataBlock, 'website');
-  const metadataIdentity = [title, website].filter((value) => value.length > 0).join('::');
-  if (metadataIdentity.length > 0) {
-    return `meta-${hashString(metadataIdentity)}`;
-  }
-
-  return `code-${hashString(code)}`;
-};
-
 const runScriptRequest = (
-  requestId: string,
-  code: string,
+  request: ScriptRunRequest,
   sendResult: (response: ScriptRunResponse) => void
 ) => {
   const {logs, sink} = createNotificationCapture();
   const selectorEntries = new Map<string, ScriptRunSelectorEntry>();
   let cssEntryCount = 0;
-  const storageScope = buildScriptStorageScope(code);
+  const runtimeStorage = cloneStoredRuntimeStorage(request.runtimeStorage);
+  const storageAdapter = createStoredRuntimeStorageAdapter(runtimeStorage);
   const modules = ensurePpModules();
-  const pageStorageApi = modules.pt.createStorage(storageScope);
-  const pageNetworkApi = modules.pn.createNetwork(storageScope);
+  const pageStorageApi = modules.pt.createStorage(undefined, storageAdapter);
+  const pageNetworkApi = modules.pn.createNetwork(undefined, storageAdapter);
   let notificationSinkKey = modules.pa.notificationSinkGlobalKey;
   let hasResponded = false;
   const queryApi = {
@@ -453,7 +429,9 @@ const runScriptRequest = (
 
     hasResponded = true;
     cleanup();
-    sendResult(buildScriptRunResponse(requestId, error, logs, Array.from(selectorEntries.values()), errorStack));
+    sendResult(
+      buildScriptRunResponse(request.requestId, error, logs, Array.from(selectorEntries.values()), errorStack, runtimeStorage),
+    );
   };
 
   const onError = (errorEvent: ErrorEvent) => {
@@ -480,10 +458,9 @@ const runScriptRequest = (
   (globalThis as Record<string, unknown>).pt = pageStorageApi;
   (globalThis as Record<string, unknown>).pv = modules.pv;
   (globalThis as Record<string, unknown>).pp = modules.pa.pp;
-  (globalThis as Record<string, unknown>)[modules.pt.scriptStorageScopeGlobalKey] = storageScope;
   (globalThis as Record<string, unknown>)[notificationSinkKey] = sink;
 
-  void runScriptCode(code)
+  void runScriptCode(request.code)
     .then(() => {
       respond(null);
     })
@@ -502,7 +479,7 @@ export default defineUnlistedScript(() => {
       return;
     }
 
-    runScriptRequest(event.data.requestId, event.data.code, (response) => {
+    runScriptRequest(event.data, (response) => {
       window.postMessage(response, getTargetOrigin());
     });
   });

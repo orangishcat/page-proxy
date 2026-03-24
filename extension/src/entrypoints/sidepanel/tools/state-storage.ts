@@ -105,6 +105,17 @@ export const saveStoredToolState = async (state: StoredToolState) => {
   });
 };
 
+export const readStoredToolState = async (scriptName: string) => {
+  const normalized = scriptName.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const key = toStorageKey(normalized);
+  const stored = await browser.storage.local.get(key);
+  return coerceStoredToolState(stored[key], normalized);
+};
+
 export const removeStoredToolState = async (scriptName: string) => {
   const normalized = scriptName.trim();
   if (!normalized) {
