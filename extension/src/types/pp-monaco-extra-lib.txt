@@ -151,8 +151,12 @@ declare module "@page-proxy/pp/pp-query" {
 declare module "@page-proxy/pp/pp-style" {
   export type StyleValues = Record<string, string>;
   export type StyleTarget = Element | Element[];
+  export type InjectCssPriority = "normal" | "high" | "xhigh";
+  export type InjectCssOptions = {
+      priority?: InjectCssPriority;
+  };
   export declare const applyStyle: (elements: StyleTarget, values: StyleValues) => void;
-  export declare const injectCSS: (styleText: string) => boolean;
+  export declare const injectCSS: (styleText: string, options?: InjectCssOptions) => boolean;
 }
 declare module "@page-proxy/pp/pp-event" {
   export type OnElementCreatedHandler = (element: Element) => void;

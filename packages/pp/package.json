@@ -6,6 +6,7 @@
     "test": "bun test --preload ./tests/setup-dom.ts tests"
   },
   "dependencies": {
+    "css-tree": "^3.2.1",
     "dompurify": "3.3.3",
     "marked": "17.0.4"
   },

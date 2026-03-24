@@ -10,6 +10,7 @@ const { window } = dom;
 (globalThis as unknown as Record<string, unknown>).HTMLElement = window.HTMLElement;
 (globalThis as unknown as Record<string, unknown>).HTMLDivElement = window.HTMLDivElement;
 (globalThis as unknown as Record<string, unknown>).HTMLTemplateElement = window.HTMLTemplateElement;
+(globalThis as unknown as Record<string, unknown>).MutationObserver = window.MutationObserver;
 (globalThis as unknown as Record<string, unknown>).requestAnimationFrame =
   globalThis.requestAnimationFrame ??
   ((callback: FrameRequestCallback) => window.setTimeout(() => callback(Date.now()), 16));
