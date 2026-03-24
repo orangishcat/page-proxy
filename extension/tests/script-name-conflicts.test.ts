@@ -107,6 +107,10 @@ const buildStoredState = (scriptName: string, websiteGlob: string, updatedAt: nu
   },
   websiteGlob,
   updatedAt,
+  runtimeStorage: {
+    pt: {},
+    pn: {},
+  },
 });
 
 describe("script name conflicts", () => {
@@ -173,5 +177,47 @@ describe("script name conflicts", () => {
     expect(storageState[toStorageKey("Conflicting Script")]).toEqual(
       buildStoredState("Conflicting Script", "https://example.com/*", 2),
     );
+  });
+
+  test("preserves runtime storage when saving a renamed script", async () => {
+    const existingState = {
+      ...buildStoredState("Original Script", "https://example.com/*", 1),
+      runtimeStorage: {
+        pt: {
+          "pp-storage:global:token": "secret",
+        },
+        pn: {
+          "pp-network-cache:global:https://api.example.com/items": '{"cached":true}',
+        },
+      },
+    } satisfies StoredToolState;
+    const storageState = getStorageState();
+    storageState[toStorageKey("Original Script")] = existingState;
+
+    const renamedContent = normalizeContentForStorage(
+      `${buildScriptContent("Renamed Script", "https://example.com/*").trimEnd()}\npt.setItem("token", "secret");\n`,
+      false,
+      scriptFormatConfig,
+    );
+
+    await saveState({
+      content: renamedContent,
+      selectorEntries: [],
+      allowedGrants: [],
+      isProtectedPage: false,
+      scriptFormatConfig,
+      activeTabUrl: "https://example.com/page",
+      activeWebsiteGlob: "https://example.com/*",
+      activeScriptName: "Original Script",
+      activeTool: "none",
+      getDefinitionBlock: (content) => content,
+      setActiveWebsiteGlob: () => undefined,
+      setActiveScriptName: () => undefined,
+    });
+
+    expect(storageState[toStorageKey("Original Script")]).toBeUndefined();
+    expect(storageState[toStorageKey("Renamed Script")]).toMatchObject({
+      runtimeStorage: existingState.runtimeStorage,
+    });
   });
 });

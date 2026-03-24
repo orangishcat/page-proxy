@@ -44,7 +44,16 @@ export const forwardScriptRunToMainWorld = (
 
   window.addEventListener("message", onMessage);
   timeoutId = globalThis.setTimeout(() => {
-    respond(buildScriptRunResponse(request.requestId, "Script runner did not respond. Reload the page and try again."));
+    respond(
+      buildScriptRunResponse(
+        request.requestId,
+        "Script runner did not respond. Reload the page and try again.",
+        [],
+        [],
+        null,
+        request.runtimeStorage,
+      ),
+    );
   }, scriptRunBridgeTimeoutMs);
 
   logger.debug("window message sent", { type: request.type, requestId: request.requestId });

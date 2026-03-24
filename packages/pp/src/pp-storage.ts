@@ -3,9 +3,36 @@ export const storageKeyPrefix = "pp-storage:";
 export const networkCacheKeyPrefix = "pp-network-cache:";
 export const maxSavedKeysPerScript = 50;
 
+export type RawStorageAdapter = {
+  listKeys: () => string[];
+  getItem: (storageKey: string) => string | null;
+  setItem: (storageKey: string, value: string) => void;
+  removeItem: (storageKey: string) => void;
+};
+
 type ScopedRawSetOptions = {
   scope?: string;
   enforceLimit?: boolean;
+};
+
+const localStorageAdapter: RawStorageAdapter = {
+  listKeys: () => {
+    const keys: string[] = [];
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key) {
+        keys.push(key);
+      }
+    }
+    return keys;
+  },
+  getItem: (storageKey) => localStorage.getItem(storageKey),
+  setItem: (storageKey, value) => {
+    localStorage.setItem(storageKey, value);
+  },
+  removeItem: (storageKey) => {
+    localStorage.removeItem(storageKey);
+  },
 };
 
 const normalizeScope = (value: string | undefined) => {
@@ -46,37 +73,27 @@ const isScopedSavedKey = (storageKey: string, scopeOverride?: string) => {
   return storageKey.startsWith(storagePrefix) || storageKey.startsWith(networkPrefix);
 };
 
-export const listSavedStorageKeys = (scopeOverride?: string) => {
-  const keys: string[] = [];
-  for (let index = 0; index < localStorage.length; index += 1) {
-    const key = localStorage.key(index);
-    if (!key) {
-      continue;
-    }
+export const listSavedStorageKeys = (scopeOverride?: string, adapter: RawStorageAdapter = localStorageAdapter) =>
+  adapter.listKeys().filter((storageKey) => isScopedSavedKey(storageKey, scopeOverride));
 
-    if (!isScopedSavedKey(key, scopeOverride)) {
-      continue;
-    }
-
-    keys.push(key);
-  }
-
-  return keys;
-};
-
-export const listNetworkCacheStorageKeys = (scopeOverride?: string) => {
+export const listNetworkCacheStorageKeys = (scopeOverride?: string, adapter: RawStorageAdapter = localStorageAdapter) => {
   const networkPrefix = toScopedPrefix(networkCacheKeyPrefix, scopeOverride);
-  return listSavedStorageKeys(scopeOverride).filter((storageKey) => storageKey.startsWith(networkPrefix));
+  return listSavedStorageKeys(scopeOverride, adapter).filter((storageKey) => storageKey.startsWith(networkPrefix));
 };
 
-export const getRawItem = (storageKey: string) => localStorage.getItem(storageKey);
+export const getRawItem = (storageKey: string, adapter: RawStorageAdapter = localStorageAdapter) =>
+  adapter.getItem(storageKey);
 
-export const removeRawItem = (storageKey: string) => {
-  localStorage.removeItem(storageKey);
+export const removeRawItem = (storageKey: string, adapter: RawStorageAdapter = localStorageAdapter) => {
+  adapter.removeItem(storageKey);
 };
 
-export const enforceSavedKeyLimit = (scopeOverride?: string, nextStorageKey?: string) => {
-  const keys = listSavedStorageKeys(scopeOverride).filter((storageKey) => storageKey !== nextStorageKey);
+export const enforceSavedKeyLimit = (
+  scopeOverride?: string,
+  nextStorageKey?: string,
+  adapter: RawStorageAdapter = localStorageAdapter,
+) => {
+  const keys = listSavedStorageKeys(scopeOverride, adapter).filter((storageKey) => storageKey !== nextStorageKey);
 
   while (keys.length >= maxSavedKeysPerScript) {
     const oldestStorageKey = keys.shift();
@@ -84,44 +101,49 @@ export const enforceSavedKeyLimit = (scopeOverride?: string, nextStorageKey?: st
       return;
     }
 
-    removeRawItem(oldestStorageKey);
+    removeRawItem(oldestStorageKey, adapter);
   }
 };
 
-export const setRawItem = (storageKey: string, value: string, options: ScopedRawSetOptions = {}) => {
+export const setRawItem = (
+  storageKey: string,
+  value: string,
+  options: ScopedRawSetOptions = {},
+  adapter: RawStorageAdapter = localStorageAdapter,
+) => {
   const scope = resolveScriptStorageScope(options.scope);
-  const isNewKey = getRawItem(storageKey) === null;
+  const isNewKey = getRawItem(storageKey, adapter) === null;
   if (options.enforceLimit === true && isNewKey) {
-    enforceSavedKeyLimit(scope, storageKey);
+    enforceSavedKeyLimit(scope, storageKey, adapter);
   }
 
-  localStorage.setItem(storageKey, value);
+  adapter.setItem(storageKey, value);
 };
 
-export const setItem = (key: string, value: string, scopeOverride?: string) => {
+export const setItem = (key: string, value: string, scopeOverride?: string, adapter: RawStorageAdapter = localStorageAdapter) => {
   const storageKey = toStorageStorageKey(String(key), scopeOverride);
   setRawItem(storageKey, String(value), {
     scope: scopeOverride,
     enforceLimit: true,
-  });
+  }, adapter);
 };
 
-export const getItem = (key: string, scopeOverride?: string) => {
+export const getItem = (key: string, scopeOverride?: string, adapter: RawStorageAdapter = localStorageAdapter) => {
   const storageKey = toStorageStorageKey(String(key), scopeOverride);
-  return getRawItem(storageKey);
+  return getRawItem(storageKey, adapter);
 };
 
-export const removeItem = (key: string, scopeOverride?: string) => {
+export const removeItem = (key: string, scopeOverride?: string, adapter: RawStorageAdapter = localStorageAdapter) => {
   const storageKey = toStorageStorageKey(String(key), scopeOverride);
-  removeRawItem(storageKey);
+  removeRawItem(storageKey, adapter);
 };
 
-export const createStorage = (scopeOverride?: string) => {
+export const createStorage = (scopeOverride?: string, adapter: RawStorageAdapter = localStorageAdapter) => {
   const scope = resolveScriptStorageScope(scopeOverride);
   return {
-    setItem: (key: string, value: string) => setItem(key, value, scope),
-    getItem: (key: string) => getItem(key, scope),
-    removeItem: (key: string) => removeItem(key, scope),
+    setItem: (key: string, value: string) => setItem(key, value, scope, adapter),
+    getItem: (key: string) => getItem(key, scope, adapter),
+    removeItem: (key: string) => removeItem(key, scope, adapter),
   };
 };
 

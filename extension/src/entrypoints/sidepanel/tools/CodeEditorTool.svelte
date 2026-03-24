@@ -162,6 +162,7 @@
     getEditorHandle: () => editorHandle,
     getIsRunning: () => isRunning,
     setIsRunning: (v: boolean) => { isRunning = v; },
+    getActiveScriptName: () => tabState.activeScriptName,
     saveNow: (content: string) => autosave.saveNow(content),
     getDefinitionBlock,
     setEditorMessageFromUnknown,

@@ -7,9 +7,14 @@ import {
   type ScriptRunRequest,
   type ScriptRunResult,
 } from "@/lib/script-runner";
+import {
+  createEmptyStoredRuntimeStorage,
+  type StoredRuntimeStorage,
+} from "@/lib/script-runtime-storage";
 import { ensureCodeRunnerUserscript, getUserscriptEnableMessage } from "@/lib/userscript-runner";
 import { isRestrictedUrl } from "@/lib/utils/website-glob";
 import { isNoReceiverError } from "@/lib/utils/error-detection";
+import { readStoredToolState, saveStoredToolState } from "../state-storage";
 
 const emptyRunResult: ScriptRunResult = { errors: [], errorStacks: [], logs: [], selectors: [] };
 const responseTimeoutMs = 1800;
@@ -17,6 +22,10 @@ const maxScriptRunAttempts = 3;
 const scriptRunRetryDelayMs = 200;
 const scriptRunBroadcastWaitTimeoutMs = 1500;
 const logger = log.getLogger("script-actions");
+type ScriptRunAttemptResult = {
+  result: ScriptRunResult;
+  runtimeStorage: StoredRuntimeStorage;
+};
 
 const toRunResult = (message: string, errorStack: string | null = null): ScriptRunResult => ({
   errors: [message],
@@ -143,31 +152,29 @@ const createScriptRunBroadcastWaiter = (requestId: string, timeoutMs: number) =>
   };
 };
 
-const toScriptRunResultFromResponse = (requestId: string, response: unknown): ScriptRunResult | null => {
+const toScriptRunResultFromResponse = (requestId: string, response: unknown): ScriptRunAttemptResult | null => {
   if (!isScriptRunResponse(response) || response.requestId !== requestId) {
     return null;
   }
 
   return {
-    errors: response.error ? [response.error] : [],
-    errorStacks: response.errorStack ? [response.errorStack] : [],
-    logs: response.logs ?? [],
-    selectors: response.selectors ?? [],
+    result: {
+      errors: response.error ? [response.error] : [],
+      errorStacks: response.errorStack ? [response.errorStack] : [],
+      logs: response.logs ?? [],
+      selectors: response.selectors ?? [],
+    },
+    runtimeStorage: response.runtimeStorage,
   };
 };
 
 const requestScriptRunAttempt = (
   tabId: number,
   tabUrl: string | undefined,
-  code: string,
+  request: ScriptRunRequest,
   attempt: number,
-): Promise<ScriptRunResult> => {
-  const requestId = buildRequestId();
-  const request: ScriptRunRequest = {
-    type: "script:run",
-    requestId,
-    code,
-  };
+): Promise<ScriptRunAttemptResult> => {
+  const requestId = request.requestId;
 
   logger.debug("Sending script:run", {
     requestId,
@@ -180,6 +187,10 @@ const requestScriptRunAttempt = (
   const timeoutFallback = buildScriptRunResponse(
     requestId,
     "Script request timed out waiting for tab response, try reloading the current tab",
+    [],
+    [],
+    null,
+    request.runtimeStorage,
   );
   const broadcastWaiter = createScriptRunBroadcastWaiter(requestId, scriptRunBroadcastWaitTimeoutMs);
 
@@ -210,14 +221,20 @@ const requestScriptRunAttempt = (
             retryDelayMs: scriptRunRetryDelayMs,
           });
 
-          return wait(scriptRunRetryDelayMs).then(() => requestScriptRunAttempt(tabId, tabUrl, code, attempt + 1));
+          return wait(scriptRunRetryDelayMs).then(() => requestScriptRunAttempt(tabId, tabUrl, request, attempt + 1));
         }
 
         if (response === undefined) {
-          return toRunResult("Script runner did not respond. Reload the page and try again.");
+          return {
+            result: toRunResult("Script runner did not respond. Reload the page and try again."),
+            runtimeStorage: request.runtimeStorage,
+          };
         }
 
-        return toRunResult("Script returned an invalid response.");
+        return {
+          result: toRunResult("Script returned an invalid response."),
+          runtimeStorage: request.runtimeStorage,
+        };
       });
     })
     .catch((error: unknown) => {
@@ -231,23 +248,32 @@ const requestScriptRunAttempt = (
           }
 
           if (attempt < maxScriptRunAttempts) {
-            return wait(scriptRunRetryDelayMs).then(() => requestScriptRunAttempt(tabId, tabUrl, code, attempt + 1));
+            return wait(scriptRunRetryDelayMs).then(() => requestScriptRunAttempt(tabId, tabUrl, request, attempt + 1));
           }
 
-          return toRunResult("Script runner disconnected before it could reply. Reload the page and try again.");
+          return {
+            result: toRunResult("Script runner disconnected before it could reply. Reload the page and try again."),
+            runtimeStorage: request.runtimeStorage,
+          };
         });
       }
 
       broadcastWaiter.cancel();
       logger.error("script:run failed", { requestId, error, attempt });
       if (isNoReceiverError(error)) {
-        return toRunResult(`${getUserscriptEnableMessage()} If already enabled, reload this tab and run again.`);
+        return {
+          result: toRunResult(`${getUserscriptEnableMessage()} If already enabled, reload this tab and run again.`),
+          runtimeStorage: request.runtimeStorage,
+        };
       }
-      return toRunResult("Unable to connect to the active tab.", normalizedError.stack ?? null);
+      return {
+        result: toRunResult("Unable to connect to the active tab.", normalizedError.stack ?? null),
+        runtimeStorage: request.runtimeStorage,
+      };
     });
 };
 
-export const requestScriptRun = async (code: string): Promise<ScriptRunResult> => {
+export const requestScriptRun = async (code: string, scriptName: string): Promise<ScriptRunResult> => {
   if (!code.trim()) {
     return emptyRunResult;
   }
@@ -267,5 +293,23 @@ export const requestScriptRun = async (code: string): Promise<ScriptRunResult> =
     return toRunResult(userscriptStatus.message);
   }
 
-  return requestScriptRunAttempt(activeTab.id, activeTab.url, code, 1);
+  const storedState = await readStoredToolState(scriptName);
+  const request: ScriptRunRequest = {
+    type: "script:run",
+    requestId: buildRequestId(),
+    code,
+    scriptName,
+    runtimeStorage: storedState?.runtimeStorage ?? createEmptyStoredRuntimeStorage(),
+  };
+
+  const attemptResult = await requestScriptRunAttempt(activeTab.id, activeTab.url, request, 1);
+  const latestState = await readStoredToolState(scriptName);
+  if (latestState) {
+    await saveStoredToolState({
+      ...latestState,
+      runtimeStorage: attemptResult.runtimeStorage,
+    });
+  }
+
+  return attemptResult.result;
 };

@@ -1,9 +1,16 @@
 import { isRecord } from "@/lib/utils/type-guards";
+import {
+  coerceStoredRuntimeStorage,
+  createEmptyStoredRuntimeStorage,
+  type StoredRuntimeStorage,
+} from "./script-runtime-storage";
 
 export type ScriptRunRequest = {
   type: 'script:run';
   requestId: string;
   code: string;
+  scriptName: string;
+  runtimeStorage: StoredRuntimeStorage;
 };
 
 export type ScriptRunLogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug' | 'notification';
@@ -43,6 +50,7 @@ export type ScriptRunResponse = {
   errorStack?: string | null;
   logs: ScriptRunLogEntry[];
   selectors: ScriptRunSelectorEntry[];
+  runtimeStorage: StoredRuntimeStorage;
 };
 
 export type ScriptRunResult = {
@@ -70,7 +78,9 @@ export const isScriptRunRequest = (value: unknown): value is ScriptRunRequest =>
   return (
     value.type === 'script:run' &&
     typeof value.requestId === 'string' &&
-    typeof value.code === 'string'
+    typeof value.code === 'string' &&
+    typeof value.scriptName === 'string' &&
+    isRecord(value.runtimeStorage)
   );
 };
 
@@ -112,7 +122,8 @@ export const isScriptRunResponse = (value: unknown): value is ScriptRunResponse 
     (value.error === null || typeof value.error === 'string') &&
     (value.errorStack === undefined || value.errorStack === null || typeof value.errorStack === 'string') &&
     hasValidLogs &&
-    hasValidSelectors
+    hasValidSelectors &&
+    isRecord(value.runtimeStorage)
   );
 };
 
@@ -121,12 +132,14 @@ export const buildScriptRunResponse = (
   error: string | null,
   logs: ScriptRunLogEntry[] = [],
   selectors: ScriptRunSelectorEntry[] = [],
-  errorStack: string | null = null
+  errorStack: string | null = null,
+  runtimeStorage: StoredRuntimeStorage = createEmptyStoredRuntimeStorage(),
 ): ScriptRunResponse => ({
   type: 'script:result',
   requestId,
   error,
   errorStack,
   logs,
-  selectors
+  selectors,
+  runtimeStorage: coerceStoredRuntimeStorage(runtimeStorage),
 });

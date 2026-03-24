@@ -1,4 +1,11 @@
-import { getRawItem, networkCacheKeyPrefix, removeRawItem, setRawItem, toNetworkCacheStorageKey } from "./pp-storage";
+import {
+  getRawItem,
+  networkCacheKeyPrefix,
+  removeRawItem,
+  setRawItem,
+  toNetworkCacheStorageKey,
+  type RawStorageAdapter,
+} from "./pp-storage";
 
 type NetworkRequestMethod = "GET" | "HEAD" | "POST" | "PUT" | "DELETE" | "CONNECT" | "OPTIONS" | "TRACE" | "PATCH";
 
@@ -123,15 +130,15 @@ const parseStoredCacheEntry = (value: string | null): StoredCacheEntry | null =>
   };
 };
 
-const readStoredCacheEntry = (storageKey: string) => {
-  const entry = parseStoredCacheEntry(getRawItem(storageKey));
+const readStoredCacheEntry = (storageKey: string, adapter?: RawStorageAdapter) => {
+  const entry = parseStoredCacheEntry(getRawItem(storageKey, adapter));
   if (!entry) {
-    removeRawItem(storageKey);
+    removeRawItem(storageKey, adapter);
     return null;
   }
 
   if (entry.expiresAt <= Date.now()) {
-    removeRawItem(storageKey);
+    removeRawItem(storageKey, adapter);
     return null;
   }
 
@@ -163,6 +170,7 @@ const persistCacheEntry = async (
   response: Response,
   cacheDuration: number,
   scopeOverride?: string,
+  adapter?: RawStorageAdapter,
 ) => {
   const responseClone = response.clone();
   const responseBuffer = await responseClone.arrayBuffer();
@@ -185,7 +193,7 @@ const persistCacheEntry = async (
   setRawItem(storageKey, JSON.stringify(entry), {
     scope: scopeOverride,
     enforceLimit: true,
-  });
+  }, adapter);
 };
 
 const buildCacheIdentity = (request: Request, cacheKey: string | undefined) => {
@@ -224,7 +232,7 @@ const buildCacheStorageKeysForInvalidate = (key: string, scopeOverride?: string)
   return storageKeys;
 };
 
-const invalidateCache = (key: string, scopeOverride?: string) => {
+const invalidateCache = (key: string, scopeOverride?: string, adapter?: RawStorageAdapter) => {
   const storageKeys = buildCacheStorageKeysForInvalidate(key, scopeOverride);
   if (storageKeys.length === 0) {
     return false;
@@ -232,19 +240,24 @@ const invalidateCache = (key: string, scopeOverride?: string) => {
 
   let invalidated = false;
   storageKeys.forEach((storageKey) => {
-    const hasEntry = getRawItem(storageKey) !== null;
+    const hasEntry = getRawItem(storageKey, adapter) !== null;
     if (!hasEntry) {
       return;
     }
 
-    removeRawItem(storageKey);
+    removeRawItem(storageKey, adapter);
     invalidated = true;
   });
 
   return invalidated;
 };
 
-const runNetworkFetch = async (input: NetworkFetchInput, options: NetworkFetchOptions = {}, scopeOverride?: string) => {
+const runNetworkFetch = async (
+  input: NetworkFetchInput,
+  options: NetworkFetchOptions = {},
+  scopeOverride?: string,
+  adapter?: RawStorageAdapter,
+) => {
   const requestInit = buildFetchRequestInit(options);
   const request = new Request(input, requestInit);
 
@@ -255,18 +268,18 @@ const runNetworkFetch = async (input: NetworkFetchInput, options: NetworkFetchOp
   const cacheDuration = normalizeCacheDuration(options.cacheDuration);
   const cacheIdentity = buildCacheIdentity(request, options.cacheKey);
   const storageKey = toNetworkCacheStorageKey(cacheIdentity, scopeOverride);
-  const cachedEntry = readStoredCacheEntry(storageKey);
+  const cachedEntry = readStoredCacheEntry(storageKey, adapter);
   if (cachedEntry) {
     return buildResponseFromCache(cachedEntry);
   }
 
   const response = await globalThis.fetch(request);
-  await persistCacheEntry(storageKey, response, cacheDuration, scopeOverride);
+  await persistCacheEntry(storageKey, response, cacheDuration, scopeOverride, adapter);
   return response;
 };
 
 const createMethodFetch =
-  (method: NetworkRequestMethod, scopeOverride?: string) =>
+  (method: NetworkRequestMethod, scopeOverride?: string, adapter?: RawStorageAdapter) =>
   (input: NetworkFetchInput, options: NetworkMethodOptions = {}) =>
     runNetworkFetch(
       input,
@@ -275,21 +288,22 @@ const createMethodFetch =
         method,
       },
       scopeOverride,
+      adapter,
     );
 
-export const createNetwork = (scopeOverride?: string) => ({
+export const createNetwork = (scopeOverride?: string, adapter?: RawStorageAdapter) => ({
   fetch: (input: NetworkFetchInput, options: NetworkFetchOptions = {}) =>
-    runNetworkFetch(input, options, scopeOverride),
-  invalidateCache: (key: string) => invalidateCache(key, scopeOverride),
-  get: createMethodFetch("GET", scopeOverride),
-  head: createMethodFetch("HEAD", scopeOverride),
-  post: createMethodFetch("POST", scopeOverride),
-  put: createMethodFetch("PUT", scopeOverride),
-  delete: createMethodFetch("DELETE", scopeOverride),
-  connect: createMethodFetch("CONNECT", scopeOverride),
-  options: createMethodFetch("OPTIONS", scopeOverride),
-  trace: createMethodFetch("TRACE", scopeOverride),
-  patch: createMethodFetch("PATCH", scopeOverride),
+    runNetworkFetch(input, options, scopeOverride, adapter),
+  invalidateCache: (key: string) => invalidateCache(key, scopeOverride, adapter),
+  get: createMethodFetch("GET", scopeOverride, adapter),
+  head: createMethodFetch("HEAD", scopeOverride, adapter),
+  post: createMethodFetch("POST", scopeOverride, adapter),
+  put: createMethodFetch("PUT", scopeOverride, adapter),
+  delete: createMethodFetch("DELETE", scopeOverride, adapter),
+  connect: createMethodFetch("CONNECT", scopeOverride, adapter),
+  options: createMethodFetch("OPTIONS", scopeOverride, adapter),
+  trace: createMethodFetch("TRACE", scopeOverride, adapter),
+  patch: createMethodFetch("PATCH", scopeOverride, adapter),
 });
 
 export const fetch = (input: NetworkFetchInput, options: NetworkFetchOptions = {}) => runNetworkFetch(input, options);

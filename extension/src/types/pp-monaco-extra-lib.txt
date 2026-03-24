@@ -44,7 +44,7 @@ declare module "@page-proxy/pp/pp-api" {
   };
 }
 declare module "@page-proxy/pp/pp-network" {
-  import { networkCacheKeyPrefix } from "@page-proxy/pp/pp-storage";
+  import { networkCacheKeyPrefix, type RawStorageAdapter } from "@page-proxy/pp/pp-storage";
   type NetworkFetchInput = RequestInfo | URL;
   export type NetworkFetchOptions = Omit<RequestInit, "cache"> & {
       cache?: boolean;
@@ -53,8 +53,8 @@ declare module "@page-proxy/pp/pp-network" {
       requestCache?: RequestCache;
   };
   export type NetworkMethodOptions = Omit<NetworkFetchOptions, "method">;
-  declare const invalidateCache: (key: string, scopeOverride?: string) => boolean;
-  export declare const createNetwork: (scopeOverride?: string) => {
+  declare const invalidateCache: (key: string, scopeOverride?: string, adapter?: RawStorageAdapter) => boolean;
+  export declare const createNetwork: (scopeOverride?: string, adapter?: RawStorageAdapter) => {
       fetch: (input: NetworkFetchInput, options?: NetworkFetchOptions) => Promise<Response>;
       invalidateCache: (key: string) => boolean;
       get: (input: NetworkFetchInput, options?: NetworkMethodOptions) => Promise<Response>;
@@ -86,6 +86,12 @@ declare module "@page-proxy/pp/pp-storage" {
   export declare const storageKeyPrefix = "pp-storage:";
   export declare const networkCacheKeyPrefix = "pp-network-cache:";
   export declare const maxSavedKeysPerScript = 50;
+  export type RawStorageAdapter = {
+      listKeys: () => string[];
+      getItem: (storageKey: string) => string | null;
+      setItem: (storageKey: string, value: string) => void;
+      removeItem: (storageKey: string) => void;
+  };
   type ScopedRawSetOptions = {
       scope?: string;
       enforceLimit?: boolean;
@@ -93,16 +99,16 @@ declare module "@page-proxy/pp/pp-storage" {
   export declare const resolveScriptStorageScope: (scopeOverride?: string) => string;
   export declare const toStorageStorageKey: (key: string, scopeOverride?: string) => string;
   export declare const toNetworkCacheStorageKey: (key: string, scopeOverride?: string) => string;
-  export declare const listSavedStorageKeys: (scopeOverride?: string) => string[];
-  export declare const listNetworkCacheStorageKeys: (scopeOverride?: string) => string[];
-  export declare const getRawItem: (storageKey: string) => string | null;
-  export declare const removeRawItem: (storageKey: string) => void;
-  export declare const enforceSavedKeyLimit: (scopeOverride?: string, nextStorageKey?: string) => void;
-  export declare const setRawItem: (storageKey: string, value: string, options?: ScopedRawSetOptions) => void;
-  export declare const setItem: (key: string, value: string, scopeOverride?: string) => void;
-  export declare const getItem: (key: string, scopeOverride?: string) => string | null;
-  export declare const removeItem: (key: string, scopeOverride?: string) => void;
-  export declare const createStorage: (scopeOverride?: string) => {
+  export declare const listSavedStorageKeys: (scopeOverride?: string, adapter?: RawStorageAdapter) => string[];
+  export declare const listNetworkCacheStorageKeys: (scopeOverride?: string, adapter?: RawStorageAdapter) => string[];
+  export declare const getRawItem: (storageKey: string, adapter?: RawStorageAdapter) => string | null;
+  export declare const removeRawItem: (storageKey: string, adapter?: RawStorageAdapter) => void;
+  export declare const enforceSavedKeyLimit: (scopeOverride?: string, nextStorageKey?: string, adapter?: RawStorageAdapter) => void;
+  export declare const setRawItem: (storageKey: string, value: string, options?: ScopedRawSetOptions, adapter?: RawStorageAdapter) => void;
+  export declare const setItem: (key: string, value: string, scopeOverride?: string, adapter?: RawStorageAdapter) => void;
+  export declare const getItem: (key: string, scopeOverride?: string, adapter?: RawStorageAdapter) => string | null;
+  export declare const removeItem: (key: string, scopeOverride?: string, adapter?: RawStorageAdapter) => void;
+  export declare const createStorage: (scopeOverride?: string, adapter?: RawStorageAdapter) => {
       setItem: (key: string, value: string) => void;
       getItem: (key: string) => string | null;
       removeItem: (key: string) => void;

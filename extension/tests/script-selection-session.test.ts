@@ -124,6 +124,10 @@ const buildStoredState = (scriptName: string, websiteGlob: string, updatedAt: nu
   },
   websiteGlob,
   updatedAt,
+  runtimeStorage: {
+    pt: {},
+    pn: {},
+  },
 });
 
 describe("script selection session", () => {
