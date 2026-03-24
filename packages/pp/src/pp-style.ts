@@ -1,7 +1,7 @@
 export type StyleValues = Record<string, string>;
 export type StyleTarget = Element | Element[];
 
-const psHashAttributeName = 'data-ps-hash';
+const psHashAttributeName = "data-ps-hash";
 
 const hashCssString = (value: string) => {
   let hash = 0x811c9dc5;
@@ -11,7 +11,7 @@ const hashCssString = (value: string) => {
     hash = Math.imul(hash, 0x01000193);
   }
 
-  return (hash >>> 0).toString(16).padStart(8, '0');
+  return (hash >>> 0).toString(16).padStart(8, "0");
 };
 
 export const applyStyle = (elements: StyleTarget, values: StyleValues) => {
@@ -23,13 +23,17 @@ export const applyStyle = (elements: StyleTarget, values: StyleValues) => {
   const targetElements = Array.isArray(elements) ? elements : [elements];
 
   targetElements.forEach((element) => {
-    if (!('style' in element)) {
-      return;
+    if (!("style" in element)) {
+      throw new Error("Element has no style property");
     }
 
     const styledElement = element as HTMLElement | SVGElement;
     entries.forEach(([key, value]) => {
-      styledElement.style.setProperty(key, value);
+      if (value.includes("!important")) {
+        styledElement.style.setProperty(key, value.replace("!important", ""), "important");
+      } else {
+        styledElement.style.setProperty(key, value);
+      }
     });
   });
 };
@@ -50,7 +54,7 @@ export const injectCSS = (styleText: string) => {
     return false;
   }
 
-  const styleElement = document.createElement('style');
+  const styleElement = document.createElement("style");
   styleElement.setAttribute(psHashAttributeName, hash);
   styleElement.textContent = styleText;
   head.appendChild(styleElement);

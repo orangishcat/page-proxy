@@ -37,6 +37,7 @@
     refreshActiveTab as refreshActiveTabImpl,
     handleTabActivated as handleTabActivatedImpl,
     handleTabUpdated as handleTabUpdatedImpl,
+    selectScriptForCurrentTab as selectScriptForCurrentTabImpl,
     type TabLoaderState,
   } from "./code-editor/tab-loader";
   import {
@@ -68,17 +69,19 @@
   let editorDomNode: HTMLElement | null = null;
   let unsubscribeEditorMessageStore = () => {};
 
-  const tabState: TabLoaderState = {
+  let tabState = $state<TabLoaderState>({
     activeTabId: null,
     activeTabUrl: null,
     activeWebsiteGlob: null,
     activeScriptName: null,
+    defaultScriptName: null,
+    availableScriptOptions: [],
     isProtectedPage: false,
     canPersistEditorChanges: false,
     hasUnsavedChanges: false,
     isProgrammaticUpdate: false,
     editorValue: "",
-  };
+  });
 
   const activeEditorMessage = $derived($editorMessage);
   const updateScriptMetadata = (content: string) => {
@@ -200,6 +203,12 @@
     runScriptImpl(tabState.editorValue, buildRunScriptDeps());
   };
 
+  const selectScriptForCurrentTab = (scriptName: string) => {
+    void selectScriptForCurrentTabImpl(scriptName, buildTabLoaderDeps()).catch((error) => {
+      setEditorMessageFromUnknown(error, "Unable to switch scripts.");
+    });
+  };
+
   const refreshActiveTab = () => refreshActiveTabImpl(buildTabLoaderDeps());
   const handleTabActivated = (activeInfo: { tabId: number }) => handleTabActivatedImpl(activeInfo, buildTabLoaderDeps());
   const handleTabUpdated = (tabId: number, changeInfo: { url?: string; status?: string }, tab: Parameters<typeof handleTabUpdatedImpl>[2]) =>
@@ -284,10 +293,13 @@
 >
   <EditorToolbar
     scriptTitle={editorCtx.scriptMetadata.title}
-    scriptWebsite={editorCtx.scriptMetadata.website}
+    scriptWebsite={tabState.activeWebsiteGlob ?? editorCtx.scriptMetadata.website}
+    scriptOptions={tabState.availableScriptOptions}
+    selectedScriptName={tabState.activeScriptName}
     {hasUnsavedChanges}
     {isRunning}
     onrun={runScript}
+    onselectscript={selectScriptForCurrentTab}
   />
   <div class="h-full min-h-0 w-full overflow-auto" bind:this={editorHost}></div>
   {#if activeEditorMessage}

@@ -3,13 +3,42 @@ import { parseScriptMetadata } from "@/lib/utils/script-metadata";
 import { buildWebsiteGlobForUrl, matchWebsiteGlob } from "@/lib/utils/website-glob";
 import { buildDefaultScript, type DefaultScriptConfig } from "@/lib/default-script";
 
-import { findStoredToolStateForUrl, resolveBlankScriptName, type StoredToolState } from "./state-storage";
+import {
+  findStoredToolStatesForUrl,
+  resolveBlankScriptName,
+  type StoredStateMatch,
+  type StoredToolState,
+} from "./state-storage";
+import {
+  clearSelectedScriptForHostname,
+  readSelectedScriptForHostname,
+} from "./script-selection-session";
 
 export type ScriptFormatConfig = DefaultScriptConfig & {
   protectedComment: string;
 };
 
 export { buildDefaultScript };
+
+export type ResolvedScriptMatch = {
+  scriptName: string;
+  websiteGlob: string;
+  state: StoredToolState;
+};
+
+const getHostnameFromUrl = (url: string) => {
+  try {
+    return new URL(url).hostname.trim().toLowerCase();
+  } catch {
+    return "";
+  }
+};
+
+const toResolvedScriptMatch = (match: StoredStateMatch): ResolvedScriptMatch => ({
+  scriptName: match.scriptName,
+  websiteGlob: match.matchedWebsiteGlob,
+  state: match.state,
+});
 
 export const ensureDefineBlock = (content: string, config: ScriptFormatConfig) => {
   const lines = content.split("\n");
@@ -158,21 +187,53 @@ export const isDefaultToolState = (state: StoredToolState, config: ScriptFormatC
 };
 
 export const resolveStoredToolStateForUrl = async (url: string, config: ScriptFormatConfig) => {
-  const matched = await findStoredToolStateForUrl(url);
+  const matchedStates = await findStoredToolStatesForUrl(url);
   const fallbackWebsiteGlob = buildWebsiteGlobForUrl(url);
-  if (matched) {
+  const hostname = getHostnameFromUrl(url);
+
+  if (matchedStates.length > 0) {
+    const matches = matchedStates.map(toResolvedScriptMatch);
+    const defaultMatch = matches[0];
+    const storedSelectedScriptName = hostname ? await readSelectedScriptForHostname(hostname) : null;
+    const selectedOverride = storedSelectedScriptName
+      ? matches.find((match) => match.scriptName === storedSelectedScriptName) ?? null
+      : null;
+    const selectedMatch = selectedOverride ?? defaultMatch;
+    const shouldClearStoredSelection =
+      Boolean(storedSelectedScriptName) &&
+      (!selectedOverride || selectedOverride.scriptName === defaultMatch.scriptName);
+
+    if (shouldClearStoredSelection && hostname) {
+      await clearSelectedScriptForHostname(hostname);
+    }
+
     return {
-      scriptName: matched.scriptName,
-      websiteGlob: matched.matchedWebsiteGlob,
-      state: matched.state,
+      scriptName: selectedMatch.scriptName,
+      websiteGlob: selectedMatch.websiteGlob,
+      state: selectedMatch.state,
+      matches,
+      defaultMatch,
+      selectedMatch,
     };
+  }
+
+  if (hostname) {
+    await clearSelectedScriptForHostname(hostname);
   }
 
   const scriptName = await resolveBlankScriptName(defaultBlankScriptTitle);
   const state = buildDefaultToolState(fallbackWebsiteGlob, config, scriptName);
+  const fallbackMatch = {
+    scriptName,
+    websiteGlob: fallbackWebsiteGlob,
+    state,
+  } satisfies ResolvedScriptMatch;
   return {
     scriptName,
     websiteGlob: fallbackWebsiteGlob,
     state,
+    matches: [],
+    defaultMatch: fallbackMatch,
+    selectedMatch: fallbackMatch,
   };
 };

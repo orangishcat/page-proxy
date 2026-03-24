@@ -17,6 +17,11 @@ export type ElementEntry = {
 
 export type SelectorEntry = ParsedScriptSelectorEntry;
 
+export type ScriptSelectionOption = {
+  scriptName: string;
+  websiteGlob: string;
+};
+
 export type ScriptMetadataState = {
   title: string;
   website: string;

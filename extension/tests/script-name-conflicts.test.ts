@@ -55,6 +55,7 @@ void mock.module("wxt/browser", () => ({
   browser: {
     storage: {
       local: storageApi,
+      session: storageApi,
     },
   },
 }));
