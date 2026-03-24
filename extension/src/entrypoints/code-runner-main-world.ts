@@ -430,13 +430,13 @@ const runScriptRequest = (
   } satisfies typeof pq;
   const styleApi = {
     ...modules.ps,
-    injectCSS: (styleText: string) => {
+    injectCSS: (styleText: string, options?: ps.InjectCssOptions) => {
       cssEntryCount += 1;
       const selectors = extractCssSelectorsFromStyleText(styleText);
       const entryName = selectors[0] ? `CSS ${cssEntryCount}: ${selectors[0]}` : `CSS ${cssEntryCount}`;
       const entry: ScriptRunSelectorEntry = { ...toCssSelectorEntry(entryName, selectors), cssText: styleText };
       selectorEntries.set(`css:${entryName}`, entry);
-      return modules.ps.injectCSS(styleText);
+      return modules.ps.injectCSS(styleText, options);
     }
   } satisfies typeof ps;
 
