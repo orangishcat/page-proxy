@@ -4,6 +4,21 @@ title: Release notes
 
 # Release notes (v0.3.x)
 
+## New in v0.3.5
+
+- Improved record-to-code review controls:
+  - Converter steps can now switch generated selectors between `waitUntilMatch()` and `onElementMatches(...)`.
+  - Parent traversal steps now support selector re-selection in addition to count-based traversal.
+- Improved sidepanel script handling:
+  - The editor toolbar now lets you choose between multiple saved scripts that match the current tab.
+  - Blank scripts are auto-numbered, and saving now blocks duplicate script titles.
+  - Script-scoped `pt` storage and `pn` cache state now follow the saved script instead of being dropped on rename.
+- Expanded `ps` styling controls:
+  - `ps.injectCSS(...)` now accepts a `priority` option with `normal`, `high`, and `xhigh` modes.
+  - `ps.applyStyle(...)` now preserves `!important` declarations in inline style values.
+- Refined the marketing site:
+  - The landing page now includes refreshed demos and downloadable example scripts.
+
 ## New in v0.3.4
 
 - Improved GitHub Actions release workflow:
