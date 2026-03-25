@@ -6,7 +6,14 @@ import globals from "globals";
 
 export default [
   {
-    ignores: ["**/.svelte-kit/**", "**/node_modules/**", "**/dist/**", "**/build/**", "**/test-results/**"],
+    ignores: [
+      "**/.svelte-kit/**",
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/test-results/**",
+      "**/static/examples/**",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
