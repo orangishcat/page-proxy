@@ -432,12 +432,12 @@ const runScriptRequest = (request: ScriptRunRequest, sendResult: (response: Scri
 
   const onError = (errorEvent: ErrorEvent) => {
     const errorMessage = errorEvent.message || toExecutionErrorMessage(errorEvent.error) || "Unknown error.";
-    log.error("Script execution error: ", errorMessage, errorEvent.error);
+    logger.error("Script execution error: ", errorMessage, errorEvent.error);
     respond(`Script execution failed: ${errorMessage}`, toExecutionErrorStack(errorEvent.error));
   };
 
   const onRejection = (rejection: PromiseRejectionEvent) => {
-    log.error("Script execution rejected: ", rejection.reason, rejection);
+    logger.error("Script execution rejected: ", rejection.reason, rejection);
     respond(
       `Script execution rejected: ${toExecutionErrorMessage(rejection.reason)}`,
       toExecutionErrorStack(rejection.reason),
