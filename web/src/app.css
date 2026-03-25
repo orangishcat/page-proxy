@@ -67,7 +67,7 @@
   }
 
   .monaco-editor.pp-monaco-editor {
-    @apply h-full w-full;
+    @apply h-full w-full text-[100%] leading-[187.5%];
   }
 
   .monaco-editor.pp-monaco-editor .view-lines {
@@ -78,16 +78,16 @@
 
   .monaco-editor.pp-monaco-editor .monaco-editor-background,
   .monaco-editor.pp-monaco-editor .margin {
-    background-color: #f8f6f0 !important;
-  }
-
-  .dark .monaco-editor.pp-monaco-editor .monaco-editor-background,
-  .dark .monaco-editor.pp-monaco-editor .margin {
-    background-color: #11110f !important;
+    background-color: #282824 !important;
   }
 
   .monaco-editor.pp-monaco-editor .current-line,
   .monaco-editor.pp-monaco-editor .current-line-margin {
     border: none !important;
+  }
+
+  .monaco-editor.pp-monaco-editor .suggest-widget,
+  .monaco-editor.pp-monaco-editor .monaco-hover {
+    @apply border border-gray-700;
   }
 }

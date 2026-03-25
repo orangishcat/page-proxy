@@ -1,29 +1,35 @@
-import * as pq from "@page-proxy/pp/pp-query";
-import * as ps from "@page-proxy/pp/pp-style";
-import * as pv from "@page-proxy/pp/pp-event";
+import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";
 
 // ==Page Proxy==
 // @title Knowt deslopifier
 // @website https://knowt.com/*
-// @description Get rid of AI slop from Knowt (by removing buttons with premium badges on them)
+// @description Remove the premium badges everywhere
 // @author orangishcat
+// @grant run-on-page-load
 // ==/Page Proxy==
 
 // ==Selectors==
 const premiumBadge = pq.selector({
-  "name": "premium badge selector",
-  "baseSelector": "div.MuiBox-root:has(div.MuiBox-root.knowt-4tqv34),a:has(div.MuiBox-root.knowt-4tqv34)",
-  "matches": e => true,
-  "postMap": e => e.parentElement.localName === 'a' ? e.parentElement : e
+  name: "premium badge selector",
+  baseSelector: "img[alt='ultra']",
+  matches: (e) => true,
 });
-
-const upgradeButton = pq.selector({
-  "name": "upgrade button",
-  "baseSelector": "nav.flex_flex__NGgQE.flex_flexColumn___cC9I > div.flex_flex__NGgQE.flex_flexColumn___cC9I:nth-of-type(2) > div.knowt-101chhv > button.secondaryText1.MuiBox-root:nth-of-type(3)",
-  "matches": e => true,
+const traverseUntilButton = pq.selector({
+  name: "Traverse until big element",
+  baseSelector: "div.MuiBox-root,a,button",
+  matches: (e) => e.clientWidth > 100,
 });
+premiumBadge.onElementMatches((ultraBadge) => {
+  let bigElement = pq.traverseParents(ultraBadge, (e) => traverseUntilButton.matches(e));
+  if (bigElement.parentElement.localName === "a") bigElement = bigElement.parentElement;
+  bigElement.remove();
+});
+ps.injectCSS(`
+textarea[rows]
+{
+  max-height: 32rem !important;
+  overflow-y: auto !important;
+}
+`);
 
 // ==/Selectors==
-
-premiumBadge.onElementMatches(e => e.remove());
-upgradeButton.onElementMatches(e => e.remove());
