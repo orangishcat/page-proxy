@@ -6,6 +6,7 @@
   import LandingFeatureCursorDemo from "$lib/components/landing/LandingFeatureCursorDemo.svelte";
   import LandingFeatureModuleTree from "$lib/components/landing/LandingFeatureModuleTree.svelte";
   import LandingFeatureEditorPreview from "$lib/components/landing/LandingFeatureEditorPreview.svelte";
+  import LandingExploreSection from "$lib/components/landing/LandingExploreSection.svelte";
 
   const githubUrl = "https://github.com/orangishcat/page-proxy";
 </script>
@@ -45,7 +46,7 @@
       </div>
     </section>
 
-    <div
+    <section
       class="[&>*:nth-child(odd)]:bg-[#f3f4f3] [&>*:nth-child(odd)]:dark:bg-[#2a2a25] [&>*:nth-child(even)]:bg-[#ededec] [&>*:nth-child(even)]:dark:bg-[#252520] *:px-12"
     >
       <section class="py-16 flex flex-col items-center" id="tools">
@@ -105,7 +106,11 @@
         </div>
       </div>
 
-      <div id="explore">
+      <div class="flex justify-center w-full overflow-hidden px-6">
+        <LandingExploreSection />
+      </div>
+
+      <div class="h-140 flex justify-center place-items-center w-full overflow-hidden">
         <section class="mx-auto flex w-full max-w-7xl flex-col items-center space-y-6 py-32">
           <img src={asset("/logo_filled.avif")} alt="Page Proxy logo" class="h-50 w-50" draggable="false" />
           <h3 class="text-heading mt-4 text-center text-[#20211f] dark:text-white">Want to try it out?</h3>
@@ -125,6 +130,6 @@
           </div>
         </section>
       </div>
-    </div>
+    </section>
   </div>
 </main>

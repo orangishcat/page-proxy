@@ -65,4 +65,29 @@
   .text-label {
     @apply text-xs font-semibold uppercase tracking-widest;
   }
+
+  .monaco-editor.pp-monaco-editor {
+    @apply h-full w-full;
+  }
+
+  .monaco-editor.pp-monaco-editor .view-lines {
+    font-family:
+      "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+      monospace;
+  }
+
+  .monaco-editor.pp-monaco-editor .monaco-editor-background,
+  .monaco-editor.pp-monaco-editor .margin {
+    background-color: #f8f6f0 !important;
+  }
+
+  .dark .monaco-editor.pp-monaco-editor .monaco-editor-background,
+  .dark .monaco-editor.pp-monaco-editor .margin {
+    background-color: #11110f !important;
+  }
+
+  .monaco-editor.pp-monaco-editor .current-line,
+  .monaco-editor.pp-monaco-editor .current-line-margin {
+    border: none !important;
+  }
 }
