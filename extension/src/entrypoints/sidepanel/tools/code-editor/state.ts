@@ -22,6 +22,9 @@ export type ScriptSelectionOption = {
   websiteGlob: string;
 };
 
+export const shouldShowScriptDropdown = (scriptOptions: ScriptSelectionOption[]) =>
+  scriptOptions.length > 0;
+
 export type ScriptMetadataState = {
   title: string;
   website: string;

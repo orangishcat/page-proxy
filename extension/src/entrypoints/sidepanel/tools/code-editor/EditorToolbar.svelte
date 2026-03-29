@@ -1,8 +1,8 @@
 <script lang="ts">
   import { DropdownMenu, Tooltip } from "bits-ui";
-  import { Check, ChevronDown, Play } from "lucide-svelte";
+  import { Check, ChevronDown, Play, Plus } from "lucide-svelte";
   import Button from "@/lib/components/Button.svelte";
-  import type { ScriptSelectionOption } from "./state";
+  import { shouldShowScriptDropdown, type ScriptSelectionOption } from "./state";
 
   const actionMenuClasses =
     "z-20 min-w-48 rounded-md border border-gray-300 bg-gray-50 p-1 text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100";
@@ -17,6 +17,7 @@
     hasUnsavedChanges: boolean;
     isRunning: boolean;
     onrun: () => void;
+    oncreatenewscript: () => void;
     onselectscript: (scriptName: string) => void;
   };
 
@@ -28,13 +29,14 @@
     hasUnsavedChanges,
     isRunning,
     onrun,
+    oncreatenewscript,
     onselectscript,
   }: Props = $props();
 </script>
 
 <div class="h-10 w-full bg-[#393a34] flex items-center justify-between px-4">
   <div class="text-body flex min-w-0 items-center gap-1">
-    {#if scriptOptions.length > 1}
+    {#if shouldShowScriptDropdown(scriptOptions)}
       <DropdownMenu.Root>
         <DropdownMenu.Trigger>
           {#snippet child({ props })}
@@ -61,6 +63,11 @@
                 {/if}
               </DropdownMenu.Item>
             {/each}
+            <DropdownMenu.Separator class="my-1 h-px bg-gray-200 dark:bg-gray-800" />
+            <DropdownMenu.Item class={actionMenuItemClasses} onclick={oncreatenewscript}>
+              <span class="truncate">New script</span>
+              <Plus class="h-4 w-4 shrink-0 text-gray-400" />
+            </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Portal>
       </DropdownMenu.Root>
