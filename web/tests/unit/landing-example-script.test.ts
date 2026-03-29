@@ -8,7 +8,6 @@ describe("createLandingExampleScript", () => {
       fileName: "steam-redesign.js",
       content:
         "// ==Page Proxy==\n// @title Steam redesign\n// @website https://store.steampowered.com/*\n// @description Restyles the storefront\n// ==/Page Proxy==",
-      category: "Storefront",
       cardDescription: "A more polished storefront layout.",
     });
 
@@ -16,7 +15,6 @@ describe("createLandingExampleScript", () => {
     expect(result.title).toBe("Steam redesign");
     expect(result.website).toBe("https://store.steampowered.com/*");
     expect(result.description).toBe("Restyles the storefront");
-    expect(result.category).toBe("Storefront");
     expect(result.cardDescription).toBe("A more polished storefront layout.");
     expect(result.downloadName).toBe("steam-redesign.js");
   });
