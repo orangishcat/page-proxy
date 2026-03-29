@@ -82,7 +82,10 @@ const {
   readSelectedScriptForHostname,
   writeSelectedScriptForHostname,
 } = await import("../src/entrypoints/sidepanel/tools/script-selection-session");
-const { selectScriptForCurrentTab } = await import("../src/entrypoints/sidepanel/tools/code-editor/tab-loader");
+const {
+  createNewScriptForCurrentTab: createNewScriptForCurrentTabInLoader,
+  selectScriptForCurrentTab,
+} = await import("../src/entrypoints/sidepanel/tools/code-editor/tab-loader");
 
 const scriptFormatConfig = {
   ppImportLines: ['import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";'],
@@ -258,5 +261,59 @@ describe("script selection session", () => {
     expect(state.activeScriptName).toBe("Page Proxy 2");
     expect(state.activeWebsiteGlob).toBe("https://docs.example.com/reference/*");
     expect(latestEditorContent).toContain("// @title Page Proxy 2");
+  });
+
+  test("creates a new blank script for the current tab without overwriting matching stored scripts", async () => {
+    const localStorageState = getStorageState("local");
+    localStorageState[toStorageKey("Page Proxy")] = buildStoredState("Page Proxy", "https://docs.example.com/*", 1);
+
+    const state = {
+      activeTabId: 1,
+      activeTabUrl: "https://docs.example.com/reference/api",
+      activeWebsiteGlob: "https://docs.example.com/*",
+      activeScriptName: "Page Proxy",
+      defaultScriptName: "Page Proxy",
+      availableScriptOptions: [{ scriptName: "Page Proxy", websiteGlob: "https://docs.example.com/*" }],
+      isProtectedPage: false,
+      canPersistEditorChanges: true,
+      hasUnsavedChanges: false,
+      isProgrammaticUpdate: false,
+      editorValue: buildScriptContent("Page Proxy", "https://docs.example.com/*"),
+    };
+
+    let latestEditorContent = "";
+    let latestMessage: string | null = null;
+
+    const deps = {
+      state,
+      setActiveToolId: () => undefined,
+      setAllowedGrants: () => undefined,
+      setElementEntries: () => undefined,
+      setRecordPanelActiveTab: () => undefined,
+      updateEditorContent: (content: string) => {
+        latestEditorContent = content;
+      },
+      setEditorMessage: (message: string | null) => {
+        latestMessage = message;
+      },
+      setEditorMessageFromUnknown: () => undefined,
+      scriptFormatConfig,
+      autosave: {
+        queuePendingTabRefresh: () => false,
+      },
+    };
+
+    await createNewScriptForCurrentTabInLoader(deps);
+
+    expect(state.activeScriptName).toBe("Page Proxy 2");
+    expect(state.activeWebsiteGlob).toBe("https://docs.example.com/*");
+    expect(state.defaultScriptName).toBe("Page Proxy");
+    expect(state.availableScriptOptions).toEqual([{ scriptName: "Page Proxy", websiteGlob: "https://docs.example.com/*" }]);
+    expect(latestEditorContent).toContain("// @title Page Proxy 2");
+    expect(latestEditorContent).toContain("// @website https://docs.example.com/*");
+    expect(localStorageState[toStorageKey("Page Proxy")]).toEqual(
+      buildStoredState("Page Proxy", "https://docs.example.com/*", 1),
+    );
+    expect(latestMessage).toBeNull();
   });
 });

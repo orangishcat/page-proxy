@@ -1,6 +1,6 @@
-import { defaultBlankScriptTitle } from "@/lib/script-names";
+import { buildAutoNumberedScriptName, defaultBlankScriptTitle } from "@/lib/script-names";
 import { browser } from "wxt/browser";
-import { isRestrictedUrl } from "@/lib/utils/website-glob";
+import { buildWebsiteGlobForUrl, isRestrictedUrl } from "@/lib/utils/website-glob";
 import {
   buildDefaultScript,
   buildProtectedDisplay,
@@ -10,7 +10,7 @@ import {
   type ResolvedScriptMatch,
   type ScriptFormatConfig,
 } from "../state-loading";
-import { resolveBlankScriptName } from "../state-storage";
+import { listStoredScriptNames, resolveBlankScriptName } from "../state-storage";
 import { clearSelectedScriptForHostname, writeSelectedScriptForHostname } from "../script-selection-session";
 import { getTabUrl, resolveActiveTab, shouldHandleTabUpdate, type ActiveTab } from "./tabs";
 import { coerceToolPanelTool } from "@/lib/sidepanel-shortcuts";
@@ -29,6 +29,18 @@ const toScriptSelectionOption = (match: ResolvedScriptMatch): ScriptSelectionOpt
   scriptName: match.scriptName,
   websiteGlob: match.websiteGlob,
 });
+
+const resolveNewScriptName = async (state: TabLoaderState) => {
+  const storedScriptNames = await listStoredScriptNames();
+  const inMemoryScriptNames = [
+    state.activeScriptName,
+    ...state.availableScriptOptions.map((option) => option.scriptName),
+  ]
+    .map((scriptName) => scriptName?.trim() ?? "")
+    .filter((scriptName) => scriptName.length > 0);
+
+  return buildAutoNumberedScriptName(defaultBlankScriptTitle, [...storedScriptNames, ...inMemoryScriptNames]);
+};
 
 export type TabLoaderState = {
   activeTabId: number | null;
@@ -177,6 +189,30 @@ export const selectScriptForCurrentTab = async (scriptName: string, deps: TabLoa
   }
 
   await loadStateForUrl(state.activeTabUrl, deps);
+};
+
+export const createNewScriptForCurrentTab = async (deps: TabLoaderDeps): Promise<void> => {
+  const { state, scriptFormatConfig } = deps;
+  if (!state.activeTabUrl || state.isProtectedPage || !state.canPersistEditorChanges) {
+    return;
+  }
+
+  if (deps.autosave.queuePendingTabRefresh(state.editorValue, state.hasUnsavedChanges, state.isProgrammaticUpdate)) {
+    return;
+  }
+
+  const nextScriptName = await resolveNewScriptName(state);
+  const websiteGlob = state.activeWebsiteGlob?.trim() || buildWebsiteGlobForUrl(state.activeTabUrl);
+  const baseContent = buildDefaultScript(websiteGlob, scriptFormatConfig, nextScriptName);
+  const nextContent = ensureWebsiteMetadata(ensureDefineBlock(baseContent, scriptFormatConfig), websiteGlob);
+
+  state.activeScriptName = nextScriptName;
+  state.activeWebsiteGlob = websiteGlob || null;
+  deps.setActiveToolId("none");
+  deps.setAllowedGrants([]);
+  deps.setElementEntries([]);
+  deps.updateEditorContent(nextContent, { persist: false });
+  deps.setEditorMessage(null, "error");
 };
 
 export const handleTabActivated = (activeInfo: { tabId: number }, deps: TabLoaderDeps): void => {

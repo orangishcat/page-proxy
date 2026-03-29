@@ -34,6 +34,7 @@
   } from "./code-editor/definition-manager";
   import { runScript as runScriptImpl } from "./code-editor/script-runner";
   import {
+    createNewScriptForCurrentTab as createNewScriptForCurrentTabImpl,
     refreshActiveTab as refreshActiveTabImpl,
     handleTabActivated as handleTabActivatedImpl,
     handleTabUpdated as handleTabUpdatedImpl,
@@ -210,6 +211,12 @@
     });
   };
 
+  const createNewScriptForCurrentTab = () => {
+    void createNewScriptForCurrentTabImpl(buildTabLoaderDeps()).catch((error) => {
+      setEditorMessageFromUnknown(error, "Unable to create a new script.");
+    });
+  };
+
   const refreshActiveTab = () => refreshActiveTabImpl(buildTabLoaderDeps());
   const handleTabActivated = (activeInfo: { tabId: number }) => handleTabActivatedImpl(activeInfo, buildTabLoaderDeps());
   const handleTabUpdated = (tabId: number, changeInfo: { url?: string; status?: string }, tab: Parameters<typeof handleTabUpdatedImpl>[2]) =>
@@ -300,6 +307,7 @@
     {hasUnsavedChanges}
     {isRunning}
     onrun={runScript}
+    oncreatenewscript={createNewScriptForCurrentTab}
     onselectscript={selectScriptForCurrentTab}
   />
   <div class="h-full min-h-0 w-full overflow-auto" bind:this={editorHost}></div>
