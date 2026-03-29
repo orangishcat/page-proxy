@@ -24,7 +24,7 @@
   <div class="mx-auto max-w-3xl space-y-6 text-center">
     <h1 class="text-heading">Explore</h1>
     <p class="text-subtitle leading-relaxed text-gray-600 dark:text-gray-300">
-      Some random scripts I made. Can you make something cooler?
+      A few handy utility scripts I made to get you started. Can you make something cooler?
     </p>
   </div>
 
