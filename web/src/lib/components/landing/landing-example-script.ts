@@ -4,7 +4,6 @@ export type CreateLandingExampleScriptArgs = {
   id: string;
   fileName: string;
   content: string;
-  category: string;
   cardDescription: string;
 };
 
@@ -16,7 +15,6 @@ export type LandingExampleScript = {
   title: string;
   website: string;
   description: string;
-  category: string;
   cardDescription: string;
 };
 
@@ -24,7 +22,6 @@ export const createLandingExampleScript = ({
   id,
   fileName,
   content,
-  category,
   cardDescription,
 }: CreateLandingExampleScriptArgs): LandingExampleScript => {
   const metadata = parseScriptMetadata(content);
@@ -40,7 +37,6 @@ export const createLandingExampleScript = ({
     title: metadata.title,
     website: metadata.website,
     description: metadata.description,
-    category,
     cardDescription,
   };
 };
