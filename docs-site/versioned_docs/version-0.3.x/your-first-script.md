@@ -27,7 +27,7 @@ pa.notification("Hello world!");
 
 The script runs on the active tab, and will only appear on websites that match the `@website` glob. Switching to a different tab loads a different script.
 
-New in v0.3.5: if multiple saved scripts match the current tab, use the script-title dropdown in the sidepanel editor to choose which one to load. Fresh blank scripts are auto-numbered to avoid name collisions.
+New in v0.3.6: the script-title dropdown stays available whenever the current tab already has a matching saved script, and it now includes a **New script** action so you can start a fresh tab-specific script without overwriting the existing one. Fresh blank scripts are still auto-numbered to avoid name collisions.
 
 Running the code should log an in-page notification saying "Hello world"!
 
