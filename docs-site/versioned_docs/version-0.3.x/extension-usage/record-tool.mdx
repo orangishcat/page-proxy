@@ -101,46 +101,21 @@ New in v0.3.5:
 
 The record tool is far from perfect, so the end result will need some polish and fixes.
 
-### Name collisions
+### Review the code
 
-The tool will often produce variable name collisions, for example:
+Rename variables and cleanup code. It'll make the end result better.
 
-```js
-let selectedElement = null;
+### Keep all selectors top-level
 
-// later...
-
-const selectedElement = selector.awaitUntilMatch();
-```
-
-Those will need to be renamed.
-
-### Await until match pattern
-
-The generated code
+Move nested selector declarations, such as this:
 
 ```js
-const selectedElement = selector.awaitUntilMatch();
-
-// example logic
-if (selectedElement) {
-    selectedElement.remove();
-}
-```
-
-will only run the script for the first match.
-
-To run the script for all matches, just enclose your relevant functionality in an `onElementMatches` call.
-
-For example:
-
-```js
-selector.onElementMatches((e) => {
-    if (e) {
-        e.remove();
-    }
+selector.onElementMatches((selectedElement) => {
+    const otherSelector = pq.selector(/* ... */);
 });
 ```
+
+to the top level as a global variable for readability.
 
 ### Unnecessary null checks
 
