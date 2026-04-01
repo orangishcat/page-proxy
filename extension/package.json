@@ -6,7 +6,7 @@
     "prepare": "wxt prepare",
     "generate-monaco-types": "node ./scripts/generate-pp-monaco-extra-lib.mjs",
     "dev": "node ./scripts/generate-pp-monaco-extra-lib.mjs && wxt",
-    "build": "node ./scripts/generate-pp-monaco-extra-lib.mjs && wxt build && wxt build --browser firefox",
+    "build": "node ./scripts/generate-pp-monaco-extra-lib.mjs && wxt build --browser firefox && wxt build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "lint": "eslint .",
     "test": "bun test tests",
