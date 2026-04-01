@@ -4,6 +4,18 @@ title: Release notes
 
 # Release notes (v0.3.x)
 
+## New in v0.3.6
+
+- Improved sidepanel script switching:
+    - The script-title dropdown now stays available as soon as the current tab has a matching saved script.
+    - The dropdown includes a **New script** action that creates a fresh tab-matched script without overwriting existing saved scripts.
+- Refined landing page starter scripts:
+    - Replaced the older Schoology demo with a general-purpose **Make links not draggable** example.
+    - Landing example metadata now preserves multiline descriptions, so longer example summaries render correctly.
+- Simplified CI workflow signal:
+    - Push workflows now run only for `main`.
+    - The checks workflow no longer cancels in-progress runs in a way that counts as a failure.
+
 ## New in v0.3.5
 
 - Improved record-to-code review controls:
