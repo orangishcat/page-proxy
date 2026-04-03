@@ -2,12 +2,20 @@
   import { asset } from "$app/paths";
   import { DropdownMenu } from "bits-ui";
   import { SiFirefoxbrowser, SiGooglechrome } from "@icons-pack/svelte-simple-icons";
+  import SeoHead from "$lib/components/SeoHead.svelte";
   import Navbar from "$lib/components/Navbar.svelte";
   import { releaseVersion } from "$lib/utils/release-version";
   import { ChevronDown } from "lucide-svelte";
+  import {
+    createInstallHowToJsonLd,
+    createSoftwareApplicationJsonLd,
+    createWebPageJsonLd,
+  } from "$lib/seo";
   import { onMount } from "svelte";
 
   const releaseLatestUrl = "https://github.com/orangishcat/page-proxy/releases/latest";
+  const installDescription =
+    "Install Page Proxy on Chrome or Firefox, download the latest release, and start recording, editing, and running custom userscripts.";
   let selectedBrowser = $state<"chrome" | "firefox">("chrome");
   let selectedInstallMethod = $state<"load-unpacked" | "install-from-file">("load-unpacked");
   let browserDropdownOpen = $state(false);
@@ -29,7 +37,7 @@
     "grid min-w-64 gap-1.5 rounded-lg border border-gray-200 bg-gray-100 p-1 text-gray-700 shadow-xl dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100";
   const itemClasses =
     "text-body cursor-pointer rounded-lg px-3 py-2 text-left hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-700 dark:active:bg-gray-600";
-  const olClasses = "mt-3 list-decimal space-y-1 pl-7 text-gray-700 dark:text-gray-300 space-y-3 [&>li]:pl-1";
+  const olClasses = "list-decimal space-y-3 pl-7 text-gray-700 dark:text-gray-300 [&>li]:pl-1";
   const browserIconClasses = "h-4 w-4 shrink-0";
 
   onMount(() => {
@@ -42,12 +50,23 @@
   });
 </script>
 
-<svelte:head>
-  <title>Install</title>
-</svelte:head>
+<SeoHead
+  title="Install on Chrome and Firefox"
+  description={installDescription}
+  path="/install"
+  jsonLd={[
+    createSoftwareApplicationJsonLd(version),
+    createWebPageJsonLd({
+      title: "Install on Chrome and Firefox",
+      description: installDescription,
+      path: "/install",
+    }),
+    createInstallHowToJsonLd(version),
+  ]}
+/>
 
 <main class="flex min-h-screen w-full items-center bg-page-light text-gray-900 dark:bg-page dark:text-gray-100">
-  <div class="mx-auto flex h-screen w-full max-w-7xl flex-col gap-10 px-6 py-6">
+  <div class="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-10 px-6 py-6">
     <Navbar variant="landing" />
 
     <section class="mx-auto mt-12 grid w-full items-center gap-8 md:grid-cols-5">
@@ -55,11 +74,25 @@
         <img src={asset("/logo_filled.avif")} alt="Page Proxy" class="h-auto w-72" />
       </div>
 
-      <div class="flex w-full flex-col place-items-start justify-center space-y-4 md:col-span-3 h-[60vh]">
-        <h1 class="text-display mt-8 mb-8">v{version}</h1>
+      <div class="flex w-full flex-col place-items-start justify-center space-y-5 md:col-span-3 min-h-[36rem]">
+        <div class="space-y-4">
+          <p class="text-sm font-semibold uppercase tracking-[0.24em] text-gray-600 dark:text-gray-400">
+            Current release v{version}
+          </p>
+          <h1 class="text-display">Install Page Proxy on Chrome or Firefox</h1>
+          <p class="text-subtitle max-w-3xl text-gray-700 dark:text-gray-200">
+            Set up the Page Proxy browser extension, then start recording interactions, editing scripts, and restyling
+            websites with a built-in userscript workflow.
+          </p>
+          <p class="text-body max-w-3xl text-gray-600 dark:text-gray-300">
+            Choose your browser and preferred install method below. All downloads point to the latest GitHub release.
+          </p>
+        </div>
+
         <div
           class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-4 text-base dark:border-gray-800 dark:bg-gray-900"
         >
+          <h2 class="text-title text-gray-900 dark:text-white">Installation steps</h2>
           <div class="grid gap-3 md:grid-cols-2">
             <DropdownMenu.Root bind:open={browserDropdownOpen}>
               <DropdownMenu.Trigger class={triggerClasses}>
@@ -147,7 +180,7 @@
           {/if}
 
           {#if selectedBrowser === "chrome" && selectedInstallMethod === "load-unpacked"}
-            <ol class={olClasses}>
+            <ol class={`${olClasses} mt-5`}>
               <li>
                 Download <code>pp-chrome-source-v{version}.zip</code> from
                 <a href={releaseLatestUrl}>GitHub releases</a>.
@@ -160,7 +193,7 @@
               <li>Choose the extracted extension folder.</li>
             </ol>
           {:else if selectedBrowser === "chrome" && selectedInstallMethod === "install-from-file"}
-            <ol class={olClasses}>
+            <ol class={`${olClasses} mt-5`}>
               <li>
                 Download <code>pp-chrome-crx-v{version}.crx</code> from
                 <a href={releaseLatestUrl}>GitHub releases</a>.
@@ -171,7 +204,7 @@
               <li>Drag and drop <code>pp-chrome-crx-v{version}.crx</code>.</li>
             </ol>
           {:else if selectedBrowser === "firefox" && selectedInstallMethod === "load-unpacked"}
-            <ol class={olClasses}>
+            <ol class={`${olClasses} mt-5`}>
               <li>
                 Download <code>pp-ff-source-v{version}.zip</code> from
                 <a href={releaseLatestUrl}>GitHub releases</a>.
@@ -183,7 +216,7 @@
               <li>Choose <code>manifest.json</code> from the extracted folder.</li>
             </ol>
           {:else}
-            <ol class={olClasses}>
+            <ol class={`${olClasses} mt-5`}>
               <li>
                 Download <code>pp-ff-xpi-v{version}.xpi</code> from
                 <a href={releaseLatestUrl}>GitHub releases</a>.

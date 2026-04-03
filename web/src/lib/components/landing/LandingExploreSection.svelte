@@ -22,7 +22,7 @@
 
 <section class="mx-auto flex w-full max-w-7xl flex-col gap-10 py-28" id="explore">
   <div class="mx-auto max-w-3xl space-y-6 text-center">
-    <h1 class="text-heading">Explore</h1>
+    <h2 class="text-heading">Explore</h2>
     <p class="text-subtitle leading-relaxed text-gray-600 dark:text-gray-300">
       A few handy utility scripts I made to get you started. Can you make something cooler?
     </p>
