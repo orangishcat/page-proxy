@@ -1,5 +1,6 @@
 <script lang="ts">
   import { asset, resolve } from "$app/paths";
+  import SeoHead from "$lib/components/SeoHead.svelte";
   import Navbar from "$lib/components/Navbar.svelte";
   import Button from "$lib/components/Button.svelte";
   import LandingDemoSelect from "$lib/components/landing/LandingDemoSelect.svelte";
@@ -7,13 +8,26 @@
   import LandingFeatureModuleTree from "$lib/components/landing/LandingFeatureModuleTree.svelte";
   import LandingFeatureEditorPreview from "$lib/components/landing/LandingFeatureEditorPreview.svelte";
   import LandingExploreSection from "$lib/components/landing/LandingExploreSection.svelte";
+  import {
+    createSoftwareApplicationJsonLd,
+    createWebPageJsonLd,
+    createWebsiteJsonLd,
+    siteDescription,
+  } from "$lib/seo";
+  import { releaseVersion } from "$lib/utils/release-version";
 
   const githubUrl = "https://github.com/orangishcat/page-proxy";
+  const landingJsonLd = [
+    createWebsiteJsonLd(),
+    createSoftwareApplicationJsonLd(releaseVersion),
+    createWebPageJsonLd({
+      description: siteDescription,
+      path: "/",
+    }),
+  ];
 </script>
 
-<svelte:head>
-  <title>Page Proxy</title>
-</svelte:head>
+<SeoHead description={siteDescription} path="/" jsonLd={landingJsonLd} />
 
 <main class="min-h-screen bg-page-light text-[#20211f] dark:bg-page dark:text-white">
   <Navbar variant="landing" />
@@ -26,7 +40,8 @@
             Customization at your <span class="text-accent-500">fingertips.</span>
           </h1>
           <p class="text-2xl text-[#5e635e] dark:text-[#a8a8a8]">
-            An all-in-one userscript manager and creator to manipulate the web to your will.
+            Page Proxy is a browser extension and userscript manager for Chrome and Firefox, with GUI tools, recording
+            workflows, and a built-in Monaco editor for customizing the web to your will.
           </p>
 
           <div class="mt-2 flex items-center gap-5">
