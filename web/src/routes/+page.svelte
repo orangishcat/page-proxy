@@ -30,7 +30,7 @@
   <div class="flex w-full flex-col mt-12">
     <section>
       <div class="mx-auto w-full max-w-7xl py-56">
-        <div class="mx-auto flex flex-col items-center gap-4 text-center space-y-2">
+        <div class="mx-auto flex flex-col items-center gap-4 text-center space-y-4">
           <h1 class="text-display text-[#20211f] dark:text-white">
             Customization at your <span class="text-accent-500">fingertips.</span>
           </h1>
@@ -121,9 +121,9 @@
       </div>
 
       <div class="h-140 flex justify-center place-items-center w-full overflow-hidden">
-        <section class="mx-auto flex w-full max-w-7xl flex-col items-center space-y-6 py-32">
+        <section class="mx-auto flex w-full max-w-7xl flex-col items-center space-y-8 py-32">
           <img src={asset("/logo_filled.avif")} alt="Page Proxy logo" class="h-50 w-50" draggable="false" />
-          <h3 class="text-heading mt-4 text-center text-[#20211f] dark:text-white">Take control of your web.</h3>
+          <h3 class="text-heading text-center text-[#20211f] dark:text-white">Take control of your web.</h3>
 
           <div class="flex items-center gap-5">
             <a href={resolve("/install")}>
