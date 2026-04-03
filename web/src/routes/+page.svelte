@@ -8,12 +8,7 @@
   import LandingFeatureModuleTree from "$lib/components/landing/LandingFeatureModuleTree.svelte";
   import LandingFeatureEditorPreview from "$lib/components/landing/LandingFeatureEditorPreview.svelte";
   import LandingExploreSection from "$lib/components/landing/LandingExploreSection.svelte";
-  import {
-    createSoftwareApplicationJsonLd,
-    createWebPageJsonLd,
-    createWebsiteJsonLd,
-    siteDescription,
-  } from "$lib/seo";
+  import { createSoftwareApplicationJsonLd, createWebPageJsonLd, createWebsiteJsonLd, siteDescription } from "$lib/seo";
   import { releaseVersion } from "$lib/utils/release-version";
 
   const githubUrl = "https://github.com/orangishcat/page-proxy";
@@ -40,8 +35,8 @@
             Customization at your <span class="text-accent-500">fingertips.</span>
           </h1>
           <p class="text-2xl text-[#5e635e] dark:text-[#a8a8a8]">
-            Page Proxy is a browser extension and userscript manager for Chrome and Firefox, with GUI tools, recording
-            workflows, and a built-in Monaco editor for customizing the web to your will.
+            A browser extension and userscript manager for Chrome and Firefox, with GUI tools and a built in code
+            editor.
           </p>
 
           <div class="mt-2 flex items-center gap-5">
@@ -128,7 +123,7 @@
       <div class="h-140 flex justify-center place-items-center w-full overflow-hidden">
         <section class="mx-auto flex w-full max-w-7xl flex-col items-center space-y-6 py-32">
           <img src={asset("/logo_filled.avif")} alt="Page Proxy logo" class="h-50 w-50" draggable="false" />
-          <h3 class="text-heading mt-4 text-center text-[#20211f] dark:text-white">Want to try it out?</h3>
+          <h3 class="text-heading mt-4 text-center text-[#20211f] dark:text-white">Take control of your web.</h3>
 
           <div class="flex items-center gap-5">
             <a href={resolve("/install")}>
