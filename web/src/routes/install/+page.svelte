@@ -6,11 +6,7 @@
   import Navbar from "$lib/components/Navbar.svelte";
   import { releaseVersion } from "$lib/utils/release-version";
   import { ChevronDown } from "lucide-svelte";
-  import {
-    createInstallHowToJsonLd,
-    createSoftwareApplicationJsonLd,
-    createWebPageJsonLd,
-  } from "$lib/seo";
+  import { createInstallHowToJsonLd, createSoftwareApplicationJsonLd, createWebPageJsonLd } from "$lib/seo";
   import { onMount } from "svelte";
 
   const releaseLatestUrl = "https://github.com/orangishcat/page-proxy/releases/latest";
@@ -51,7 +47,7 @@
 </script>
 
 <SeoHead
-  title="Install on Chrome and Firefox"
+  title="Install"
   description={installDescription}
   path="/install"
   jsonLd={[
@@ -76,23 +72,12 @@
 
       <div class="flex w-full flex-col place-items-start justify-center space-y-5 md:col-span-3 min-h-[36rem]">
         <div class="space-y-4">
-          <p class="text-sm font-semibold uppercase tracking-[0.24em] text-gray-600 dark:text-gray-400">
-            Current release v{version}
-          </p>
-          <h1 class="text-display">Install Page Proxy on Chrome or Firefox</h1>
-          <p class="text-subtitle max-w-3xl text-gray-700 dark:text-gray-200">
-            Set up the Page Proxy browser extension, then start recording interactions, editing scripts, and restyling
-            websites with a built-in userscript workflow.
-          </p>
-          <p class="text-body max-w-3xl text-gray-600 dark:text-gray-300">
-            Choose your browser and preferred install method below. All downloads point to the latest GitHub release.
-          </p>
+          <h1 class="text-display">v{version}</h1>
         </div>
 
         <div
           class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-4 text-base dark:border-gray-800 dark:bg-gray-900"
         >
-          <h2 class="text-title text-gray-900 dark:text-white">Installation steps</h2>
           <div class="grid gap-3 md:grid-cols-2">
             <DropdownMenu.Root bind:open={browserDropdownOpen}>
               <DropdownMenu.Trigger class={triggerClasses}>
