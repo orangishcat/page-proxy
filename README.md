@@ -8,7 +8,9 @@
 
 Restyle and reskin webpages with a powerful set of developer tools.
 
-Page Proxy is an all-in-one userscript manager and creator with custom GUI tools for userscript design, so you can spend more time designing instead of converting your ideas to code.
+Page Proxy is an all-in-one userscript manager and creator with custom GUI tools
+for userscript design, so you can spend more time designing instead of
+converting your ideas to code.
 
 [Wait, but I don't get it. What problem is this trying to solve?](https://orangishcat.github.io/page-proxy/docs/purpose)
 
@@ -16,7 +18,8 @@ Page Proxy is an all-in-one userscript manager and creator with custom GUI tools
 
 - [Installation](https://orangishcat.github.io/page-proxy/install)
 - [Documentation](https://orangishcat.github.io/page-proxy/docs)
-- There's a help button in the extension which contains known issues and usage tips.
+- There's a help button in the extension which contains known issues and usage
+  tips.
 - Back up your scripts often! The extension is still very unstable.
 
 ## Supported browsers
@@ -28,7 +31,8 @@ Page Proxy is an all-in-one userscript manager and creator with custom GUI tools
 
 ### Select tool
 
-Click any element on the page to inspect it in the sidepanel. The tool shows the element's tag, id, class, selector path, and bounding box. From there you can:
+Click any element on the page to inspect it in the sidepanel. The tool shows the
+element's tag, id, class, selector path, and bounding box. From there you can:
 
 - Navigate up to the parent element.
 - Copy the element's selector as a `pp` API call or as a plain CSS selector.
@@ -38,7 +42,8 @@ Click any element on the page to inspect it in the sidepanel. The tool shows the
 
 ### Record tool
 
-Record a timeline of interactions on the active tab, then convert them to code without writing anything by hand:
+Record a timeline of interactions on the active tab, then convert them to code
+without writing anything by hand:
 
 1. Start recording — the tool captures events as a scrollable timeline.
 2. Select the events you want (click, drag-select, or select all).
@@ -47,28 +52,39 @@ Record a timeline of interactions on the active tab, then convert them to code w
 
 ### Code editor
 
-A [Monaco](https://microsoft.github.io/monaco-editor/)-powered editor for writing and running userscripts.
-Powered by tools that save to the editor, and also the `pp` scripting API.
+A [Monaco](https://microsoft.github.io/monaco-editor/)-powered editor for
+writing and running userscripts. Powered by tools that save to the editor, and
+also the `pp` scripting API.
 
 ### `@page-proxy/pp` scripting API
 
 Scripts import from the `pp` library, which provides six modules:
 
-- `pa`: Page-level helpers: in-page notifications with object viewer, markdown rendering, node movement
-- `pn`: Network: `fetch` wrapper with optional response caching and method helpers (`get`, `post`, etc.)
-- `pq`: DOM querying: reusable selector builders, match helpers (`innerTextMatches`, `bboxMatches`, etc.), parent traversal
-- `ps`: Style helpers: `applyStyle` for inline styles, `injectCSS` for deduped stylesheet injection
-- `pt`: Script-scoped storage: `getItem`/`setItem` backed by local storage, scoped per script
-- `pv`: Events: DOM mutation observers, key-combo listeners (`onKeyPressed`), `pressKey`, `sleep`, `awaitAnimation`
+- `pa`: Page-level helpers: in-page notifications with object viewer, markdown
+  rendering, node movement
+- `pn`: Network: `fetch` wrapper with optional response caching and method
+  helpers (`get`, `post`, etc.)
+- `pq`: DOM querying: reusable selector builders, match helpers
+  (`innerTextMatches`, `bboxMatches`, etc.), parent traversal
+- `ps`: Style helpers: `applyStyle` for inline styles, `injectCSS` for deduped
+  stylesheet injection
+- `pt`: Script-scoped storage: `getItem`/`setItem` backed by local storage,
+  scoped per script
+- `pv`: Events: DOM mutation observers, key-combo listeners (`onKeyPressed`),
+  `pressKey`, `sleep`, `awaitAnimation`
 
 ### Other
 
-- **Proxy & inject** — layer custom CSS and JavaScript on top of any website without touching its source.
-- **Selectors tool** — view, hover-highlight, and edit all active selectors from a single panel. Selector definitions are parsed directly from editor content.
+- **Proxy & inject** — layer custom CSS and JavaScript on top of any website
+  without touching its source.
+- **Selectors tool** — view, hover-highlight, and edit all active selectors from
+  a single panel. Selector definitions are parsed directly from editor content.
 - **Create tool** — insert new elements into the page from the sidepanel.
-- **Share / Export** — save the current script as a `.js` file from the sidepanel.
+- **Share / Export** — save the current script as a `.js` file from the
+  sidepanel.
 
-View the [documentation](https://orangishcat.github.io/page-proxy/docs/) to learn more.
+View the [documentation](https://orangishcat.github.io/page-proxy/docs/) to
+learn more.
 
 ## Local Development
 
@@ -98,8 +114,10 @@ Useful local endpoints/outputs:
 - Web app: `http://localhost:5173`
 - Docs site: `http://localhost:3288`
 - Extension dev output: `extension/.output`
-    - Change the browser by setting the `--browser` argument in `extension/package.json`.
-    - Load the build outputs unpacked, either via Chromium-based browsers' `Load unpacked` feature or Firefox's `Install temporary add-on`.
+    - Change the browser by setting the `--browser` argument in
+      `extension/package.json`.
+    - Load the build outputs unpacked, either via Chromium-based browsers'
+      `Load unpacked` feature or Firefox's `Install temporary add-on`.
 
 ### Checks
 
@@ -112,4 +130,5 @@ bun run extension:lint
 
 ## License
 
-Apache 2.0. See [LICENSE](LICENSE).
+This project is licensed under the [Apache 2.0 License](LICENSE.md). You must
+retain attribution when redistributing or modifying this code.
