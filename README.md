@@ -109,3 +109,7 @@ bun run extension:check
 bun run web:lint
 bun run extension:lint
 ```
+
+## License
+
+Apache 2.0. See [LICENSE](LICENSE).
