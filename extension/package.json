@@ -16,14 +16,14 @@
     "@page-proxy/pp": "workspace:*",
     "acorn": "^8.16.0",
     "acorn-walk": "^8.3.5",
-    "bits-ui": "2.16.3",
+    "bits-ui": "2.16.5",
     "css-selector-generator": "^3.8.1",
     "css-tree": "^3.2.1",
     "loglevel": "1.9.2",
-    "lucide-svelte": "0.577.0",
+    "lucide-svelte": "1.0.1",
     "monaco-editor": "0.55.1",
-    "picomatch": "4.0.3",
-    "svelte": "5.54.0"
+    "picomatch": "4.0.4",
+    "svelte": "5.55.1"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -32,15 +32,15 @@
     "@types/css-tree": "^2.3.11",
     "@types/picomatch": "4.0.2",
     "@wxt-dev/module-svelte": "2.0.5",
-    "eslint": "10.0.3",
-    "eslint-plugin-svelte": "3.15.2",
+    "eslint": "10.1.0",
+    "eslint-plugin-svelte": "3.16.0",
     "globals": "17.4.0",
     "postcss": "8.5.8",
-    "svelte-check": "4.4.5",
+    "svelte-check": "4.4.6",
     "svelte-eslint-parser": "1.6.0",
     "tailwindcss": "4.2.2",
-    "typescript": "5.9.3",
-    "typescript-eslint": "8.57.1",
+    "typescript": "6.0.2",
+    "typescript-eslint": "8.58.0",
     "wxt": "0.20.20"
   }
 }
