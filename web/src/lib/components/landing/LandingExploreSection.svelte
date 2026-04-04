@@ -46,7 +46,7 @@
             </span>
             <button
               type="button"
-              class="font-semibold text-accent-600 dark:text-accent-400 hover:opacity-40 cursor-pointer"
+              class="font-semibold text-accent-600 dark:text-accent-400 hover:opacity-40 hover:underline cursor-pointer"
               onclick={() => openExample(example)}>Open</button
             >
           </div>

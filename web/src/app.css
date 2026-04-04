@@ -19,7 +19,7 @@
 
 @layer components {
   a {
-    @apply text-accent-400 dark:text-accent-500 hover:opacity-75;
+    @apply text-accent-400 dark:text-accent-500 hover:opacity-75 hover:underline;
   }
 
   .text-display {
@@ -72,8 +72,8 @@
 
   .monaco-editor.pp-monaco-editor .view-lines {
     font-family:
-      "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
-      monospace;
+      "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace;
   }
 
   .monaco-editor.pp-monaco-editor .monaco-editor-background,
