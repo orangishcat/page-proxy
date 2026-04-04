@@ -1,6 +1,7 @@
 {
   "name": "page-proxy-docs",
   "private": true,
+  "license": "Apache-2.0",
   "scripts": {
     "dev": "docusaurus start --port 3288",
     "build": "docusaurus build",
