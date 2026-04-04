@@ -131,4 +131,5 @@ bun run extension:lint
 ## License
 
 This project is licensed under the [Apache 2.0 License](LICENSE.md). You must
-retain attribution when redistributing or modifying this code.
+retain attribution when redistributing or modifying this code. This software is
+provided "as is", without warranty of any kind. Use at your own risk.
