@@ -46,20 +46,27 @@
       return () => {};
     }
 
+    const root = rootEl;
+    const cursor = cursorEl;
+    const topOutline = topOutlineEl;
+    const bottomOutline = bottomOutlineEl;
+    const topTooltip = topTooltipEl;
+    const bottomTooltip = bottomTooltipEl;
+
     const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const { gsap } = await import("gsap");
-    const topPoint = getPointInRoot(rootEl, rootEl, cursorPoints.top);
-    const bottomPoint = getPointInRoot(rootEl, rootEl, cursorPoints.bottom);
+    const topPoint = getPointInRoot(root, root, cursorPoints.top);
+    const bottomPoint = getPointInRoot(root, root, cursorPoints.bottom);
 
     const setHoverTarget = (target: HoverTarget) => {
-      gsap.set(topOutlineEl, { opacity: target === "top" ? 1 : 0 });
-      gsap.set(bottomOutlineEl, { opacity: target === "bottom" ? 1 : 0 });
-      gsap.set(topTooltipEl, { opacity: target === "top" ? 1 : 0, y: target === "top" ? 0 : 4 });
-      gsap.set(bottomTooltipEl, { opacity: target === "bottom" ? 1 : 0, y: target === "bottom" ? 0 : 4 });
+      gsap.set(topOutline, { opacity: target === "top" ? 1 : 0 });
+      gsap.set(bottomOutline, { opacity: target === "bottom" ? 1 : 0 });
+      gsap.set(topTooltip, { opacity: target === "top" ? 1 : 0, y: target === "top" ? 0 : 4 });
+      gsap.set(bottomTooltip, { opacity: target === "bottom" ? 1 : 0, y: target === "bottom" ? 0 : 4 });
     };
 
     if (reducedMotionQuery.matches) {
-      setTargetPoint(gsap, cursorEl, bottomPoint, { opacity: 1, scale: 1 });
+      setTargetPoint(gsap, cursor, bottomPoint, { opacity: 1, scale: 1 });
       setHoverTarget("bottom");
       return () => {};
     }
@@ -67,7 +74,7 @@
     let context: { revert: () => void } | null = null;
 
     context = gsap.context(() => {
-      setTargetPoint(gsap, cursorEl, topPoint, { opacity: 1, scale: 1 });
+      setTargetPoint(gsap, cursor, topPoint, { opacity: 1, scale: 1 });
       setHoverTarget("top");
 
       const timeline = gsap.timeline({
@@ -76,24 +83,24 @@
       });
 
       timeline.call(() => {
-        setTargetPoint(gsap, cursorEl, topPoint, { scale: 1 });
+        setTargetPoint(gsap, cursor, topPoint, { scale: 1 });
         setHoverTarget("top");
       });
       timeline.call(() => {
-        tapCursor(gsap, cursorEl, LANDING_HERO_TIMINGS.click);
+        tapCursor(gsap, cursor, LANDING_HERO_TIMINGS.click);
         setHoverTarget("top");
       });
       addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
 
-      moveTimelineTarget(timeline, cursorEl, bottomPoint, LANDING_HERO_TIMINGS.move);
+      moveTimelineTarget(timeline, cursor, bottomPoint, LANDING_HERO_TIMINGS.move);
       timeline.call(() => {
-        tapCursor(gsap, cursorEl, LANDING_HERO_TIMINGS.click);
+        tapCursor(gsap, cursor, LANDING_HERO_TIMINGS.click);
         setHoverTarget("bottom");
       });
       addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
 
-      moveTimelineTarget(timeline, cursorEl, topPoint, LANDING_HERO_TIMINGS.move);
-    }, rootEl);
+      moveTimelineTarget(timeline, cursor, topPoint, LANDING_HERO_TIMINGS.move);
+    }, root);
 
     return () => {
       context?.revert();

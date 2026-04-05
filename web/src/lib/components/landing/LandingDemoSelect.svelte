@@ -223,6 +223,10 @@
       return () => {};
     }
 
+    const root = rootEl;
+    const cursor = cursorEl;
+    const pulse = pulseEl;
+
     isReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     resetStaticFrame();
 
@@ -235,21 +239,17 @@
     type GsapTimeline = ReturnType<typeof gsap.timeline>;
 
     const clickPulse = (point: LandingHeroPoint) => {
-      if (!cursorEl || !pulseEl) {
-        return;
-      }
-
       const { x, y } = getRootPoint(point);
 
-      gsap.killTweensOf(pulseEl);
-      gsap.set(pulseEl, { x, y, opacity: 0.48, scale: 0.35 });
-      gsap.to(pulseEl, {
+      gsap.killTweensOf(pulse);
+      gsap.set(pulse, { x, y, opacity: 0.48, scale: 0.35 });
+      gsap.to(pulse, {
         opacity: 0,
         scale: 2.05,
         duration: 0.38,
         ease: "power2.out",
       });
-      tapCursor(gsap, cursorEl, LANDING_HERO_TIMINGS.click);
+      tapCursor(gsap, cursor, LANDING_HERO_TIMINGS.click);
     };
 
     let context: { revert: () => void } | null = null;
@@ -257,8 +257,8 @@
     context = gsap.context(() => {
       const startPoint = getRootPoint(LANDING_HERO_POINTS.cursorStart);
 
-      setTargetPoint(gsap, cursorEl, startPoint, { opacity: 1, scale: 1 });
-      gsap.set(pulseEl, { opacity: 0, scale: 0.35 });
+      setTargetPoint(gsap, cursor, startPoint, { opacity: 1, scale: 1 });
+      gsap.set(pulse, { opacity: 0, scale: 0.35 });
 
       let timeline: GsapTimeline;
 
@@ -275,13 +275,13 @@
       timeline.call(() => {
         setScene("initial");
         const origin = getRootPoint(LANDING_HERO_POINTS.cursorStart);
-        setTargetPoint(gsap, cursorEl, origin, { scale: 1 });
-        gsap.set(pulseEl, { opacity: 0, scale: 0.35 });
+        setTargetPoint(gsap, cursor, origin, { scale: 1 });
+        gsap.set(pulse, { opacity: 0, scale: 0.35 });
       });
 
       moveTimelineTarget(
         timeline,
-        cursorEl,
+        cursor,
         getRootPoint(LANDING_HERO_POINTS.selectTool),
         LANDING_HERO_TIMINGS.move,
         0.95,
@@ -293,7 +293,7 @@
         setScene("select-tool");
       });
 
-      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.sidebar), LANDING_HERO_TIMINGS.move);
+      moveTimelineTarget(timeline, cursor, getRootPoint(LANDING_HERO_POINTS.sidebar), LANDING_HERO_TIMINGS.move);
       timeline.addLabel("sidebar-hover");
       timeline.call(() => {
         setScene("sidebar-hover");
@@ -307,7 +307,7 @@
 
       moveTimelineTarget(
         timeline,
-        cursorEl,
+        cursor,
         getRootPoint(LANDING_HERO_POINTS.menuButton),
         LANDING_HERO_TIMINGS.move,
         0.9,
@@ -321,7 +321,7 @@
 
       moveTimelineTarget(
         timeline,
-        cursorEl,
+        cursor,
         getRootPoint(LANDING_HERO_POINTS.deleteElement),
         LANDING_HERO_TIMINGS.move,
       );
@@ -334,7 +334,7 @@
 
       moveTimelineTarget(
         timeline,
-        cursorEl,
+        cursor,
         getRootPoint(LANDING_HERO_POINTS.recordTool),
         LANDING_HERO_TIMINGS.move,
         0.95,
@@ -348,7 +348,7 @@
 
       moveTimelineTarget(
         timeline,
-        cursorEl,
+        cursor,
         getRootPoint(LANDING_HERO_POINTS.recordConfirm),
         LANDING_HERO_TIMINGS.move,
       );
@@ -359,7 +359,7 @@
         setScene("record-selected");
       });
 
-      moveTimelineTarget(timeline, cursorEl, getRootPoint(LANDING_HERO_POINTS.convertCode), LANDING_HERO_TIMINGS.move);
+      moveTimelineTarget(timeline, cursor, getRootPoint(LANDING_HERO_POINTS.convertCode), LANDING_HERO_TIMINGS.move);
       addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
       timeline.addLabel("convert-code");
       timeline.call(() => {
@@ -375,7 +375,7 @@
 
       moveTimelineTarget(
         timeline,
-        cursorEl,
+        cursor,
         getRootPoint(LANDING_HERO_POINTS.popupSave),
         LANDING_HERO_TIMINGS.move,
         1.1,
@@ -419,7 +419,7 @@
       }
 
       isPlaybackReady = true;
-    }, rootEl);
+    }, root);
 
     return () => {
       isPlaybackReady = false;
