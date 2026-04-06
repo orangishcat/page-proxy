@@ -120,7 +120,7 @@
         <LandingExploreSection />
       </div>
 
-      <div class="h-140 flex justify-center place-items-center w-full overflow-hidden">
+      <div class="h-140 flex justify-center place-items-center w-full overflow-hidden pb-40">
         <section class="mx-auto flex w-full max-w-7xl flex-col items-center space-y-8 py-32">
           <img src={asset("/logo_filled.avif")} alt="Page Proxy logo" class="h-50 w-50" draggable="false" />
           <h3 class="text-heading text-center text-[#20211f] dark:text-white">Take control of your web.</h3>
