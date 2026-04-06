@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdir, writeFile } from "node:fs/promises";
 import ts from "typescript";
+import { getPpSourceFiles, getPpSourceModuleSpecs, rewritePpImports } from "./pp-source-files.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const extensionDir = path.resolve(scriptDir, "..");
@@ -12,47 +13,8 @@ const workspaceDir = path.resolve(extensionDir, "..");
 const ppPackageSrcDir = path.join(workspaceDir, "packages/pp/src");
 const outputFile = path.join(extensionDir, "src/types/pp-monaco-extra-lib.txt");
 const outDir = path.join(extensionDir, ".tmp/pp-monaco-types");
-const sourceFiles = [
-  path.join(ppPackageSrcDir, "raw-imports.d.ts"),
-  path.join(ppPackageSrcDir, "index.ts"),
-  path.join(ppPackageSrcDir, "pp-api.ts"),
-  path.join(ppPackageSrcDir, "pp-network.ts"),
-  path.join(ppPackageSrcDir, "pp-storage.ts"),
-  path.join(ppPackageSrcDir, "pp-query.ts"),
-  path.join(ppPackageSrcDir, "pp-style.ts"),
-  path.join(ppPackageSrcDir, "pp-event.ts"),
-];
-
-const sourceModuleSpecs = [
-  {
-    sourceFile: "index.d.ts",
-    moduleNames: ["@page-proxy/pp"],
-  },
-  {
-    sourceFile: "pp-api.d.ts",
-    moduleNames: ["@page-proxy/pp/pp-api"],
-  },
-  {
-    sourceFile: "pp-network.d.ts",
-    moduleNames: ["@page-proxy/pp/pp-network"],
-  },
-  {
-    sourceFile: "pp-storage.d.ts",
-    moduleNames: ["@page-proxy/pp/pp-storage"],
-  },
-  {
-    sourceFile: "pp-query.d.ts",
-    moduleNames: ["@page-proxy/pp/pp-query"],
-  },
-  {
-    sourceFile: "pp-style.d.ts",
-    moduleNames: ["@page-proxy/pp/pp-style"],
-  },
-  {
-    sourceFile: "pp-event.d.ts",
-    moduleNames: ["@page-proxy/pp/pp-event"],
-  },
-];
+const sourceFiles = await getPpSourceFiles(workspaceDir);
+const sourceModuleSpecs = await getPpSourceModuleSpecs(workspaceDir);
 
 const compilerOptions = {
   target: ts.ScriptTarget.ES2022,
@@ -74,7 +36,8 @@ host.writeFile = (fileName, content) => {
   if (!fileName.endsWith(".d.ts")) {
     return;
   }
-  emittedDeclarations.set(path.basename(fileName), content);
+  const declarationPath = path.relative(outDir, fileName).split(path.sep).join("/");
+  emittedDeclarations.set(declarationPath, content);
 };
 
 const program = ts.createProgram(sourceFiles, compilerOptions, host);
@@ -89,13 +52,8 @@ if (diagnostics.length > 0) {
   throw new Error(message);
 }
 
-const rewriteImports = (source) =>
-  source
-    .replace(/import\("\.\/([^"]+)"\)/g, 'import("@page-proxy/pp/$1")')
-    .replace(/from "\.\/([^"]+)"/g, 'from "@page-proxy/pp/$1"');
-
-const wrapModuleDeclaration = (moduleName, source) => {
-  const trimmedSource = rewriteImports(source.trim());
+const wrapModuleDeclaration = (moduleName, sourceFile, source) => {
+  const trimmedSource = rewritePpImports(source.trim(), sourceFile);
   const indentedSource = trimmedSource
     .split("\n")
     .map((line) => (line.length > 0 ? `  ${line}` : line))
@@ -112,7 +70,7 @@ const output = [
     if (!declaration) {
       throw new Error(`Missing emitted declaration file: ${sourceFile}`);
     }
-    return moduleNames.map((moduleName) => wrapModuleDeclaration(moduleName, declaration));
+    return moduleNames.map((moduleName) => wrapModuleDeclaration(moduleName, sourceFile, declaration));
   }),
   "",
 ].join("\n");
