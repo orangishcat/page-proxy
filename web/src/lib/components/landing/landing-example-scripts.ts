@@ -1,6 +1,6 @@
-import catsEverywhereSource from "../../../../static/examples/cats-everywhere.js?raw";
-import knowtDeslopifierSource from "../../../../static/examples/knowt-deslopifier.js?raw";
-import makeLinksNotDraggableSource from "../../../../static/examples/make-links-not-draggable.js?raw";
+import catsEverywhereSource from "/examples/cats-everywhere.js?url&raw";
+import knowtDeslopifierSource from "/examples/knowt-deslopifier.js?url&raw";
+import makeLinksNotDraggableSource from "/examples/make-links-not-draggable.js?url&raw";
 import { createLandingExampleScript } from "./landing-example-script";
 
 export const landingExampleScripts = [
