@@ -74,9 +74,9 @@
         "axios": "1.14.0",
         "bits-ui": "2.16.5",
         "gsap": "3.14.2",
-        "lucide-svelte": "1.0.1",
+        "lucide-svelte": "0.577.0",
         "monaco-editor": "0.55.1",
-        "svelte": "5.55.1",
+        "svelte": "5.54.0",
       },
       "devDependencies": {
         "@eslint/js": "10.0.1",

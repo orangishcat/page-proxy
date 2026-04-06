@@ -1,18 +1,13 @@
 import {
   getRawItem,
-  networkCacheKeyPrefix,
   removeRawItem,
   setRawItem,
   toNetworkCacheStorageKey,
-  type RawStorageAdapter,
-} from "./pp-storage";
+} from "../pp-storage";
+import type { RawStorageAdapter } from "../pp-storage";
 
-type NetworkRequestMethod = "GET" | "HEAD" | "POST" | "PUT" | "DELETE" | "CONNECT" | "OPTIONS" | "TRACE" | "PATCH";
-
-type NetworkFetchInput = RequestInfo | URL;
-
-const defaultNetworkCacheDurationMs = 24 * 60 * 60 * 1000;
-const maxCachedResponseBytes = 512 * 1024;
+export type NetworkRequestMethod = "GET" | "HEAD" | "POST" | "PUT" | "DELETE" | "CONNECT" | "OPTIONS" | "TRACE" | "PATCH";
+export type NetworkFetchInput = RequestInfo | URL;
 
 export type NetworkFetchOptions = Omit<RequestInit, "cache"> & {
   cache?: boolean;
@@ -22,6 +17,9 @@ export type NetworkFetchOptions = Omit<RequestInit, "cache"> & {
 };
 
 export type NetworkMethodOptions = Omit<NetworkFetchOptions, "method">;
+
+const defaultNetworkCacheDurationMs = 24 * 60 * 60 * 1000;
+const maxCachedResponseBytes = 512 * 1024;
 
 type StoredCacheEntry = {
   createdAt: number;
@@ -43,7 +41,7 @@ const isHeaderEntryArray = (value: unknown): value is Array<[string, string]> =>
       Array.isArray(entry) && entry.length === 2 && typeof entry[0] === "string" && typeof entry[1] === "string",
   );
 
-const normalizeMethod = (method: string | undefined): NetworkRequestMethod => {
+export const normalizeMethod = (method: string | undefined): NetworkRequestMethod => {
   const normalizedMethod = (method ?? "GET").trim().toUpperCase();
   switch (normalizedMethod) {
     case "GET":
@@ -205,7 +203,7 @@ const buildCacheIdentity = (request: Request, cacheKey: string | undefined) => {
   return request.url;
 };
 
-const buildCacheStorageKeysForInvalidate = (key: string, scopeOverride?: string) => {
+export const buildCacheStorageKeysForInvalidate = (key: string, scopeOverride?: string) => {
   const normalizedKey = key.trim();
   if (normalizedKey.length === 0) {
     return [] as string[];
@@ -232,27 +230,7 @@ const buildCacheStorageKeysForInvalidate = (key: string, scopeOverride?: string)
   return storageKeys;
 };
 
-const invalidateCache = (key: string, scopeOverride?: string, adapter?: RawStorageAdapter) => {
-  const storageKeys = buildCacheStorageKeysForInvalidate(key, scopeOverride);
-  if (storageKeys.length === 0) {
-    return false;
-  }
-
-  let invalidated = false;
-  storageKeys.forEach((storageKey) => {
-    const hasEntry = getRawItem(storageKey, adapter) !== null;
-    if (!hasEntry) {
-      return;
-    }
-
-    removeRawItem(storageKey, adapter);
-    invalidated = true;
-  });
-
-  return invalidated;
-};
-
-const runNetworkFetch = async (
+export const runNetworkFetch = async (
   input: NetworkFetchInput,
   options: NetworkFetchOptions = {},
   scopeOverride?: string,
@@ -278,7 +256,7 @@ const runNetworkFetch = async (
   return response;
 };
 
-const createMethodFetch =
+export const createMethodFetch =
   (method: NetworkRequestMethod, scopeOverride?: string, adapter?: RawStorageAdapter) =>
   (input: NetworkFetchInput, options: NetworkMethodOptions = {}) =>
     runNetworkFetch(
@@ -290,33 +268,3 @@ const createMethodFetch =
       scopeOverride,
       adapter,
     );
-
-export const createNetwork = (scopeOverride?: string, adapter?: RawStorageAdapter) => ({
-  fetch: (input: NetworkFetchInput, options: NetworkFetchOptions = {}) =>
-    runNetworkFetch(input, options, scopeOverride, adapter),
-  invalidateCache: (key: string) => invalidateCache(key, scopeOverride, adapter),
-  get: createMethodFetch("GET", scopeOverride, adapter),
-  head: createMethodFetch("HEAD", scopeOverride, adapter),
-  post: createMethodFetch("POST", scopeOverride, adapter),
-  put: createMethodFetch("PUT", scopeOverride, adapter),
-  delete: createMethodFetch("DELETE", scopeOverride, adapter),
-  connect: createMethodFetch("CONNECT", scopeOverride, adapter),
-  options: createMethodFetch("OPTIONS", scopeOverride, adapter),
-  trace: createMethodFetch("TRACE", scopeOverride, adapter),
-  patch: createMethodFetch("PATCH", scopeOverride, adapter),
-});
-
-export const fetch = (input: NetworkFetchInput, options: NetworkFetchOptions = {}) => runNetworkFetch(input, options);
-export { invalidateCache };
-export const get = createMethodFetch("GET");
-export const head = createMethodFetch("HEAD");
-export const post = createMethodFetch("POST");
-export const put = createMethodFetch("PUT");
-const del = createMethodFetch("DELETE");
-export { del as delete };
-export const connect = createMethodFetch("CONNECT");
-export const options = createMethodFetch("OPTIONS");
-export const trace = createMethodFetch("TRACE");
-export const patch = createMethodFetch("PATCH");
-
-export { networkCacheKeyPrefix };

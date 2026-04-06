@@ -1,21 +1,8 @@
-import DOMPurify from "dompurify";
-import { marked } from "marked";
-import { buildNotificationBody } from "./pp-notification-viewer";
+import { buildNotificationBody } from "../pp-notification-viewer";
+import { injectCSS } from "../pp-style";
 import pageNotificationStyles from "./pp-event-notification-style.css?raw";
-import * as ps from "./pp-style";
 
 export type NotificationLevel = "log" | "info" | "warn" | "error" | "debug" | "notification";
-export type MarkdownRenderOptions = {
-  breaks?: boolean;
-  linkTarget?: string;
-  linkRel?: string;
-  linkReferrerPolicy?: string;
-};
-export type MoveNodePasteLocation = "child" | "before" | "after";
-export type MoveNodeOptions = {
-  pasteLocation?: MoveNodePasteLocation;
-  copy?: boolean;
-};
 
 export const notificationSinkGlobalKey = "__pageProxyNotificationSink__";
 
@@ -35,7 +22,7 @@ const ensurePageNotificationStyles = () => {
     return;
   }
 
-  ps.injectCSS(pageNotificationStyles);
+  injectCSS(pageNotificationStyles);
 };
 
 const ensurePageNotificationHost = () => {
@@ -141,75 +128,3 @@ export const notification = (...values: unknown[]) => {
     values,
   });
 };
-
-export const renderMarkdown = (content: string, options: MarkdownRenderOptions = {}) => {
-  const {
-    breaks = true,
-    linkTarget = "_blank",
-    linkRel = "noreferrer noopener",
-    linkReferrerPolicy = "no-referrer",
-  } = options;
-
-  const renderedMarkdown = marked.parse(content, { async: false, breaks });
-  if (typeof renderedMarkdown !== "string") {
-    throw new Error("Unable to render markdown content.");
-  }
-
-  const sanitizedHtml = DOMPurify.sanitize(renderedMarkdown);
-  const template = document.createElement("template");
-  template.innerHTML = sanitizedHtml;
-  template.content.querySelectorAll("a[href]").forEach((link) => {
-    link.setAttribute("target", linkTarget);
-    link.setAttribute("rel", linkRel);
-    link.setAttribute("referrerpolicy", linkReferrerPolicy);
-  });
-
-  return template.innerHTML;
-};
-
-export const moveNode = (
-  node: Element,
-  position = -1,
-  parent: Element | null = node.parentElement,
-  options: MoveNodeOptions = {},
-) => {
-  const { pasteLocation = "child", copy = false } = options;
-  const nextNode = (copy ? node.cloneNode(true) : node) as Element;
-
-  if (!parent) {
-    return nextNode;
-  }
-
-  if (pasteLocation === "before" || pasteLocation === "after") {
-    const anchor = parent;
-    const anchorParent = anchor.parentElement;
-    if (!anchorParent) {
-      return nextNode;
-    }
-
-    const referenceNode = pasteLocation === "before" ? anchor : anchor.nextSibling;
-    anchorParent.insertBefore(nextNode, referenceNode);
-    return nextNode;
-  }
-
-  const siblings = copy
-    ? Array.from(parent.children)
-    : Array.from(parent.children).filter((child) => child !== node);
-  const siblingCount = siblings.length;
-  const normalizedPosition = Math.min(
-    Math.max(position < 0 ? siblingCount + position + 1 : position, 0),
-    siblingCount,
-  );
-  const target = siblings[normalizedPosition] ?? null;
-
-  parent.insertBefore(nextNode, target);
-  return nextNode;
-};
-
-export const createApi = () => ({
-  notification,
-  renderMarkdown,
-  moveNode,
-});
-
-export const pp = createApi();

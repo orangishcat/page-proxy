@@ -1,11 +1,6 @@
-export type OnElementCreatedHandler = (element: Element) => void;
 export type KeyAction = "press" | "release";
-export type OnKeyPressedOptions = {
-  keyAction?: KeyAction[];
-  cancel?: boolean;
-};
 
-type KeyCombo = {
+export type KeyCombo = {
   key: string | null;
   modifiers: {
     ctrl: boolean;
@@ -17,15 +12,13 @@ type KeyCombo = {
 
 type ModifierName = keyof KeyCombo["modifiers"];
 
-const defaultCreateObserverOptions: MutationObserverInit = {
-  childList: true,
-  subtree: true,
-};
-const defaultKeyActions: KeyAction[] = ["press"];
-type ResolvedKeyAction = {
+export type ResolvedKeyAction = {
   action: KeyAction;
   eventType: "keydown" | "keyup";
 };
+
+const defaultKeyActions: KeyAction[] = ["press"];
+
 const keyActionEventType: Record<KeyAction, ResolvedKeyAction["eventType"]> = {
   press: "keydown",
   release: "keyup",
@@ -64,14 +57,14 @@ const keyAliasMap: Record<string, string> = {
   right: "arrowright",
 };
 
-const modifierKeyToName: Record<string, ModifierName | undefined> = {
+export const modifierKeyToName: Record<string, ModifierName | undefined> = {
   control: "ctrl",
   shift: "shift",
   alt: "alt",
   meta: "meta",
 };
 
-const parseKeyTokens = (keys: string) => {
+export const parseKeyTokens = (keys: string) => {
   const tokens: string[] = [];
   let current = "";
 
@@ -98,7 +91,7 @@ const parseKeyTokens = (keys: string) => {
   return tokens;
 };
 
-const normalizeKeyToken = (token: string) => {
+export const normalizeKeyToken = (token: string) => {
   const rawToken = token.trim().toLowerCase();
   const normalizedToken = rawToken.length === 0 ? "+" : rawToken;
 
@@ -109,7 +102,7 @@ const normalizeKeyToken = (token: string) => {
   return keyAliasMap[normalizedToken] ?? normalizedToken;
 };
 
-const normalizeKeyboardEventKey = (key: string) => {
+export const normalizeKeyboardEventKey = (key: string) => {
   if (key === " ") {
     return "space";
   }
@@ -117,7 +110,7 @@ const normalizeKeyboardEventKey = (key: string) => {
   return normalizeKeyToken(key);
 };
 
-const parseKeyCombo = (keys: string): KeyCombo => {
+export const parseKeyCombo = (keys: string): KeyCombo => {
   if (keys.trim().length === 0) {
     throw new Error("onKeyPressed keys must not be empty.");
   }
@@ -166,7 +159,7 @@ const parseKeyCombo = (keys: string): KeyCombo => {
   return combo;
 };
 
-const resolveKeyActions = (value: KeyAction[] | undefined): ResolvedKeyAction[] => {
+export const resolveKeyActions = (value: KeyAction[] | undefined): ResolvedKeyAction[] => {
   const actions = value && value.length > 0 ? value : defaultKeyActions;
   actions.forEach((action) => {
     if (action !== "press" && action !== "release") {
@@ -180,7 +173,7 @@ const resolveKeyActions = (value: KeyAction[] | undefined): ResolvedKeyAction[] 
   }));
 };
 
-const resolveEffectiveModifierState = (event: KeyboardEvent, normalizedEventKey: string, action: KeyAction) => {
+export const resolveEffectiveModifierState = (event: KeyboardEvent, normalizedEventKey: string, action: KeyAction) => {
   const includeReleasedModifier = action === "release";
   return {
     ctrl: event.ctrlKey || (includeReleasedModifier && normalizedEventKey === "control"),
@@ -190,7 +183,7 @@ const resolveEffectiveModifierState = (event: KeyboardEvent, normalizedEventKey:
   };
 };
 
-const doesKeyboardEventMatchCombo = (event: KeyboardEvent, combo: KeyCombo, action: KeyAction) => {
+export const doesKeyboardEventMatchCombo = (event: KeyboardEvent, combo: KeyCombo, action: KeyAction) => {
   const normalizedEventKey = normalizeKeyboardEventKey(event.key);
 
   if (combo.key === null) {
@@ -211,7 +204,7 @@ const doesKeyboardEventMatchCombo = (event: KeyboardEvent, combo: KeyCombo, acti
   );
 };
 
-const runKeyHandler = (
+export const runKeyHandler = (
   event: KeyboardEvent,
   combo: KeyCombo,
   action: KeyAction,
@@ -275,7 +268,7 @@ const toSyntheticKeyToken = (keys: string, combo: KeyCombo) => {
   return keyFromInput;
 };
 
-const createSyntheticKeyboardEvent = (keys: string, combo: KeyCombo, keyAction: ResolvedKeyAction) =>
+export const createSyntheticKeyboardEvent = (keys: string, combo: KeyCombo, keyAction: ResolvedKeyAction) =>
   (() => {
     const keyToken = toSyntheticKeyToken(keys, combo);
     const mappedPayload = keyTokenEventPayloadMap[keyToken];
@@ -341,158 +334,3 @@ const createSyntheticKeyboardEvent = (keys: string, combo: KeyCombo, keyAction: 
 
     return event;
   })();
-
-const getNodeCreatedElements = (node: Node): Element[] => {
-  if (node instanceof Element) {
-    return [node, ...Array.from(node.querySelectorAll("*"))];
-  }
-
-  if (node instanceof DocumentFragment) {
-    return Array.from(node.querySelectorAll("*"));
-  }
-
-  return [];
-};
-
-const runOnCreatedElements = (node: Node, func: OnElementCreatedHandler) => {
-  getNodeCreatedElements(node).forEach(func);
-};
-
-export class ElementCreatedObserver {
-  private readonly func: OnElementCreatedHandler;
-  private readonly targetNode: Node;
-  private readonly observer: MutationObserver;
-
-  constructor(func: OnElementCreatedHandler, targetNode: Node) {
-    this.func = func;
-    this.targetNode = targetNode;
-    this.observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type !== "childList" || mutation.addedNodes.length === 0) {
-          return;
-        }
-
-        mutation.addedNodes.forEach((node) => {
-          runOnCreatedElements(node, func);
-        });
-      });
-    });
-  }
-
-  observe(target: Node, options?: MutationObserverInit) {
-    this.observer.observe(target, options);
-  }
-
-  disconnect() {
-    this.observer.disconnect();
-  }
-
-  takeRecords() {
-    return this.observer.takeRecords();
-  }
-
-  runOnTargetNode() {
-    runOnCreatedElements(this.targetNode, this.func);
-  }
-}
-
-export const onElementCreated = (
-  func: OnElementCreatedHandler,
-  targetNode: Node = document.body ?? document.documentElement,
-  observerOptions: MutationObserverInit = defaultCreateObserverOptions,
-) => {
-  const observer = new ElementCreatedObserver(func, targetNode);
-  observer.observe(targetNode, observerOptions);
-  observer.runOnTargetNode();
-  return observer;
-};
-
-export const onKeyPressed = (keys: string, func: (event: KeyboardEvent) => void, options: OnKeyPressedOptions = {}) => {
-  if (typeof window === "undefined") {
-    return () => undefined;
-  }
-
-  const combo = parseKeyCombo(keys);
-  const keyActions = resolveKeyActions(options.keyAction);
-  const pressAction = keyActions.find((entry) => entry.action === "press");
-  const releaseAction = keyActions.find((entry) => entry.action === "release");
-
-  const handleKeyEvent = (event: KeyboardEvent, action: KeyAction) =>
-    runKeyHandler(event, combo, action, func, options.cancel);
-
-  const handleKeyPress = (event: KeyboardEvent) => handleKeyEvent(event, "press");
-  const handleKeyUp = (event: KeyboardEvent) => handleKeyEvent(event, "release");
-
-  if (pressAction) {
-    window.addEventListener(pressAction.eventType, handleKeyPress);
-  }
-
-  if (releaseAction) {
-    window.addEventListener(releaseAction.eventType, handleKeyUp);
-  }
-
-  return () => {
-    if (pressAction) {
-      window.removeEventListener(pressAction.eventType, handleKeyPress);
-    }
-
-    if (releaseAction) {
-      window.removeEventListener(releaseAction.eventType, handleKeyUp);
-    }
-  };
-};
-
-export const pressKey = (keys: string, options: OnKeyPressedOptions = {}) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  const combo = parseKeyCombo(keys);
-  const keyActions = resolveKeyActions(options.keyAction);
-  const target: EventTarget = document.activeElement ?? document;
-
-  keyActions.forEach((keyAction) => {
-    const event = createSyntheticKeyboardEvent(keys, combo, keyAction);
-    if (options.cancel) {
-      event.preventDefault();
-    }
-    target.dispatchEvent(event);
-  });
-};
-
-export const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
-
-export const awaitAnimation = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-
-export const awaitMicrotask = () => new Promise<void>((resolve) => queueMicrotask(resolve));
-
-export const pageModificationFunctions = [
-  "pa.notification",
-  "pt.setItem",
-  "pt.getItem",
-  "pv.onElementCreated",
-  "pv.onKeyPressed",
-  "pv.pressKey",
-  "pn.fetch",
-  "pn.invalidateCache",
-  "pn.get",
-  "pn.head",
-  "pn.post",
-  "pn.put",
-  "pn.delete",
-  "pn.connect",
-  "pn.options",
-  "pn.trace",
-  "pn.patch",
-  "pq.selector",
-  "ps.applyStyle",
-  "ps.injectCSS",
-  "pq.propMatches",
-  "pq.propContains",
-  "pq.propExists",
-  "pq.tagMatches",
-  "pq.selectorMatches",
-  "pq.innerTextMatches",
-  "pq.bboxMatches",
-  "pq.traverseParents",
-];
