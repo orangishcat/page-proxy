@@ -35,8 +35,8 @@
             Customization at your <span class="text-accent-500">fingertips.</span>
           </h1>
           <p class="text-2xl text-[#5e635e] dark:text-[#a8a8a8]">
-            A browser extension and userscript manager for Chrome and Firefox, with GUI tools and a built in code
-            editor.
+            A browser extension and userscript manager, with GUI tools to turn page interactions into reusable
+            userscripts.
           </p>
 
           <div class="mt-2 flex items-center gap-5">

@@ -3,7 +3,7 @@ export const siteAuthor = "orangishcat";
 export const siteUrl = "https://orangishcat.github.io/page-proxy/";
 export const siteLocale = "en_US";
 export const siteDescription =
-  "Page Proxy is a browser extension and userscript manager for Chrome and Firefox with GUI tools, recording workflows, and a built-in Monaco editor.";
+  "Page Proxy is a browser extension and userscript manager for Chrome and Firefox with GUI tools, recording workflows, and a built-in Monaco editor to turn page interactions into reusable userscripts.";
 export const defaultSocialImagePath = "/social-preview.png";
 export const defaultSocialImageAlt = "Page Proxy showing a customized web page and userscript workflow.";
 export const indexedPaths = ["/", "/install"] as const;
@@ -30,9 +30,7 @@ export function createTitle(title?: string): string {
 }
 
 export function buildSitemapXml(paths: readonly string[]): string {
-  const urls = paths
-    .map((path) => `  <url>\n    <loc>${createAbsoluteUrl(path)}</loc>\n  </url>`)
-    .join("\n");
+  const urls = paths.map((path) => `  <url>\n    <loc>${createAbsoluteUrl(path)}</loc>\n  </url>`).join("\n");
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
