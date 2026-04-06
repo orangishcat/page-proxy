@@ -59,7 +59,7 @@
     <section
       class="[&>*:nth-child(odd)]:bg-[#f3f4f3] [&>*:nth-child(odd)]:dark:bg-[#2a2a25] [&>*:nth-child(even)]:bg-[#ededec] [&>*:nth-child(even)]:dark:bg-[#252520] *:px-12"
     >
-      <section class="py-16 flex flex-col items-center" id="tools">
+      <section class="py-32 flex flex-col items-center" id="tools">
         <div class="mx-auto w-full text-center max-w-7xl">
           <h2 class="text-4xl font-bold text-gray-900 dark:text-white">Simple, robust workflow.</h2>
           <p class="text-subtitle text-gray-600 mt-4 dark:text-gray-300">
