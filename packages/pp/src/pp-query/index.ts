@@ -1,0 +1,12 @@
+export { tagMatches } from "./tagMatches";
+export { selectorMatches } from "./selectorMatches";
+export { innerTextMatches } from "./innerTextMatches";
+export { bboxMatches } from "./bboxMatches";
+export type { ElementSize } from "./bboxMatches";
+export { propMatches } from "./propMatches";
+export { propContains } from "./propContains";
+export { propExists } from "./propExists";
+export { traverseParents } from "./traverseParents";
+export type { TraverseParentsOptions } from "./traverseParents";
+export { selector } from "./selector";
+export type { SelectorDefinition } from "./selector";
