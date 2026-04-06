@@ -60,6 +60,7 @@
     "packages/pp": {
       "name": "@page-proxy/pp",
       "dependencies": {
+        "css-tree": "^3.2.1",
         "dompurify": "3.3.3",
         "marked": "17.0.4",
       },
@@ -74,6 +75,7 @@
         "bits-ui": "2.16.3",
         "gsap": "3.14.2",
         "lucide-svelte": "0.577.0",
+        "monaco-editor": "0.55.1",
         "svelte": "5.54.0",
       },
       "devDependencies": {
