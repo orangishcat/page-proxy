@@ -11,8 +11,8 @@
     - Create components
 - Multi-file scripts
 - Local scripts
+- Export to WXT extension
 - Import/export with Figma
-- Export to Tampermonkey, CSS stylesheet, WXT extension, etc.
 - Sync to cloud storage (Appwrite backend)
 - Userscript discovery, sharing, and collaboration
 
@@ -20,3 +20,4 @@
 
 - Website homepage needs a lot of doing (pretty much done, maybe could use some
   more decoration)
+- Export to Tampermonkey userscript, CSS stylesheet
