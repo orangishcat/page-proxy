@@ -126,6 +126,7 @@ const isSelectToolMessage = (value: unknown): value is SelectToolMessage =>
   hasType(value, "select:toggle") ||
   hasType(value, "select:parent") ||
   hasType(value, "select:restore") ||
+  hasType(value, "select:clear") ||
   hasType(value, "select:action") ||
   hasType(value, "selector:open");
 
@@ -237,8 +238,25 @@ type UndoLastRecordedActionDeps = {
   restoreSelectionBySelector: (selector: string) => Promise<RestoreSelectionBySelectorResult>;
   suppressNextSelectedElementRecord: () => void;
   clearSelectedElementRecordSuppression: () => void;
-  clearSelection: () => void;
+  clearSelection: () => void | Promise<void>;
   setToolMessage: (message: string | null, status: "success" | "error") => void;
+};
+
+export const clearActiveSelection = async () => {
+  setSelection(null);
+
+  const tabContext = await readActiveTabContext().catch(() => null);
+  if (!tabContext || isRestrictedUrl(tabContext.url)) {
+    return;
+  }
+
+  await sendSelectToolMessage(
+    tabContext.tabId,
+    {
+      type: "select:clear",
+    } satisfies SelectToolMessage,
+    0,
+  ).catch(() => undefined);
 };
 
 const restoreSelectionBySelector = async (selector: string): Promise<RestoreSelectionBySelectorResult> => {
@@ -303,9 +321,7 @@ const defaultUndoLastRecordedActionDeps: UndoLastRecordedActionDeps = {
   restoreSelectionBySelector,
   suppressNextSelectedElementRecord: armSelectedElementRecordSuppression,
   clearSelectedElementRecordSuppression,
-  clearSelection: () => {
-    setSelection(null);
-  },
+  clearSelection: clearActiveSelection,
   setToolMessage,
 };
 
@@ -320,7 +336,7 @@ export const undoLastRecordedAction = async (
 
   const selectorToRestore = findLastRecordedSelector(timeline);
   if (!selectorToRestore) {
-    deps.clearSelection();
+    await deps.clearSelection();
     return;
   }
 

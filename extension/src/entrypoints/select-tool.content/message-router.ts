@@ -139,6 +139,13 @@ export const addMessageListener = (ctrl: SelectionController): void => {
       return false;
     }
 
+    if (msg.type === "select:clear") {
+      ctrl.hover.clearHoverAndNotify();
+      ctrl.clearSelectedAndNotify();
+      sendResponse({ ok: true });
+      return false;
+    }
+
     if (msg.type === "select:action") {
       void ctrl
         .runAction(msg.action, msg.pasteHtml)

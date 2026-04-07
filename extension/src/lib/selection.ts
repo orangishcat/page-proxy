@@ -103,6 +103,9 @@ export type SelectToolMessage =
       selector: string;
     }
   | {
+      type: "select:clear";
+    }
+  | {
       type: "select:action";
       action: SelectElementAction;
       pasteHtml?: string;
