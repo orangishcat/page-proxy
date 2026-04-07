@@ -9,10 +9,10 @@
 Restyle and reskin webpages with a powerful set of developer tools.
 
 Page Proxy is an all-in-one userscript manager and creator with custom GUI tools
-for userscript design, so you can spend more time designing instead of
-converting your ideas to code.
+and an API covering common use cases to convert page interactions to
+userscripts, making the process more beginner-friendly and less tedious.
 
-[Wait, but I don't get it. What problem is this trying to solve?](https://orangishcat.github.io/page-proxy/docs/purpose)
+[Longer description](https://orangishcat.github.io/page-proxy/docs/purpose)
 
 ## Usage instructions
 
@@ -56,9 +56,10 @@ A [Monaco](https://microsoft.github.io/monaco-editor/)-powered editor for
 writing and running userscripts. Powered by tools that save to the editor, and
 also the `pp` scripting API.
 
-### `@page-proxy/pp` scripting API
+### `pp` scripting API
 
-Scripts import from the `pp` library, which provides six modules:
+Scripts import from the `pp` library, which provides six modules covering usage
+patterns commonly found in userscripts:
 
 - `pa`: Page-level helpers: in-page notifications with object viewer, markdown
   rendering, node movement
@@ -75,13 +76,15 @@ Scripts import from the `pp` library, which provides six modules:
 
 ### Other
 
-- **Proxy & inject** — layer custom CSS and JavaScript on top of any website
-  without touching its source.
-- **Selectors tool** — view, hover-highlight, and edit all active selectors from
-  a single panel. Selector definitions are parsed directly from editor content.
-- **Create tool** — insert new elements into the page from the sidepanel.
-- **Share / Export** — export the current script as a Page Proxy script,
-  Tampermonkey userscript, or CSS-only stylesheet from the sidepanel.
+- Layer custom CSS and JavaScript on top of any website without touching its
+  source.
+- Selectors tool: view, highlight matches for, and edit all active selectors
+  from a single panel. Selector definitions are parsed directly from editor
+  content and displayed in the tool window for convenience.
+- Create tool (currently coming soon): insert new elements into the page from
+  the sidepanel.
+- Export tool: export the current script as a Page Proxy script, Tampermonkey
+  userscript, or CSS-only stylesheet from the sidepanel.
 
 View the [documentation](https://orangishcat.github.io/page-proxy/docs/) to
 learn more.
@@ -118,6 +121,8 @@ Useful local endpoints/outputs:
       `extension/package.json`.
     - Load the build outputs unpacked, either via Chromium-based browsers'
       `Load unpacked` feature or Firefox's `Install temporary add-on`.
+        - Note: Addons installed via Firefox's `Install temporary add-on` will
+          be deleted after the browser is closed.r
 - Hosted PP userscript runtime: `web/static/pp/pp.min.js`
     - Rebuild it with `bun run pp:build-runtime`.
     - This file is deployed with the static web app and used by Tampermonkey
