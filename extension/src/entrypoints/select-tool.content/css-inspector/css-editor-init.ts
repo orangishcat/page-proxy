@@ -30,7 +30,7 @@ export type CssEditorInitDeps = {
   initialCode?: string;
 };
 
-export const initCssEditor = async (deps: CssEditorInitDeps): Promise<(() => void) | null> => {
+export const initCssEditor = (deps: CssEditorInitDeps): (() => void) | null => {
   const host = deps.getHost();
   if (!host || deps.getHandle()) return null;
 
@@ -56,7 +56,7 @@ export const initCssEditor = async (deps: CssEditorInitDeps): Promise<(() => voi
   });
 
   deps.setCssEditorValue(initialCssEditorValue);
-  const handle = await createMonacoEditor(host, initialCssEditorValue, {
+  const handle = createMonacoEditor(host, initialCssEditorValue, {
     language: "css",
     modelUri: "inmemory://page-proxy/selector-popup-base-selector.css",
     lineNumbers: "on",

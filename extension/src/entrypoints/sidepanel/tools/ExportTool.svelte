@@ -5,23 +5,22 @@
   import { codeEditorContent } from "./code-editor/state";
   import { getEditorContext } from "../context/editor.svelte";
   import { buildWebsiteMetadataListing, extractWebsiteMetadataGlobs, normalizeScriptMetadataWebsites } from "@/lib/utils/script-metadata";
+  import {
+    analyzeExportCompatibility,
+    buildCssOnlyExport,
+    buildPpScriptExport,
+    buildTampermonkeyExport,
+    type ExportFormat,
+  } from "@/lib/script-export";
 
   const editorCtx = getEditorContext();
-
-  type ExportFormat = "pp-script" | "tampermonkey" | "css-only" | "wxt-extension";
 
   type ExportFormatOption = {
     value: ExportFormat;
     label: string;
     available: boolean;
+    reason?: string;
   };
-
-  const exportFormatOptions: ExportFormatOption[] = [
-    { value: "pp-script", label: "pp-script", available: true },
-    { value: "tampermonkey", label: "Tampermonkey (coming soon)", available: false },
-    { value: "css-only", label: "CSS only (coming soon)", available: false },
-    { value: "wxt-extension", label: "WXT extension (coming soon)", available: false },
-  ];
 
   let selectedFormat = $state<ExportFormat>("pp-script");
   let statusMessage = $state<string | null>(null);
@@ -30,6 +29,26 @@
   let metadataScrollContainer = $state<HTMLDivElement | null>(null);
 
   const editorContentValue = $derived($codeEditorContent);
+  const exportCompatibility = $derived(analyzeExportCompatibility(editorContentValue));
+
+  const exportFormatOptions = $derived<ExportFormatOption[]>([
+    { value: "pp-script", label: "pp-script", available: true },
+    {
+      value: "tampermonkey",
+      label: "Tampermonkey",
+      available: exportCompatibility.tampermonkey.ok,
+      reason: exportCompatibility.tampermonkey.reason,
+    },
+    {
+      value: "css-only",
+      label: exportCompatibility.cssOnly.ok
+        ? "CSS only"
+        : "CSS only (unsupported; only static ps.injectCSS calls are allowed)",
+      available: exportCompatibility.cssOnly.ok,
+      reason: exportCompatibility.cssOnly.reason,
+    },
+    { value: "wxt-extension", label: "WXT extension (coming soon)", available: false },
+  ]);
 
   const selectedFormatOption = $derived(
     exportFormatOptions.find((option) => option.value === selectedFormat) ?? exportFormatOptions[0],
@@ -41,20 +60,8 @@
     buildWebsiteMetadataListing(extractWebsiteMetadataGlobs(editorContentValue), editorCtx.scriptMetadata.website),
   );
 
-  const buildFileName = () => {
-    const title = editorCtx.scriptMetadata.title.trim();
-    const normalized = (title.length > 0 ? title : "page-proxy-script")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-
-    return `${normalized || "page-proxy-script"}.js`;
-  };
-
-  const downloadPpScript = () => {
-    const fileName = buildFileName();
-    const normalizedContent = normalizeScriptMetadataWebsites(editorContentValue);
-    const blob = new Blob([normalizedContent], { type: "text/javascript;charset=utf-8" });
+  const downloadExportArtifact = (fileName: string, body: string, mimeType: string) => {
+    const blob = new Blob([body], { type: mimeType });
     const objectUrl = URL.createObjectURL(blob);
 
     const downloadAnchor = document.createElement("a");
@@ -68,9 +75,25 @@
     statusMessage = `Exported ${fileName}.`;
   };
 
+  const buildExportResult = () => {
+    switch (selectedFormat) {
+      case "pp-script":
+        return buildPpScriptExport(normalizeScriptMetadataWebsites(editorContentValue));
+      case "tampermonkey":
+        return buildTampermonkeyExport(editorContentValue);
+      case "css-only":
+        return buildCssOnlyExport(editorContentValue);
+      default:
+        return {
+          ok: false as const,
+          message: `${selectedFormatOption.label} is coming soon.`,
+        };
+    }
+  };
+
   const handleExport = () => {
     if (!canExportSelectedFormat) {
-      statusMessage = `${selectedFormatOption.label} is coming soon.`;
+      statusMessage = selectedFormatOption.reason ?? `${selectedFormatOption.label} is coming soon.`;
       return;
     }
 
@@ -79,7 +102,13 @@
       return;
     }
 
-    downloadPpScript();
+    const result = buildExportResult();
+    if (!result.ok) {
+      statusMessage = result.message;
+      return;
+    }
+
+    downloadExportArtifact(result.fileName, result.body, result.mimeType);
   };
 
   const forceMetadataScrollToBottom = () => {

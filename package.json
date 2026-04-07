@@ -1,7 +1,7 @@
 {
   "name": "page-proxy-workspace",
   "private": true,
-  "version": "0.3.6",
+  "version": "0.3.7",
   "license": "Apache-2.0",
   "type": "module",
   "workspaces": [
@@ -31,6 +31,7 @@
     "extension:check": "bun run --cwd extension check",
     "extension:lint": "bun run --cwd extension lint",
     "extension:test": "bun run --cwd extension test",
+    "pp:build-runtime": "node ./packages/pp/scripts/build-browser-bundle.mjs",
     "pp:lint": "bun run --cwd packages/pp lint",
     "pp:test": "bun run --cwd packages/pp test",
     "clean": "bun run --cwd extension clean && rm -rf node_modules/.vite && rm -rf extension/node_modules"

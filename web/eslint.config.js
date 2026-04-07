@@ -13,6 +13,7 @@ export default [
       "**/build/**",
       "**/test-results/**",
       "**/static/examples/**",
+      "**/static/pp/**",
     ],
   },
   js.configs.recommended,

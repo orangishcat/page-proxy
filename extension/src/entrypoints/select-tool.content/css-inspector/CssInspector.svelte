@@ -221,44 +221,42 @@
 
   onMount(() => {
     let disposed = false;
-    void (async () => {
-      const cleanup = await initCssEditor({
-        getHost: () => cssEditorHost,
-        getHandle: () => cssEditorHandle,
-        setHandle: (v) => {
-          cssEditorHandle = v;
-        },
-        getCssEditorValue: () => cssEditorValue,
-        setCssEditorValue: (v) => {
-          cssEditorValue = v;
-        },
-        setHoveredCssOffset: (v) => {
-          hoveredCssOffset = v;
-        },
-        setIsCssEditorFocused: (v) => {
-          isCssEditorFocused = v;
-        },
-        setErrorMessage: (v) => {
-          errorMessage = v;
-        },
-        onBaseSelectorChange,
-        applyPreviewHighlights: previewManager.applyPreviewHighlights,
-        applyCssStylePreview: previewManager.applyCssStylePreview,
-        updateCssPreviewState: previewManager.updateCssPreviewState,
-        getIsMatchPreviewing: () => isMatchPreviewing,
-        getIsCssStylePreviewing: () => isCssStylePreviewing,
-        baseSelector,
-        info,
-        initialCssContent,
-        initialCode,
-      });
-      if (disposed) {
-        cssEditorHandle?.dispose();
-        cssEditorHandle = null;
-        return;
-      }
-      disposeCssEditor = cleanup;
-    })();
+    const cleanup = initCssEditor({
+      getHost: () => cssEditorHost,
+      getHandle: () => cssEditorHandle,
+      setHandle: (v) => {
+        cssEditorHandle = v;
+      },
+      getCssEditorValue: () => cssEditorValue,
+      setCssEditorValue: (v) => {
+        cssEditorValue = v;
+      },
+      setHoveredCssOffset: (v) => {
+        hoveredCssOffset = v;
+      },
+      setIsCssEditorFocused: (v) => {
+        isCssEditorFocused = v;
+      },
+      setErrorMessage: (v) => {
+        errorMessage = v;
+      },
+      onBaseSelectorChange,
+      applyPreviewHighlights: previewManager.applyPreviewHighlights,
+      applyCssStylePreview: previewManager.applyCssStylePreview,
+      updateCssPreviewState: previewManager.updateCssPreviewState,
+      getIsMatchPreviewing: () => isMatchPreviewing,
+      getIsCssStylePreviewing: () => isCssStylePreviewing,
+      baseSelector,
+      info,
+      initialCssContent,
+      initialCode,
+    });
+    if (disposed) {
+      cssEditorHandle?.dispose();
+      cssEditorHandle = null;
+      return;
+    }
+    disposeCssEditor = cleanup;
     const onKeyDown = (e: KeyboardEvent) => previewManager.handleWindowKeyDown(e, active, isCssEditorFocused);
     const onKeyUp = (e: KeyboardEvent) => previewManager.handleWindowKeyUp(e, active);
     const onBlur = () => previewManager.stopAll();
