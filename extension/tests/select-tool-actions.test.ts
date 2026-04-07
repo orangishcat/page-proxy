@@ -39,10 +39,9 @@ void mock.module("wxt/browser", () => ({
   browser: browserMock,
 }));
 
-const { applyDevtoolsSelectionChangedMessage } = await import(
+const { applyDevtoolsSelectionChangedMessage, clearActiveSelection, undoLastRecordedAction } = await import(
   "../src/entrypoints/sidepanel/tools/select-tool/actions"
 );
-const { undoLastRecordedAction } = await import("../src/entrypoints/sidepanel/tools/select-tool/actions");
 
 const selectedElement: ElementInfo = {
   tag: "button",
@@ -247,6 +246,37 @@ describe("undoLastRecordedAction", () => {
       {
         text: "Undid Deleted element, but couldn't restore the previous recorded selection.",
         status: "error",
+      },
+    ]);
+  });
+});
+
+describe("clearActiveSelection", () => {
+  test("clears the sidepanel state and tells the content script to remove the selected outline", async () => {
+    const sentMessages: Array<{ tabId: number; message: unknown; options?: unknown }> = [];
+    browserMock.tabs.query = (() =>
+      Promise.resolve([
+        {
+          id: 17,
+          url: "https://example.com/page",
+        },
+      ])) as typeof browserMock.tabs.query;
+    browserMock.tabs.sendMessage = ((tabId: number, message: unknown, options?: unknown) => {
+      sentMessages.push({ tabId, message, options });
+      return Promise.resolve(undefined);
+    }) as unknown as typeof browserMock.tabs.sendMessage;
+
+    await clearActiveSelection();
+
+    expect(sentMessages).toEqual([
+      {
+        tabId: 17,
+        message: {
+          type: "select:clear",
+        },
+        options: {
+          frameId: 0,
+        },
       },
     ]);
   });
