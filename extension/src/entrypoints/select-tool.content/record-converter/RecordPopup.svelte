@@ -5,11 +5,11 @@
   import { createMonacoEditor, type MonacoCodeEditorHandle, updateMonacoEditorValue } from "@/lib/code-editor";
   import { MONACO_WORKER_ERROR_EVENT } from "@/lib/code-editor/environment";
   import type { RecordConverterOpenPayload, RecordConverterSaveResult } from "@/lib/selection";
-  import ConverterFooter from "./record-converter/ConverterFooter.svelte";
-  import ConverterReviewHeader from "./record-converter/ConverterReviewHeader.svelte";
-  import ConverterStepSidebar from "./record-converter/ConverterStepSidebar.svelte";
-  import ConverterStepPreview from "./record-converter/ConverterStepPreview.svelte";
-  import ConverterStepsSidebar from "./record-converter/ConverterStepsSidebar.svelte";
+  import ConverterFooter from "./ConverterFooter.svelte";
+  import ConverterReviewHeader from "./ConverterReviewHeader.svelte";
+  import ConverterStepSidebar from "./ConverterStepSidebar.svelte";
+  import ConverterStepPreview from "./ConverterStepPreview.svelte";
+  import ConverterStepsSidebar from "./ConverterStepsSidebar.svelte";
   import {
     buildDefaultParentTraversalOption,
     buildDefaultSelectElementOption,
@@ -20,22 +20,22 @@
     type ReviewCodeMode,
     type SelectElementMode,
     type SelectElementOptionsByStepId,
-  } from "./record-converter/generate";
+  } from "./generate";
   import {
     normalizeRecordTimeline,
     startsWithSelectedElement,
     type SupportedRecordStep,
-  } from "./record-converter/normalize";
-  import { buildReviewCodeFromStepPreviews } from "./record-converter/review-code";
-  import { generateElementSelectorMatches } from "./popup/selector";
-  import { readBaseSelectorFromCode, replaceBaseSelectorInCode } from "./popup/base-selector";
+  } from "./normalize";
+  import { buildReviewCodeFromStepPreviews } from "./review-code";
+  import { generateElementSelectorMatches } from "../popup/selector";
+  import { readBaseSelectorFromCode, replaceBaseSelectorInCode } from "../popup/base-selector";
   import {
     attachPopupKeyboardOwnership,
     POPUP_SHARED_CLASS,
     POPUP_SHARED_STYLE,
-  } from "./popup/container-shared";
-  import ModalOverlay from "./ModalOverlay.svelte";
-  import { createSelectorMatchPreviewController, type SelectorMatchPreviewController } from "./popup/selector-preview";
+  } from "../popup/container-shared";
+  import ModalOverlay from "../ui/ModalOverlay.svelte";
+  import { createSelectorMatchPreviewController, type SelectorMatchPreviewController } from "../popup/selector-preview";
 
   type Props = {
     payload: RecordConverterOpenPayload;
@@ -235,7 +235,7 @@
     return leftKeys.every((key) => left[key] === right[key]);
   };
 
-  const setupReviewEditor = () => {
+  const setupReviewEditor = async () => {
     if (!reviewEditorHost || reviewEditorHandle) {
       return;
     }
@@ -244,7 +244,7 @@
     });
     reviewEditorError = "";
     try {
-      reviewEditorHandle = createMonacoEditor(reviewEditorHost, reviewCode, {
+      reviewEditorHandle = await createMonacoEditor(reviewEditorHost, reviewCode, {
         language: "javascript",
         modelUri: "file:///page-proxy/record-converter-review.js",
         onChange: (nextValue) => {
@@ -385,7 +385,7 @@
       existingCodeLength: payload.existingCode.length,
     });
     reviewCode = activeGeneratedReview.finalCode;
-    setupReviewEditor();
+    void setupReviewEditor();
     releaseKeyboardOwnership = attachPopupKeyboardOwnership(popupContainerEl);
     selectElementPreviewController = createSelectorMatchPreviewController({
       getSelectorCode: () => activeStepPreviewCode,
@@ -492,7 +492,7 @@
     }
 
     if (isReviewStep && reviewEditorHost && !reviewEditorHandle) {
-      setupReviewEditor();
+      void setupReviewEditor();
     }
   });
 
@@ -503,7 +503,7 @@
 
     if (!reviewEditorHandle) {
       if (reviewEditorHost) {
-        setupReviewEditor();
+        void setupReviewEditor();
       }
       if (!reviewEditorHandle) {
         if (!reviewEditorError) {

@@ -11,7 +11,7 @@ import type {
   SelectorPopupMode,
 } from "@/lib/selection";
 import { buildSelectorTemplateCode } from "@/entrypoints/select-tool.content/popup/selector";
-import { buildCssDocument } from "@/entrypoints/select-tool.content/css-editor-utils";
+import { buildCssDocument } from "@/entrypoints/select-tool.content/css-inspector/css-editor-utils";
 import type {
   DevtoolsSelectionChangedRuntimeMessage,
   DevtoolsSelectionStatusChangedRuntimeMessage,
@@ -325,9 +325,7 @@ const defaultUndoLastRecordedActionDeps: UndoLastRecordedActionDeps = {
   setToolMessage,
 };
 
-export const undoLastRecordedAction = async (
-  deps: UndoLastRecordedActionDeps = defaultUndoLastRecordedActionDeps,
-) => {
+export const undoLastRecordedAction = async (deps: UndoLastRecordedActionDeps = defaultUndoLastRecordedActionDeps) => {
   const { removed, timeline } = deps.popRecordedAction();
   if (!removed) {
     deps.setToolMessage("No recorded action to undo.", "error");

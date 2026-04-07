@@ -11,9 +11,13 @@ import type {
   SelectorSaveResult,
   SelectToolMessage,
 } from "@/lib/selection";
-import { ensureSelectionStyles } from "./HoverManager";
-import { readBaseSelectorFromCode } from "./popup/base-selector";
-import { normalizeSelectorFromCssEditor, readDeclarationSourceFromCssEditor, parseCssDeclarations } from "./css-editor-utils";
+import { readBaseSelectorFromCode } from "../base-selector";
+import { ensureSelectionStyles } from "../../selection/HoverManager";
+import {
+  normalizeSelectorFromCssEditor,
+  readDeclarationSourceFromCssEditor,
+  parseCssDeclarations,
+} from "../../css-inspector/css-editor-utils";
 import PopupContainer from "./PopupContainer.svelte";
 
 type ContentScriptContext = Parameters<typeof createShadowRootUi>[0];

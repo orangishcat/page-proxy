@@ -4,7 +4,7 @@ import {
   buildCssDocument,
   normalizeSelectorFromCssEditor,
   readDeclarationSourceFromCssEditor,
-} from "../css-editor-utils";
+} from "./css-editor-utils";
 import log from "@/lib/logger";
 
 const logger = log.getLogger("css-inspector");
@@ -30,7 +30,7 @@ export type CssEditorInitDeps = {
   initialCode?: string;
 };
 
-export const initCssEditor = (deps: CssEditorInitDeps): (() => void) | null => {
+export const initCssEditor = async (deps: CssEditorInitDeps): Promise<(() => void) | null> => {
   const host = deps.getHost();
   if (!host || deps.getHandle()) return null;
 
@@ -56,7 +56,7 @@ export const initCssEditor = (deps: CssEditorInitDeps): (() => void) | null => {
   });
 
   deps.setCssEditorValue(initialCssEditorValue);
-  const handle = createMonacoEditor(host, initialCssEditorValue, {
+  const handle = await createMonacoEditor(host, initialCssEditorValue, {
     language: "css",
     modelUri: "inmemory://page-proxy/selector-popup-base-selector.css",
     lineNumbers: "on",

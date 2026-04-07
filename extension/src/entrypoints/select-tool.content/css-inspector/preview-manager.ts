@@ -1,5 +1,5 @@
 import type { MonacoCodeEditorHandle } from "@/lib/code-editor";
-import { normalizeSelectorFromCssEditor, readDeclarationSourceFromCssEditor } from "../css-editor-utils";
+import { normalizeSelectorFromCssEditor, readDeclarationSourceFromCssEditor } from "./css-editor-utils";
 import { getSelectorPreviewState } from "../popup/css-preview";
 
 export type PreviewManagerDeps = {

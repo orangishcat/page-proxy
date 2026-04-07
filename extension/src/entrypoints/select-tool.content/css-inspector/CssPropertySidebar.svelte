@@ -2,8 +2,8 @@
   import { SvelteMap } from "svelte/reactivity";
   import { Tooltip } from "bits-ui";
   import { RotateCw } from "lucide-svelte";
-  import CopyablePropertyText from "../CopyablePropertyText.svelte";
-  import type { CssSelectorPart } from "../css-inspector";
+  import CopyablePropertyText from "../ui/CopyablePropertyText.svelte";
+  import type { CssSelectorPart } from "./css-inspector";
 
   type PropertyItem = {
     key: string;

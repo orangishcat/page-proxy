@@ -1,5 +1,5 @@
 import type { SelectToolMessage } from "@/lib/selection";
-import type { SelectionController } from "../SelectionController";
+import type { SelectionController } from "../controller/SelectionController";
 
 export type RoutedSelectToolMessageType =
   | "selector:open"

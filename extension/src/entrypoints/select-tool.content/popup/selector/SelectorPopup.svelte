@@ -4,17 +4,17 @@
   import { onDestroy, onMount } from "svelte";
   import {
     createMonacoEditor,
-    MonacoRange,
+    createMonacoRange,
     type MonacoCodeEditorHandle,
     updateMonacoEditorValue,
   } from "@/lib/code-editor";
   import { GripVertical } from "lucide-svelte";
   import { buildPreviewCode, isSpecialPropertyKey, type FilterOperator } from "./preview-code";
-  import CopyablePropertyText from "./CopyablePropertyText.svelte";
-  import { readBaseSelectorFromCode, replaceBaseSelectorInCode } from "./popup/base-selector";
-  import { getPqSelectorPreviewState } from "./popup/pq-selector-preview";
-  import { buildSelectorTemplateCode } from "./popup/selector";
-  import { createSelectorMatchPreviewController, type SelectorMatchPreviewController } from "./popup/selector-preview";
+  import CopyablePropertyText from "../../ui/CopyablePropertyText.svelte";
+  import { readBaseSelectorFromCode, replaceBaseSelectorInCode } from "../base-selector";
+  import { getPqSelectorPreviewState } from "../pq-selector-preview";
+  import { buildSelectorTemplateCode } from "../selector";
+  import { createSelectorMatchPreviewController, type SelectorMatchPreviewController } from "../selector-preview";
   import log from "@/lib/logger";
 
   type PropertyItem = {
@@ -193,7 +193,7 @@
     return `${base} ${normalizedSnippet}`;
   };
 
-  const setupEditor = () => {
+  const setupEditor = async () => {
     if (!editorHost || editorHandle) {
       return;
     }
@@ -206,7 +206,7 @@
       editorValue,
     });
 
-    editorHandle = createMonacoEditor(editorHost, editorValue, {
+    editorHandle = await createMonacoEditor(editorHost, editorValue, {
       language: "javascript",
       modelUri: "inmemory://page-proxy/selector-popup-editor.js",
       onChange: (nextValue) => {
@@ -268,12 +268,12 @@
     isSelectorEditorFocused = editorHandle.editor.hasTextFocus();
   };
 
-  const setupPreview = () => {
+  const setupPreview = async () => {
     if (!previewHost || previewHandle) {
       return;
     }
 
-    previewHandle = createMonacoEditor(previewHost, previewCode, {
+    previewHandle = await createMonacoEditor(previewHost, previewCode, {
       language: "javascript",
       lineNumbers: "off",
       modelUri: "inmemory://page-proxy/selector-popup-preview.js",
@@ -507,7 +507,7 @@
     const insertText = shouldPrefixAnd() ? `\n${getExpressionIndent()}&& ${code}` : code;
     currentEditor.executeEdits("page-proxy-drop", [
       {
-        range: new MonacoRange(insertPos.lineNumber, insertPos.column, insertPos.lineNumber, insertPos.column),
+        range: createMonacoRange(insertPos.lineNumber, insertPos.column, insertPos.lineNumber, insertPos.column),
         text: insertText,
         forceMoveMarkers: true,
       },
@@ -539,8 +539,8 @@
   const truncate = (value: string, max: number) => (value.length > max ? `${value.slice(0, max)}…` : value);
 
   onMount(() => {
-    setupEditor();
-    setupPreview();
+    void setupEditor();
+    void setupPreview();
     updateSelectorPreviewState();
 
     selectorPreviewController = createSelectorMatchPreviewController({

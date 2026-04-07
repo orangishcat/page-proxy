@@ -1,6 +1,6 @@
 import log from "@/lib/logger";
 import { defineContentScript } from "wxt/utils/define-content-script";
-import { SelectionController } from "./SelectionController";
+import { SelectionController } from "./controller/SelectionController";
 import { addMessageListener } from "./message-router";
 import "@/styles/app.css";
 

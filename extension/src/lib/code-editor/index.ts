@@ -8,9 +8,9 @@ export type {
 export {
   clearMonacoEditorMarkers,
   createMonacoEditor,
+  createMonacoRange,
   ensureMonacoEditor,
   getMonacoEditorValue,
-  MonacoRange,
   setMonacoEditorMarkers,
   updateMonacoEditorValue,
 } from "./editor";
