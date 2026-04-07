@@ -84,14 +84,11 @@ export const buildInvocationLine = (functionName: string, inputSource: string | 
 export const buildSelectorLines = ({
   selectorName,
   selectorValue,
-  selectorLabel,
 }: {
   selectorName: string;
   selectorValue: string;
-  selectorLabel: string;
 }) => [
   `const ${selectorName} = pq.selector({`,
-  `  name: ${toStringLiteral(selectorLabel)},`,
   `  baseSelector: ${toStringLiteral(selectorValue)},`,
   "  matches: e => true",
   "})",

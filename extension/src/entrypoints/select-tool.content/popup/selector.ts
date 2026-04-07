@@ -138,7 +138,6 @@ export const generateElementSelectorMatches = (element: Element, maxResults = se
 export const buildSelectorTemplateCode = (selectorValue: string) => {
   return [
     "const Style_1 = pq.selector({",
-    `  ${JSON.stringify("name")}: ${JSON.stringify("Style 1")},`,
     `  ${JSON.stringify("baseSelector")}: ${JSON.stringify(selectorValue)},`,
     `  ${JSON.stringify("matches")}: e => true,`,
     "});",

@@ -17,7 +17,7 @@ const modeImpls: Record<ParentTraversalMode, (option: ParentTraversalOption) => 
   "traverse-until": (option) => ({
     isObserverBoundary: false,
 
-    buildFunctionCode(_step, { functionName, inputNames, stepNumber }) {
+    buildFunctionCode(_step, { functionName, inputNames }) {
       const untilSelector = normalizeUntilSelector(option.untilSelector);
       const selectedElementInput = inputNames.includes(stepInputOutputName) ? stepInputOutputName : "null";
       const nextElementName = toNextSelectedElementName();
@@ -32,7 +32,6 @@ const modeImpls: Record<ParentTraversalMode, (option: ParentTraversalOption) => 
             ...buildSelectorLines({
               selectorName: "traverseUntilSelector",
               selectorValue: untilSelector,
-              selectorLabel: `Traverse until selector ${stepNumber}`,
             }),
             `const ${nextElementName} = ${selectedElementInput}`,
             `  ? pq.traverseParents(${selectedElementInput}, e => traverseUntilSelector.matches(e))`,
@@ -54,7 +53,6 @@ const modeImpls: Record<ParentTraversalMode, (option: ParentTraversalOption) => 
           ...buildSelectorLines({
             selectorName: `traverseUntilSelector${stepNumber}`,
             selectorValue: untilSelector,
-            selectorLabel: `Traverse until selector ${stepNumber}`,
           }),
           `const nextSelectedElement${stepNumber} = ${stepInputOutputName}`,
           `  ? pq.traverseParents(${stepInputOutputName}, e => traverseUntilSelector${stepNumber}.matches(e))`,
@@ -151,7 +149,7 @@ const modeImpls: Record<ParentTraversalMode, (option: ParentTraversalOption) => 
           functionName,
           inputNames,
           bodyLines: [
-            ...buildSelectorLines({ selectorName: "selector", selectorValue, selectorLabel: `Selector ${stepNumber}` }),
+            ...buildSelectorLines({ selectorName: "selector", selectorValue }),
             `selector.onElementMatches((${stepInputOutputName}) => {`,
             `  void ${runnerName}(${callbackArgs.join(", ")})`,
             "})",
@@ -171,7 +169,6 @@ const modeImpls: Record<ParentTraversalMode, (option: ParentTraversalOption) => 
         ...buildSelectorLines({
           selectorName: `selector${stepNumber}`,
           selectorValue: normalizeUntilSelector(option.untilSelector),
-          selectorLabel: `Selector ${stepNumber}`,
         }),
         `selector${stepNumber}.onElementMatches(async (${stepInputOutputName}) => {`,
         ...indentLines(callbackLines),

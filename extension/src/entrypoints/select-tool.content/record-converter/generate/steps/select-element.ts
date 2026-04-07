@@ -15,7 +15,7 @@ const modeImpls: Record<SelectElementMode, ModeImpl> = {
   "wait-until-match": {
     isObserverBoundary: false,
 
-    buildFunctionCode(step, { functionName, inputNames, stepNumber }) {
+    buildFunctionCode(step, { functionName, inputNames }) {
       const selectorValue = resolveSelectElementSelector(step);
       const extras = getPassthroughExtras(inputNames, stepInputOutputName);
       const assignmentLine = inputNames.includes(stepInputOutputName)
@@ -28,7 +28,7 @@ const modeImpls: Record<SelectElementMode, ModeImpl> = {
           functionName,
           inputNames,
           bodyLines: [
-            ...buildSelectorLines({ selectorName: "selector", selectorValue, selectorLabel: `Selector ${stepNumber}` }),
+            ...buildSelectorLines({ selectorName: "selector", selectorValue }),
             assignmentLine,
           ],
           outputs: [
@@ -46,7 +46,6 @@ const modeImpls: Record<SelectElementMode, ModeImpl> = {
         ...buildSelectorLines({
           selectorName: `selector${stepNumber}`,
           selectorValue: resolveSelectElementSelector(step),
-          selectorLabel: `Selector ${stepNumber}`,
         }),
       );
       const declaration = state.hasSelectedElementVar ? "" : "let ";
@@ -78,7 +77,7 @@ const modeImpls: Record<SelectElementMode, ModeImpl> = {
           functionName,
           inputNames,
           bodyLines: [
-            ...buildSelectorLines({ selectorName: "selector", selectorValue, selectorLabel: `Selector ${stepNumber}` }),
+            ...buildSelectorLines({ selectorName: "selector", selectorValue }),
             `selector.onElementMatches((${stepInputOutputName}) => {`,
             `  void ${runnerName}(${callbackArgs.join(", ")})`,
             "})",
@@ -98,7 +97,6 @@ const modeImpls: Record<SelectElementMode, ModeImpl> = {
         ...buildSelectorLines({
           selectorName: `selector${stepNumber}`,
           selectorValue: resolveSelectElementSelector(step),
-          selectorLabel: `Selector ${stepNumber}`,
         }),
         `selector${stepNumber}.onElementMatches(async (${stepInputOutputName}) => {`,
         ...indentLines(callbackLines),

@@ -235,7 +235,7 @@ export const extractScriptSelectorEntries = (source: string): ParsedScriptSelect
 
         const definition = declaration.init.arguments[0];
         const definitionName = readStaticStringValue(readObjectPropertyValue(definition, "name"));
-        const name = definitionName?.trim() || "Unnamed selector";
+        const name = definitionName?.trim() || declaration.id.name;
         const rules = extractPqSelectorRules(definition, source);
         entries.push({
           name,

@@ -100,4 +100,22 @@ ps.injectCSS(\`@\`);
   test("returns an empty list for invalid JavaScript", () => {
     expect(extractScriptSelectorEntries("const x = ")).toEqual([]);
   });
+
+  test("falls back to the selector variable name when name is omitted", () => {
+    const code = `
+const overdueWrapper = pq.selector({
+  baseSelector: "#overdue-submissions",
+  matches: (element) => pq.tagMatches(element, "div"),
+});
+`;
+
+    expect(extractScriptSelectorEntries(code)).toEqual([
+      {
+        name: "overdueWrapper",
+        ruleKeys: ["baseSelector: #overdue-submissions", "tag: div"],
+        rules: ["baseSelector: #overdue-submissions", "tag: div"],
+        mode: "pp-api",
+      },
+    ]);
+  });
 });
