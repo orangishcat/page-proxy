@@ -80,8 +80,8 @@ Scripts import from the `pp` library, which provides six modules:
 - **Selectors tool** — view, hover-highlight, and edit all active selectors from
   a single panel. Selector definitions are parsed directly from editor content.
 - **Create tool** — insert new elements into the page from the sidepanel.
-- **Share / Export** — save the current script as a `.js` file from the
-  sidepanel.
+- **Share / Export** — export the current script as a Page Proxy script,
+  Tampermonkey userscript, or CSS-only stylesheet from the sidepanel.
 
 View the [documentation](https://orangishcat.github.io/page-proxy/docs/) to
 learn more.
@@ -118,6 +118,10 @@ Useful local endpoints/outputs:
       `extension/package.json`.
     - Load the build outputs unpacked, either via Chromium-based browsers'
       `Load unpacked` feature or Firefox's `Install temporary add-on`.
+- Hosted PP userscript runtime: `web/static/pp/pp.min.js`
+    - Rebuild it with `bun run pp:build-runtime`.
+    - This file is deployed with the static web app and used by Tampermonkey
+      exports via `@require`.
 
 ### Checks
 
