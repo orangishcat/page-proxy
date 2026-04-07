@@ -1,18 +1,8 @@
-<script lang="ts" module>
-  export type NavbarVariant = "app" | "landing";
-</script>
-
 <script lang="ts">
   import { asset, resolve } from "$app/paths";
   import { Moon, Sun } from "lucide-svelte";
   import { onMount } from "svelte";
   import Button from "$lib/components/Button.svelte";
-
-  type Props = {
-    variant?: NavbarVariant;
-  };
-
-  let { variant = "app" }: Props = $props();
 
   let isDarkMode = $state(true);
 
@@ -55,29 +45,16 @@
   });
 </script>
 
-<nav class={navClasses} class:max-w-full={variant === "app"}>
-  {#if variant === "landing"}
-    <a class="flex items-center gap-1.5 justify-self-start -my-4 -mt-5" href={resolve("/")} aria-label="Page Proxy">
-      <img src={asset("/logo_text.avif")} alt="" class="h-13" draggable="false" />
-    </a>
-  {:else}
-    <a class="flex items-center gap-1.5 justify-self-start -my-4 -mt-5" href={resolve("/")} aria-label="Page Proxy">
-      <img src={asset("/logo_text.avif")} alt="" class="h-13" draggable="false" />
-    </a>
-  {/if}
+<nav class={navClasses}>
+  <a class="flex items-center gap-1.5 justify-self-start -my-4 -mt-5" href={resolve("/")} aria-label="Page Proxy">
+    <img src={asset("/logo_text.avif")} alt="" class="h-13" draggable="false" />
+  </a>
 
   <div class="flex flex-wrap items-center justify-center gap-2 justify-self-center">
-    {#if variant === "app"}
-      <span class={itemClasses}>File</span>
-      <span class={itemClasses}>Edit</span>
-      <span class={itemClasses}>View</span>
-      <span class={itemClasses}>Tools</span>
-    {:else if variant === "landing"}
-      <!-- Docs are hosted externally in production; keep the typecast to avoid typing errors. -->
-      <a class={itemClasses} href={resolve("/docs" as any)}>Docs</a>
-      <a class={itemClasses} href={resolve("/") + "#tools"}>Tools</a>
-      <a class={itemClasses} href={resolve("/") + "#explore"}>Explore</a>
-    {/if}
+    <!-- Docs are hosted externally in production; keep the typecast to avoid typing errors. -->
+    <a class={itemClasses} href={resolve("/docs" as any)}>Docs</a>
+    <a class={itemClasses} href={resolve("/") + "#tools"}>Tools</a>
+    <a class={itemClasses} href={resolve("/") + "#explore"}>Explore</a>
   </div>
 
   <div class="flex flex-1 justify-self-end gap-6">
