@@ -1,20 +1,22 @@
 import { onElementCreated } from "../pp-event";
 
 export type SelectorDefinition<T = HTMLElement> = {
-  name: string;
+  name?: string;
   baseSelector?: string;
-  matches: (element: Element) => boolean;
+  matches?: (element: Element) => boolean;
   postMap?: (element: HTMLElement) => T;
 };
 
 export const selector = <T = HTMLElement>(definition: SelectorDefinition<T>) => {
+  const matches = definition.matches ?? (() => true);
+
   const matchesElement = (el: Element) => {
     const normalizedBaseSelector = definition.baseSelector?.trim() ?? "";
     const baseSelector = normalizedBaseSelector.length > 0 ? normalizedBaseSelector : "*";
     if (baseSelector !== "*" && !el.matches(baseSelector)) {
       return false;
     }
-    return Boolean(definition.matches(el));
+    return Boolean(matches(el));
   };
 
   const defaultObserverOptions: MutationObserverInit = { childList: true, subtree: true };

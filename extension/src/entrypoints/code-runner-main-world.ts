@@ -12,6 +12,7 @@ import {
 import { cloneStoredRuntimeStorage, createStoredRuntimeStorageAdapter } from "@/lib/script-runtime-storage";
 import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";
 import { extractCssSelectorsFromStyleText } from "@/lib/utils/css-rule-parsing";
+import { extractPqSelectorDefinitionBlocks } from "@/lib/utils/pq-selector-parsing";
 import log from "@/lib/logger";
 
 const logger = log.getLogger("code-runner-main-world");
@@ -327,8 +328,11 @@ const extractSelectorRules = (definition: pq.SelectorDefinition<unknown>): strin
   return Array.from(uniqueRules);
 };
 
-const toSelectorEntry = (definition: pq.SelectorDefinition<unknown>): ScriptRunSelectorEntry => {
-  const name = definition.name?.trim() || "Unnamed selector";
+const toSelectorEntry = (
+  definition: pq.SelectorDefinition<unknown>,
+  variableName: string,
+): ScriptRunSelectorEntry => {
+  const name = definition.name?.trim() || variableName;
   const rules = extractSelectorRules(definition);
 
   return {
@@ -377,6 +381,10 @@ const isWindowSource = (source: MessageEventSource | null) => source === window 
 const runScriptRequest = (request: ScriptRunRequest, sendResult: (response: ScriptRunResponse) => void) => {
   const { logs, sink } = createNotificationCapture();
   const selectorEntries = new Map<string, ScriptRunSelectorEntry>();
+  const unnamedSelectorVariableNames = extractPqSelectorDefinitionBlocks(request.code)
+    .filter((block) => !block.definitionName?.trim())
+    .map((block) => block.variableName);
+  let unnamedSelectorIndex = 0;
   let cssEntryCount = 0;
   const runtimeStorage = cloneStoredRuntimeStorage(request.runtimeStorage);
   const storageAdapter = createStoredRuntimeStorageAdapter(runtimeStorage);
@@ -388,7 +396,11 @@ const runScriptRequest = (request: ScriptRunRequest, sendResult: (response: Scri
   const queryApi = {
     ...modules.pq,
     selector: <T = HTMLElement>(definition: pq.SelectorDefinition<T>) => {
-      const entry = toSelectorEntry(definition);
+      const fallbackVariableName = unnamedSelectorVariableNames[unnamedSelectorIndex] ?? "selector";
+      if (!definition.name?.trim()) {
+        unnamedSelectorIndex += 1;
+      }
+      const entry = toSelectorEntry(definition, fallbackVariableName);
       selectorEntries.set(`pp-api:${entry.name}`, entry);
       return modules.pq.selector(definition);
     },
