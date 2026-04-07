@@ -61,7 +61,7 @@
     {#snippet child({ props })}
       <div
         {...props}
-        title={title}
+        {title}
         onclick={handleCopy}
         class={`font-mono text-xs truncate transition-colors underline-offset-2 decoration-accent-400/80 hover:text-accent-300 hover:underline cursor-pointer ${align === "right" ? "text-right" : "text-left"} ${className}`}
       >

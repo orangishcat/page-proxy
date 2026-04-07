@@ -11,13 +11,13 @@ import {
   hoveredPreviewClass,
   selectorsHoverExclusionClass,
 } from "@/lib/constants/selection";
-import { HoverManager, ensureSelectionStyles } from "./HoverManager";
-import { SelectorPopupManager } from "./SelectorPopupManager";
-import { RecordConverterPopupManager } from "./RecordConverterPopupManager";
-import { GrantPermissionPopupManager } from "./GrantPermissionPopupManager";
-import { getElementInfo, describeElementCompact, getEventTarget } from "./element-info";
-import { toPreviewCssSelectors } from "./selector-preview";
-import { runSelectElementAction } from "./element-actions";
+import { SelectorPopupManager } from "../popup/selector/SelectorPopupManager";
+import { RecordConverterPopupManager } from "../record-converter/RecordConverterPopupManager";
+import { GrantPermissionPopupManager } from "../permissions/GrantPermissionPopupManager";
+import { HoverManager, ensureSelectionStyles } from "../selection/HoverManager";
+import { runSelectElementAction } from "../selection/element-actions";
+import { getElementInfo, describeElementCompact, getEventTarget } from "../selection/element-info";
+import { toPreviewCssSelectors } from "../selection/selector-preview";
 
 type ContentScriptContext = Parameters<typeof createShadowRootUi>[0];
 

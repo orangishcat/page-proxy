@@ -1,6 +1,6 @@
 import { hoverClass, selectedClass, hoveredPreviewClass } from "@/lib/constants/selection";
 import type { ElementInfo } from "@/lib/selection";
-import { generateElementSelector } from "./popup/selector";
+import { generateElementSelector } from "../popup/selector";
 
 const filteredSelectionClasses = new Set([hoverClass, selectedClass, hoveredPreviewClass]);
 

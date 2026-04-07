@@ -2,17 +2,17 @@
   import Button from "@/lib/components/Button.svelte";
   import type { ElementInfo, SelectorSavePayload, SelectorSaveResult } from "@/lib/selection";
   import { onDestroy, onMount } from "svelte";
+  import CssInspector from "../../css-inspector/CssInspector.svelte";
   import SelectorPopup from "./SelectorPopup.svelte";
-  import CssInspector from "./CssInspector.svelte";
   import {
     attachPopupKeyboardOwnership,
     POPUP_BASE_FONT_SIZE_PX,
     POPUP_SHARED_CLASS,
     POPUP_SHARED_STYLE,
-  } from "./popup/container-shared";
-  import { readBaseSelectorFromCode } from "./popup/base-selector";
-  import { normalizeSelectorFromCssEditor } from "./css-editor-utils";
-  import ModalOverlay from "./ModalOverlay.svelte";
+  } from "../container-shared";
+  import { readBaseSelectorFromCode } from "../base-selector";
+  import { normalizeSelectorFromCssEditor } from "../../css-inspector/css-editor-utils";
+  import ModalOverlay from "../../ui/ModalOverlay.svelte";
 
   type PropertyItem = {
     key: string;

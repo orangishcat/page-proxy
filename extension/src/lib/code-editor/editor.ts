@@ -116,7 +116,17 @@ export const updateMonacoEditorValue = (handle: MonacoCodeEditorHandle, value: s
 export const getMonacoEditorValue = (handle: MonacoCodeEditorHandle) =>
   handle.model.isDisposed() ? "" : handle.model.getValue();
 
-export const MonacoRange = monaco.Range;
+export const createMonacoRange = (
+  startLineNumber: number,
+  startColumn: number,
+  endLineNumber: number,
+  endColumn: number,
+) => ({
+  startLineNumber,
+  startColumn,
+  endLineNumber,
+  endColumn,
+});
 
 const markerSeverityMap: Record<MonacoEditorMarker["severity"], monaco.MarkerSeverity> = {
   error: monaco.MarkerSeverity.Error,

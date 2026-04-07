@@ -1,8 +1,8 @@
 <script lang="ts">
   import Button from "@/lib/components/Button.svelte";
   import type { ScriptGrantValue } from "@/lib/grants";
-  import ModalOverlay from "./ModalOverlay.svelte";
-  import { POPUP_SHARED_CLASS, POPUP_SHARED_STYLE } from "./popup/container-shared";
+  import { POPUP_SHARED_CLASS, POPUP_SHARED_STYLE } from "../popup/container-shared";
+  import ModalOverlay from "../ui/ModalOverlay.svelte";
 
   type Props = {
     scriptName: string;

@@ -1,4 +1,4 @@
-import { getElementInfo } from "../element-info";
+import { getElementInfo } from "../selection/element-info";
 import type {
   RoutedSelectToolHandler,
   RoutedSelectToolMessageContent,

@@ -1,5 +1,5 @@
 import * as css from "css-tree";
-import type { FilterOperator } from "./preview-code";
+import type { FilterOperator } from "../popup/selector/preview-code";
 
 export type CssSelectorPartType =
   | "tag"

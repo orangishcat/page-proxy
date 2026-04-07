@@ -106,12 +106,12 @@
     return getStepDescription(activeStep.kind);
   });
 
-  const setupPreviewEditor = () => {
+  const setupPreviewEditor = async () => {
     if (!previewEditorHost || previewEditorHandle) {
       return;
     }
 
-    previewEditorHandle = createMonacoEditor(previewEditorHost, stepPreviewCode, {
+    previewEditorHandle = await createMonacoEditor(previewEditorHost, stepPreviewCode, {
       language: "javascript",
       modelUri: "file:///page-proxy/record-converter-step-preview.js",
       onChange: (nextValue) => {
@@ -136,7 +136,7 @@
       return;
     }
 
-    setupPreviewEditor();
+    void setupPreviewEditor();
   });
 
   $effect(() => {

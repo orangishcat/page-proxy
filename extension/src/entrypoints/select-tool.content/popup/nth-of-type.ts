@@ -1,4 +1,4 @@
-import type { CssSelectorPart } from "../css-inspector";
+import type { CssSelectorPart } from "../css-inspector/css-inspector";
 
 const nthOfTypePattern = /:nth-of-type\(\s*[^)]*\s*\)/gi;
 
