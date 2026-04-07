@@ -125,6 +125,20 @@ export const addMessageListener = (ctrl: SelectionController): void => {
       return false;
     }
 
+    if (msg.type === "select:restore") {
+      const target = document.querySelector(msg.selector);
+      if (!(target instanceof Element) || !target.isConnected) {
+        sendResponse({ ok: false, error: "Unable to restore the previous selected element." });
+        return false;
+      }
+
+      ctrl.hover.clearHoverAndNotify();
+      ctrl.applySelection(target);
+      ctrl.setSelectionEnabled(false, { clearSelection: false });
+      sendResponse({ ok: true, payload: getElementInfo(target) });
+      return false;
+    }
+
     if (msg.type === "select:action") {
       void ctrl
         .runAction(msg.action, msg.pasteHtml)

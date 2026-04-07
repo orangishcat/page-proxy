@@ -17,7 +17,10 @@ import type {
   DevtoolsSelectionStatusChangedRuntimeMessage,
   DevtoolsSelectionResponseMessage,
 } from "@/lib/devtools-selection";
-import { recordSidepanelAction } from "../record/state";
+import { isRecord } from "@/lib/utils/type-guards";
+import { findLastRecordedSelector } from "../record/actions";
+import { popRecordPanelTimelineEntry, recordSidepanelAction } from "../record/state";
+import type { RecordTimelineEntry } from "../state-storage";
 import { setToolMessage } from "../tool-errors";
 import {
   followDevtoolsSelection,
@@ -78,8 +81,6 @@ const shouldSuppressSelectedElementRecord = () => {
   return false;
 };
 
-import { isRecord } from "@/lib/utils/type-guards";
-
 const hasType = <T extends string>(value: unknown, type: T): value is { type: T } =>
   isRecord(value) && value.type === type;
 
@@ -124,6 +125,7 @@ const isSelectToolMessage = (value: unknown): value is SelectToolMessage =>
   hasType(value, "selectors:hover") ||
   hasType(value, "select:toggle") ||
   hasType(value, "select:parent") ||
+  hasType(value, "select:restore") ||
   hasType(value, "select:action") ||
   hasType(value, "selector:open");
 
@@ -216,6 +218,119 @@ const defaultApplyDevtoolsSelectionChangedMessageDeps: ApplyDevtoolsSelectionCha
   setSelection,
   setSelectModeEnabled,
   recordSelectedElement,
+};
+
+type RestoreSelectionBySelectorResult =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      error?: string;
+    };
+
+type UndoLastRecordedActionDeps = {
+  popRecordedAction: () => {
+    removed: RecordTimelineEntry | null;
+    timeline: RecordTimelineEntry[];
+  };
+  restoreSelectionBySelector: (selector: string) => Promise<RestoreSelectionBySelectorResult>;
+  suppressNextSelectedElementRecord: () => void;
+  clearSelectedElementRecordSuppression: () => void;
+  clearSelection: () => void;
+  setToolMessage: (message: string | null, status: "success" | "error") => void;
+};
+
+const restoreSelectionBySelector = async (selector: string): Promise<RestoreSelectionBySelectorResult> => {
+  const normalizedSelector = selector.trim();
+  if (!normalizedSelector) {
+    return {
+      ok: false,
+      error: "Unable to restore the previous recorded selection.",
+    };
+  }
+
+  const tabContext = await readActiveTabContext();
+  if (!tabContext) {
+    return {
+      ok: false,
+      error: "No active tab found.",
+    };
+  }
+
+  if (isRestrictedUrl(tabContext.url)) {
+    return {
+      ok: false,
+      error: "Selection is unavailable on this page.",
+    };
+  }
+
+  const response = await sendSelectToolMessage(
+    tabContext.tabId,
+    {
+      type: "select:restore",
+      selector: normalizedSelector,
+    } satisfies SelectToolMessage,
+    0,
+  ).catch(() => null);
+
+  if (response === null) {
+    return {
+      ok: false,
+      error: "Unable to connect to the active tab.",
+    };
+  }
+
+  if (!isSelectParentResponse(response)) {
+    return {
+      ok: false,
+      error: "Unable to restore the previous selected element.",
+    };
+  }
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      error: response.error ?? "Unable to restore the previous selected element.",
+    };
+  }
+
+  return { ok: true };
+};
+
+const defaultUndoLastRecordedActionDeps: UndoLastRecordedActionDeps = {
+  popRecordedAction: popRecordPanelTimelineEntry,
+  restoreSelectionBySelector,
+  suppressNextSelectedElementRecord: armSelectedElementRecordSuppression,
+  clearSelectedElementRecordSuppression,
+  clearSelection: () => {
+    setSelection(null);
+  },
+  setToolMessage,
+};
+
+export const undoLastRecordedAction = async (
+  deps: UndoLastRecordedActionDeps = defaultUndoLastRecordedActionDeps,
+) => {
+  const { removed, timeline } = deps.popRecordedAction();
+  if (!removed) {
+    deps.setToolMessage("No recorded action to undo.", "error");
+    return;
+  }
+
+  const selectorToRestore = findLastRecordedSelector(timeline);
+  if (!selectorToRestore) {
+    deps.clearSelection();
+    return;
+  }
+
+  deps.suppressNextSelectedElementRecord();
+  const restoreResult = await deps.restoreSelectionBySelector(selectorToRestore);
+  if (!restoreResult.ok) {
+    deps.clearSelectedElementRecordSuppression();
+    deps.setToolMessage(`Undid ${removed.action}, but couldn't restore the previous recorded selection.`, "error");
+    return;
+  }
 };
 
 export const applyDevtoolsSelectionChangedMessage = async (
@@ -364,6 +479,12 @@ export const sendSelectParent = () => {
       clearSelectedElementRecordSuppression();
       setToolMessage("Unable to connect to the active tab.", "error");
     });
+};
+
+export const sendUndoLastRecordedAction = () => {
+  logger.debug("request undo recorded action");
+  setToolMessage(null, "error");
+  void undoLastRecordedAction();
 };
 
 export const sendSelectorPopup = (

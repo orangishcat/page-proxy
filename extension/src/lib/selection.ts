@@ -99,6 +99,10 @@ export type SelectToolMessage =
       type: 'select:parent';
     }
   | {
+      type: "select:restore";
+      selector: string;
+    }
+  | {
       type: "select:action";
       action: SelectElementAction;
       pasteHtml?: string;

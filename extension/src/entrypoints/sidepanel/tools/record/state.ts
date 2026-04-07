@@ -20,6 +20,11 @@ let timelineSequence = 0;
 
 export const recordPanelState = writable<RecordPanelState>(buildDefaultRecordPanelState());
 
+export type RecordPanelTimelinePopResult = {
+  removed: RecordTimelineEntry | null;
+  timeline: RecordTimelineEntry[];
+};
+
 const createTimelineEntry = (action: string, detail: string): RecordTimelineEntry => {
   timelineSequence += 1;
   return {
@@ -189,4 +194,35 @@ export const clearRecordPanelState = () => {
   void removeRecordPanelStateForTab(tabId).catch((error: unknown) => {
     logger.warn("Unable to clear record tool state.", { tabId, error });
   });
+};
+
+export const popRecordPanelTimelineEntry = (): RecordPanelTimelinePopResult => {
+  let removed: RecordTimelineEntry | null = null;
+  let timeline = get(recordPanelState).timeline;
+
+  recordPanelState.update((state) => {
+    const lastEntry = state.timeline.at(-1) ?? null;
+    if (!lastEntry) {
+      timeline = state.timeline;
+      return state;
+    }
+
+    removed = lastEntry;
+    timeline = state.timeline.slice(0, -1);
+
+    return {
+      ...state,
+      timeline,
+      updatedAt: Date.now(),
+    };
+  });
+
+  if (removed) {
+    persistRecordPanelState();
+  }
+
+  return {
+    removed,
+    timeline,
+  };
 };
