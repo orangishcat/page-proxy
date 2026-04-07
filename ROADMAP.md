@@ -9,6 +9,7 @@
 - Create tool:
     - Create a settings UI for your script (or any UI) easily
     - Create components
+- Settings page for the extension
 - Multi-file scripts
 - Local scripts
 - Export to WXT extension
