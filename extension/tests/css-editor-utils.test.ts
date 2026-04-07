@@ -4,7 +4,7 @@ import {
   parseCssDeclarations,
   removeCssDeclaration,
   upsertCssDeclaration,
-} from "../src/entrypoints/select-tool.content/css-editor-utils";
+} from "../src/entrypoints/select-tool.content/css-inspector/css-editor-utils";
 
 describe("parseCssDeclarations", () => {
   test("parses a single declaration", () => {
