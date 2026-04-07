@@ -1,0 +1,74 @@
+---
+title: Export tool
+sidebar_position: 7
+---
+
+import useBaseUrl from "@docusaurus/useBaseUrl";
+
+# Export tool
+
+<div className="row align-items-center">
+
+<div className="col col--6 margin-bottom--xl">
+
+The export tool allows you to download your current script from the editor into
+a JavaScript file, or convert it into other formats.
+
+It also displays the `title`,`website`, `description`, and `author` fields of
+the script's metadata.
+
+The tool can be used for backup or sharing of your userscript.
+
+</div>
+
+<div className="col col--6 margin-bottom--xl">
+
+<img
+    src={useBaseUrl("/img/editor_usage/export_tool.avif", { absolute: true })}
+    alt="Page Proxy Export tool"
+/>
+
+</div>
+
+</div>
+
+## Export formats
+
+### pp-script
+
+- Exports the current editor contents as a `.js` file, as-is without
+  modifications.
+- Great for backing up scripts and sharing them to other Page Proxy users.
+
+### Tampermonkey
+
+- Exports a `.user.js` userscript with a UserScript header.
+- Converts Page Proxy metadata into userscript metadata such as `@name`, website
+  matches, and `@run-at`.
+- Adds `@require https://orangishcat.github.io/page-proxy/pp/pp.min.js` so
+  exported scripts can continue using the `pa`, `pn`, `pq`, `ps`, `pt`, and `pv`
+  APIs outside the extension.
+- Best for running a Page Proxy script in a userscript manager while keeping PP
+  API support.
+
+### CSS only
+
+- Exports a CSS stylesheet created from static `ps.injectCSS(...)` calls.
+- Only works for scripts that are purely stylesheet exports
+    - This means that the script should only contain static `ps.injectCSS`
+      calls.
+    - If the script contains other executable logic, dynamic CSS template
+      expressions, or unsupported `ps.injectCSS` options, the export option will
+      be disabled.
+
+### WXT extension (coming soon)
+
+- Not implemented yet, but the current plan is as follows:
+- A `.zip` export containing a full Bun and WXT extension project.
+- Include a working extension structure, manifest, build scripts, and
+  dependencies.
+- The current userscript is planned to be converted into a content script so the
+  zip can be unzipped, installed, and built as a standalone browser extension.
+- The extension should work exactly the same as the userscript, without
+  additional modifications needed (excluding project setup and dependency
+  installation).

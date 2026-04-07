@@ -37,7 +37,7 @@ title: Release notes
   - Monaco now uses inline workers consistently, which avoids worker loading failures in extension-hosted editors.
 - Reduced production extension build exposure:
   - Production builds no longer ship sourcemaps, while local development keeps them enabled.
-- Expanded Share tool documentation:
+- Expanded Export tool documentation:
   - New in v0.3.2: `pp-script` export saves the current editor contents as a `.js` file using a snake-case version of the script title as the filename.
 
 ## New in v0.3.1
