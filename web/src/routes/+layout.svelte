@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-  <link rel="icon" href={asset('/icon.avif')} />
+  <link rel="icon" href={asset('/favicon.ico')} />
   <meta name="theme-color" content="#20211f" media="(prefers-color-scheme: dark)" />
   <meta name="theme-color" content="#f3f4f3" media="(prefers-color-scheme: light)" />
 </svelte:head>

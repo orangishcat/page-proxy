@@ -25,7 +25,7 @@
 <SeoHead description={siteDescription} path="/" jsonLd={landingJsonLd} />
 
 <main class="min-h-screen bg-page-light text-[#20211f] dark:bg-page dark:text-white">
-  <Navbar variant="landing" />
+  <Navbar />
 
   <div class="flex w-full flex-col mt-12">
     <section>
