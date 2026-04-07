@@ -19,7 +19,7 @@
         "extension-usage/selectors-tool",
         "extension-usage/record-tool",
         "extension-usage/help-tool",
-        "extension-usage/share-tool"
+        "extension-usage/export-tool"
       ]
     },
     {
