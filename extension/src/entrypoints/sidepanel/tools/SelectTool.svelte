@@ -107,7 +107,7 @@
               {...props}
               class={iconActionButtonClass}
               variant="outline"
-              aria-label="Undo last recorded action"
+              aria-label="Select previously selected element"
               onclick={sendUndoLastRecordedAction}
               disabled={!hasRecordedActions}
             >
@@ -120,7 +120,7 @@
             sideOffset={6}
             class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
           >
-            Undo last recorded action
+            Select previously selected element
             <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
           </Tooltip.Content>
         </Tooltip.Portal>
