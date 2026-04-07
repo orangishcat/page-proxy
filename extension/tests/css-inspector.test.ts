@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseCssSelectorParts } from "../src/entrypoints/select-tool.content/css-inspector";
+import { parseCssSelectorParts } from "../src/entrypoints/select-tool.content/css-inspector/css-inspector";
 
 describe("parseCssSelectorParts", () => {
   test("returns empty array for empty selector", () => {
