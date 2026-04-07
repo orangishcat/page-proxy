@@ -9,9 +9,11 @@
     sendPasteSelection,
     sendApplyStylePopup,
     sendSelectParent,
+    sendUndoLastRecordedAction,
     sendSelectorPopup,
     toggleFollowDevtoolsSelection,
   } from "./select-tool/actions";
+  import { recordPanelState } from "./record/state";
   import {
     devtoolsIntegrationDetected,
     followDevtoolsSelection,
@@ -28,6 +30,7 @@
     Palette,
     Scissors,
     Trash2,
+    Undo2,
     Wrench,
   } from "lucide-svelte";
   import { fly } from "svelte/transition";
@@ -38,6 +41,7 @@
     "z-20 min-w-56 rounded-md border border-gray-300 bg-gray-50 p-1 text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100";
   const actionMenuItemClasses =
     "text-body flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-900/60 dark:active:bg-gray-900";
+  const hasRecordedActions = $derived($recordPanelState.timeline.length > 0);
 </script>
 
 <div class="flex w-full min-h-0 shrink-0 flex-1 flex-col px-4 py-4">
@@ -69,31 +73,59 @@
     </div>
   {/if}
   <div class="mt-4 grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
-    <Tooltip.Root>
-      <Tooltip.Trigger>
-        {#snippet child({ props })}
-          <Button
-            {...props}
-            class={`${iconActionButtonClass} ${$hasSelection ? "" : "hidden"}`}
-            variant="outline"
-            aria-label="Select parent element"
-            onclick={sendSelectParent}
-            disabled={!$hasSelection}
+    <div class="flex items-center gap-2 justify-self-start">
+      <Tooltip.Root>
+        <Tooltip.Trigger>
+          {#snippet child({ props })}
+            <Button
+              {...props}
+              class={`${iconActionButtonClass} ${$hasSelection ? "" : "hidden"}`}
+              variant="outline"
+              aria-label="Select parent element"
+              onclick={sendSelectParent}
+              disabled={!$hasSelection}
+            >
+              <ArrowUpIcon class="h-5 w-5" />
+            </Button>
+          {/snippet}
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            sideOffset={6}
+            class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
           >
-            <ArrowUpIcon class="h-5 w-5" />
-          </Button>
-        {/snippet}
-      </Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Content
-          sideOffset={6}
-          class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
-        >
-          Select parent element
-          <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
-        </Tooltip.Content>
-      </Tooltip.Portal>
-    </Tooltip.Root>
+            Select parent element
+            <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+
+      <Tooltip.Root>
+        <Tooltip.Trigger>
+          {#snippet child({ props })}
+            <Button
+              {...props}
+              class={iconActionButtonClass}
+              variant="outline"
+              aria-label="Undo last recorded action"
+              onclick={sendUndoLastRecordedAction}
+              disabled={!hasRecordedActions}
+            >
+              <Undo2 class="h-4 w-4" />
+            </Button>
+          {/snippet}
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            sideOffset={6}
+            class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+          >
+            Undo last recorded action
+            <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </div>
     <div class={`w-full max-w-40 justify-self-center gap-2 ${$hasSelection ? "flex" : "hidden"}`}>
       <Button
         class="flex-1 text-sm"

@@ -10,6 +10,7 @@ import { setToolMessage } from "../tool-errors";
 
 const logger = log.getLogger("record-tool-actions");
 
+const selectorDetailPattern = /^selector:\s*(.+)$/i;
 
 const isRecordConverterOpenResult = (value: unknown): value is RecordConverterOpenResult =>
   isRecord(value) &&
@@ -31,6 +32,27 @@ export const selectionStartsWithSelectedElement = (selectedEntries: RecordTimeli
   }
 
   return firstEntry.action.trim().toLowerCase() === "selected element";
+};
+
+export const getRecordedEntrySelector = (entry: RecordTimelineEntry | null | undefined) => {
+  if (!entry) {
+    return null;
+  }
+
+  const match = selectorDetailPattern.exec(entry.detail.trim());
+  const selector = match?.[1]?.trim() ?? "";
+  return selector.length > 0 ? selector : null;
+};
+
+export const findLastRecordedSelector = (entries: RecordTimelineEntry[]) => {
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const selector = getRecordedEntrySelector(entries[index]);
+    if (selector) {
+      return selector;
+    }
+  }
+
+  return null;
 };
 
 export const openRecordConverter = (selectedEntries: RecordTimelineEntry[]) => {

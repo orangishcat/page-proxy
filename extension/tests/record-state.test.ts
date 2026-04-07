@@ -60,6 +60,7 @@ void mock.module("wxt/browser", () => ({
 }));
 
 const {
+  popRecordPanelTimelineEntry,
   prepareRecordToolForDisplay,
   recordPanelState,
   recordSidepanelAction,
@@ -162,5 +163,66 @@ describe("record tool state", () => {
     expect(typeof storedState?.timeline[0]?.id).toBe("string");
     expect(typeof storedState?.timeline[0]?.timestamp).toBe("number");
     expect(typeof storedState?.updatedAt).toBe("number");
+  });
+
+  test("popping the last recorded action updates in-memory and persisted state", async () => {
+    const storageState = getStorageState();
+    setRecordPanelActiveTab(12);
+    await flushAsyncWork();
+
+    recordSidepanelAction("Selected element", "selector: .card");
+    recordSidepanelAction("Clicked element", "");
+    await flushAsyncWork();
+
+    const result = popRecordPanelTimelineEntry();
+    await flushAsyncWork();
+
+    expect(result.removed).toMatchObject({
+      action: "Clicked element",
+      detail: "",
+    });
+    expect(result.timeline).toHaveLength(1);
+    expect(result.timeline[0]).toMatchObject({
+      action: "Selected element",
+      detail: "selector: .card",
+    });
+    expect(get(recordPanelState).timeline).toHaveLength(1);
+
+    const storedState = storageState["sidepanel:recordPanel:12"] as
+      | {
+          timeline: Array<{
+            id: string;
+            action: string;
+            detail: string;
+            timestamp: number;
+          }>;
+        }
+      | undefined;
+
+    expect(storedState?.timeline).toHaveLength(1);
+    expect(storedState?.timeline[0]?.action).toBe("Selected element");
+    expect(storedState?.timeline[0]?.detail).toBe("selector: .card");
+    expect(typeof storedState?.timeline[0]?.id).toBe("string");
+    expect(typeof storedState?.timeline[0]?.timestamp).toBe("number");
+  });
+
+  test("popping the final recorded action clears the record timeline and persisted storage", async () => {
+    const storageState = getStorageState();
+    setRecordPanelActiveTab(13);
+    await flushAsyncWork();
+
+    recordSidepanelAction("Selected element", "selector: .card");
+    await flushAsyncWork();
+
+    const result = popRecordPanelTimelineEntry();
+    await flushAsyncWork();
+
+    expect(result.removed).toMatchObject({
+      action: "Selected element",
+      detail: "selector: .card",
+    });
+    expect(result.timeline).toEqual([]);
+    expect(get(recordPanelState).timeline).toEqual([]);
+    expect(storageState["sidepanel:recordPanel:13"]).toBeUndefined();
   });
 });
