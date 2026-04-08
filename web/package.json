@@ -15,9 +15,9 @@
   "dependencies": {
     "@icons-pack/svelte-simple-icons": "^7.2.0",
     "@page-proxy/pp": "workspace:*",
-    "@sveltejs/kit": "2.56.0",
+    "@sveltejs/kit": "2.56.1",
     "axios": "1.14.0",
-    "bits-ui": "2.16.5",
+    "bits-ui": "2.17.1",
     "gsap": "3.14.2",
     "lucide-svelte": "1.0.1",
     "monaco-editor": "0.55.1",
