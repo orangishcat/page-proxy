@@ -24,7 +24,8 @@
     "lucide-svelte": "1.0.1",
     "monaco-editor": "0.55.1",
     "picomatch": "4.0.4",
-    "svelte": "5.55.1"
+    "svelte": "5.55.1",
+    "vite": "^8.0.7"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
