@@ -1,6 +1,7 @@
 import { get } from "svelte/store";
 import type { ScriptGrantValue } from "@/lib/grants";
 import { defaultBlankScriptTitle } from "@/lib/script-names";
+import { readHostnameFromUrl } from "@/lib/utils/website-glob";
 import type { ToolId } from "../state-storage";
 import { saveState } from "./save";
 import { selectorEntries } from "./state";
@@ -32,18 +33,6 @@ export type EditorActionsDeps = {
   getEditorMessage: () => EditorMessage;
   setEditorMessage: (msg: string | null, status: "success" | "error", stack?: string | null) => void;
   updateEditorContent: (content: string, opts?: { persist?: boolean }) => void;
-};
-
-const getHostnameFromUrl = (url: string | null) => {
-  if (!url) {
-    return "";
-  }
-
-  try {
-    return new URL(url).hostname.trim().toLowerCase();
-  } catch {
-    return "";
-  }
 };
 
 const shouldClearErrorOnSuccessfulSave = (message: EditorMessage): boolean => {
@@ -81,7 +70,7 @@ export const saveToolState = async (content: string, deps: EditorActionsDeps): P
         deps.tabState.defaultScriptName = nextActiveScriptName;
       }
 
-      const hostname = getHostnameFromUrl(deps.tabState.activeTabUrl);
+      const hostname = readHostnameFromUrl(deps.tabState.activeTabUrl);
       const wasNonDefaultSelection =
         previousDefaultScriptName.length > 0 && previousDefaultScriptName !== previousActiveScriptName;
       if (hostname && wasNonDefaultSelection) {
@@ -126,7 +115,7 @@ export const resetScriptToDefault = async (deps: EditorActionsDeps): Promise<voi
     });
   }
 
-  const hostname = getHostnameFromUrl(deps.tabState.activeTabUrl);
+  const hostname = readHostnameFromUrl(deps.tabState.activeTabUrl);
   if (hostname && activeScript && deps.tabState.defaultScriptName && activeScript !== deps.tabState.defaultScriptName) {
     await clearSelectedScriptForHostname(hostname);
   }

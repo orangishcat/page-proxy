@@ -1,36 +1,16 @@
 <script lang="ts">
   import { asset } from "$app/paths";
   import { Disc, MousePointerIcon, Navigation, Paintbrush, Save } from "lucide-svelte";
-  import { onMount, tick } from "svelte";
+  import { onMount } from "svelte";
   import {
     LANDING_HERO_ASSETS,
-    LANDING_HERO_POINTS,
-    LANDING_HERO_RECTS,
     LANDING_HERO_SCENE_MAP,
-    LANDING_HERO_SCENE_IDS,
-    LANDING_HERO_SECTIONS,
-    LANDING_HERO_STATIC_FRAMES,
-    LANDING_HERO_TIMINGS,
-    type HeroPanelKey,
-    type LandingHeroPoint,
-    type LandingHeroRect,
-    type LandingHeroSectionId,
+    LANDING_HERO_RECTS,
     type LandingHeroSceneId,
+    type LandingHeroSectionId,
   } from "$lib/components/landing/landing-demo-sequence";
-  import {
-    addTimelinePause,
-    getPointInRoot,
-    moveTimelineTarget,
-    setTargetPoint,
-    tapCursor,
-    type PlaybackTimeline,
-  } from "$lib/components/landing/landing-motion";
-
-  type PlaybackSnapshot = {
-    paused: boolean;
-    sceneId: LandingHeroSceneId;
-    time: number;
-  };
+  import { buildTabProgress, imageLayerClasses, rectStyle, tabBackgroundStyle } from "$lib/components/landing/landing-demo-progress";
+  import { createLandingDemoPlaybackController } from "$lib/components/landing/landing-demo-playback";
 
   const heroTabs = [
     { id: "select", label: "Select" },
@@ -74,441 +54,53 @@
   let editorPanelEl: HTMLElement | null = null;
   let cursorEl: HTMLDivElement | null = null;
   let pulseEl: HTMLDivElement | null = null;
-  let playbackTimeline: PlaybackTimeline | null = null;
   let activeSectionId = $state<LandingHeroSectionId>("select");
   let activeSectionProgress = $state(0);
-  let resumePlaybackTimeout = 0;
   let pendingSectionId = $state<LandingHeroSectionId | null>(null);
   let isPlaybackReady = $state(false);
+  const playback = createLandingDemoPlaybackController(
+    {
+      getRootEl: () => rootEl,
+      getPagePanelEl: () => pagePanelEl,
+      getToolPanelEl: () => toolPanelEl,
+      getEditorPanelEl: () => editorPanelEl,
+      getCursorEl: () => cursorEl,
+      getPulseEl: () => pulseEl,
+    },
+    {
+      getSceneId: () => sceneId,
+      getPendingSectionId: () => pendingSectionId,
+      setSceneId: (nextSceneId) => {
+        sceneId = nextSceneId;
+      },
+      setSceneOverrideId: (nextSceneId) => {
+        sceneOverrideId = nextSceneId;
+      },
+      setIsReducedMotion: (value) => {
+        isReducedMotion = value;
+      },
+      setIsPlaybackReady: (value) => {
+        isPlaybackReady = value;
+      },
+      setActiveSectionId: (sectionId) => {
+        activeSectionId = sectionId;
+      },
+      setActiveSectionProgress: (value) => {
+        activeSectionProgress = value;
+      },
+      setPendingSectionId: (sectionId) => {
+        pendingSectionId = sectionId;
+      },
+    },
+  );
 
-  const getSection = (sectionId: LandingHeroSectionId) => LANDING_HERO_SECTIONS.find((entry) => entry.id === sectionId);
-  const getSectionStartSceneId = (sectionId: LandingHeroSectionId | null) => {
-    if (!sectionId) {
-      return null;
-    }
-
-    return getSection(sectionId)?.startSceneId ?? null;
-  };
-
-  const getPanelElement = (panelKey: HeroPanelKey) => {
-    if (panelKey === "page") return pagePanelEl;
-    if (panelKey === "tool") return toolPanelEl;
-    return editorPanelEl;
-  };
-
-  const toPercent = (value: number) => `${value * 100}%`;
-
-  const rectStyle = (rect: LandingHeroRect) =>
-    `left:${toPercent(rect.x)};top:${toPercent(rect.y)};width:${toPercent(rect.width)};height:${toPercent(rect.height)};`;
-
-  const imageLayerClasses = (visible: boolean) =>
-    `absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ease-out ${
-      visible ? "opacity-100" : "pointer-events-none opacity-0"
-    }`;
-
-  const getRootPoint = (point: LandingHeroPoint) => {
-    return getPointInRoot(rootEl, getPanelElement(point.panelKey), point);
-  };
-
-  const setScene = (nextSceneId: LandingHeroSceneId) => {
-    sceneId = nextSceneId;
-  };
-
-  const resetStaticFrame = () => {
-    sceneOverrideId = null;
-    sceneId =
-      getSectionStartSceneId(pendingSectionId) ??
-      (isReducedMotion ? LANDING_HERO_STATIC_FRAMES.reducedMotion : "initial");
-  };
-
-  const tabProgress = $derived.by(() => {
-    return heroTabs.map((tab) => {
-      return {
-        ...tab,
-        isActive: tab.id === activeSectionId,
-        progress: tab.id === activeSectionId ? activeSectionProgress : 0,
-      };
-    });
-  });
-
-  const tabBackgroundStyle = (isActive: boolean, progress: number) => {
-    const stop = `${Math.max(0, Math.min(1, progress)) * 100}%`;
-
-    if (!isActive) {
-      return "background: rgba(63, 61, 56, 0.2);";
-    }
-
-    return `background: linear-gradient(90deg, rgba(146, 223, 70, 0.24) 0%, rgba(146, 223, 70, 0.12) ${stop}, rgba(63, 61, 56, 0.92) ${stop}, rgba(63, 61, 56, 0.92) 100%);`;
-  };
-
-  const updateSectionPlayback = (currentTime: number, labels: Record<string, number>, duration: number) => {
-    const sectionTimes = LANDING_HERO_SECTIONS.map((section, index) => {
-      const start = labels[section.startSceneId] ?? 0;
-      const nextStart = LANDING_HERO_SECTIONS[index + 1]?.startSceneId;
-      const end = nextStart ? (labels[nextStart] ?? duration) : duration;
-
-      return {
-        ...section,
-        end,
-        start,
-      };
-    });
-
-    const currentSection =
-      sectionTimes.find((section) => currentTime >= section.start && currentTime < section.end) ??
-      sectionTimes.at(-1) ??
-      sectionTimes[0];
-
-    const span = Math.max(0.001, currentSection.end - currentSection.start);
-    activeSectionId = currentSection.id;
-    activeSectionProgress = Math.min(1, Math.max(0, (currentTime - currentSection.start) / span));
-  };
-
-  const getSceneAtTime = (currentTime: number, labels: Record<string, number>, duration: number) => {
-    const sceneTimes = LANDING_HERO_SCENE_IDS.map((sceneId) => ({
-      sceneId,
-      start: labels[sceneId] ?? duration,
-    }))
-      .filter((scene) => scene.start <= duration)
-      .sort((left, right) => left.start - right.start);
-
-    return sceneTimes.findLast((scene) => currentTime >= scene.start)?.sceneId ?? sceneTimes[0]?.sceneId ?? "initial";
-  };
-
-  const getPlaybackSnapshot = (): PlaybackSnapshot | null => {
-    if (isReducedMotion || !playbackTimeline) {
-      return null;
-    }
-
-    return {
-      paused: playbackTimeline.paused(),
-      sceneId,
-      time: playbackTimeline.time(),
-    };
-  };
+  const tabProgress = $derived.by(() => buildTabProgress(heroTabs, activeSectionId, activeSectionProgress));
 
   const jumpToSection = (sectionId: LandingHeroSectionId) => {
-    const section = getSection(sectionId);
-    if (!section) {
-      return;
-    }
-
-    pendingSectionId = sectionId;
-    sceneOverrideId = section.startSceneId;
-    sceneId = section.startSceneId;
-    activeSectionId = sectionId;
-    activeSectionProgress = 0;
-
-    if (isReducedMotion || !playbackTimeline) {
-      return;
-    }
-
-    window.clearTimeout(resumePlaybackTimeout);
-    playbackTimeline.pause();
-    playbackTimeline.seek(section.startSceneId, true);
-    setScene(section.startSceneId);
-    updateSectionPlayback(playbackTimeline.time(), playbackTimeline.labels, playbackTimeline.duration());
-
-    resumePlaybackTimeout = window.setTimeout(() => {
-      sceneOverrideId = null;
-      pendingSectionId = null;
-      playbackTimeline?.play();
-    }, 220);
+    playback.jumpToSection(sectionId);
   };
 
-  const buildPlayback = async (snapshot: PlaybackSnapshot | null = null) => {
-    await tick();
-
-    if (!rootEl || !cursorEl || !pulseEl) {
-      return () => {};
-    }
-
-    const root = rootEl;
-    const cursor = cursorEl;
-    const pulse = pulseEl;
-
-    isReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    resetStaticFrame();
-
-    if (isReducedMotion) {
-      isPlaybackReady = true;
-      return () => {};
-    }
-
-    const { gsap } = await import("gsap");
-    type GsapTimeline = ReturnType<typeof gsap.timeline>;
-
-    const clickPulse = (point: LandingHeroPoint) => {
-      const { x, y } = getRootPoint(point);
-
-      gsap.killTweensOf(pulse);
-      gsap.set(pulse, { x, y, opacity: 0.48, scale: 0.35 });
-      gsap.to(pulse, {
-        opacity: 0,
-        scale: 2.05,
-        duration: 0.38,
-        ease: "power2.out",
-      });
-      tapCursor(gsap, cursor, LANDING_HERO_TIMINGS.click);
-    };
-
-    let context: { revert: () => void } | null = null;
-
-    context = gsap.context(() => {
-      const startPoint = getRootPoint(LANDING_HERO_POINTS.cursorStart);
-
-      setTargetPoint(gsap, cursor, startPoint, { opacity: 1, scale: 1 });
-      gsap.set(pulse, { opacity: 0, scale: 0.35 });
-
-      let timeline: GsapTimeline;
-
-      timeline = gsap.timeline({
-        onUpdate: () => {
-          updateSectionPlayback(timeline.time(), timeline.labels, timeline.duration());
-        },
-        repeat: -1,
-        repeatDelay: LANDING_HERO_TIMINGS.loopDelay,
-      });
-      playbackTimeline = timeline;
-
-      timeline.addLabel("initial");
-      timeline.call(() => {
-        setScene("initial");
-        const origin = getRootPoint(LANDING_HERO_POINTS.cursorStart);
-        setTargetPoint(gsap, cursor, origin, { scale: 1 });
-        gsap.set(pulse, { opacity: 0, scale: 0.35 });
-      });
-
-      moveTimelineTarget(
-        timeline,
-        cursor,
-        getRootPoint(LANDING_HERO_POINTS.selectTool),
-        LANDING_HERO_TIMINGS.move,
-        0.95,
-      );
-      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
-      timeline.addLabel("select-tool");
-      timeline.call(() => {
-        clickPulse(LANDING_HERO_POINTS.selectTool);
-        setScene("select-tool");
-      });
-
-      moveTimelineTarget(timeline, cursor, getRootPoint(LANDING_HERO_POINTS.sidebar), LANDING_HERO_TIMINGS.move);
-      timeline.addLabel("sidebar-hover");
-      timeline.call(() => {
-        setScene("sidebar-hover");
-      });
-      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
-      timeline.addLabel("sidebar-selected");
-      timeline.call(() => {
-        clickPulse(LANDING_HERO_POINTS.sidebar);
-        setScene("sidebar-selected");
-      });
-
-      moveTimelineTarget(
-        timeline,
-        cursor,
-        getRootPoint(LANDING_HERO_POINTS.menuButton),
-        LANDING_HERO_TIMINGS.move,
-        0.9,
-      );
-      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
-      timeline.addLabel("menu-open");
-      timeline.call(() => {
-        clickPulse(LANDING_HERO_POINTS.menuButton);
-        setScene("menu-open");
-      });
-
-      moveTimelineTarget(
-        timeline,
-        cursor,
-        getRootPoint(LANDING_HERO_POINTS.deleteElement),
-        LANDING_HERO_TIMINGS.move,
-      );
-      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
-      timeline.addLabel("page-deleted");
-      timeline.call(() => {
-        clickPulse(LANDING_HERO_POINTS.deleteElement);
-        setScene("page-deleted");
-      });
-
-      moveTimelineTarget(
-        timeline,
-        cursor,
-        getRootPoint(LANDING_HERO_POINTS.recordTool),
-        LANDING_HERO_TIMINGS.move,
-        0.95,
-      );
-      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
-      timeline.addLabel("record-tool");
-      timeline.call(() => {
-        clickPulse(LANDING_HERO_POINTS.recordTool);
-        setScene("record-tool");
-      });
-
-      moveTimelineTarget(
-        timeline,
-        cursor,
-        getRootPoint(LANDING_HERO_POINTS.recordConfirm),
-        LANDING_HERO_TIMINGS.move,
-      );
-      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
-      timeline.addLabel("record-selected");
-      timeline.call(() => {
-        clickPulse(LANDING_HERO_POINTS.recordConfirm);
-        setScene("record-selected");
-      });
-
-      moveTimelineTarget(timeline, cursor, getRootPoint(LANDING_HERO_POINTS.convertCode), LANDING_HERO_TIMINGS.move);
-      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
-      timeline.addLabel("convert-code");
-      timeline.call(() => {
-        clickPulse(LANDING_HERO_POINTS.convertCode);
-        setScene("convert-code");
-      });
-
-      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle * 0.8);
-      timeline.addLabel("record-popup");
-      timeline.call(() => {
-        setScene("record-popup");
-      });
-
-      moveTimelineTarget(
-        timeline,
-        cursor,
-        getRootPoint(LANDING_HERO_POINTS.popupSave),
-        LANDING_HERO_TIMINGS.move,
-        1.1,
-      );
-      addTimelinePause(timeline, LANDING_HERO_TIMINGS.settle);
-      timeline.addLabel("saved");
-      timeline.call(() => {
-        clickPulse(LANDING_HERO_POINTS.popupSave);
-        setScene("saved");
-      });
-
-      timeline.to({}, { duration: LANDING_HERO_TIMINGS.finalHold });
-
-      if (snapshot) {
-        timeline.pause();
-        timeline.seek(snapshot.time, true);
-        setScene(getSceneAtTime(snapshot.time, timeline.labels, timeline.duration()) ?? snapshot.sceneId);
-        sceneOverrideId = null;
-        pendingSectionId = null;
-        updateSectionPlayback(timeline.time(), timeline.labels, timeline.duration());
-
-        if (!snapshot.paused) {
-          timeline.play();
-        }
-      } else {
-        const initialSectionSceneId = getSectionStartSceneId(pendingSectionId);
-        if (initialSectionSceneId) {
-          timeline.pause();
-          timeline.seek(initialSectionSceneId, true);
-          setScene(initialSectionSceneId);
-          sceneOverrideId = initialSectionSceneId;
-          updateSectionPlayback(timeline.time(), timeline.labels, timeline.duration());
-          resumePlaybackTimeout = window.setTimeout(() => {
-            sceneOverrideId = null;
-            pendingSectionId = null;
-            timeline.play();
-          }, 220);
-        } else {
-          updateSectionPlayback(0, timeline.labels, timeline.duration());
-        }
-      }
-
-      isPlaybackReady = true;
-    }, root);
-
-    return () => {
-      isPlaybackReady = false;
-      playbackTimeline = null;
-      window.clearTimeout(resumePlaybackTimeout);
-      sceneOverrideId = null;
-      context?.revert();
-    };
-  };
-
-  onMount(() => {
-    let cleanup = () => {};
-    let rebuildToken = 0;
-    let resizeFrame = 0;
-    let lastObservedWidth = 0;
-    let lastObservedHeight = 0;
-
-    const rebuildPlayback = async (preserveState: boolean) => {
-      const nextToken = ++rebuildToken;
-      const snapshot = preserveState ? getPlaybackSnapshot() : null;
-
-      cleanup();
-      cleanup = () => {};
-
-      const nextCleanup = await buildPlayback(snapshot);
-      if (nextToken !== rebuildToken) {
-        nextCleanup();
-        return;
-      }
-
-      cleanup = nextCleanup;
-    };
-
-    const schedulePlaybackRefresh = () => {
-      if (resizeFrame !== 0) {
-        return;
-      }
-
-      resizeFrame = window.requestAnimationFrame(() => {
-        resizeFrame = 0;
-        void rebuildPlayback(true);
-      });
-    };
-
-    const onMotionChange = () => {
-      void rebuildPlayback(true);
-    };
-
-    const resizeObserver = new ResizeObserver(([entry]) => {
-      if (!entry) {
-        return;
-      }
-
-      const { height, width } = entry.contentRect;
-      if (lastObservedWidth === 0 && lastObservedHeight === 0) {
-        lastObservedWidth = width;
-        lastObservedHeight = height;
-        return;
-      }
-
-      if (width === lastObservedWidth && height === lastObservedHeight) {
-        return;
-      }
-
-      lastObservedWidth = width;
-      lastObservedHeight = height;
-      schedulePlaybackRefresh();
-    });
-
-    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-    if (rootEl) {
-      resizeObserver.observe(rootEl);
-    }
-
-    window.addEventListener("resize", schedulePlaybackRefresh);
-    reducedMotionQuery.addEventListener("change", onMotionChange);
-
-    void rebuildPlayback(false);
-
-    return () => {
-      rebuildToken += 1;
-      window.cancelAnimationFrame(resizeFrame);
-      window.removeEventListener("resize", schedulePlaybackRefresh);
-      reducedMotionQuery.removeEventListener("change", onMotionChange);
-      resizeObserver.disconnect();
-      cleanup();
-    };
-  });
+  onMount(() => playback.start());
 </script>
 
 <div class="mx-auto flex w-full justify-center overflow-x-auto">
