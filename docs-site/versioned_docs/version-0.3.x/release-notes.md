@@ -4,6 +4,18 @@ title: Release notes
 
 # Release notes (v0.3.x)
 
+## New in v0.3.7
+
+- Expanded export formats:
+    - The Export tool can now generate Tampermonkey `.user.js` files with converted metadata and a hosted `@page-proxy/pp` runtime `@require`.
+    - The Export tool can now generate CSS-only stylesheet exports from scripts that contain static `ps.injectCSS(...)` calls and no other executable logic.
+- Improved selector flexibility:
+    - `pq.selector(...)` now allows both `name` and `matches` to be omitted, which makes simple base-selector-only definitions valid.
+- Improved selection workflow:
+    - The Select tool now includes an undo button that restores the previously selected element from the recorded selection history when possible.
+- Improved record-to-code stability:
+    - The review popup now guards Monaco editor setup so reopening or rerendering the review step does not trigger runaway editor creation loops.
+
 ## New in v0.3.6
 
 - Improved sidepanel script switching:
