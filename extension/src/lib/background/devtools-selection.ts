@@ -31,6 +31,10 @@ type PendingCommand = {
 const commandTimeoutMs = 1200;
 const logger = log.getLogger("devtools-selection");
 
+const logIgnoredError = (message: string, error: unknown, extra: Record<string, unknown> = {}) => {
+  logger.debug(message, { error, ...extra });
+};
+
 const buildRequestId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -76,7 +80,13 @@ const resolveFrameIdForSelection = (tabId: number, selection: DevtoolsElementSel
         frameId: matchingFrame.frameId,
       };
     })
-    .catch(() => selection);
+    .catch((error: unknown) => {
+      logIgnoredError("Unable to resolve frame id for DevTools selection.", error, {
+        tabId,
+        frameUrl: selection.frameUrl,
+      });
+      return selection;
+    });
 };
 
 const notifySelectionChanged = (tabId: number, selection: DevtoolsElementSelection | null) => {
@@ -86,7 +96,9 @@ const notifySelectionChanged = (tabId: number, selection: DevtoolsElementSelecti
     selection: cloneSelection(selection),
   };
   logger.debug("runtime message sent", { type: message.type, tabId });
-  void browser.runtime.sendMessage(message satisfies DevtoolsSelectionRuntimeMessage).catch(() => undefined);
+  void browser.runtime.sendMessage(message satisfies DevtoolsSelectionRuntimeMessage).catch((error: unknown) => {
+    logIgnoredError("Unable to publish DevTools selection change message.", error, { tabId });
+  });
 };
 
 const notifyStatusChanged = (tabId: number, open: boolean) => {
@@ -96,7 +108,9 @@ const notifyStatusChanged = (tabId: number, open: boolean) => {
     open,
   };
   logger.debug("runtime message sent", { type: message.type, tabId, open });
-  void browser.runtime.sendMessage(message satisfies DevtoolsSelectionRuntimeMessage).catch(() => undefined);
+  void browser.runtime.sendMessage(message satisfies DevtoolsSelectionRuntimeMessage).catch((error: unknown) => {
+    logIgnoredError("Unable to publish DevTools status change message.", error, { tabId, open });
+  });
 };
 
 export const createDevtoolsSelectionRuntimeHandler = () => {
@@ -198,9 +212,10 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
       try {
         logger.debug("port message sent", { type: message.type, tabId, action, requestId });
         port.postMessage(message);
-      } catch {
+      } catch (error: unknown) {
         pendingCommands.delete(requestId);
         globalThis.clearTimeout(timeoutId);
+        logIgnoredError("Unable to send command to DevTools bridge.", error, { tabId, action, requestId });
         resolve({
           ok: false,
           selection: null,
@@ -286,6 +301,7 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
           sendResponse(response);
         })
         .catch((error: unknown) => {
+          logIgnoredError("Unable to retrieve selected DevTools element.", error, { tabId: message.tabId });
           const messageText = error instanceof Error ? error.message : "Unable to retrieve selected element.";
           sendResponse({
             ok: false,
@@ -306,6 +322,7 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
           sendResponse(response);
         })
         .catch((error: unknown) => {
+          logIgnoredError("Unable to select DevTools parent element.", error, { tabId: message.tabId });
           const messageText = error instanceof Error ? error.message : "Unable to select parent element.";
           sendResponse({
             ok: false,

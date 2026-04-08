@@ -1,11 +1,10 @@
 import { buildAutoNumberedScriptName, defaultBlankScriptTitle } from "@/lib/script-names";
 import { browser } from "wxt/browser";
-import { buildWebsiteGlobForUrl, isRestrictedUrl } from "@/lib/utils/website-glob";
+import { buildWebsiteGlobForUrl, isRestrictedUrl, readHostnameFromUrl } from "@/lib/utils/website-glob";
+import log from "@/lib/logger";
 import {
+  buildEditorDisplayContent,
   buildDefaultScript,
-  buildProtectedDisplay,
-  ensureDefineBlock,
-  ensureWebsiteMetadata,
   resolveStoredToolStateForUrl,
   type ResolvedScriptMatch,
   type ScriptFormatConfig,
@@ -17,12 +16,9 @@ import { coerceToolPanelTool } from "@/lib/sidepanel-shortcuts";
 import type { AutosaveManager } from "./autosave";
 import type { ScriptSelectionOption } from "./state";
 
-const getHostnameFromUrl = (url: string) => {
-  try {
-    return new URL(url).hostname.trim().toLowerCase();
-  } catch {
-    return "";
-  }
+const logger = log.getLogger("code-editor-tab-loader");
+const logIgnoredError = (message: string, error: unknown, extra: Record<string, unknown> = {}) => {
+  logger.error(message, { error, ...extra });
 };
 
 const toScriptSelectionOption = (match: ResolvedScriptMatch): ScriptSelectionOption => ({
@@ -82,9 +78,12 @@ export const loadStateForUrl = async (url: string | null, deps: TabLoaderDeps): 
     deps.setActiveToolId("none");
     deps.setAllowedGrants([]);
     const baseContent = buildDefaultScript("", scriptFormatConfig, blankScriptName);
-    const displayContent = state.isProtectedPage
-      ? buildProtectedDisplay(baseContent, scriptFormatConfig)
-      : baseContent;
+    const displayContent = buildEditorDisplayContent({
+      content: baseContent,
+      websiteGlob: "",
+      isProtectedPage: state.isProtectedPage,
+      config: scriptFormatConfig,
+    });
     deps.updateEditorContent(displayContent, { persist: false });
     return;
   }
@@ -96,11 +95,12 @@ export const loadStateForUrl = async (url: string | null, deps: TabLoaderDeps): 
   state.availableScriptOptions = resolvedState.matches.map(toScriptSelectionOption);
   deps.setActiveToolId(coerceToolPanelTool(resolvedState.state.activeTool));
   deps.setAllowedGrants(resolvedState.state.permissions.allowedGrants);
-  const normalizedBaseContent = ensureDefineBlock(resolvedState.state.codeEditor.content, scriptFormatConfig);
-  const contentWithWebsite = ensureWebsiteMetadata(normalizedBaseContent, resolvedState.websiteGlob);
-  const displayContent = state.isProtectedPage
-    ? buildProtectedDisplay(contentWithWebsite, scriptFormatConfig)
-    : contentWithWebsite;
+  const displayContent = buildEditorDisplayContent({
+    content: resolvedState.state.codeEditor.content,
+    websiteGlob: resolvedState.websiteGlob,
+    isProtectedPage: state.isProtectedPage,
+    config: scriptFormatConfig,
+  });
   deps.updateEditorContent(displayContent, { persist: false });
 };
 
@@ -124,7 +124,12 @@ export const applyActiveTab = async (tab: ActiveTab | null, deps: TabLoaderDeps)
     state.defaultScriptName = null;
     state.availableScriptOptions = [];
     deps.setActiveToolId("none");
-    const protectedContent = buildProtectedDisplay(buildDefaultScript("", scriptFormatConfig), scriptFormatConfig);
+    const protectedContent = buildEditorDisplayContent({
+      content: buildDefaultScript("", scriptFormatConfig),
+      websiteGlob: "",
+      isProtectedPage: true,
+      config: scriptFormatConfig,
+    });
     deps.updateEditorContent(protectedContent, { persist: false });
     state.canPersistEditorChanges = true;
     return;
@@ -154,7 +159,8 @@ export const refreshActiveTab = (deps: TabLoaderDeps): void => {
     .then((tab) => {
       return applyActiveTab(tab, deps);
     })
-    .catch(() => {
+    .catch((error: unknown) => {
+      logIgnoredError("Unable to refresh the active tab for the code editor.", error);
       deps.setEditorMessage("Unable to read the active tab.", "error");
       void loadStateForUrl(null, deps).finally(() => {
         state.canPersistEditorChanges = true;
@@ -177,7 +183,7 @@ export const selectScriptForCurrentTab = async (scriptName: string, deps: TabLoa
     return;
   }
 
-  const hostname = getHostnameFromUrl(state.activeTabUrl);
+  const hostname = readHostnameFromUrl(state.activeTabUrl);
   if (!hostname) {
     return;
   }
@@ -204,7 +210,12 @@ export const createNewScriptForCurrentTab = async (deps: TabLoaderDeps): Promise
   const nextScriptName = await resolveNewScriptName(state);
   const websiteGlob = state.activeWebsiteGlob?.trim() || buildWebsiteGlobForUrl(state.activeTabUrl);
   const baseContent = buildDefaultScript(websiteGlob, scriptFormatConfig, nextScriptName);
-  const nextContent = ensureWebsiteMetadata(ensureDefineBlock(baseContent, scriptFormatConfig), websiteGlob);
+  const nextContent = buildEditorDisplayContent({
+    content: baseContent,
+    websiteGlob,
+    isProtectedPage: false,
+    config: scriptFormatConfig,
+  });
 
   state.activeScriptName = nextScriptName;
   state.activeWebsiteGlob = websiteGlob || null;
@@ -227,7 +238,8 @@ export const handleTabActivated = (activeInfo: { tabId: number }, deps: TabLoade
     .then((tab) => {
       return applyActiveTab(tab ?? null, deps);
     })
-    .catch(() => {
+    .catch((error: unknown) => {
+      logIgnoredError("Unable to handle tab activation for the code editor.", error, { tabId: activeInfo.tabId });
       deps.setEditorMessage("Unable to read the active tab.", "error");
     });
 };

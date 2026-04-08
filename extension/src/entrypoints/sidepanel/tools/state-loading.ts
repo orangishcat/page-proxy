@@ -1,7 +1,7 @@
 import { defaultBlankScriptTitle } from "@/lib/script-names";
 import { createEmptyStoredRuntimeStorage } from "@/lib/script-runtime-storage";
 import { parseScriptMetadata } from "@/lib/utils/script-metadata";
-import { buildWebsiteGlobForUrl, matchWebsiteGlob } from "@/lib/utils/website-glob";
+import { buildWebsiteGlobForUrl, matchWebsiteGlob, readHostnameFromUrl } from "@/lib/utils/website-glob";
 import { buildDefaultScript, type DefaultScriptConfig } from "@/lib/default-script";
 
 import {
@@ -25,14 +25,6 @@ export type ResolvedScriptMatch = {
   scriptName: string;
   websiteGlob: string;
   state: StoredToolState;
-};
-
-const getHostnameFromUrl = (url: string) => {
-  try {
-    return new URL(url).hostname.trim().toLowerCase();
-  } catch {
-    return "";
-  }
 };
 
 const toResolvedScriptMatch = (match: StoredStateMatch): ResolvedScriptMatch => ({
@@ -133,6 +125,22 @@ export const ensureWebsiteMetadata = (content: string, websiteGlob: string) => {
   return lines.join("\n");
 };
 
+export const buildEditorDisplayContent = ({
+  content,
+  websiteGlob,
+  isProtectedPage,
+  config,
+}: {
+  content: string;
+  websiteGlob: string;
+  isProtectedPage: boolean;
+  config: ScriptFormatConfig;
+}) => {
+  const normalizedContent = ensureDefineBlock(content, config);
+  const contentWithWebsite = ensureWebsiteMetadata(normalizedContent, websiteGlob);
+  return isProtectedPage ? buildProtectedDisplay(contentWithWebsite, config) : contentWithWebsite;
+};
+
 export const resolveWebsiteGlob = (content: string, activeTabUrl: string | null, activeWebsiteGlob: string | null) => {
   const metadata = parseScriptMetadata(content);
   const websitesFromMetadata = metadata.websites.map((website) => website.trim()).filter((website) => website.length > 0);
@@ -191,7 +199,7 @@ export const isDefaultToolState = (state: StoredToolState, config: ScriptFormatC
 export const resolveStoredToolStateForUrl = async (url: string, config: ScriptFormatConfig) => {
   const matchedStates = await findStoredToolStatesForUrl(url);
   const fallbackWebsiteGlob = buildWebsiteGlobForUrl(url);
-  const hostname = getHostnameFromUrl(url);
+  const hostname = readHostnameFromUrl(url);
 
   if (matchedStates.length > 0) {
     const matches = matchedStates.map(toResolvedScriptMatch);

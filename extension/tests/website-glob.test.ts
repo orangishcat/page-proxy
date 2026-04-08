@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { buildWebsiteGlobForUrl, isAllowedUrl, isRestrictedUrl, matchWebsiteGlob } from "../src/lib/utils/website-glob";
+import {
+  buildWebsiteGlobForUrl,
+  isAllowedUrl,
+  isRestrictedUrl,
+  matchWebsiteGlob,
+  readHostnameFromUrl,
+} from "../src/lib/utils/website-glob";
 
 describe("website glob utilities", () => {
   test("isAllowedUrl accepts supported protocols", () => {
@@ -29,5 +35,12 @@ describe("website glob utilities", () => {
     expect(buildWebsiteGlobForUrl("https://example.com/path?q=1")).toBe("https://example.com/*");
     expect(buildWebsiteGlobForUrl("ws://socket.example.com/connect")).toBe("ws://socket.example.com/*");
     expect(buildWebsiteGlobForUrl("file:///tmp/test")).toBe("");
+  });
+
+  test("readHostnameFromUrl normalizes valid URLs and rejects invalid values", () => {
+    expect(readHostnameFromUrl("https://Docs.Example.com/path")).toBe("docs.example.com");
+    expect(readHostnameFromUrl("ws://socket.example.com/connect")).toBe("socket.example.com");
+    expect(readHostnameFromUrl("not-a-url")).toBe("");
+    expect(readHostnameFromUrl(null)).toBe("");
   });
 });

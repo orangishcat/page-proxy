@@ -50,7 +50,7 @@
         <div
           class="flex flex-col gap-4 border-t border-gray-800 bg-[#24231f] px-5 py-3 sm:flex-row sm:items-center sm:justify-between"
         >
-          <p class="text-subtitle text-gray-300">
+          <p class="text-gray-300">
             Go to a page that matches the glob, then copy and paste the script into the extension sidepanel!
           </p>
 

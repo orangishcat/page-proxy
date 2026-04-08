@@ -10,7 +10,9 @@ import type {
 } from "@/lib/devtools-selection";
 
 const logger = log.getLogger("select-tool-devtools");
-
+const logIgnoredError = (message: string, error: unknown, extra: Record<string, unknown> = {}) => {
+  logger.debug(message, { error, ...extra });
+};
 
 const isStatusResponse = (value: unknown): value is DevtoolsSelectionStatusResponseMessage =>
   isRecord(value) && typeof value.open === "boolean";
@@ -37,7 +39,10 @@ export const requestDevtoolsStatus = async (tabId: number) => {
       type: "devtools:status:get",
       tabId,
     })
-    .catch(() => null);
+    .catch((error: unknown) => {
+      logIgnoredError("Unable to request DevTools status.", error, { tabId });
+      return null;
+    });
 
   if (!isStatusResponse(response)) {
     logger.debug("invalid devtools status response", { tabId });
@@ -58,7 +63,10 @@ export const requestDevtoolsSelection = async (
       type,
       tabId,
     })
-    .catch(() => null);
+    .catch((error: unknown) => {
+      logIgnoredError("Unable to request DevTools selection.", error, { tabId, type });
+      return null;
+    });
 
   if (!isDevtoolsSelectionResponse(response)) {
     logger.debug("invalid devtools selection response", { tabId, type });

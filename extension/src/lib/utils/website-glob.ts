@@ -3,7 +3,7 @@ import picomatch from "picomatch";
 const globMatchOptions = { bash: true };
 const ALLOWED_PROTOCOLS = new Set(["http:", "https:", "ws:", "wss:"]);
 
-const toUrl = (url?: string) => {
+const toUrl = (url?: string | null) => {
   if (!url) {
     return null;
   }
@@ -15,7 +15,16 @@ const toUrl = (url?: string) => {
   }
 };
 
-export const isAllowedUrl = (url?: string) => {
+export const readHostnameFromUrl = (url?: string | null) => {
+  const parsedUrl = toUrl(url);
+  if (!parsedUrl) {
+    return "";
+  }
+
+  return parsedUrl.hostname.trim().toLowerCase();
+};
+
+export const isAllowedUrl = (url?: string | null) => {
   const parsedUrl = toUrl(url);
   if (!parsedUrl) {
     return false;
@@ -23,7 +32,7 @@ export const isAllowedUrl = (url?: string) => {
   return ALLOWED_PROTOCOLS.has(parsedUrl.protocol);
 };
 
-export const isRestrictedUrl = (url?: string) => !isAllowedUrl(url);
+export const isRestrictedUrl = (url?: string | null) => !isAllowedUrl(url);
 
 export const matchWebsiteGlob = (pattern: string, url: string) => {
   return picomatch(pattern.trim(), globMatchOptions)(url.trim());
