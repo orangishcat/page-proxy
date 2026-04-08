@@ -52,13 +52,14 @@ The tool can be used for backup or sharing of your userscript.
 - Best for running a Page Proxy script in a userscript manager while keeping PP
   API support.
 
-### CSS only
+### CSS stylesheet
 
 - New in v0.3.7!
 - Exports a CSS stylesheet created from static `ps.injectCSS(...)` calls.
 - Only works for scripts that are purely stylesheet exports
     - This means that the script should only contain static `ps.injectCSS`
       calls.
+    - (There should also at least be one CSS rule declared)
     - If the script contains other executable logic, dynamic CSS template
       expressions, or unsupported `ps.injectCSS` options, the export option will
       be disabled.

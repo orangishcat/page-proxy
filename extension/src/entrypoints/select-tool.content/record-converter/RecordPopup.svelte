@@ -36,6 +36,7 @@
   } from "../popup/container-shared";
   import ModalOverlay from "../ui/ModalOverlay.svelte";
   import { createSelectorMatchPreviewController, type SelectorMatchPreviewController } from "../popup/selector-preview";
+  import { createReviewEditorSetupGate } from "./review-editor-setup";
 
   type Props = {
     payload: RecordConverterOpenPayload;
@@ -105,6 +106,7 @@
   let applyingGeneratedReviewCode = false;
   let releaseKeyboardOwnership = () => {};
   let removeWorkerErrorListener = () => {};
+  const reviewEditorSetupGate = createReviewEditorSetupGate();
   let selectElementPreviewError = $state<string | null>(null);
   let isSelectElementPreviewing = $state(false);
   let selectElementPreviewController: SelectorMatchPreviewController | null = null;
@@ -235,8 +237,8 @@
     return leftKeys.every((key) => left[key] === right[key]);
   };
 
-  const setupReviewEditor = async () => {
-    if (!reviewEditorHost || reviewEditorHandle) {
+  const setupReviewEditor = () => {
+    if (!reviewEditorHost || reviewEditorHandle || !reviewEditorSetupGate.begin()) {
       return;
     }
     logger.debug("creating review editor", {
@@ -244,7 +246,7 @@
     });
     reviewEditorError = "";
     try {
-      reviewEditorHandle = await createMonacoEditor(reviewEditorHost, reviewCode, {
+      reviewEditorHandle = createMonacoEditor(reviewEditorHost, reviewCode, {
         language: "javascript",
         modelUri: "file:///page-proxy/record-converter-review.js",
         onChange: (nextValue) => {
@@ -258,9 +260,11 @@
           bracketPairColorization: { enabled: true },
         },
       });
+      reviewEditorSetupGate.succeed();
       logger.debug("review editor created");
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unable to initialize the review editor.";
+      reviewEditorSetupGate.fail();
       reviewEditorError = message;
       logger.error("review editor creation failed", { error });
     }
@@ -385,7 +389,6 @@
       existingCodeLength: payload.existingCode.length,
     });
     reviewCode = activeGeneratedReview.finalCode;
-    void setupReviewEditor();
     releaseKeyboardOwnership = attachPopupKeyboardOwnership(popupContainerEl);
     selectElementPreviewController = createSelectorMatchPreviewController({
       getSelectorCode: () => activeStepPreviewCode,
@@ -420,6 +423,7 @@
     selectElementPreviewController = null;
     removeWorkerErrorListener();
     releaseKeyboardOwnership();
+    reviewEditorSetupGate.reset();
     reviewEditorHandle?.dispose();
     reviewEditorHandle = null;
   });
@@ -488,11 +492,12 @@
       reviewEditorHandle.dispose();
       reviewEditorHandle = null;
       reviewEditorHost = null;
+      reviewEditorSetupGate.reset();
       return;
     }
 
-    if (isReviewStep && reviewEditorHost && !reviewEditorHandle) {
-      void setupReviewEditor();
+    if (!isReviewStep) {
+      reviewEditorSetupGate.reset();
     }
   });
 
@@ -503,7 +508,7 @@
 
     if (!reviewEditorHandle) {
       if (reviewEditorHost) {
-        void setupReviewEditor();
+        setupReviewEditor();
       }
       if (!reviewEditorHandle) {
         if (!reviewEditorError) {

@@ -1,10 +1,13 @@
 <script lang="ts">
-
   import { Collapsible } from "bits-ui";
   import Button from "@/lib/components/Button.svelte";
   import { codeEditorContent } from "./code-editor/state";
   import { getEditorContext } from "../context/editor.svelte";
-  import { buildWebsiteMetadataListing, extractWebsiteMetadataGlobs, normalizeScriptMetadataWebsites } from "@/lib/utils/script-metadata";
+  import {
+    buildWebsiteMetadataListing,
+    extractWebsiteMetadataGlobs,
+    normalizeScriptMetadataWebsites,
+  } from "@/lib/utils/script-metadata";
   import {
     analyzeExportCompatibility,
     buildCssOnlyExport,
@@ -41,9 +44,7 @@
     },
     {
       value: "css-only",
-      label: exportCompatibility.cssOnly.ok
-        ? "CSS only"
-        : "CSS only (unsupported; only static ps.injectCSS calls are allowed)",
+      label: exportCompatibility.cssOnly.ok ? "CSS stylesheet" : "CSS stylesheet (incompatible)",
       available: exportCompatibility.cssOnly.ok,
       reason: exportCompatibility.cssOnly.reason,
     },
@@ -163,13 +164,17 @@
   <div class="min-h-0 flex-1 overflow-y-auto space-y-3 pr-1" bind:this={metadataScrollContainer}>
     <div class="grid grid-cols-[fit-content(7rem)_minmax(0,1fr)] gap-x-4 gap-y-2 text-body whitespace-pre-line">
       <span class="min-w-0 text-right truncate text-gray-500">Title</span>
-      <span class="min-w-0 wrap-break-word text-left font-mono">{editorCtx.scriptMetadata.title || "Untitled script"}</span>
+      <span class="min-w-0 wrap-break-word text-left font-mono"
+        >{editorCtx.scriptMetadata.title || "Untitled script"}</span
+      >
 
       <span class="min-w-0 text-right truncate text-gray-500">Website</span>
       <span class="min-w-0 wrap-break-word text-left font-mono">{normalizedWebsiteGlob || "Not set"}</span>
 
       <span class="min-w-0 text-right truncate text-gray-500">Description</span>
-      <span class="min-w-0 wrap-break-word text-left font-mono">{editorCtx.scriptMetadata.description || "No description"}</span>
+      <span class="min-w-0 wrap-break-word text-left font-mono"
+        >{editorCtx.scriptMetadata.description || "No description"}</span
+      >
 
       <span class="min-w-0 text-right truncate text-gray-500">Author</span>
       <span class="min-w-0 wrap-break-word text-left font-mono">{editorCtx.scriptMetadata.author || "No author"}</span>
@@ -217,7 +222,8 @@
   <div class="mt-auto space-y-2">
     <div class="flex items-center gap-2">
       <label for="export-format" class="text-gray-500">Export format</label>
-      <select id="export-format"
+      <select
+        id="export-format"
         class="h-8 flex-1 rounded-xl w-32 border border-[#5b5542] bg-[#2a2924] px-3 text-body text-gray-100 outline-none focus:border-accent-500"
         bind:value={selectedFormat}
       >
