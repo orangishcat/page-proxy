@@ -42,7 +42,7 @@ The tool can be used for backup or sharing of your userscript.
 
 ### Tampermonkey
 
-- New in v0.3.7!
+- New in v0.3.7: export the current script as a `.user.js` userscript while keeping Page Proxy runtime support.
 - Exports a `.user.js` userscript with a UserScript header.
 - Converts Page Proxy metadata into userscript metadata such as `@name`, website
   matches, and `@run-at`.
@@ -54,7 +54,7 @@ The tool can be used for backup or sharing of your userscript.
 
 ### CSS stylesheet
 
-- New in v0.3.7!
+- New in v0.3.7: export compatible scripts as a standalone stylesheet built from static `ps.injectCSS(...)` calls.
 - Exports a CSS stylesheet created from static `ps.injectCSS(...)` calls.
 - Only works for scripts that are purely stylesheet exports
     - This means that the script should only contain static `ps.injectCSS`

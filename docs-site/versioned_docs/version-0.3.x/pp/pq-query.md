@@ -18,12 +18,12 @@ Allows for use of other `pq` library methods and also provides multiple useful h
 
 `definition` parameters:
 
-- `name`
+- `name` (optional)
   Metadata label exposed on `selector.definition`.
 - `baseSelector` (optional)
   Optional CSS prefilter. Trimmed; blank values fall back to `"*"`.
-- `matches(element)`
-  Required predicate that decides whether an element matches.
+- `matches(element)` (optional)
+  Predicate that decides whether an element matches. New in v0.3.7: when omitted, every element that passes `baseSelector` matches.
 - `postMap(element)` (optional)
   Optional transform for matched elements returned from `query`, `queryAll`, `waitUntilMatch`, and `onElementMatches`.
 
@@ -41,6 +41,8 @@ const observer = premiumCards.onElementMatches((el) => {
 });
 const nextMatch = await premiumCards.waitUntilMatch();
 ```
+
+New in v0.3.7: `pq.selector(...)` also accepts minimal definitions such as `pq.selector({ baseSelector: ".card" })` when you only need CSS-based matching.
 
 ### Available methods:
 
