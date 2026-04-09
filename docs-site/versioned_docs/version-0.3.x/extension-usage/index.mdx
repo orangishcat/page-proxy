@@ -33,7 +33,10 @@ Toolbar shortcuts:
 
 <div className="col col--6 margin-bottom--xl">
 
-<img src={useBaseUrl("/img/editor_usage/side_panel.avif", { absolute: true })} alt="Page Proxy sidepanel overview" />
+<img
+    src={useBaseUrl("/img/editor_usage/side_panel.avif", { absolute: true })}
+    alt="Page Proxy sidepanel overview"
+/>
 
 </div>
 
@@ -59,15 +62,23 @@ What it does:
 - Runs your script with the Run button (play icon).
 - Stores state per website/tab context.
 
-New in v0.3.6: when the current tab already has a matching saved script, the toolbar script dropdown stays available and includes a **New script** action for starting another script on the same tab.
+New in v0.3.6: when the current tab already has a matching saved script, the
+toolbar script dropdown stays available and includes a **New script** action for
+starting another script on the same tab. New in v0.3.8: the toolbar includes a
+**Disable all grants** button that disables grants (just `run-on-page-load`) for
+now globally.
 
-On protected pages (for example browser internal pages), editing and execution are disabled and a protected-page message is shown.
+On protected pages (for example browser internal pages), editing and execution
+are disabled and a protected-page message is shown.
 
 </div>
 
 <div className="col col--6 margin-bottom--xl">
 
-<img src={useBaseUrl("/img/editor_usage/code_editor.avif", { absolute: true })} alt="Page Proxy code editor tool" />
+<img
+    src={useBaseUrl("/img/editor_usage/code_editor.avif", { absolute: true })}
+    alt="Page Proxy code editor tool"
+/>
 
 </div>
 

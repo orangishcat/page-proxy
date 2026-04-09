@@ -4,6 +4,20 @@ title: Release notes
 
 # Release notes (v0.3.x)
 
+## New in v0.3.8
+
+- Improved export controls:
+    - Added a **Minify** toggle for `pp-script`, Tampermonkey, and CSS stylesheet exports.
+    - Exported Page Proxy scripts keep their metadata and selector blocks while minifying runnable code.
+    - CSS stylesheet minification now uses `css-tree`.
+- Added a global grant safety toggle in the code editor:
+    - The toolbar now includes **Disable all grants**.
+    - When enabled, declared grants such as `run-on-page-load` are ignored until the toggle is turned off again.
+- Refined editor and extension UI polish:
+    - The editor toolbar now focuses on script selection without repeating the active website glob.
+    - Export tool layout and extension styling were cleaned up.
+- Internal refactors split large Select tool, selector popup, notification, and landing demo modules into smaller focused files.
+
 ## New in v0.3.7
 
 - Tampermonkey and CSS stylesheet export options are now enabled!
