@@ -124,7 +124,6 @@ const buildStoredState = (scriptName: string, websiteGlob: string, updatedAt: nu
   },
   permissions: {
     allowedGrants: [],
-    disableAllGrants: false,
   },
   websiteGlob,
   updatedAt,
@@ -219,7 +218,6 @@ describe("script selection session", () => {
 
     let activeToolId = "none";
     let allowedGrants: unknown[] = [];
-    let disableAllGrants = false;
     let latestEditorContent = "";
     let latestMessage: string | null = null;
 
@@ -230,9 +228,6 @@ describe("script selection session", () => {
       },
       setAllowedGrants: (grants: unknown[]) => {
         allowedGrants = grants;
-      },
-      setDisableAllGrants: (value: boolean) => {
-        disableAllGrants = value;
       },
       setElementEntries: () => undefined,
       setRecordPanelActiveTab: () => undefined,
@@ -258,7 +253,6 @@ describe("script selection session", () => {
     expect(latestEditorContent).toContain("// @title Page Proxy");
     expect(activeToolId).toBe("none");
     expect(allowedGrants).toEqual([]);
-    expect(disableAllGrants).toBe(false);
     expect(latestMessage).toBeNull();
 
     await selectScriptForCurrentTab("Page Proxy 2", deps);
@@ -294,7 +288,6 @@ describe("script selection session", () => {
       state,
       setActiveToolId: () => undefined,
       setAllowedGrants: () => undefined,
-      setDisableAllGrants: () => undefined,
       setElementEntries: () => undefined,
       setRecordPanelActiveTab: () => undefined,
       updateEditorContent: (content: string) => {

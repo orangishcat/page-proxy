@@ -23,7 +23,6 @@ type SaveStateOptions = {
   content: string;
   selectorEntries: StoredSelectorEntry[];
   allowedGrants: ScriptGrantValue[];
-  disableAllGrants: boolean;
   isProtectedPage: boolean;
   scriptFormatConfig: ScriptFormatConfig;
   activeTabUrl: string | null;
@@ -105,7 +104,6 @@ export const saveState = async (options: SaveStateOptions) => {
     },
     permissions: {
       allowedGrants: Array.from(options.allowedGrants),
-      disableAllGrants: options.disableAllGrants,
     },
     websiteGlob,
     updatedAt: Date.now(),

@@ -55,7 +55,6 @@ const buildStoredState = (): StoredToolState => ({
   },
   permissions: {
     allowedGrants: [],
-    disableAllGrants: false,
   },
   websiteGlob: "https://example.com/*",
   updatedAt: 1,
@@ -98,13 +97,13 @@ describe("script runtime storage", () => {
     });
   });
 
-  test("defaults disableAllGrants to false when it is missing from stored permissions", () => {
+  test("coerces stored permissions without a global disable flag", () => {
     const state = coerceStoredToolState(buildStoredState(), "Page Proxy");
 
-    expect(state?.permissions.disableAllGrants).toBe(false);
+    expect(state?.permissions.allowedGrants).toEqual([]);
   });
 
-  test("preserves disableAllGrants when it is stored", () => {
+  test("ignores legacy per-script disableAllGrants when it is stored", () => {
     const state = coerceStoredToolState(
       {
         ...buildStoredState(),
@@ -116,7 +115,7 @@ describe("script runtime storage", () => {
       "Page Proxy",
     );
 
-    expect(state?.permissions.disableAllGrants).toBe(true);
+    expect(state?.permissions.allowedGrants).toEqual([]);
   });
 
   test("script run payloads round-trip runtime storage", () => {

@@ -1,6 +1,7 @@
 import { defineBackground } from "wxt/utils/define-background";
 
 import { browser } from "wxt/browser";
+import { readDisableAllGrantsSetting } from "@/lib/disable-all-grants-setting";
 import { coerceScriptGrantValues, resolveEffectiveScriptGrants, type ScriptGrantValue } from "@/lib/grants";
 import {
   isGrantPermissionResolveMessage,
@@ -148,6 +149,7 @@ const countMatchingScriptsForUrl = async (url: string) => {
   }
 
   const matchedStates = await findStoredToolStatesForUrl(url);
+  const disableAllGrants = await readDisableAllGrantsSetting();
   return matchedStates
     .map((entry) => {
       const content = toRunnableScriptContent(entry.state);
@@ -155,7 +157,7 @@ const countMatchingScriptsForUrl = async (url: string) => {
         return null;
       }
 
-      const scriptGrants = extractScriptGrants(content, entry.state.permissions.disableAllGrants);
+      const scriptGrants = extractScriptGrants(content, disableAllGrants);
       if (!scriptGrants.includes(runOnPageLoadGrant)) {
         return null;
       }
@@ -249,7 +251,6 @@ const resolveGrantPermissions = async (
     ...state,
     permissions: {
       allowedGrants: nextAllowedGrants,
-      disableAllGrants: state.permissions.disableAllGrants,
     },
     updatedAt: Date.now(),
   };
@@ -268,6 +269,7 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
 
   const tabUrl = url ?? "";
   const matchedStates = await findStoredToolStatesForUrl(tabUrl);
+  const disableAllGrants = await readDisableAllGrantsSetting();
   logger.debug("runMatchingScriptsForTab: matched states", { count: matchedStates.length, tabUrl });
 
   const scripts: Array<{ code: string; state: StoredToolState }> = [];
@@ -280,7 +282,7 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
       return;
     }
 
-    const scriptGrants = extractScriptGrants(content, entry.state.permissions.disableAllGrants);
+    const scriptGrants = extractScriptGrants(content, disableAllGrants);
     if (!scriptGrants.includes(runOnPageLoadGrant)) {
       logger.debug("runMatchingScriptsForTab: skipping entry — no run-on-page-load grant", {
         scriptName: entry.scriptName,

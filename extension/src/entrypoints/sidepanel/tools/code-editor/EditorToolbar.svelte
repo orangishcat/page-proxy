@@ -11,28 +11,26 @@
 
   type Props = {
     scriptTitle: string;
-    scriptWebsite: string;
     scriptOptions: ScriptSelectionOption[];
     selectedScriptName: string | null;
     hasUnsavedChanges: boolean;
     isRunning: boolean;
     disableAllGrants: boolean;
-    onrun: () => void;
-    ontoggledisableallgrants: () => void;
+    onRun: () => void;
+    onDisableGrantToggle: () => void;
     oncreatenewscript: () => void;
     onselectscript: (scriptName: string) => void;
   };
 
   let {
     scriptTitle,
-    scriptWebsite,
     scriptOptions,
     selectedScriptName,
     hasUnsavedChanges,
     isRunning,
     disableAllGrants,
-    onrun,
-    ontoggledisableallgrants,
+    onRun,
+    onDisableGrantToggle,
     oncreatenewscript,
     onselectscript,
   }: Props = $props();
@@ -78,10 +76,6 @@
     {:else}
       <span>{scriptTitle}</span>
     {/if}
-    {#if scriptWebsite}
-      <span class="text-gray-600"> @ </span>
-      <span class="text-accent-500">{scriptWebsite}</span>
-    {/if}
     {#if hasUnsavedChanges}
       <Tooltip.Root>
         <Tooltip.Trigger>
@@ -103,17 +97,17 @@
       </Tooltip.Root>
     {/if}
   </div>
-  <div class="flex items-center gap-3">
+  <div class="flex items-center gap-2">
     <Tooltip.Root>
       <Tooltip.Trigger>
         {#snippet child({ props })}
           <Button
             {...props}
-            class={`px-3! py-1! text-xs ${disableAllGrants ? "text-red-400 dark:text-red-300" : "text-gray-500 dark:text-gray-500"}`}
+            class={`px-1! py-1! opacity-100! rounded-lg! hover:bg-gray-400/30 text-xs ${disableAllGrants ? "text-red-400 dark:text-red-300" : "text-gray-500 dark:text-gray-500"}`}
             variant="outline"
             aria-label="Disable all grants"
             aria-pressed={disableAllGrants}
-            onclick={ontoggledisableallgrants}
+            onclick={onDisableGrantToggle}
           >
             <Ban class="h-4 w-4" />
           </Button>
@@ -121,11 +115,10 @@
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content
-          sideOffset={6}
           class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
         >
           Disable all grants
-          <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+          <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b] h-8 w-8" />
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
@@ -137,7 +130,7 @@
             class="px-3! py-1! text-xs"
             variant="secondary"
             aria-label="Run script"
-            onclick={onrun}
+            onclick={onRun}
             disabled={isRunning}
           >
             <Play class="h-4 w-4" />

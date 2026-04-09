@@ -193,8 +193,8 @@
       <div class="col-span-2 my-1 border-t border-[#5b5542]"></div>
 
       <span class="min-w-0 text-right truncate text-gray-500">Minify</span>
-      <label class="text-body flex min-w-0 items-center gap-3 text-left text-gray-100">
-        <input class="pp-checkbox shrink-0" type="checkbox" bind:checked={minify} />
+      <label class="text-body flex min-w-0 items-center gap-2 text-left text-gray-100">
+        <input class="shrink-0" type="checkbox" bind:checked={minify} />
         <span class="min-w-0 wrap-break-word">Minify exported output</span>
       </label>
 

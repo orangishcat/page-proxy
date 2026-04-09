@@ -24,7 +24,6 @@ type EditorMessage = { text: string; status: string; stackTrace: string | null }
 export type EditorActionsDeps = {
   tabState: TabLoaderState;
   allowedGrants: ScriptGrantValue[];
-  disableAllGrants: boolean;
   activeTool: ToolId;
   scriptMetadata: { title: string; website: string };
   scriptFormatConfig: ScriptFormatConfig;
@@ -50,7 +49,6 @@ export const saveToolState = async (content: string, deps: EditorActionsDeps): P
       content,
       selectorEntries: get(selectorEntries),
       allowedGrants: deps.allowedGrants,
-      disableAllGrants: deps.disableAllGrants,
       isProtectedPage: deps.tabState.isProtectedPage,
       scriptFormatConfig: deps.scriptFormatConfig,
       activeTabUrl: deps.tabState.activeTabUrl,
