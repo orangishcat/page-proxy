@@ -1,7 +1,7 @@
 import { defineBackground } from "wxt/utils/define-background";
 
 import { browser } from "wxt/browser";
-import { coerceScriptGrantValues, type ScriptGrantValue } from "@/lib/grants";
+import { coerceScriptGrantValues, resolveEffectiveScriptGrants, type ScriptGrantValue } from "@/lib/grants";
 import {
   isGrantPermissionResolveMessage,
   type GrantPermissionRequestMessage,
@@ -136,7 +136,8 @@ const toRunnableScriptContent = (state: StoredToolState) => {
   return content;
 };
 
-const extractScriptGrants = (content: string) => resolveMetadataFallback(content)?.grants ?? [];
+const extractScriptGrants = (content: string, disableAllGrants: boolean) =>
+  resolveEffectiveScriptGrants(resolveMetadataFallback(content)?.grants ?? [], disableAllGrants);
 
 const getMissingAllowedGrants = (state: StoredToolState, requiredGrants: ScriptGrantValue[]) =>
   requiredGrants.filter((grant) => !state.permissions.allowedGrants.includes(grant));
@@ -154,7 +155,7 @@ const countMatchingScriptsForUrl = async (url: string) => {
         return null;
       }
 
-      const scriptGrants = extractScriptGrants(content);
+      const scriptGrants = extractScriptGrants(content, entry.state.permissions.disableAllGrants);
       if (!scriptGrants.includes(runOnPageLoadGrant)) {
         return null;
       }
@@ -248,6 +249,7 @@ const resolveGrantPermissions = async (
     ...state,
     permissions: {
       allowedGrants: nextAllowedGrants,
+      disableAllGrants: state.permissions.disableAllGrants,
     },
     updatedAt: Date.now(),
   };
@@ -278,7 +280,7 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
       return;
     }
 
-    const scriptGrants = extractScriptGrants(content);
+    const scriptGrants = extractScriptGrants(content, entry.state.permissions.disableAllGrants);
     if (!scriptGrants.includes(runOnPageLoadGrant)) {
       logger.debug("runMatchingScriptsForTab: skipping entry — no run-on-page-load grant", {
         scriptName: entry.scriptName,

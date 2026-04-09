@@ -1,4 +1,6 @@
 import { parse } from "acorn";
+import { transform } from "lightningcss";
+import { minify } from "terser";
 import { normalizeScriptMetadataWebsites, parseScriptMetadata } from "@/lib/utils/script-metadata";
 
 export type ExportFormat = "pp-script" | "tampermonkey" | "css-only" | "wxt-extension";
@@ -20,12 +22,20 @@ export type ExportError = {
   message: string;
 };
 
+export type ExportOptions = {
+  minify: boolean;
+};
+
 export const hostedPpUserscriptRequireUrl = "https://orangishcat.github.io/page-proxy/pp/pp.min.js";
 
 const pageProxyMetadataBlockPattern = /\/\/\s*==\s*Page\s*Proxy\s*==[\s\S]*?\/\/\s*==\s*\/\s*Page\s*Proxy\s*==/m;
 const ppImportLinePattern = /^import\s*\{[^}]+\}\s*from\s*["']@page-proxy\/pp["'];?\s*$/gm;
 const emptySelectorBlockPattern =
   /^\s*\/\/\s*==Selectors==\s*\n\s*\/\/\s*==\/Selectors==\s*(?:\n|$)/m;
+const selectorBlockPattern =
+  /(^\s*\/\/\s*==Selectors==\s*$)([\s\S]*?)(^\s*\/\/\s*==\/Selectors==\s*$)/m;
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 
 type ParsedProgram = {
   body: unknown[];
@@ -295,6 +305,95 @@ const replacePageProxyMetadataWithUserscriptHeader = (content: string, header: s
   return content.replace(pageProxyMetadataBlockPattern, header);
 };
 
+const trimMinifiedSection = (content: string) => content.trim();
+
+const joinExportSections = (sections: Array<string | null>) =>
+  `${sections
+    .map((section) => section?.trim() ?? "")
+    .filter((section) => section.length > 0)
+    .join("\n\n")}\n`;
+
+const minifyJavaScript = async (source: string, options: { module: boolean }) => {
+  const normalizedSource = source.trim();
+  if (!normalizedSource) {
+    return "";
+  }
+
+  const result = await minify(normalizedSource, {
+    module: options.module,
+    compress: true,
+    mangle: false,
+    format: {
+      comments: false,
+    },
+  });
+
+  if (!result.code) {
+    throw new Error("Unable to minify JavaScript export.");
+  }
+
+  return trimMinifiedSection(result.code);
+};
+
+const minifyCss = (source: string) => {
+  const normalizedSource = source.trim();
+  if (!normalizedSource) {
+    return "";
+  }
+
+  const result = transform({
+    filename: "page-proxy-export.css",
+    code: textEncoder.encode(normalizedSource),
+    minify: true,
+  });
+
+  return trimMinifiedSection(textDecoder.decode(result.code));
+};
+
+const minifyPpScriptContent = async (content: string) => {
+  const metadataMatch = content.match(pageProxyMetadataBlockPattern);
+  if (!metadataMatch) {
+    throw new Error("Missing Page Proxy metadata block.");
+  }
+
+  const metadataBlock = metadataMatch[0].trim();
+  const selectorMatch = content.match(selectorBlockPattern);
+  const beforeMetadata = content.slice(0, metadataMatch.index ?? 0);
+  const afterMetadata = content.slice((metadataMatch.index ?? 0) + metadataMatch[0].length);
+
+  if (!selectorMatch || selectorMatch.index === undefined) {
+    const minifiedPrefix = await minifyJavaScript(beforeMetadata, { module: true });
+    const minifiedSuffix = await minifyJavaScript(afterMetadata, { module: true });
+    return joinExportSections([minifiedPrefix, metadataBlock, minifiedSuffix]);
+  }
+
+  const selectorBlockIndexInSuffix = selectorMatch.index - ((metadataMatch.index ?? 0) + metadataMatch[0].length);
+  const beforeSelectors = afterMetadata.slice(0, selectorBlockIndexInSuffix);
+  const afterSelectors = afterMetadata.slice(selectorBlockIndexInSuffix + selectorMatch[0].length);
+  const selectorStart = selectorMatch[1].trim();
+  const selectorBody = selectorMatch[2];
+  const selectorEnd = selectorMatch[3].trim();
+
+  const [minifiedPrefix, minifiedBeforeSelectors, minifiedSelectorBody, minifiedAfterSelectors] = await Promise.all([
+    minifyJavaScript(beforeMetadata, { module: true }),
+    minifyJavaScript(beforeSelectors, { module: true }),
+    minifyJavaScript(selectorBody, { module: true }),
+    minifyJavaScript(afterSelectors, { module: true }),
+  ]);
+
+  const selectorSection = minifiedSelectorBody.length > 0
+    ? `${selectorStart}\n${minifiedSelectorBody}\n${selectorEnd}`
+    : `${selectorStart}\n${selectorEnd}`;
+
+  return joinExportSections([
+    minifiedPrefix,
+    metadataBlock,
+    minifiedBeforeSelectors,
+    selectorSection,
+    minifiedAfterSelectors,
+  ]);
+};
+
 export const isUserscriptMatchPattern = (value: string) => /^(?:\*|https?):\/\/[^/\s]+\/.*$/.test(value.trim());
 
 export const buildUserscriptWebsiteDirectives = (websites: string[]) =>
@@ -327,7 +426,10 @@ export const analyzeExportCompatibility = (content: string): ExportCompatibility
   };
 };
 
-export const buildPpScriptExport = (content: string): ExportArtifact | ExportError => {
+export const buildPpScriptExport = async (
+  content: string,
+  options: ExportOptions,
+): Promise<ExportArtifact | ExportError> => {
   try {
     const normalizedContent = normalizeScriptMetadataWebsites(content);
     const metadata = parseScriptMetadata(normalizedContent);
@@ -336,7 +438,7 @@ export const buildPpScriptExport = (content: string): ExportArtifact | ExportErr
       ok: true,
       fileName: `${fileStem}.js`,
       mimeType: "text/javascript;charset=utf-8",
-      body: normalizedContent,
+      body: options.minify ? await minifyPpScriptContent(normalizedContent) : normalizedContent,
     };
   } catch (error) {
     return {
@@ -346,7 +448,10 @@ export const buildPpScriptExport = (content: string): ExportArtifact | ExportErr
   }
 };
 
-export const buildTampermonkeyExport = (content: string): ExportArtifact | ExportError => {
+export const buildTampermonkeyExport = async (
+  content: string,
+  options: ExportOptions,
+): Promise<ExportArtifact | ExportError> => {
   const compatibility = analyzeExportCompatibility(content);
   if (!compatibility.tampermonkey.ok) {
     return {
@@ -361,12 +466,13 @@ export const buildTampermonkeyExport = (content: string): ExportArtifact | Expor
     const body = stripEmptySelectorBlock(
       stripPpImportLines(replacePageProxyMetadataWithUserscriptHeader(normalizedContent, header)),
     ).trim();
+    const exportBody = options.minify ? `${header}\n${await minifyJavaScript(body, { module: false })}\n` : `${body}\n`;
 
     return {
       ok: true,
       fileName: `${slugifyFileStem(title)}.user.js`,
       mimeType: "text/javascript;charset=utf-8",
-      body: `${body}\n`,
+      body: exportBody,
     };
   } catch (error) {
     return {
@@ -376,7 +482,7 @@ export const buildTampermonkeyExport = (content: string): ExportArtifact | Expor
   }
 };
 
-export const buildCssOnlyExport = (content: string): ExportArtifact | ExportError => {
+export const buildCssOnlyExport = (content: string, options: ExportOptions): ExportArtifact | ExportError => {
   const compatibility = analyzeExportCompatibility(content);
   if (!compatibility.cssOnly.ok) {
     return {
@@ -399,7 +505,7 @@ export const buildCssOnlyExport = (content: string): ExportArtifact | ExportErro
       ok: true,
       fileName: `${slugifyFileStem(metadata.title)}.css`,
       mimeType: "text/css;charset=utf-8",
-      body: cssBlocks.cssBlocks.join("\n\n"),
+      body: options.minify ? minifyCss(cssBlocks.cssBlocks.join("\n\n")) : cssBlocks.cssBlocks.join("\n\n"),
     };
   } catch (error) {
     return {

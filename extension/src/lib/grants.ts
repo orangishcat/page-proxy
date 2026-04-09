@@ -52,6 +52,11 @@ export const coerceScriptGrantValues = (value: unknown): ScriptGrantValue[] => {
   return parsed;
 };
 
+export const resolveEffectiveScriptGrants = (
+  declaredGrants: ScriptGrantValue[],
+  disableAllGrants: boolean,
+): ScriptGrantValue[] => (disableAllGrants ? [] : declaredGrants);
+
 export const grantDocumentationLink = "https://orangishcat.github.io/page-proxy/docs/permissions";
 
 export const grantDocumentationHashtags: Record<ScriptGrantValue, string> = {

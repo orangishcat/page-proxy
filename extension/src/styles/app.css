@@ -120,4 +120,45 @@
     a {
         @apply text-accent-400 dark:text-accent-500 hover:opacity-75;
     }
+
+    .pp-checkbox {
+        appearance: none;
+        width: 1em;
+        height: 1em;
+        border: 0.0625em solid rgba(115, 115, 115, 0.9);
+        border-radius: 0.25em;
+        background-color: rgba(23, 23, 23, 0.85);
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: 0.7em;
+        transition:
+            background-color 120ms ease,
+            border-color 120ms ease,
+            opacity 120ms ease;
+    }
+
+    .pp-checkbox:hover {
+        opacity: 0.85;
+    }
+
+    .pp-checkbox:checked {
+        border-color: rgb(231, 147, 42);
+        background-color: rgb(231, 147, 42);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='white' d='M6.2 11.4 2.8 8l1.4-1.4 2 2 5.6-5.6L13.2 4z'/%3E%3C/svg%3E");
+    }
+
+    .pp-checkbox:focus-visible {
+        outline: 0.125em solid rgba(231, 147, 42, 0.7);
+        outline-offset: 0.125em;
+    }
+
+    :root:not(.dark) .pp-checkbox {
+        background-color: rgba(255, 255, 255, 0.95);
+        border-color: rgba(161, 161, 170, 0.95);
+    }
+
+    :root:not(.dark) .pp-checkbox:checked {
+        border-color: rgb(181, 97, 0);
+        background-color: rgb(181, 97, 0);
+    }
 }

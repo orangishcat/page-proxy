@@ -1,6 +1,6 @@
 <script lang="ts">
   import { DropdownMenu, Tooltip } from "bits-ui";
-  import { Check, ChevronDown, Play, Plus } from "lucide-svelte";
+  import { Ban, Check, ChevronDown, Play, Plus } from "lucide-svelte";
   import Button from "@/lib/components/Button.svelte";
   import { shouldShowScriptDropdown, type ScriptSelectionOption } from "./state";
 
@@ -16,7 +16,9 @@
     selectedScriptName: string | null;
     hasUnsavedChanges: boolean;
     isRunning: boolean;
+    disableAllGrants: boolean;
     onrun: () => void;
+    ontoggledisableallgrants: () => void;
     oncreatenewscript: () => void;
     onselectscript: (scriptName: string) => void;
   };
@@ -28,7 +30,9 @@
     selectedScriptName,
     hasUnsavedChanges,
     isRunning,
+    disableAllGrants,
     onrun,
+    ontoggledisableallgrants,
     oncreatenewscript,
     onselectscript,
   }: Props = $props();
@@ -100,6 +104,31 @@
     {/if}
   </div>
   <div class="flex items-center gap-3">
+    <Tooltip.Root>
+      <Tooltip.Trigger>
+        {#snippet child({ props })}
+          <Button
+            {...props}
+            class={`px-3! py-1! text-xs ${disableAllGrants ? "text-red-400 dark:text-red-300" : "text-gray-500 dark:text-gray-500"}`}
+            variant="outline"
+            aria-label="Disable all grants"
+            aria-pressed={disableAllGrants}
+            onclick={ontoggledisableallgrants}
+          >
+            <Ban class="h-4 w-4" />
+          </Button>
+        {/snippet}
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content
+          sideOffset={6}
+          class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+        >
+          Disable all grants
+          <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
     <Tooltip.Root>
       <Tooltip.Trigger>
         {#snippet child({ props })}

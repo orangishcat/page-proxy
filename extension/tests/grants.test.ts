@@ -3,6 +3,7 @@ import {
   coerceScriptGrantValues,
   getGrantDocumentationUrl,
   parseScriptGrantValues,
+  resolveEffectiveScriptGrants,
   supportedScriptGrants,
 } from "../src/lib/grants";
 
@@ -31,5 +32,13 @@ describe("grants", () => {
     expect(getGrantDocumentationUrl(supportedScriptGrants[0])).toBe(
       "https://orangishcat.github.io/page-proxy/docs/permissions#grant-run-on-page-load",
     );
+  });
+
+  test("resolveEffectiveScriptGrants keeps declared grants when the global toggle is off", () => {
+    expect(resolveEffectiveScriptGrants(["run-on-page-load"], false)).toEqual(["run-on-page-load"]);
+  });
+
+  test("resolveEffectiveScriptGrants removes all declared grants when the global toggle is on", () => {
+    expect(resolveEffectiveScriptGrants(["run-on-page-load"], true)).toEqual([]);
   });
 });

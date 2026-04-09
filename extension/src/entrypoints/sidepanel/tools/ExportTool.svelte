@@ -14,6 +14,7 @@
     buildPpScriptExport,
     buildTampermonkeyExport,
     type ExportFormat,
+    type ExportOptions,
   } from "@/lib/script-export";
 
   const editorCtx = getEditorContext();
@@ -27,6 +28,7 @@
 
   let selectedFormat = $state<ExportFormat>("pp-script");
   let statusMessage = $state<string | null>(null);
+  let minify = $state(false);
   let isDeleteWarningVisible = $state(false);
   let isDeletingScript = $state(false);
   let metadataScrollContainer = $state<HTMLDivElement | null>(null);
@@ -76,14 +78,18 @@
     statusMessage = `Exported ${fileName}.`;
   };
 
-  const buildExportResult = () => {
+  const exportOptions = $derived<ExportOptions>({
+    minify,
+  });
+
+  const buildExportResult = async () => {
     switch (selectedFormat) {
       case "pp-script":
-        return buildPpScriptExport(normalizeScriptMetadataWebsites(editorContentValue));
+        return buildPpScriptExport(normalizeScriptMetadataWebsites(editorContentValue), exportOptions);
       case "tampermonkey":
-        return buildTampermonkeyExport(editorContentValue);
+        return buildTampermonkeyExport(editorContentValue, exportOptions);
       case "css-only":
-        return buildCssOnlyExport(editorContentValue);
+        return buildCssOnlyExport(editorContentValue, exportOptions);
       default:
         return {
           ok: false as const,
@@ -92,7 +98,7 @@
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!canExportSelectedFormat) {
       statusMessage = selectedFormatOption.reason ?? `${selectedFormatOption.label} is coming soon.`;
       return;
@@ -103,7 +109,7 @@
       return;
     }
 
-    const result = buildExportResult();
+    const result = await buildExportResult();
     if (!result.ok) {
       statusMessage = result.message;
       return;
@@ -183,6 +189,14 @@
         <span class="min-w-0 text-right truncate text-gray-500">Credits</span>
         <span class="min-w-0 wrap-break-word text-left font-mono">{editorCtx.scriptMetadata.credits}</span>
       {/if}
+
+      <div class="col-span-2 my-1 border-t border-[#5b5542]"></div>
+
+      <span class="min-w-0 text-right truncate text-gray-500">Minify</span>
+      <label class="text-body flex min-w-0 items-center gap-3 text-left text-gray-100">
+        <input class="pp-checkbox shrink-0" type="checkbox" bind:checked={minify} />
+        <span class="min-w-0 wrap-break-word">Minify exported output</span>
+      </label>
 
       <div class="col-span-2 my-1 border-t border-[#5b5542]"></div>
 
