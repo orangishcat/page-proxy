@@ -129,6 +129,7 @@
   const buildEditorActionsDeps = (): EditorActionsDeps => ({
     tabState,
     allowedGrants: editorCtx.allowedGrants,
+    disableAllGrants: editorCtx.disableAllGrants,
     activeTool: toolCtx.activeTool,
     scriptMetadata: editorCtx.scriptMetadata,
     scriptFormatConfig,
@@ -144,6 +145,7 @@
     state: tabState,
     setActiveToolId: (tool: string) => { toolCtx.activeTool = tool as typeof toolCtx.activeTool; },
     setAllowedGrants: (grants: unknown[]) => { editorCtx.allowedGrants = grants as typeof editorCtx.allowedGrants; },
+    setDisableAllGrants: (value: boolean) => { editorCtx.disableAllGrants = value; },
     setElementEntries: (entries: unknown[]) => { editorCtx.elementEntries = entries as typeof editorCtx.elementEntries; },
     setRecordPanelActiveTab,
     updateEditorContent,
@@ -205,6 +207,15 @@
     runScriptImpl(tabState.editorValue, buildRunScriptDeps());
   };
 
+  const toggleDisableAllGrants = () => {
+    if (!tabState.canPersistEditorChanges || tabState.isProtectedPage) {
+      return;
+    }
+
+    editorCtx.disableAllGrants = !editorCtx.disableAllGrants;
+    autosave.saveNow(tabState.editorValue);
+  };
+
   const selectScriptForCurrentTab = (scriptName: string) => {
     void selectScriptForCurrentTabImpl(scriptName, buildTabLoaderDeps()).catch((error) => {
       setEditorMessageFromUnknown(error, "Unable to switch scripts.");
@@ -263,6 +274,7 @@
     codeEditorContent.set(tabState.editorValue);
     editorCtx.elementEntries = [];
     editorCtx.allowedGrants = [];
+    editorCtx.disableAllGrants = false;
     setupEditor();
     editorCtx.api = {
       insertDefinitions: insertDefinitionLinesInEditor,
@@ -306,7 +318,9 @@
     selectedScriptName={tabState.activeScriptName}
     {hasUnsavedChanges}
     {isRunning}
+    disableAllGrants={editorCtx.disableAllGrants}
     onrun={runScript}
+    ontoggledisableallgrants={toggleDisableAllGrants}
     oncreatenewscript={createNewScriptForCurrentTab}
     onselectscript={selectScriptForCurrentTab}
   />

@@ -20,6 +20,7 @@ export function createEditorContext() {
     credits: "",
   });
   let allowedGrants = $state<ScriptGrantValue[]>([]);
+  let disableAllGrants = $state(false);
   let api = $state<EditorApi | null>(null);
 
   const insertDefinitions = (lines: string[]): boolean => {
@@ -52,6 +53,8 @@ export function createEditorContext() {
     set scriptMetadata(v: ScriptMetadataState) { scriptMetadata = v; },
     get allowedGrants() { return allowedGrants; },
     set allowedGrants(v: ScriptGrantValue[]) { allowedGrants = v; },
+    get disableAllGrants() { return disableAllGrants; },
+    set disableAllGrants(v: boolean) { disableAllGrants = v; },
     get api() { return api; },
     set api(v: EditorApi | null) { api = v; },
     insertDefinitions,

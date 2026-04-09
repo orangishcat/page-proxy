@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   analyzeExportCompatibility,
   buildCssOnlyExport,
+  buildPpScriptExport,
   buildTampermonkeyExport,
   hostedPpUserscriptRequireUrl,
 } from "../src/lib/script-export";
@@ -31,6 +32,23 @@ main {
   color: blue;
 }
 \`);
+`;
+
+const runnableScript = `import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";
+
+// ==Page Proxy==
+// @title Runtime Script
+// @website https://example.com/*
+// @description Shows a notification
+// @author Tim
+// @grant run-on-page-load
+// ==/Page Proxy==
+
+// ==Selectors==
+// ==/Selectors==
+
+const total = 1 + 2;
+pa.notification(\`Total: \${total}\`);
 `;
 
 describe("analyzeExportCompatibility", () => {
@@ -84,8 +102,8 @@ ps.injectCSS(\`header { color: \${color}; }\`);
 });
 
 describe("buildTampermonkeyExport", () => {
-  test("builds a userscript header with @require and strips Page Proxy scaffolding", () => {
-    const result = buildTampermonkeyExport(staticCssScript);
+  test("builds a userscript header with @require and strips Page Proxy scaffolding", async () => {
+    const result = await buildTampermonkeyExport(staticCssScript, { minify: false });
 
     expect(result.ok).toBe(true);
     if (!result.ok) {
@@ -104,11 +122,25 @@ describe("buildTampermonkeyExport", () => {
     expect(result.body).not.toContain("// ==Selectors==");
     expect(result.body).toContain("ps.injectCSS(`");
   });
+
+  test("preserves the userscript header while minifying the executable body", async () => {
+    const result = await buildTampermonkeyExport(runnableScript, { minify: true });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error("Expected successful minified Tampermonkey export");
+    }
+
+    const [header, body] = result.body.split("// ==/UserScript==\n");
+    expect(header).toContain("// ==UserScript==");
+    expect(body).toContain('pa.notification("Total: 3");');
+    expect(body).not.toContain("const total = 1 + 2;");
+  });
 });
 
 describe("buildCssOnlyExport", () => {
   test("concatenates static CSS blocks in source order", () => {
-    const result = buildCssOnlyExport(staticCssScript);
+    const result = buildCssOnlyExport(staticCssScript, { minify: false });
 
     expect(result.ok).toBe(true);
     if (!result.ok) {
@@ -118,5 +150,34 @@ describe("buildCssOnlyExport", () => {
     expect(result.fileName).toBe("theme-tweak.css");
     expect(result.mimeType).toBe("text/css;charset=utf-8");
     expect(result.body).toBe("header {\n  color: red;\n}\n\nmain {\n  color: blue;\n}");
+  });
+
+  test("minifies CSS-only exports when requested", () => {
+    const result = buildCssOnlyExport(staticCssScript, { minify: true });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error("Expected successful minified CSS export");
+    }
+
+    expect(result.body).toBe("header{color:red}main{color:#00f}");
+  });
+});
+
+describe("buildPpScriptExport", () => {
+  test("preserves metadata and selector markers while minifying runtime code", async () => {
+    const result = await buildPpScriptExport(runnableScript, { minify: true });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error("Expected successful minified Page Proxy export");
+    }
+
+    expect(result.body).toContain("// ==Page Proxy==");
+    expect(result.body).toContain("// ==/Page Proxy==");
+    expect(result.body).toContain("// ==Selectors==");
+    expect(result.body).toContain("// ==/Selectors==");
+    expect(result.body).toContain('pa.notification("Total: 3");');
+    expect(result.body).not.toContain("const total = 1 + 2;");
   });
 });
