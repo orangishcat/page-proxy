@@ -166,8 +166,8 @@
   };
 </script>
 
-<div class="flex w-full min-h-0 flex-1 flex-col gap-4 px-4 py-4">
-  <div class="min-h-0 flex-1 overflow-y-auto space-y-3 pr-1" bind:this={metadataScrollContainer}>
+<div class="flex w-full min-h-0 flex-1 flex-col">
+  <div class="min-h-0 flex-1 overflow-y-auto space-y-3 p-4" bind:this={metadataScrollContainer}>
     <div class="grid grid-cols-[fit-content(7rem)_minmax(0,1fr)] gap-x-4 gap-y-2 text-body whitespace-pre-line">
       <span class="min-w-0 text-right truncate text-gray-500">Title</span>
       <span class="min-w-0 wrap-break-word text-left font-mono"
@@ -190,7 +190,7 @@
         <span class="min-w-0 wrap-break-word text-left font-mono">{editorCtx.scriptMetadata.credits}</span>
       {/if}
 
-      <div class="col-span-2 my-1 border-t border-[#5b5542]"></div>
+      <div class="col-span-2 my-1 border-t border-gray-700/80"></div>
 
       <span class="min-w-0 text-right truncate text-gray-500">Minify</span>
       <label class="text-body flex min-w-0 items-center gap-2 text-left text-gray-100">
@@ -198,7 +198,7 @@
         <span class="min-w-0 wrap-break-word">Minify exported output</span>
       </label>
 
-      <div class="col-span-2 my-1 border-t border-[#5b5542]"></div>
+      <div class="col-span-2 my-1 border-t border-gray-700/80"></div>
 
       <span class="min-w-0 text-right truncate text-gray-500">Danger Zone</span>
       <Collapsible.Root bind:open={isDeleteWarningVisible} onOpenChange={handleDeleteWarningOpenChange}>
@@ -233,12 +233,12 @@
     </div>
   </div>
 
-  <div class="mt-auto space-y-2">
-    <div class="flex items-center gap-2">
+  <div class="mt-auto space-y-2 border-t border-gray-800 px-4 pt-3 pb-1">
+    <div class="flex items-center gap-1">
       <label for="export-format" class="text-gray-500">Export format</label>
       <select
         id="export-format"
-        class="h-8 flex-1 rounded-xl w-32 border border-[#5b5542] bg-[#2a2924] px-3 text-body text-gray-100 outline-none focus:border-accent-500"
+        class="h-8 flex-1 rounded-xl ml-3 w-full border border-gray-700 bg-[#2a2924] px-2 text-body text-gray-100 outline-none focus:border-accent-500"
         bind:value={selectedFormat}
       >
         {#each exportFormatOptions as formatOption (formatOption.value)}
