@@ -160,7 +160,7 @@ describe("buildCssOnlyExport", () => {
       throw new Error("Expected successful minified CSS export");
     }
 
-    expect(result.body).toBe("header{color:red}main{color:#00f}");
+    expect(result.body).toBe("header{color:red}main{color:blue}");
   });
 });
 

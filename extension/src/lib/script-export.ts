@@ -1,5 +1,5 @@
 import { parse } from "acorn";
-import { transform } from "lightningcss";
+import * as css from "css-tree";
 import { minify } from "terser";
 import { normalizeScriptMetadataWebsites, parseScriptMetadata } from "@/lib/utils/script-metadata";
 
@@ -34,9 +34,6 @@ const emptySelectorBlockPattern =
   /^\s*\/\/\s*==Selectors==\s*\n\s*\/\/\s*==\/Selectors==\s*(?:\n|$)/m;
 const selectorBlockPattern =
   /(^\s*\/\/\s*==Selectors==\s*$)([\s\S]*?)(^\s*\/\/\s*==\/Selectors==\s*$)/m;
-const textEncoder = new TextEncoder();
-const textDecoder = new TextDecoder();
-
 type ParsedProgram = {
   body: unknown[];
 };
@@ -341,13 +338,7 @@ const minifyCss = (source: string) => {
     return "";
   }
 
-  const result = transform({
-    filename: "page-proxy-export.css",
-    code: textEncoder.encode(normalizedSource),
-    minify: true,
-  });
-
-  return trimMinifiedSection(textDecoder.decode(result.code));
+  return trimMinifiedSection(css.generate(css.parse(normalizedSource)));
 };
 
 const minifyPpScriptContent = async (content: string) => {
