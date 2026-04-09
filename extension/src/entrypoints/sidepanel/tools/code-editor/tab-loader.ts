@@ -56,7 +56,6 @@ export type TabLoaderDeps = {
   state: TabLoaderState;
   setActiveToolId: (tool: string) => void;
   setAllowedGrants: (grants: unknown[]) => void;
-  setDisableAllGrants: (value: boolean) => void;
   setElementEntries: (entries: unknown[]) => void;
   setRecordPanelActiveTab: (tabId: number | null) => void;
   updateEditorContent: (content: string, opts?: { persist?: boolean }) => void;
@@ -78,7 +77,6 @@ export const loadStateForUrl = async (url: string | null, deps: TabLoaderDeps): 
     state.availableScriptOptions = [];
     deps.setActiveToolId("none");
     deps.setAllowedGrants([]);
-    deps.setDisableAllGrants(false);
     const baseContent = buildDefaultScript("", scriptFormatConfig, blankScriptName);
     const displayContent = buildEditorDisplayContent({
       content: baseContent,
@@ -97,7 +95,6 @@ export const loadStateForUrl = async (url: string | null, deps: TabLoaderDeps): 
   state.availableScriptOptions = resolvedState.matches.map(toScriptSelectionOption);
   deps.setActiveToolId(coerceToolPanelTool(resolvedState.state.activeTool));
   deps.setAllowedGrants(resolvedState.state.permissions.allowedGrants);
-  deps.setDisableAllGrants(resolvedState.state.permissions.disableAllGrants);
   const displayContent = buildEditorDisplayContent({
     content: resolvedState.state.codeEditor.content,
     websiteGlob: resolvedState.websiteGlob,
@@ -122,7 +119,6 @@ export const applyActiveTab = async (tab: ActiveTab | null, deps: TabLoaderDeps)
   if (state.isProtectedPage) {
     deps.setElementEntries([]);
     deps.setAllowedGrants([]);
-    deps.setDisableAllGrants(false);
     state.activeWebsiteGlob = null;
     state.activeScriptName = null;
     state.defaultScriptName = null;
@@ -225,7 +221,6 @@ export const createNewScriptForCurrentTab = async (deps: TabLoaderDeps): Promise
   state.activeWebsiteGlob = websiteGlob || null;
   deps.setActiveToolId("none");
   deps.setAllowedGrants([]);
-  deps.setDisableAllGrants(false);
   deps.setElementEntries([]);
   deps.updateEditorContent(nextContent, { persist: false });
   deps.setEditorMessage(null, "error");

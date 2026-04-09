@@ -104,7 +104,6 @@ const buildStoredState = (scriptName: string, websiteGlob: string, updatedAt: nu
   },
   permissions: {
     allowedGrants: [],
-    disableAllGrants: false,
   },
   websiteGlob,
   updatedAt,
@@ -149,7 +148,6 @@ describe("script name conflicts", () => {
       content: nextContent,
       selectorEntries: [],
       allowedGrants: [],
-      disableAllGrants: false,
       isProtectedPage: false,
       scriptFormatConfig,
       activeTabUrl: "https://example.com/page",
@@ -206,7 +204,6 @@ describe("script name conflicts", () => {
       content: renamedContent,
       selectorEntries: [],
       allowedGrants: [],
-      disableAllGrants: false,
       isProtectedPage: false,
       scriptFormatConfig,
       activeTabUrl: "https://example.com/page",
@@ -224,7 +221,7 @@ describe("script name conflicts", () => {
     });
   });
 
-  test("persists disableAllGrants when saving script state", async () => {
+  test("does not persist a global disableAllGrants flag into script state", async () => {
     const storageState = getStorageState();
     const content = normalizeContentForStorage(
       `${buildScriptContent("Grantless Script", "https://example.com/*").trimEnd()}\npt.setItem("mode", "grantless");\n`,
@@ -236,7 +233,6 @@ describe("script name conflicts", () => {
       content,
       selectorEntries: [],
       allowedGrants: [],
-      disableAllGrants: true,
       isProtectedPage: false,
       scriptFormatConfig,
       activeTabUrl: "https://example.com/page",
@@ -251,7 +247,6 @@ describe("script name conflicts", () => {
     expect(storageState[toStorageKey("Grantless Script")]).toMatchObject({
       permissions: {
         allowedGrants: [],
-        disableAllGrants: true,
       },
     });
   });

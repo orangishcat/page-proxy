@@ -2,163 +2,125 @@
 @config "../../tailwind.config.cjs";
 
 :root {
-    box-sizing: border-box;
+  @apply box-border;
 }
 
 @layer utilities {
-    .scrollbar-stable {
-        scrollbar-gutter: stable;
-    }
+  .scrollbar-stable {
+    scrollbar-gutter: stable;
+  }
 
-    .pp-content-ui-root {
-        font-size: 16px;
-        --spacing: 0.25em;
-        --text-xs: 0.75em;
-        --text-sm: 0.875em;
-        --text-base: 1em;
-        --text-lg: 1.25em;
-        --radius-sm: 0.25em;
-        --radius-md: 0.375em;
-        --radius-lg: 0.5em;
-        --radius-xl: 0.75em;
-        --radius-2xl: 1em;
-        --radius-3xl: 1.5em;
-    }
+  .pp-content-ui-root {
+    font-size: 16px;
+    --spacing: 0.25em;
+    --text-xs: 0.75em;
+    --text-sm: 0.875em;
+    --text-base: 1em;
+    --text-lg: 1.25em;
+    --radius-sm: 0.25em;
+    --radius-md: 0.375em;
+    --radius-lg: 0.5em;
+    --radius-xl: 0.75em;
+    --radius-2xl: 1em;
+    --radius-3xl: 1.5em;
+  }
 }
 
 @layer base {
-    :host,
-    html {
-        font-size: 16px !important;
-    }
+  :host,
+  html {
+    font-size: 16px !important;
+  }
 
-    body {
-        @apply bg-gray-50 text-gray-900 font-sans dark:bg-gray-950 dark:text-gray-100;
-    }
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans dark:bg-gray-950 dark:text-gray-100;
+  }
 
-    html,
-    body,
-    #app {
-        height: 100%;
-        overflow: auto;
-    }
+  html,
+  body,
+  #app {
+    @apply h-full overflow-auto;
+  }
 
-    .dark {
-        color-scheme: dark;
-    }
+  .dark {
+    color-scheme: dark;
+  }
 }
 
 @layer components {
-    .text-display {
-        @apply text-[3.25em] font-bold tracking-normal;
-    }
+  .text-display {
+    @apply text-[3.25em] font-bold tracking-normal;
+  }
 
-    .text-heading {
-        @apply text-[2em] font-bold tracking-normal;
-    }
+  .text-heading {
+    @apply text-[2em] font-bold tracking-normal;
+  }
 
-    .text-lead {
-        @apply text-base font-medium;
-    }
+  .text-lead {
+    @apply text-base font-medium;
+  }
 
-    .text-title {
-        @apply text-base font-bold;
-    }
+  .text-title {
+    @apply text-base font-bold;
+  }
 
-    .text-subtitle {
-        @apply text-xs font-medium;
-    }
+  .text-subtitle {
+    @apply text-xs font-medium;
+  }
 
-    .text-body {
-        @apply text-xs font-normal;
-    }
+  .text-body {
+    @apply text-xs font-normal;
+  }
 
-    .text-caption {
-        @apply text-xs font-normal;
-    }
+  .text-caption {
+    @apply text-xs font-normal;
+  }
 
-    .text-button {
-        @apply text-xs font-medium;
-    }
+  .text-button {
+    @apply text-xs font-medium;
+  }
 
-    .text-nav {
-        @apply text-xs font-medium;
-    }
+  .text-nav {
+    @apply text-xs font-medium;
+  }
 
-    .text-eyebrow {
-        @apply text-xs font-semibold uppercase tracking-widest;
-    }
+  .text-eyebrow {
+    @apply text-xs font-semibold uppercase tracking-widest;
+  }
 
-    .text-label {
-        @apply text-xs font-semibold uppercase tracking-widest;
-    }
+  .text-label {
+    @apply text-xs font-semibold uppercase tracking-widest;
+  }
 
-    .monaco-editor.pp-monaco-editor {
-        @apply h-full w-full text-[100%] leading-[187.5%];
-    }
+  .monaco-editor.pp-monaco-editor {
+    @apply h-full w-full text-[100%] leading-[187.5%];
+  }
 
-    .monaco-editor.pp-monaco-editor .monaco-editor-background,
-    .monaco-editor.pp-monaco-editor .margin {
-        background-color: #282824 !important;
-    }
+  .monaco-editor.pp-monaco-editor .monaco-editor-background,
+  .monaco-editor.pp-monaco-editor .margin {
+    @apply bg-[#282824];
+  }
 
-    .monaco-editor.pp-monaco-editor .view-lines {
-        font-family:
-            "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
-            monospace;
-    }
+  .monaco-editor.pp-monaco-editor .view-lines {
+    font-family:
+      "JetBrains_Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation_Mono", "Courier_New", monospace;
+  }
 
-    .monaco-editor.pp-monaco-editor .suggest-widget,
-    .monaco-editor.pp-monaco-editor .monaco-hover {
-        @apply border border-gray-700;
-    }
+  .monaco-editor.pp-monaco-editor .suggest-widget,
+  .monaco-editor.pp-monaco-editor .monaco-hover {
+    @apply border border-gray-700;
+  }
 
-    .monaco-editor.pp-monaco-preview .margin {
-        width: 0 !important;
-    }
+  .monaco-editor.pp-monaco-preview .margin {
+    @apply w-0!;
+  }
 
-    a {
-        @apply text-accent-400 dark:text-accent-500 hover:opacity-75;
-    }
+  a {
+    @apply text-accent-400 dark:text-accent-500 hover:opacity-75;
+  }
 
-    .pp-checkbox {
-        appearance: none;
-        width: 1em;
-        height: 1em;
-        border: 0.0625em solid rgba(115, 115, 115, 0.9);
-        border-radius: 0.25em;
-        background-color: rgba(23, 23, 23, 0.85);
-        background-position: center;
-        background-repeat: no-repeat;
-        background-size: 0.7em;
-        transition:
-            background-color 120ms ease,
-            border-color 120ms ease,
-            opacity 120ms ease;
-    }
-
-    .pp-checkbox:hover {
-        opacity: 0.85;
-    }
-
-    .pp-checkbox:checked {
-        border-color: rgb(231, 147, 42);
-        background-color: rgb(231, 147, 42);
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='white' d='M6.2 11.4 2.8 8l1.4-1.4 2 2 5.6-5.6L13.2 4z'/%3E%3C/svg%3E");
-    }
-
-    .pp-checkbox:focus-visible {
-        outline: 0.125em solid rgba(231, 147, 42, 0.7);
-        outline-offset: 0.125em;
-    }
-
-    :root:not(.dark) .pp-checkbox {
-        background-color: rgba(255, 255, 255, 0.95);
-        border-color: rgba(161, 161, 170, 0.95);
-    }
-
-    :root:not(.dark) .pp-checkbox:checked {
-        border-color: rgb(181, 97, 0);
-        background-color: rgb(181, 97, 0);
-    }
+  input[type="checkbox"]:checked {
+    @apply accent-accent-500 fill-white;
+  }
 }

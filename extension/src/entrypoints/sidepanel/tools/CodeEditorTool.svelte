@@ -3,25 +3,15 @@
   import { get } from "svelte/store";
   import { browser } from "wxt/browser";
 
-  import {
-    createMonacoEditor,
-    updateMonacoEditorValue,
-    type MonacoCodeEditorHandle,
-  } from "@/lib/code-editor";
-  import {
-    applyScriptRunErrorMarker,
-    clearScriptRunErrorMarker,
-  } from "./code-editor/error-markers";
+  import { createMonacoEditor, updateMonacoEditorValue, type MonacoCodeEditorHandle } from "@/lib/code-editor";
+  import { readDisableAllGrantsSetting, saveDisableAllGrantsSetting } from "@/lib/disable-all-grants-setting";
+  import { applyScriptRunErrorMarker, clearScriptRunErrorMarker } from "./code-editor/error-markers";
   import { createAutosaveManager } from "./code-editor/autosave";
   import { parseScriptMetadata } from "@/lib/utils/script-metadata";
   import { requestScriptRun } from "./script/actions";
   import { codeEditorContent } from "./code-editor/state";
   import { setRecordPanelActiveTab } from "./record/state";
-  import {
-    buildDefaultScript,
-    ensureDefineBlock,
-    type ScriptFormatConfig,
-  } from "./state-loading";
+  import { buildDefaultScript, ensureDefineBlock, type ScriptFormatConfig } from "./state-loading";
   import StatusMessage from "./StatusMessage.svelte";
   import { editorMessage, setEditorMessage, setEditorMessageFromUnknown } from "./tool-errors";
   import { getToolContext } from "../context/tool.svelte";
@@ -129,11 +119,13 @@
   const buildEditorActionsDeps = (): EditorActionsDeps => ({
     tabState,
     allowedGrants: editorCtx.allowedGrants,
-    disableAllGrants: editorCtx.disableAllGrants,
     activeTool: toolCtx.activeTool,
     scriptMetadata: editorCtx.scriptMetadata,
     scriptFormatConfig,
-    setHasUnsavedChanges: (v) => { hasUnsavedChanges = v; tabState.hasUnsavedChanges = v; },
+    setHasUnsavedChanges: (v) => {
+      hasUnsavedChanges = v;
+      tabState.hasUnsavedChanges = v;
+    },
     autosaveOnSaveSuccess: () => autosave.onSaveSuccess(),
     refreshActiveTab,
     getEditorMessage: () => get(editorMessage),
@@ -143,10 +135,15 @@
 
   const buildTabLoaderDeps = () => ({
     state: tabState,
-    setActiveToolId: (tool: string) => { toolCtx.activeTool = tool as typeof toolCtx.activeTool; },
-    setAllowedGrants: (grants: unknown[]) => { editorCtx.allowedGrants = grants as typeof editorCtx.allowedGrants; },
-    setDisableAllGrants: (value: boolean) => { editorCtx.disableAllGrants = value; },
-    setElementEntries: (entries: unknown[]) => { editorCtx.elementEntries = entries as typeof editorCtx.elementEntries; },
+    setActiveToolId: (tool: string) => {
+      toolCtx.activeTool = tool as typeof toolCtx.activeTool;
+    },
+    setAllowedGrants: (grants: unknown[]) => {
+      editorCtx.allowedGrants = grants as typeof editorCtx.allowedGrants;
+    },
+    setElementEntries: (entries: unknown[]) => {
+      editorCtx.elementEntries = entries as typeof editorCtx.elementEntries;
+    },
     setRecordPanelActiveTab,
     updateEditorContent,
     setEditorMessage,
@@ -157,14 +154,20 @@
 
   const buildRunScriptDeps = () => ({
     getLastRunError: () => lastRunError,
-    setLastRunError: (v: string | null) => { lastRunError = v; },
+    setLastRunError: (v: string | null) => {
+      lastRunError = v;
+    },
     getLastRunErrorStack: () => lastRunErrorStack,
-    setLastRunErrorStack: (v: string | null) => { lastRunErrorStack = v; },
+    setLastRunErrorStack: (v: string | null) => {
+      lastRunErrorStack = v;
+    },
     getEditorMessage: () => get(editorMessage),
     setEditorMessage,
     getEditorHandle: () => editorHandle,
     getIsRunning: () => isRunning,
-    setIsRunning: (v: boolean) => { isRunning = v; },
+    setIsRunning: (v: boolean) => {
+      isRunning = v;
+    },
     getActiveScriptName: () => tabState.activeScriptName,
     saveNow: (content: string) => autosave.saveNow(content),
     getDefinitionBlock,
@@ -212,8 +215,12 @@
       return;
     }
 
-    editorCtx.disableAllGrants = !editorCtx.disableAllGrants;
-    autosave.saveNow(tabState.editorValue);
+    const nextValue = !editorCtx.disableAllGrants;
+    editorCtx.disableAllGrants = nextValue;
+    void saveDisableAllGrantsSetting(nextValue).catch((error) => {
+      editorCtx.disableAllGrants = !nextValue;
+      setEditorMessageFromUnknown(error, "Unable to update grant settings.");
+    });
   };
 
   const selectScriptForCurrentTab = (scriptName: string) => {
@@ -229,9 +236,13 @@
   };
 
   const refreshActiveTab = () => refreshActiveTabImpl(buildTabLoaderDeps());
-  const handleTabActivated = (activeInfo: { tabId: number }) => handleTabActivatedImpl(activeInfo, buildTabLoaderDeps());
-  const handleTabUpdated = (tabId: number, changeInfo: { url?: string; status?: string }, tab: Parameters<typeof handleTabUpdatedImpl>[2]) =>
-    handleTabUpdatedImpl(tabId, changeInfo, tab, buildTabLoaderDeps());
+  const handleTabActivated = (activeInfo: { tabId: number }) =>
+    handleTabActivatedImpl(activeInfo, buildTabLoaderDeps());
+  const handleTabUpdated = (
+    tabId: number,
+    changeInfo: { url?: string; status?: string },
+    tab: Parameters<typeof handleTabUpdatedImpl>[2],
+  ) => handleTabUpdatedImpl(tabId, changeInfo, tab, buildTabLoaderDeps());
 
   const setupEditor = () => {
     if (!editorHost || editorHandle) return;
@@ -281,6 +292,13 @@
       replaceEditorContent: (content) => updateEditorContent(content),
       resetToDefault: () => resetScriptToDefaultImpl(buildEditorActionsDeps()),
     };
+    void readDisableAllGrantsSetting()
+      .then((value) => {
+        editorCtx.disableAllGrants = value;
+      })
+      .catch((error) => {
+        setEditorMessageFromUnknown(error, "Unable to load grant settings.");
+      });
     refreshActiveTab();
     browser.tabs.onActivated.addListener(handleTabActivated);
     browser.tabs.onUpdated.addListener(handleTabUpdated);
@@ -313,22 +331,18 @@
 >
   <EditorToolbar
     scriptTitle={editorCtx.scriptMetadata.title}
-    scriptWebsite={tabState.activeWebsiteGlob ?? editorCtx.scriptMetadata.website}
     scriptOptions={tabState.availableScriptOptions}
     selectedScriptName={tabState.activeScriptName}
     {hasUnsavedChanges}
     {isRunning}
     disableAllGrants={editorCtx.disableAllGrants}
-    onrun={runScript}
-    ontoggledisableallgrants={toggleDisableAllGrants}
+    onRun={runScript}
+    onDisableGrantToggle={toggleDisableAllGrants}
     oncreatenewscript={createNewScriptForCurrentTab}
     onselectscript={selectScriptForCurrentTab}
   />
   <div class="h-full min-h-0 w-full overflow-auto" bind:this={editorHost}></div>
   {#if activeEditorMessage}
-    <StatusMessage
-      message={activeEditorMessage}
-      onDismiss={() => setEditorMessage(null, "error")}
-    />
+    <StatusMessage message={activeEditorMessage} onDismiss={() => setEditorMessage(null, "error")} />
   {/if}
 </section>

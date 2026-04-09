@@ -24,7 +24,6 @@ export type StoredToolState = {
   selectorPanel: { entries: StoredSelectorEntry[] };
   permissions: {
     allowedGrants: ScriptGrantValue[];
-    disableAllGrants: boolean;
   };
   websiteGlob: string;
   updatedAt: number;
@@ -104,7 +103,7 @@ export const coerceStoredToolState = (value: unknown, scriptNameFromKey: string)
   const codeEditor = data.codeEditor as { content?: unknown } | undefined;
   if (typeof codeEditor?.content !== "string") return null;
   const selectorPanel = data.selectorPanel as { entries?: unknown } | undefined;
-  const permissions = data.permissions as { allowedGrants?: unknown; disableAllGrants?: unknown } | undefined;
+  const permissions = data.permissions as { allowedGrants?: unknown } | undefined;
   const metadata = resolveMetadataFallback(codeEditor.content);
   const metadataScriptName = metadata?.title?.trim() ?? "";
   const resolvedScriptName =
@@ -123,7 +122,6 @@ export const coerceStoredToolState = (value: unknown, scriptNameFromKey: string)
     selectorPanel: { entries: coerceStoredSelectorEntries(selectorPanel?.entries) },
     permissions: {
       allowedGrants: coerceScriptGrantValues(permissions?.allowedGrants),
-      disableAllGrants: permissions?.disableAllGrants === true,
     },
     websiteGlob:
       typeof data.websiteGlob === "string" && data.websiteGlob.trim().length > 0
