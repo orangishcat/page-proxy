@@ -1,5 +1,7 @@
 import { defaultBlankScriptTitle } from "./script-names";
 
+export const defaultScriptVersion = "0.1.0";
+
 export type DefaultScriptConfig = {
   ppImportLines: readonly string[];
   defineBlockStart: string;
@@ -20,6 +22,7 @@ export const buildDefaultScript = (
     `// @title ${normalizedTitle}`,
     normalizedWebsite ? `// @website ${normalizedWebsite}` : "// @website",
     "// @description",
+    `// @version ${defaultScriptVersion}`,
     "// @author",
     "// @grant",
     "// ==/Page Proxy==",
