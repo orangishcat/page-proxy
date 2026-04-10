@@ -5,13 +5,14 @@ export type ScriptMetadata = {
   website: string;
   websites: string[];
   description: string;
+  version: string;
   author: string;
   credits: string;
   grants: ScriptGrantValue[];
 };
 
 const requiredMetadataFields = ["title", "website", "description"] as const;
-const optionalMetadataFields = ["author", "credits", "grant"] as const;
+const optionalMetadataFields = ["version", "author", "credits", "grant"] as const;
 const supportedMetadataFields = [...requiredMetadataFields, ...optionalMetadataFields] as const;
 const multilineMetadataFields = ["website", "description", "credits"] as const;
 
@@ -189,6 +190,7 @@ export const parseScriptMetadata = (content: string): ScriptMetadata => {
     title: "",
     website: "",
     description: "",
+    version: "",
     author: "",
     credits: "",
     grant: "",
@@ -280,6 +282,7 @@ export const parseScriptMetadata = (content: string): ScriptMetadata => {
     website: parsedWebsites[0] ?? parsed.website,
     websites: parsedWebsites,
     description: parsed.description,
+    version: parsed.version,
     author: parsed.author,
     credits: parsed.credits,
     grants: parsedGrants,

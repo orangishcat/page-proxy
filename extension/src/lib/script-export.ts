@@ -1,6 +1,7 @@
 import { parse } from "acorn";
 import * as css from "css-tree";
 import { minify } from "terser";
+import { defaultScriptVersion } from "@/lib/default-script";
 import { normalizeScriptMetadataWebsites, parseScriptMetadata } from "@/lib/utils/script-metadata";
 
 export type ExportFormat = "pp-script" | "tampermonkey" | "css-only" | "wxt-extension";
@@ -272,6 +273,7 @@ const buildUserscriptMetadataHeader = (content: string) => {
     `// @name ${toSingleLineMetadataValue(metadata.title)}`,
     ...websiteDirectives,
     `// @description ${toSingleLineMetadataValue(metadata.description)}`,
+    `// @version ${toSingleLineMetadataValue(metadata.version || defaultScriptVersion)}`,
   ];
 
   if (metadata.author.trim()) {

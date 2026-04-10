@@ -14,7 +14,8 @@ const staticCssScript = `import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp"
 // @website https://example.com/*
 // https://*.example.com/*
 // @description Restyles the page
-// @author Tim
+// @version 2.4.6
+// @author
 // @grant run-on-page-load
 // ==/Page Proxy==
 
@@ -40,7 +41,7 @@ const runnableScript = `import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";
 // @title Runtime Script
 // @website https://example.com/*
 // @description Shows a notification
-// @author Tim
+// @author
 // @grant run-on-page-load
 // ==/Page Proxy==
 
@@ -114,6 +115,7 @@ describe("buildTampermonkeyExport", () => {
     expect(result.mimeType).toBe("text/javascript;charset=utf-8");
     expect(result.body).toContain("// ==UserScript==");
     expect(result.body).toContain("// @name Theme Tweak");
+    expect(result.body).toContain("// @version 2.4.6");
     expect(result.body).toContain(`// @require ${hostedPpUserscriptRequireUrl}`);
     expect(result.body).toContain("// @run-at document-start");
     expect(result.body).toContain("// @match https://example.com/*");
@@ -135,6 +137,17 @@ describe("buildTampermonkeyExport", () => {
     expect(header).toContain("// ==UserScript==");
     expect(body).toContain('pa.notification("Total: 3");');
     expect(body).not.toContain("const total = 1 + 2;");
+  });
+
+  test("adds the default version when Page Proxy metadata omits @version", async () => {
+    const result = await buildTampermonkeyExport(runnableScript, { minify: false });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error("Expected successful Tampermonkey export");
+    }
+
+    expect(result.body).toContain("// @version 0.1.0");
   });
 });
 
