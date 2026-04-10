@@ -6,12 +6,12 @@
 
 > This was supposed to be an easy project...
 
+- Settings page for the extension
 - Create tool:
     - Create a settings UI for your script (or any UI) easily
     - Create components
-- Settings page for the extension
-- Multi-file scripts
 - Local scripts
+- Multi-file scripts
 - Export to WXT extension
 - Import/export with Figma
 - Sync to cloud storage (Appwrite backend)
