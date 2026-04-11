@@ -13,11 +13,9 @@ export class ApplyStyleElementStep implements StepGenerator {
       cssEntries.length === 0
         ? ["// Applied style (no CSS properties recorded)"]
         : [
-            `if (${el}) {`,
-            `  ps.applyStyle([${el}], {`,
+            `ps.applyStyle([${el}], {`,
             ...cssEntries.map(([key, value]) => `    ${JSON.stringify(key)}: ${JSON.stringify(value)},`),
             "  })",
-            "}",
           ];
     return {
       functionName,
@@ -42,11 +40,9 @@ export class ApplyStyleElementStep implements StepGenerator {
     }
     return {
       lines: [
-        `if (${stepInputOutputName}) {`,
-        `  ps.applyStyle([${stepInputOutputName}], {`,
+        `ps.applyStyle([${stepInputOutputName}], {`,
         ...cssEntries.map(([key, value]) => `    ${JSON.stringify(key)}: ${JSON.stringify(value)},`),
         "  })",
-        "}",
       ],
       state,
     };

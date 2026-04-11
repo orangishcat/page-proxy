@@ -14,7 +14,7 @@ export class CopyElementStep implements StepGenerator {
       code: buildStepFunctionCode({
         functionName,
         inputNames,
-        bodyLines: [`const ${clipboardHtmlName} = ${el} ? ${el}.outerHTML : null`],
+        bodyLines: [`const ${clipboardHtmlName} = ${el}.outerHTML`],
         outputs: [
           { name: stepInputOutputName, expression: el },
           { name: clipboardHtmlName, expression: clipboardHtmlName },
@@ -28,7 +28,7 @@ export class CopyElementStep implements StepGenerator {
   buildCombinedLines({ state }: CombinedLinesContext): CombinedLinesResult {
     const lines: string[] = [];
     const nextState = ensureClipboardVar(lines, state);
-    lines.push(`${clipboardHtmlName} = ${stepInputOutputName} ? ${stepInputOutputName}.outerHTML : null`);
+    lines.push(`${clipboardHtmlName} = ${stepInputOutputName}.outerHTML`);
     return { lines, state: nextState };
   }
 

@@ -13,7 +13,7 @@ export class DeleteElementStep implements StepGenerator {
       code: buildStepFunctionCode({
         functionName,
         inputNames,
-        bodyLines: [`if (${el}) {`, `  ${el}.remove()`, "}"],
+        bodyLines: [`${el}.remove()`],
         outputs: [],
       }),
       outputNames: [],
@@ -22,7 +22,7 @@ export class DeleteElementStep implements StepGenerator {
 
   buildCombinedLines({ state }: CombinedLinesContext): CombinedLinesResult {
     return {
-      lines: [`if (${stepInputOutputName}) {`, `  ${stepInputOutputName}.remove()`, "}"],
+      lines: [`${stepInputOutputName}.remove()`],
       state,
     };
   }

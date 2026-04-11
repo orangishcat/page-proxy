@@ -3,11 +3,9 @@ import type { BuiltStepCode, CombinedLinesContext, CombinedLinesResult, Function
 import { buildStepFunctionCode, getPassthroughExtras, stepInputOutputName } from "../utils";
 
 const hideLines = (elementName: string) => [
-  `if (${elementName}) {`,
-  `  ps.applyStyle([${elementName}], {`,
+  `ps.applyStyle([${elementName}], {`,
   '    "display": "none",',
   "  })",
-  "}",
 ];
 
 export class HideElementStep implements StepGenerator {

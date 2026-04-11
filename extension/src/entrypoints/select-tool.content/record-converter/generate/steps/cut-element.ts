@@ -15,10 +15,8 @@ export class CutElementStep implements StepGenerator {
         functionName,
         inputNames,
         bodyLines: [
-          `const ${clipboardHtmlName} = ${el} ? ${el}.outerHTML : null`,
-          `if (${el}) {`,
-          `  ${el}.remove()`,
-          "}",
+          `const ${clipboardHtmlName} = ${el}.outerHTML`,
+          `${el}.remove()`,
         ],
         outputs: [
           { name: stepInputOutputName, expression: "null" },
@@ -34,10 +32,8 @@ export class CutElementStep implements StepGenerator {
     const lines: string[] = [];
     const nextState = ensureClipboardVar(lines, state);
     lines.push(
-      `${clipboardHtmlName} = ${stepInputOutputName} ? ${stepInputOutputName}.outerHTML : null`,
-      `if (${stepInputOutputName}) {`,
-      `  ${stepInputOutputName}.remove()`,
-      "}",
+      `${clipboardHtmlName} = ${stepInputOutputName}.outerHTML`,
+      `${stepInputOutputName}.remove()`,
       `${stepInputOutputName} = null`,
     );
     return { lines, state: nextState };
