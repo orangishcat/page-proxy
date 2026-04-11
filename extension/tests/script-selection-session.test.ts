@@ -82,8 +82,10 @@ const {
   readSelectedScriptForHostname,
   writeSelectedScriptForHostname,
 } = await import("../src/entrypoints/sidepanel/tools/script-selection-session");
+const { resetScriptToDefault } = await import("../src/entrypoints/sidepanel/tools/code-editor/editor-actions");
 const {
   createNewScriptForCurrentTab: createNewScriptForCurrentTabInLoader,
+  loadStateForUrl,
   selectScriptForCurrentTab,
 } = await import("../src/entrypoints/sidepanel/tools/code-editor/tab-loader");
 
@@ -315,5 +317,100 @@ describe("script selection session", () => {
       buildStoredState("Page Proxy", "https://docs.example.com/*", 1),
     );
     expect(latestMessage).toBeNull();
+  });
+
+  test("restores another stored script that still matches active tab when deleting current script", async () => {
+    const localStorageState = getStorageState("local");
+    localStorageState[toStorageKey("Docs Script")] = buildStoredState("Docs Script", "https://docs.example.com/*", 1);
+    localStorageState[toStorageKey("Reference Script")] = buildStoredState(
+      "Reference Script",
+      "https://docs.example.com/reference/*",
+      2,
+    );
+    await writeSelectedScriptForHostname("docs.example.com", "Docs Script");
+
+    const tabState = {
+      activeTabId: 1,
+      activeTabUrl: "https://docs.example.com/reference/api",
+      activeWebsiteGlob: "https://docs.example.com/*",
+      activeScriptName: "Docs Script",
+      defaultScriptName: "Reference Script",
+      availableScriptOptions: [
+        { scriptName: "Reference Script", websiteGlob: "https://docs.example.com/reference/*" },
+        { scriptName: "Docs Script", websiteGlob: "https://docs.example.com/*" },
+      ],
+      isProtectedPage: false,
+      canPersistEditorChanges: true,
+      hasUnsavedChanges: false,
+      isProgrammaticUpdate: false,
+      editorValue: buildScriptContent("Docs Script", "https://docs.example.com/*"),
+    };
+
+    let latestEditorContent = "";
+    let latestMessage: string | null = "existing";
+    let activeToolId = "record";
+    let allowedGrants: unknown[] = ["pn"];
+    let elementEntries: unknown[] = ["stale"];
+
+    await resetScriptToDefault({
+      tabState,
+      allowedGrants: [],
+      activeTool: "none",
+      scriptMetadata: {
+        title: "Docs Script",
+        website: "https://docs.example.com/*",
+      },
+      scriptFormatConfig,
+      setHasUnsavedChanges: () => undefined,
+      autosaveOnSaveSuccess: () => false,
+      refreshActiveTab: () => undefined,
+      getEditorMessage: () => null,
+      setEditorMessage: (message: string | null) => {
+        latestMessage = message;
+      },
+      updateEditorContent: (content: string) => {
+        latestEditorContent = content;
+      },
+      reloadStateForUrl: async (url: string) => {
+        await loadStateForUrl(url, {
+          state: tabState,
+          setActiveToolId: (tool: string) => {
+            activeToolId = tool;
+          },
+          setAllowedGrants: (grants: unknown[]) => {
+            allowedGrants = grants;
+          },
+          setElementEntries: (entries: unknown[]) => {
+            elementEntries = entries;
+          },
+          setRecordPanelActiveTab: () => undefined,
+          updateEditorContent: (content: string) => {
+            latestEditorContent = content;
+          },
+          setEditorMessage: (message: string | null) => {
+            latestMessage = message;
+          },
+          setEditorMessageFromUnknown: () => undefined,
+          scriptFormatConfig,
+          autosave: {
+            queuePendingTabRefresh: () => false,
+          },
+        });
+      },
+    });
+
+    expect("pp:Docs Script" in localStorageState).toBe(false);
+    expect(tabState.activeScriptName).toBe("Reference Script");
+    expect(tabState.defaultScriptName).toBe("Reference Script");
+    expect(tabState.activeWebsiteGlob).toBe("https://docs.example.com/reference/*");
+    expect(tabState.availableScriptOptions).toEqual([
+      { scriptName: "Reference Script", websiteGlob: "https://docs.example.com/reference/*" },
+    ]);
+    expect(latestEditorContent).toContain("// @title Reference Script");
+    expect(await readSelectedScriptForHostname("docs.example.com")).toBeNull();
+    expect(latestMessage).toBeNull();
+    expect(activeToolId).toBe("none");
+    expect(allowedGrants).toEqual([]);
+    expect(elementEntries).toEqual(["stale"]);
   });
 });

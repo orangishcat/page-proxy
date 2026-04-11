@@ -25,6 +25,7 @@
   import { runScript as runScriptImpl } from "./code-editor/script-runner";
   import {
     createNewScriptForCurrentTab as createNewScriptForCurrentTabImpl,
+    loadStateForUrl,
     refreshActiveTab as refreshActiveTabImpl,
     handleTabActivated as handleTabActivatedImpl,
     handleTabUpdated as handleTabUpdatedImpl,
@@ -128,6 +129,7 @@
     },
     autosaveOnSaveSuccess: () => autosave.onSaveSuccess(),
     refreshActiveTab,
+    reloadStateForUrl: (url) => loadStateForUrl(url, buildTabLoaderDeps()),
     getEditorMessage: () => get(editorMessage),
     setEditorMessage,
     updateEditorContent,
