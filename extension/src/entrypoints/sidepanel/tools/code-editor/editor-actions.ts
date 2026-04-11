@@ -30,6 +30,7 @@ export type EditorActionsDeps = {
   setHasUnsavedChanges: (v: boolean) => void;
   autosaveOnSaveSuccess: () => boolean;
   refreshActiveTab: () => void;
+  reloadStateForUrl: (url: string) => Promise<void>;
   getEditorMessage: () => EditorMessage;
   setEditorMessage: (msg: string | null, status: "success" | "error", stack?: string | null) => void;
   updateEditorContent: (content: string, opts?: { persist?: boolean }) => void;
@@ -118,6 +119,13 @@ export const resetScriptToDefault = async (deps: EditorActionsDeps): Promise<voi
   const hostname = readHostnameFromUrl(deps.tabState.activeTabUrl);
   if (hostname && activeScript && deps.tabState.defaultScriptName && activeScript !== deps.tabState.defaultScriptName) {
     await clearSelectedScriptForHostname(hostname);
+  }
+
+  const activeTabUrl = deps.tabState.activeTabUrl?.trim() ?? "";
+  if (activeTabUrl) {
+    await deps.reloadStateForUrl(activeTabUrl);
+    deps.setEditorMessage(null, "error");
+    return;
   }
 
   const defaultScriptName = await resolveBlankScriptName(defaultBlankScriptTitle, scriptNamesToRemove);
