@@ -45,6 +45,23 @@ describe("record converter click support", () => {
     expect(generated.byMode.functions.rawCode).toContain("selectedElement.click()");
     expect(generated.byMode.functions.rawCode).toContain("return [selectedElement]");
   });
+
+  test("generated click code does not wrap selectedElement in a null check", () => {
+    const normalized = normalizeRecordTimeline([
+      { id: "entry-1", action: "Selected element", detail: "selector: button", timestamp: 1 },
+      { id: "entry-2", action: "click", detail: "", timestamp: 2 },
+    ]);
+
+    const generated = buildGeneratedReviewCode({
+      steps: normalized.supportedSteps,
+      parentOptions: {},
+      existingCode: "",
+      defaultParentUntilSelector: "body",
+    });
+
+    expect(generated.byMode.combined.rawCode).not.toContain("if (selectedElement)");
+    expect(generated.byMode.functions.rawCode).not.toContain("if (selectedElement)");
+  });
 });
 
 describe("record converter: new step kinds — normalize", () => {
@@ -133,6 +150,8 @@ describe("record converter: new step kinds — generate", () => {
     expect(code.byMode.combined.rawCode).toContain("clipboardHtml");
     expect(code.byMode.combined.rawCode).toContain(".remove()");
     expect(code.byMode.combined.rawCode).toContain("selectedElement = null");
+    expect(code.byMode.combined.rawCode).not.toContain("selectedElement ? selectedElement.outerHTML : null");
+    expect(code.byMode.combined.rawCode).not.toContain("if (selectedElement)");
   });
 
   test("cut: functions mode returns [null, clipboardHtml]", () => {
@@ -142,6 +161,8 @@ describe("record converter: new step kinds — generate", () => {
     expect(code.byMode.functions.rawCode).toContain("clipboardHtml");
     expect(code.byMode.functions.rawCode).toContain(".remove()");
     expect(code.byMode.functions.rawCode).toContain("return [null, clipboardHtml]");
+    expect(code.byMode.functions.rawCode).not.toContain("selectedElement ? selectedElement.outerHTML : null");
+    expect(code.byMode.functions.rawCode).not.toContain("if (selectedElement)");
   });
 
   test("copy: combined mode captures outerHTML", () => {
@@ -151,6 +172,7 @@ describe("record converter: new step kinds — generate", () => {
     expect(code.byMode.combined.rawCode).toContain("clipboardHtml");
     expect(code.byMode.combined.rawCode).toContain("outerHTML");
     expect(code.byMode.combined.rawCode).not.toContain(".remove()");
+    expect(code.byMode.combined.rawCode).not.toContain("selectedElement ? selectedElement.outerHTML : null");
   });
 
   test("copy: functions mode returns [selectedElement, clipboardHtml]", () => {
@@ -158,6 +180,7 @@ describe("record converter: new step kinds — generate", () => {
       entries: [{ action: "Selected element", detail: "selector: .foo" }, { action: "Copied element" }],
     });
     expect(code.byMode.functions.rawCode).toContain("return [selectedElement, clipboardHtml]");
+    expect(code.byMode.functions.rawCode).not.toContain("selectedElement ? selectedElement.outerHTML : null");
   });
 
   test("paste: combined mode calls insertAdjacentHTML", () => {
@@ -166,6 +189,7 @@ describe("record converter: new step kinds — generate", () => {
     });
     expect(code.byMode.combined.rawCode).toContain("insertAdjacentHTML");
     expect(code.byMode.combined.rawCode).toContain("clipboardHtml");
+    expect(code.byMode.combined.rawCode).not.toContain("if (selectedElement && clipboardHtml)");
   });
 
   test("paste: functions mode accepts clipboardHtml param and returns it", () => {
@@ -174,6 +198,7 @@ describe("record converter: new step kinds — generate", () => {
     });
     expect(code.byMode.functions.rawCode).toContain("clipboardHtml");
     expect(code.byMode.functions.rawCode).toContain("insertAdjacentHTML");
+    expect(code.byMode.functions.rawCode).not.toContain("if (selectedElement && clipboardHtml)");
   });
 
   test("apply-style: combined mode emits ps.applyStyle with cssValues", () => {
@@ -186,6 +211,7 @@ describe("record converter: new step kinds — generate", () => {
     expect(code.byMode.combined.rawCode).toContain("ps.applyStyle");
     expect(code.byMode.combined.rawCode).toContain('"color"');
     expect(code.byMode.combined.rawCode).toContain('"red"');
+    expect(code.byMode.combined.rawCode).not.toContain("if (selectedElement)");
   });
 
   test("apply-style: functions mode emits ps.applyStyle and returns selectedElement", () => {
@@ -197,6 +223,7 @@ describe("record converter: new step kinds — generate", () => {
     });
     expect(code.byMode.functions.rawCode).toContain("ps.applyStyle");
     expect(code.byMode.functions.rawCode).toContain("return [selectedElement]");
+    expect(code.byMode.functions.rawCode).not.toContain("if (selectedElement)");
   });
 
   test("hide: combined mode emits display none style application", () => {
@@ -208,6 +235,7 @@ describe("record converter: new step kinds — generate", () => {
     expect(code.byMode.combined.rawCode).toContain('"display"');
     expect(code.byMode.combined.rawCode).toContain('"none"');
     expect(code.byMode.combined.rawCode).not.toContain(".remove()");
+    expect(code.byMode.combined.rawCode).not.toContain("if (selectedElement)");
   });
 
   test("hide: functions mode returns selectedElement after applying display none", () => {
@@ -219,6 +247,18 @@ describe("record converter: new step kinds — generate", () => {
     expect(code.byMode.functions.rawCode).toContain('"display"');
     expect(code.byMode.functions.rawCode).toContain('"none"');
     expect(code.byMode.functions.rawCode).toContain("return [selectedElement]");
+    expect(code.byMode.functions.rawCode).not.toContain("if (selectedElement)");
+  });
+
+  test("delete code does not wrap remove() in a selectedElement null check", () => {
+    const code = generate({
+      entries: [{ action: "Selected element", detail: "selector: .foo" }, { action: "Deleted element" }],
+    });
+
+    expect(code.byMode.combined.rawCode).toContain("selectedElement.remove()");
+    expect(code.byMode.functions.rawCode).toContain("selectedElement.remove()");
+    expect(code.byMode.combined.rawCode).not.toContain("if (selectedElement)");
+    expect(code.byMode.functions.rawCode).not.toContain("if (selectedElement)");
   });
 
   test("clipboardHtml chains: select → copy → select → paste → paste", () => {

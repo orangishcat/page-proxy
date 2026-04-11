@@ -16,9 +16,7 @@ export class PasteElementStep implements StepGenerator {
         functionName,
         inputNames: functionInputNames,
         bodyLines: [
-          `if (${el} && ${clipboardHtmlName}) {`,
-          `  ${el}.insertAdjacentHTML("afterend", ${clipboardHtmlName})`,
-          "}",
+          `${el}.insertAdjacentHTML("afterend", ${clipboardHtmlName})`,
         ],
         outputs: [
           { name: stepInputOutputName, expression: el },
@@ -33,11 +31,7 @@ export class PasteElementStep implements StepGenerator {
   buildCombinedLines({ state }: CombinedLinesContext): CombinedLinesResult {
     const lines: string[] = [];
     const nextState = ensureClipboardVar(lines, state);
-    lines.push(
-      `if (${stepInputOutputName} && ${clipboardHtmlName}) {`,
-      `  ${stepInputOutputName}.insertAdjacentHTML("afterend", ${clipboardHtmlName})`,
-      "}",
-    );
+    lines.push(`${stepInputOutputName}.insertAdjacentHTML("afterend", ${clipboardHtmlName})`);
     return { lines, state: nextState };
   }
 

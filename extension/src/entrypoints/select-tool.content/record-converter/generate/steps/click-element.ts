@@ -14,7 +14,7 @@ export class ClickElementStep implements StepGenerator {
       code: buildStepFunctionCode({
         functionName,
         inputNames,
-        bodyLines: [`if (${el}) {`, `  ${el}.click()`, "}"],
+        bodyLines: [`${el}.click()`],
         outputs: [
           { name: stepInputOutputName, expression: el },
           ...extras.map((name) => ({ name, expression: name })),
@@ -26,7 +26,7 @@ export class ClickElementStep implements StepGenerator {
 
   buildCombinedLines({ state }: CombinedLinesContext): CombinedLinesResult {
     return {
-      lines: [`if (${stepInputOutputName}) {`, `  ${stepInputOutputName}.click()`, "}"],
+      lines: [`${stepInputOutputName}.click()`],
       state,
     };
   }
