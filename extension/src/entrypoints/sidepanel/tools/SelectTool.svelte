@@ -6,6 +6,7 @@
     sendCopySelection,
     sendCutSelection,
     sendDeleteSelection,
+    sendHideSelection,
     sendPasteSelection,
     sendApplyStylePopup,
     sendSelectParent,
@@ -26,6 +27,7 @@
     ArrowUpIcon,
     ClipboardPaste,
     Copy,
+    EyeOff,
     MousePointerClick,
     Palette,
     Scissors,
@@ -181,6 +183,10 @@
                 <DropdownMenu.Item class={actionMenuItemClasses} onclick={sendApplyStylePopup}>
                   <Palette class="h-4 w-4 text-gray-500 dark:text-gray-300" />
                   Apply style to element
+                </DropdownMenu.Item>
+                <DropdownMenu.Item class={actionMenuItemClasses} onclick={sendHideSelection}>
+                  <EyeOff class="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                  Hide selected element
                 </DropdownMenu.Item>
                 <DropdownMenu.Item class={actionMenuItemClasses} onclick={sendDeleteSelection}>
                   <Trash2 class="h-4 w-4 text-gray-500 dark:text-gray-300" />

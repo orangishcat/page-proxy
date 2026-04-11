@@ -8,6 +8,7 @@ export type SupportedRecordStepKind =
   | "cut-element"
   | "copy-element"
   | "paste-element"
+  | "hide-element"
   | "apply-style-element";
 
 export type SupportedRecordStep = {
@@ -47,6 +48,9 @@ const normalizeAction = (action: string): SupportedRecordStepKind | null => {
   }
   if (normalized === "pasted element") {
     return "paste-element";
+  }
+  if (normalized === "hide element" || normalized === "hidden element") {
+    return "hide-element";
   }
   if (normalized === "applied style") {
     return "apply-style-element";
@@ -98,6 +102,9 @@ const buildStepLabel = (kind: SupportedRecordStepKind, count: number) => {
   if (kind === "paste-element") {
     return "Paste element";
   }
+  if (kind === "hide-element") {
+    return "Hide element";
+  }
   if (kind === "apply-style-element") {
     return "Apply style";
   }
@@ -142,8 +149,11 @@ export const normalizeRecordTimeline = (timeline: RecordTimelineEntry[]): Normal
       return;
     }
 
-    const cssValues: Record<string, string> | undefined =
-      kind === "apply-style-element" ? parseCssValuesDetail(entry.detail) : undefined;
+    const cssValues: Record<string, string> | undefined = kind === "hide-element"
+      ? { display: "none" }
+      : kind === "apply-style-element"
+      ? parseCssValuesDetail(entry.detail)
+      : undefined;
 
     stepCounter += 1;
     supportedSteps.push({

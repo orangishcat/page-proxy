@@ -33,6 +33,11 @@ export const runSelectElementAction = (
     return { ok: true };
   }
 
+  if (action === "hide") {
+    (target as HTMLElement).style.display = "none";
+    return { ok: true };
+  }
+
   if (action === "delete") {
     target.remove();
     clearSelectedAndNotify();

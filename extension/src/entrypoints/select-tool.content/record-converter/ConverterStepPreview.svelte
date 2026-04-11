@@ -59,6 +59,9 @@
     if (kind === "paste-element") {
       return "Paste element";
     }
+    if (kind === "hide-element") {
+      return "Hide element";
+    }
     if (kind === "apply-style-element") {
       return "Apply style";
     }
@@ -83,6 +86,9 @@
     }
     if (kind === "paste-element") {
       return "Review this step before inserting the clipboard HTML after the selected element.";
+    }
+    if (kind === "hide-element") {
+      return "Review this step before applying display: none to the selected element.";
     }
     if (kind === "apply-style-element") {
       return "Review this step before applying the recorded CSS declarations to the selected element.";

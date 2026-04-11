@@ -4,6 +4,7 @@ import { ClickElementStep } from "./steps/click-element";
 import { CopyElementStep } from "./steps/copy-element";
 import { CutElementStep } from "./steps/cut-element";
 import { DeleteElementStep } from "./steps/delete-element";
+import { HideElementStep } from "./steps/hide-element";
 import { PasteElementStep } from "./steps/paste-element";
 import { SelectElementStep } from "./steps/select-element";
 import { SelectParentStep } from "./steps/select-parent";
@@ -20,6 +21,7 @@ const stepCtors: Record<
   "cut-element": (step) => new CutElementStep(step),
   "copy-element": (step) => new CopyElementStep(step),
   "paste-element": (step) => new PasteElementStep(step),
+  "hide-element": (step) => new HideElementStep(step),
   "apply-style-element": (step) => new ApplyStyleElementStep(step),
 };
 
