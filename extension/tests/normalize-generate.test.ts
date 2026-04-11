@@ -48,15 +48,16 @@ describe("record converter click support", () => {
 });
 
 describe("record converter: new step kinds — normalize", () => {
-  test("normalizeRecordTimeline maps cut/copy/paste/apply-style actions", () => {
+  test("normalizeRecordTimeline maps cut/copy/paste/hide/apply-style actions", () => {
     const normalized = normalizeRecordTimeline([
       { id: "e1", action: "Selected element", detail: "selector: .foo", timestamp: 1 },
       { id: "e2", action: "Cut element", detail: "selector: .foo", timestamp: 2 },
       { id: "e3", action: "Selected element", detail: "selector: .bar", timestamp: 3 },
       { id: "e4", action: "Pasted element", detail: "", timestamp: 4 },
       { id: "e5", action: "Selected element", detail: "selector: .baz", timestamp: 5 },
-      { id: "e6", action: "Copied element", detail: "", timestamp: 6 },
-      { id: "e7", action: "Applied style", detail: JSON.stringify({ color: "red" }), timestamp: 7 },
+      { id: "e6", action: "Hide element", detail: "selector: .baz", timestamp: 6 },
+      { id: "e7", action: "Copied element", detail: "", timestamp: 7 },
+      { id: "e8", action: "Applied style", detail: JSON.stringify({ color: "red" }), timestamp: 8 },
     ]);
 
     expect(normalized.supportedSteps.map((s) => s.kind)).toEqual([
@@ -65,9 +66,21 @@ describe("record converter: new step kinds — normalize", () => {
       "select-element",
       "paste-element",
       "select-element",
+      "hide-element",
       "copy-element",
       "apply-style-element",
     ]);
+  });
+
+  test("hide step records display none cssValues", () => {
+    const normalized = normalizeRecordTimeline([
+      { id: "e1", action: "Selected element", detail: "selector: .foo", timestamp: 1 },
+      { id: "e2", action: "Hide element", detail: "selector: .foo", timestamp: 2 },
+    ]);
+
+    expect(normalized.supportedSteps[1].kind).toBe("hide-element");
+    expect(normalized.supportedSteps[1].label).toBe("Hide element");
+    expect(normalized.supportedSteps[1].cssValues).toEqual({ display: "none" });
   });
 
   test("apply-style step parses cssValues from detail", () => {
@@ -183,6 +196,28 @@ describe("record converter: new step kinds — generate", () => {
       ],
     });
     expect(code.byMode.functions.rawCode).toContain("ps.applyStyle");
+    expect(code.byMode.functions.rawCode).toContain("return [selectedElement]");
+  });
+
+  test("hide: combined mode emits display none style application", () => {
+    const code = generate({
+      entries: [{ action: "Selected element", detail: "selector: .foo" }, { action: "Hide element" }],
+    });
+
+    expect(code.byMode.combined.rawCode).toContain("ps.applyStyle");
+    expect(code.byMode.combined.rawCode).toContain('"display"');
+    expect(code.byMode.combined.rawCode).toContain('"none"');
+    expect(code.byMode.combined.rawCode).not.toContain(".remove()");
+  });
+
+  test("hide: functions mode returns selectedElement after applying display none", () => {
+    const code = generate({
+      entries: [{ action: "Selected element", detail: "selector: .foo" }, { action: "Hide element" }],
+    });
+
+    expect(code.byMode.functions.rawCode).toContain("ps.applyStyle");
+    expect(code.byMode.functions.rawCode).toContain('"display"');
+    expect(code.byMode.functions.rawCode).toContain('"none"');
     expect(code.byMode.functions.rawCode).toContain("return [selectedElement]");
   });
 

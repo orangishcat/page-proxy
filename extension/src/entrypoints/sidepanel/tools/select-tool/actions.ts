@@ -4,6 +4,7 @@ export {
   sendCopySelection,
   sendCutSelection,
   sendDeleteSelection,
+  sendHideSelection,
   sendPasteSelection,
   sendSelectParent,
   sendSelectionToggle,

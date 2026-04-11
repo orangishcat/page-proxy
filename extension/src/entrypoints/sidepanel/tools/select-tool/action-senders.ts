@@ -389,6 +389,12 @@ const sendSelectionAction = (action: SelectElementAction) => {
         return;
       }
 
+      if (action === "hide") {
+        const selectorDetail = get(selectedInfo)?.selector?.trim() ?? "";
+        recordSidepanelAction("Hide element", selectorDetail ? `selector: ${selectorDetail}` : "");
+        return;
+      }
+
       if (action === "delete") {
         recordSidepanelAction("Deleted element");
       }
@@ -417,4 +423,8 @@ export const sendPasteSelection = () => {
 
 export const sendDeleteSelection = () => {
   sendSelectionAction("delete");
+};
+
+export const sendHideSelection = () => {
+  sendSelectionAction("hide");
 };

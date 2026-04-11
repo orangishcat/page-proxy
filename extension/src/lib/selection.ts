@@ -73,7 +73,7 @@ export type RecordConverterSaveResult = {
   renameMap?: Record<string, string>;
 };
 
-export type SelectElementAction = "click" | "copy" | "cut" | "paste" | "delete";
+export type SelectElementAction = "click" | "copy" | "cut" | "paste" | "hide" | "delete";
 
 export type SelectElementActionResult =
   | {
