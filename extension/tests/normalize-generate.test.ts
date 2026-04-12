@@ -322,6 +322,30 @@ describe("record converter: new step kinds — generate", () => {
     expect(code.byMode.combined.rawCode).not.toContain("await selector1.waitUntilMatch()");
   });
 
+  test("select-element resets later generated chains to top level", () => {
+    const code = generate({
+      entries: [
+        { action: "Selected element", detail: "selector: path" },
+        { action: "Deleted element" },
+        { action: "Selected element", detail: "selector: div.target" },
+        { action: "Deleted element" },
+      ],
+    });
+
+    expect(code.byMode.combined.rawCode).toContain("selector1.onElementMatches(async (selectedElement) => {");
+    expect(code.byMode.combined.rawCode).toContain("selector3.onElementMatches(async (selectedElement) => {");
+    expect(code.byMode.combined.rawCode).not.toContain(
+      [
+        "selector1.onElementMatches(async (selectedElement) => {",
+        "  selectedElement.remove()",
+        "  const selector3 = pq.selector({",
+      ].join("\n"),
+    );
+    expect(code.byMode.functions.rawCode).toContain("const step1Result = await step1()");
+    expect(code.byMode.functions.rawCode).toContain("const step3Result = await step3()");
+    expect(code.byMode.functions.rawCode).not.toContain("async function runAfterStep1(selectedElement) {\n  const step3Result = await step3()");
+  });
+
   test("select observer mode keeps step helpers and emits a suffix runner in functions mode", () => {
     const code = generate({
       entries: [{ action: "Selected element", detail: "selector: .foo" }, { action: "Clicked element" }],

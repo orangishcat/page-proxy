@@ -229,4 +229,107 @@ describe("buildReviewCodeFromStepPreviews", () => {
     expect(generated.byMode.combined.rawCode).toContain("selectedElement = nextSelectedElement");
     expect(generated.byMode.combined.rawCode).toContain("selectedElement.remove()");
   });
+
+  test("combined review mode lifts later select chains out of earlier onElementMatches blocks", () => {
+    const { supportedSteps } = normalizeRecordTimeline(
+      buildTimeline([
+        { action: "Selected element", detail: "selector: path" },
+        { action: "Deleted element" },
+        { action: "Selected element", detail: "selector: div.target" },
+        { action: "Deleted element" },
+      ]),
+    );
+
+    const generated = buildReviewCodeFromStepPreviews({
+      steps: supportedSteps,
+      existingCode: "",
+    });
+
+    expect(generated.byMode.combined.rawCode).toContain("selector.onElementMatches(async (selectedElement) => {");
+    expect(generated.byMode.combined.rawCode).not.toContain(
+      [
+        "selector.onElementMatches(async (selectedElement) => {",
+        "  selectedElement.remove()",
+        "  const selector = pq.selector({",
+      ].join("\n"),
+    );
+    expect(generated.byMode.combined.rawCode).toContain("const selector2 = pq.selector({");
+    expect(generated.byMode.combined.rawCode).toContain("selector2.onElementMatches(async (selectedElement) => {");
+    expect(generated.byMode.combined.finalCode).toContain("const selector2 = pq.selector({");
+    expect(generated.byMode.combined.finalCode).toContain("selector2.onElementMatches(async (selectedElement) => {");
+    expect(generated.byMode.combined.renameMap).toEqual({ selector: "selector2" });
+  });
+
+  test("combined review mode renames top-level selector collisions for edited multi-step chains", () => {
+    const { supportedSteps } = normalizeRecordTimeline(
+      buildTimeline([
+        { action: "Selected element", detail: "selector: a.encore-text-body-small-bold" },
+        { action: "Deleted element" },
+        { action: "Selected element", detail: "selector: span.e-10180-legacy-button--small" },
+        { action: "Selected parent element", detail: "selector: button.encore-text-body-small-bold.e-10180-legacy-button-primary" },
+        { action: "Deleted element" },
+      ]),
+    );
+
+    const generated = buildReviewCodeFromStepPreviews({
+      steps: supportedSteps,
+      stepCodeByStepId: {
+        "step-1": [
+          "async function step1() {",
+          "  const selector = pq.selector({",
+          '    baseSelector: "a.encore-text-body-small-bold",',
+          "    matches: e => true",
+          "  })",
+          "  selector.onElementMatches((selectedElement) => {",
+          "    void runAfterStep1(selectedElement)",
+          "  })",
+          "  return []",
+          "}",
+        ].join("\n"),
+        "step-2": [
+          "async function step2(selectedElement) {",
+          "  selectedElement.remove()",
+          "  return []",
+          "}",
+        ].join("\n"),
+        "step-3": [
+          "async function step3(selectedElement) {",
+          "  const selector = pq.selector({",
+          '    baseSelector: "span.e-10180-legacy-button--small",',
+          "    matches: e => true",
+          "  })",
+          "  selector.onElementMatches((selectedElement) => {",
+          "    void runAfterStep3(selectedElement)",
+          "  })",
+          "  return []",
+          "}",
+        ].join("\n"),
+        "step-4": [
+          "async function step4(selectedElement) {",
+          "  const traverseUntilSelector = pq.selector({",
+          '    baseSelector: "button.encore-text-body-small-bold.e-10180-legacy-button-primary",',
+          "    matches: e => true",
+          "  })",
+          "  const nextSelectedElement = selectedElement",
+          "    ? pq.traverseParents(selectedElement, e => traverseUntilSelector.matches(e))",
+          "    : null",
+          "  return [nextSelectedElement]",
+          "}",
+        ].join("\n"),
+        "step-5": [
+          "async function step5(selectedElement) {",
+          "  selectedElement.remove()",
+          "  return []",
+          "}",
+        ].join("\n"),
+      },
+      existingCode: "",
+    });
+
+    expect(generated.byMode.combined.rawCode).toContain('baseSelector: "a.encore-text-body-small-bold"');
+    expect(generated.byMode.combined.rawCode).toContain("const selector2 = pq.selector({");
+    expect(generated.byMode.combined.rawCode).toContain('baseSelector: "span.e-10180-legacy-button--small"');
+    expect(generated.byMode.combined.rawCode).toContain("selector2.onElementMatches(async (selectedElement) => {");
+    expect(generated.byMode.combined.rawCode).not.toContain("\nconst selector = pq.selector({\n  baseSelector: \"span.e-10180-legacy-button--small\"");
+  });
 });

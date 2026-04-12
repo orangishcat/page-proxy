@@ -42,6 +42,22 @@ export const isObserverBoundaryStep = ({
   return createStep(step, parentOption, selectOption).isObserverBoundary();
 };
 
+export const stepResetsTopLevel = ({
+  step,
+  parentOptions,
+  selectOptions = {},
+  defaultParentUntilSelector,
+}: {
+  step: SupportedRecordStep;
+  parentOptions: ParentTraversalOptionsByStepId;
+  selectOptions?: SelectElementOptionsByStepId;
+  defaultParentUntilSelector: string;
+}): boolean => {
+  const parentOption = getParentOption(step, parentOptions, defaultParentUntilSelector);
+  const selectOption = getSelectElementOption(step, selectOptions);
+  return createStep(step, parentOption, selectOption).resetTopLevel ?? false;
+};
+
 export const describeStepOption = (
   step: SupportedRecordStep,
   parentOptions: ParentTraversalOptionsByStepId,
@@ -65,4 +81,3 @@ export const buildStepSnippet = (
   const inputNames = stepNumber === 1 ? [] : [stepInputOutputName];
   return createStep(step, parentOption, selectOption).buildFunctionCode({ functionName, inputNames, stepNumber }).code;
 };
-
