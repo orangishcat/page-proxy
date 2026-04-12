@@ -96,7 +96,7 @@ const modeImpls: Record<SelectElementMode, ModeImpl> = {
           selectorName: `selector${stepNumber}`,
           selectorValue: resolveSelectElementSelector(step),
         }),
-        `selector${stepNumber}.onElementMatches(async (${stepInputOutputName}) => {`,
+        `selector${stepNumber}.onElementMatches((${stepInputOutputName}) => {`,
         ...indentLines(callbackLines),
         "})",
       ];

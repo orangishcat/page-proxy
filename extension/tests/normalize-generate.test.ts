@@ -297,7 +297,7 @@ describe("record converter: new step kinds — generate", () => {
       entries: [{ action: "Selected element", detail: "selector: .foo" }, { action: "Clicked element" }],
     });
 
-    expect(code.byMode.combined.rawCode).toContain("selector1.onElementMatches(async (selectedElement) => {");
+    expect(code.byMode.combined.rawCode).toContain("selector1.onElementMatches((selectedElement) => {");
     expect(code.byMode.combined.rawCode).not.toContain("await selector1.waitUntilMatch()");
   });
 
@@ -316,7 +316,7 @@ describe("record converter: new step kinds — generate", () => {
       },
     });
 
-    expect(code.byMode.combined.rawCode).toContain("selector1.onElementMatches(async (selectedElement) => {");
+    expect(code.byMode.combined.rawCode).toContain("selector1.onElementMatches((selectedElement) => {");
     expect(code.byMode.combined.rawCode).not.toContain("let selectedElement = matchedElement");
     expect(code.byMode.combined.rawCode).toContain('selectedElement.insertAdjacentHTML("afterend", clipboardHtml)');
     expect(code.byMode.combined.rawCode).not.toContain("await selector1.waitUntilMatch()");
@@ -332,11 +332,11 @@ describe("record converter: new step kinds — generate", () => {
       ],
     });
 
-    expect(code.byMode.combined.rawCode).toContain("selector1.onElementMatches(async (selectedElement) => {");
-    expect(code.byMode.combined.rawCode).toContain("selector3.onElementMatches(async (selectedElement) => {");
+    expect(code.byMode.combined.rawCode).toContain("selector1.onElementMatches((selectedElement) => {");
+    expect(code.byMode.combined.rawCode).toContain("selector3.onElementMatches((selectedElement) => {");
     expect(code.byMode.combined.rawCode).not.toContain(
       [
-        "selector1.onElementMatches(async (selectedElement) => {",
+        "selector1.onElementMatches((selectedElement) => {",
         "  selectedElement.remove()",
         "  const selector3 = pq.selector({",
       ].join("\n"),
@@ -384,7 +384,7 @@ describe("record converter: new step kinds — generate", () => {
     expect(code.byMode.combined.rawCode).toContain("matches: e => true");
     expect(code.byMode.combined.rawCode).not.toContain("Traverse until selector");
     expect(code.byMode.combined.rawCode).not.toContain("name:");
-    expect(code.byMode.combined.rawCode).toContain("selector2.onElementMatches(async (selectedElement) => {");
+    expect(code.byMode.combined.rawCode).toContain("selector2.onElementMatches((selectedElement) => {");
     expect(code.byMode.combined.rawCode).not.toContain("await selector2.waitUntilMatch()");
     expect(code.byMode.combined.rawCode).not.toContain("pq.traverseParents");
   });
@@ -410,12 +410,12 @@ describe("record converter: new step kinds — generate", () => {
       },
     });
 
-    expect(code.byMode.combined.rawCode).toContain("selector1.onElementMatches(async (selectedElement) => {");
+    expect(code.byMode.combined.rawCode).toContain("selector1.onElementMatches((selectedElement) => {");
     expect(code.byMode.combined.rawCode).toContain("const selector2 = pq.selector({");
     expect(code.byMode.combined.rawCode).toContain("matches: e => true");
     expect(code.byMode.combined.rawCode).not.toContain("Traverse until selector");
     expect(code.byMode.combined.rawCode).not.toContain("name:");
-    expect(code.byMode.combined.rawCode).toContain("selector2.onElementMatches(async (selectedElement) => {");
+    expect(code.byMode.combined.rawCode).toContain("selector2.onElementMatches((selectedElement) => {");
     expect(code.byMode.combined.rawCode).toContain("selectedElement.remove()");
   });
 });

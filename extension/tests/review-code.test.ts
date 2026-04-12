@@ -152,7 +152,7 @@ describe("buildReviewCodeFromStepPreviews", () => {
       existingCode: "",
     });
 
-    expect(generated.byMode.combined.rawCode).toContain("selector.onElementMatches(async (selectedElement) => {");
+    expect(generated.byMode.combined.rawCode).toContain("selector.onElementMatches((selectedElement) => {");
     expect(generated.byMode.combined.rawCode).not.toContain("let selectedElement = matchedElement");
     expect(generated.byMode.combined.rawCode).toContain("selectedElement ? selectedElement.innerHTML : null");
     expect(generated.byMode.combined.rawCode).toContain('selectedElement.insertAdjacentHTML("beforeend", clipboardHtml)');
@@ -171,7 +171,7 @@ describe("buildReviewCodeFromStepPreviews", () => {
       existingCode: "",
     });
 
-    expect(generated.byMode.combined.rawCode).toContain("selector.onElementMatches(async (selectedElement) => {");
+    expect(generated.byMode.combined.rawCode).toContain("selector.onElementMatches((selectedElement) => {");
     expect(generated.byMode.combined.rawCode).not.toContain("await selector.waitUntilMatch()");
   });
 
@@ -245,18 +245,18 @@ describe("buildReviewCodeFromStepPreviews", () => {
       existingCode: "",
     });
 
-    expect(generated.byMode.combined.rawCode).toContain("selector.onElementMatches(async (selectedElement) => {");
+    expect(generated.byMode.combined.rawCode).toContain("selector.onElementMatches((selectedElement) => {");
     expect(generated.byMode.combined.rawCode).not.toContain(
       [
-        "selector.onElementMatches(async (selectedElement) => {",
+        "selector.onElementMatches((selectedElement) => {",
         "  selectedElement.remove()",
         "  const selector = pq.selector({",
       ].join("\n"),
     );
     expect(generated.byMode.combined.rawCode).toContain("const selector2 = pq.selector({");
-    expect(generated.byMode.combined.rawCode).toContain("selector2.onElementMatches(async (selectedElement) => {");
+    expect(generated.byMode.combined.rawCode).toContain("selector2.onElementMatches((selectedElement) => {");
     expect(generated.byMode.combined.finalCode).toContain("const selector2 = pq.selector({");
-    expect(generated.byMode.combined.finalCode).toContain("selector2.onElementMatches(async (selectedElement) => {");
+    expect(generated.byMode.combined.finalCode).toContain("selector2.onElementMatches((selectedElement) => {");
     expect(generated.byMode.combined.renameMap).toEqual({ selector: "selector2" });
   });
 
@@ -329,7 +329,7 @@ describe("buildReviewCodeFromStepPreviews", () => {
     expect(generated.byMode.combined.rawCode).toContain('baseSelector: "a.encore-text-body-small-bold"');
     expect(generated.byMode.combined.rawCode).toContain("const selector2 = pq.selector({");
     expect(generated.byMode.combined.rawCode).toContain('baseSelector: "span.e-10180-legacy-button--small"');
-    expect(generated.byMode.combined.rawCode).toContain("selector2.onElementMatches(async (selectedElement) => {");
+    expect(generated.byMode.combined.rawCode).toContain("selector2.onElementMatches((selectedElement) => {");
     expect(generated.byMode.combined.rawCode).not.toContain("\nconst selector = pq.selector({\n  baseSelector: \"span.e-10180-legacy-button--small\"");
   });
 });
