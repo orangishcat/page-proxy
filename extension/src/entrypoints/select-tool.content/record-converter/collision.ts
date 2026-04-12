@@ -60,8 +60,6 @@ const reservedIdentifiers = new Set([
   "yield",
 ]);
 
-const escapeForRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
 const parseAst = (source: string) => {
   try {
     return acorn.parse(source, { ecmaVersion: "latest", sourceType: "script" });
@@ -124,6 +122,107 @@ const findNextIdentifier = (baseIdentifier: string, occupied: Set<string>) => {
   }
 };
 
+const buildParentMap = (ast: acorn.Node) => {
+  const parentMap = new WeakMap<acorn.Node, acorn.Node>();
+
+  const visit = (value: unknown, parent: acorn.Node | null) => {
+    if (!value || typeof value !== "object") {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((entry) => visit(entry, parent));
+      return;
+    }
+
+    if (!("type" in value) || typeof value.type !== "string") {
+      return;
+    }
+
+    const node = value as acorn.Node;
+    if (parent) {
+      parentMap.set(node, parent);
+    }
+
+    Object.values(node).forEach((child) => visit(child, node));
+  };
+
+  visit(ast, null);
+  return parentMap;
+};
+
+const shouldRenameIdentifier = (node: acorn.Node & { type: string; name?: string }, parent: acorn.Node | undefined) => {
+  if (!parent) {
+    return true;
+  }
+
+  const parentNode = parent as acorn.Node & {
+    computed?: boolean;
+    key?: acorn.Node;
+    label?: acorn.Node | null;
+    property?: acorn.Node;
+    shorthand?: boolean;
+  };
+
+  if (
+    (parentNode.type === "MemberExpression" && parentNode.property === node && !parentNode.computed) ||
+    (parentNode.type === "Property" && parentNode.key === node && !parentNode.computed && !parentNode.shorthand) ||
+    ((parentNode.type === "MethodDefinition" || parentNode.type === "PropertyDefinition") &&
+      parentNode.key === node &&
+      !parentNode.computed) ||
+    (parentNode.type === "LabeledStatement" && parentNode.label === node) ||
+    ((parentNode.type === "BreakStatement" || parentNode.type === "ContinueStatement") && parentNode.label === node)
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
+const applyRenameMap = (source: string, renameMap: Record<string, string>) => {
+  if (Object.keys(renameMap).length === 0) {
+    return source;
+  }
+
+  const ast = parseAst(source);
+  if (!ast) {
+    return source;
+  }
+  const parentMap = buildParentMap(ast);
+
+  const replacements: Array<{ start: number; end: number; value: string }> = [];
+
+  walkFull(ast, (node) => {
+    if (node.type !== "Identifier") {
+      return;
+    }
+
+    const nextIdentifier = renameMap[node.name];
+    if (!nextIdentifier) {
+      return;
+    }
+
+    const parent = parentMap.get(node);
+    if (!shouldRenameIdentifier(node, parent)) {
+      return;
+    }
+
+    replacements.push({
+      start: node.start,
+      end: node.end,
+      value: nextIdentifier,
+    });
+  });
+
+  replacements.sort((left, right) => right.start - left.start);
+
+  return replacements.reduce(
+    (currentSource, replacement) =>
+      `${currentSource.slice(0, replacement.start)}${replacement.value}${currentSource.slice(replacement.end)}`,
+    source,
+  );
+};
+
 export const resolveRecordConverterCollisions = ({
   code,
   existingCode,
@@ -151,10 +250,7 @@ export const resolveRecordConverterCollisions = ({
     occupied.add(nextIdentifier);
   });
 
-  const finalCode = Object.entries(renameMap).reduce((currentCode, [identifier, nextIdentifier]) => {
-    const pattern = new RegExp(`\\b${escapeForRegex(identifier)}\\b`, "g");
-    return currentCode.replace(pattern, nextIdentifier);
-  }, code);
+  const finalCode = applyRenameMap(code, renameMap);
 
   return {
     finalCode,

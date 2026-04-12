@@ -27,10 +27,7 @@ const modeImpls: Record<SelectElementMode, ModeImpl> = {
         code: buildStepFunctionCode({
           functionName,
           inputNames,
-          bodyLines: [
-            ...buildSelectorLines({ selectorName: "selector", selectorValue }),
-            assignmentLine,
-          ],
+          bodyLines: [...buildSelectorLines({ selectorName: "selector", selectorValue }), assignmentLine],
           outputs: [
             { name: stepInputOutputName, expression: stepInputOutputName },
             ...extras.map((name) => ({ name, expression: name })),
@@ -63,6 +60,7 @@ const modeImpls: Record<SelectElementMode, ModeImpl> = {
   },
 
   "on-element-matches": {
+    resetTopLevel: true,
     isObserverBoundary: true,
 
     buildFunctionCode(step, { functionName, inputNames, stepNumber }) {

@@ -74,6 +74,7 @@ export type CombinedLinesResult = {
 };
 
 export interface StepGenerator {
+  readonly resetTopLevel?: boolean;
   buildFunctionCode(ctx: FunctionCodeContext): BuiltStepCode;
   buildCombinedLines(ctx: CombinedLinesContext): CombinedLinesResult;
   buildCombinedObserverLines?(ctx: CombinedObserverContext): string[];
@@ -83,6 +84,7 @@ export interface StepGenerator {
 }
 
 export type ModeImpl = {
+  resetTopLevel?: boolean;
   buildFunctionCode(step: SupportedRecordStep, ctx: FunctionCodeContext): BuiltStepCode;
   buildCombinedLines(step: SupportedRecordStep, ctx: CombinedLinesContext): CombinedLinesResult;
   buildCombinedObserverLines?(step: SupportedRecordStep, ctx: CombinedObserverContext): string[];
@@ -96,6 +98,10 @@ export class ModeBasedStep implements StepGenerator {
     private readonly step: SupportedRecordStep,
     private readonly impl: ModeImpl,
   ) {}
+
+  get resetTopLevel(): boolean {
+    return this.impl.resetTopLevel ?? false;
+  }
 
   buildFunctionCode(ctx: FunctionCodeContext): BuiltStepCode {
     return this.impl.buildFunctionCode(this.step, ctx);

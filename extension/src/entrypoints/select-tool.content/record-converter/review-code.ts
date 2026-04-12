@@ -6,6 +6,7 @@ import {
   type ParentTraversalOptionsByStepId,
   type ReviewCodeMode,
   type SelectElementOptionsByStepId,
+  stepResetsTopLevel,
 } from "./generate";
 import type { SupportedRecordStep } from "./normalize";
 
@@ -30,6 +31,11 @@ type ExtractedCombinedStep = {
 type FunctionsRenderResult = {
   definitions: string[];
   invocations: string[];
+};
+
+type SegmentRenderResult = {
+  joiner: string;
+  segments: string[];
 };
 
 const parseStepNumber = (stepId: string) => {
@@ -194,6 +200,67 @@ const getStepOutputNames = (step: SupportedRecordStep, inputNames: string[]) => 
   return [selectedElementName, ...getPassthroughExtras(inputNames, selectedElementName)];
 };
 
+const splitStepsByResetTopLevel = ({
+  steps,
+  parentOptions,
+  selectOptions,
+  defaultParentUntilSelector,
+}: {
+  steps: SupportedRecordStep[];
+  parentOptions: ParentTraversalOptionsByStepId;
+  selectOptions: SelectElementOptionsByStepId;
+  defaultParentUntilSelector: string;
+}) => {
+  const segments: SupportedRecordStep[][] = [];
+  let currentSegment: SupportedRecordStep[] = [];
+
+  steps.forEach((step) => {
+    const resetTopLevel = stepResetsTopLevel({
+      step,
+      parentOptions,
+      selectOptions,
+      defaultParentUntilSelector,
+    });
+
+    if (resetTopLevel && currentSegment.length > 0) {
+      segments.push(currentSegment);
+      currentSegment = [step];
+      return;
+    }
+
+    currentSegment.push(step);
+  });
+
+  if (currentSegment.length > 0) {
+    segments.push(currentSegment);
+  }
+
+  return segments;
+};
+
+const usesClipboardVariable = (steps: SupportedRecordStep[]) =>
+  steps.some((step) => step.kind === "copy-element" || step.kind === "cut-element" || step.kind === "paste-element");
+
+const needsExternalClipboard = (steps: SupportedRecordStep[]) => {
+  let hasLocalClipboard = false;
+
+  for (const step of steps) {
+    if (step.kind === "copy-element" || step.kind === "cut-element") {
+      hasLocalClipboard = true;
+      continue;
+    }
+
+    if (step.kind === "paste-element" && !hasLocalClipboard) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+const canSplitFunctionsTopLevel = (segments: SupportedRecordStep[][]) =>
+  segments.length > 1 && segments.slice(1).every((segment) => !needsExternalClipboard(segment));
+
 const ensureClipboardVar = (lines: string[], state: CombinedRenderState) => {
   if (state.hasClipboardVar) {
     return state;
@@ -235,6 +302,32 @@ const resolveGeneratedCode = (rawCode: string, existingCode: string) => {
     rawCode,
     finalCode: resolved.finalCode,
     renameMap: resolved.renameMap,
+  };
+};
+
+const resolveGeneratedSegments = ({
+  rendered,
+  existingCode,
+}: {
+  rendered: SegmentRenderResult;
+  existingCode: string;
+}): GeneratedReviewCode["byMode"][ReviewCodeMode] => {
+  const rawSegments = rendered.segments.filter((segment) => segment.trim().length > 0);
+  const finalSegments: string[] = [];
+  const renameMap: Record<string, string> = {};
+  let accumulatedCode = existingCode;
+
+  rawSegments.forEach((rawSegment) => {
+    const resolved = resolveGeneratedCode(rawSegment, accumulatedCode);
+    finalSegments.push(resolved.finalCode);
+    Object.assign(renameMap, resolved.renameMap);
+    accumulatedCode = [accumulatedCode, resolved.finalCode].filter((section) => section.trim().length > 0).join(rendered.joiner);
+  });
+
+  return {
+    rawCode: finalSegments.join(rendered.joiner),
+    finalCode: finalSegments.join(rendered.joiner),
+    renameMap,
   };
 };
 
@@ -432,7 +525,7 @@ const buildCombinedSequenceFromStepPreviews = ({
   };
 };
 
-const buildFunctionsRawCodeFromStepPreviews = ({
+const buildFunctionsSegmentsFromStepPreviews = ({
   steps,
   stepCodeByStepId,
   parentOptions,
@@ -444,28 +537,46 @@ const buildFunctionsRawCodeFromStepPreviews = ({
   parentOptions: ParentTraversalOptionsByStepId;
   selectOptions: SelectElementOptionsByStepId;
   defaultParentUntilSelector: string;
-}) => {
+}): SegmentRenderResult => {
   if (steps.length === 0) {
-    return "";
+    return { joiner: "\n\n", segments: [] };
   }
 
-  const rendered = buildFunctionsSequenceFromStepPreviews({
+  const renderSegment = (segment: SupportedRecordStep[]) => {
+    const rendered = buildFunctionsSequenceFromStepPreviews({
+      steps: segment,
+      stepCodeByStepId,
+      parentOptions,
+      selectOptions,
+      defaultParentUntilSelector,
+      startIndex: 0,
+      inputNames: [],
+      inputSource: null,
+    });
+
+    return [rendered.definitions.join("\n\n"), rendered.invocations.join("\n")]
+      .filter((section) => section.trim().length > 0)
+      .join("\n\n");
+  };
+
+  const segments = splitStepsByResetTopLevel({
     steps,
-    stepCodeByStepId,
     parentOptions,
     selectOptions,
     defaultParentUntilSelector,
-    startIndex: 0,
-    inputNames: [],
-    inputSource: null,
   });
 
-  return [rendered.definitions.join("\n\n"), rendered.invocations.join("\n")]
-    .filter((section) => section.trim().length > 0)
-    .join("\n\n");
+  if (!canSplitFunctionsTopLevel(segments)) {
+    return { joiner: "\n\n", segments: [renderSegment(steps)] };
+  }
+
+  return {
+    joiner: "\n\n",
+    segments: segments.map(renderSegment).filter((section) => section.trim().length > 0),
+  };
 };
 
-const buildCombinedRawCodeFromStepPreviews = ({
+const buildCombinedSegmentsFromStepPreviews = ({
   steps,
   stepCodeByStepId,
   parentOptions,
@@ -477,24 +588,41 @@ const buildCombinedRawCodeFromStepPreviews = ({
   parentOptions: ParentTraversalOptionsByStepId;
   selectOptions: SelectElementOptionsByStepId;
   defaultParentUntilSelector: string;
-}) => {
+}): SegmentRenderResult => {
   if (steps.length === 0) {
-    return "";
+    return { joiner: "\n", segments: [] };
   }
 
-  return buildCombinedSequenceFromStepPreviews({
+  const segments = splitStepsByResetTopLevel({
     steps,
-    stepCodeByStepId,
     parentOptions,
     selectOptions,
     defaultParentUntilSelector,
-    startIndex: 0,
-    state: {
-      hasSelectedElementVar: false,
-      hasClipboardVar: false,
-    },
-    inputNames: [],
-  }).lines.join("\n");
+  });
+  const hoistClipboardVar = segments.length > 1 && usesClipboardVariable(steps);
+  const lines = hoistClipboardVar ? [`let ${clipboardHtmlName} = null`] : [];
+
+  for (const segment of segments) {
+    const rendered = buildCombinedSequenceFromStepPreviews({
+      steps: segment,
+      stepCodeByStepId,
+      parentOptions,
+      selectOptions,
+      defaultParentUntilSelector,
+      startIndex: 0,
+      state: {
+        hasSelectedElementVar: false,
+        hasClipboardVar: hoistClipboardVar,
+      },
+      inputNames: [],
+    });
+    lines.push(rendered.lines.join("\n"));
+  }
+
+  return {
+    joiner: "\n",
+    segments: lines.filter((segment) => segment.trim().length > 0),
+  };
 };
 
 export const buildReviewCodeFromStepPreviews = ({
@@ -512,27 +640,24 @@ export const buildReviewCodeFromStepPreviews = ({
   existingCode: string;
   defaultParentUntilSelector?: string;
 }): GeneratedReviewCode => {
+  const combinedRendered = buildCombinedSegmentsFromStepPreviews({
+    steps,
+    stepCodeByStepId,
+    parentOptions,
+    selectOptions,
+    defaultParentUntilSelector,
+  });
+  const functionsRendered = buildFunctionsSegmentsFromStepPreviews({
+    steps,
+    stepCodeByStepId,
+    parentOptions,
+    selectOptions,
+    defaultParentUntilSelector,
+  });
+
   const byMode: Record<ReviewCodeMode, GeneratedReviewCode["byMode"][ReviewCodeMode]> = {
-    combined: resolveGeneratedCode(
-      buildCombinedRawCodeFromStepPreviews({
-        steps,
-        stepCodeByStepId,
-        parentOptions,
-        selectOptions,
-        defaultParentUntilSelector,
-      }),
-      existingCode,
-    ),
-    functions: resolveGeneratedCode(
-      buildFunctionsRawCodeFromStepPreviews({
-        steps,
-        stepCodeByStepId,
-        parentOptions,
-        selectOptions,
-        defaultParentUntilSelector,
-      }),
-      existingCode,
-    ),
+    combined: resolveGeneratedSegments({ rendered: combinedRendered, existingCode }),
+    functions: resolveGeneratedSegments({ rendered: functionsRendered, existingCode }),
   };
   const defaultMode = byMode.combined;
 

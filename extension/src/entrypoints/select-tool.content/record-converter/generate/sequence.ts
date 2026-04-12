@@ -17,6 +17,7 @@ import {
   buildStepFunctionName,
   getParentOption,
   getSelectElementOption,
+  parseStepNumber,
   normalizeUntilSelector,
 } from "./utils";
 
@@ -24,6 +25,64 @@ type CombinedSequenceResult = {
   lines: string[];
   state: CombinedRenderState;
 };
+
+const splitStepsByResetTopLevel = ({
+  steps,
+  parentOptions,
+  selectOptions,
+  defaultParentUntilSelector,
+}: {
+  steps: SupportedRecordStep[];
+  parentOptions: ParentTraversalOptionsByStepId;
+  selectOptions: SelectElementOptionsByStepId;
+  defaultParentUntilSelector: string;
+}) => {
+  const segments: SupportedRecordStep[][] = [];
+  let currentSegment: SupportedRecordStep[] = [];
+
+  steps.forEach((step) => {
+    const parentOption = getParentOption(step, parentOptions, defaultParentUntilSelector);
+    const selectOption = getSelectElementOption(step, selectOptions);
+    const resetTopLevel = createStep(step, parentOption, selectOption).resetTopLevel ?? false;
+
+    if (resetTopLevel && currentSegment.length > 0) {
+      segments.push(currentSegment);
+      currentSegment = [step];
+      return;
+    }
+
+    currentSegment.push(step);
+  });
+
+  if (currentSegment.length > 0) {
+    segments.push(currentSegment);
+  }
+
+  return segments;
+};
+
+const usesClipboardVariable = (steps: SupportedRecordStep[]) =>
+  steps.some((step) => step.kind === "copy-element" || step.kind === "cut-element" || step.kind === "paste-element");
+
+const needsExternalClipboard = (steps: SupportedRecordStep[]) => {
+  let hasLocalClipboard = false;
+
+  for (const step of steps) {
+    if (step.kind === "copy-element" || step.kind === "cut-element") {
+      hasLocalClipboard = true;
+      continue;
+    }
+
+    if (step.kind === "paste-element" && !hasLocalClipboard) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+const canSplitFunctionsTopLevel = (segments: SupportedRecordStep[][]) =>
+  segments.length > 1 && segments.slice(1).every((segment) => !needsExternalClipboard(segment));
 
 const buildGeneratedRunnerCode = ({
   runnerName,
@@ -64,7 +123,7 @@ const buildFunctionsSequence = ({
   }
 
   const step = steps[startIndex];
-  const stepNumber = startIndex + 1;
+  const stepNumber = parseStepNumber(step.id);
   const parentOption = getParentOption(step, parentOptions, defaultParentUntilSelector);
   const selectOption = getSelectElementOption(step, selectOptions);
   const generator = createStep(step, parentOption, selectOption);
@@ -135,7 +194,7 @@ const buildCombinedSequence = ({
   }
 
   const step = steps[startIndex];
-  const stepNumber = startIndex + 1;
+  const stepNumber = parseStepNumber(step.id);
   const parentOption = getParentOption(step, parentOptions, defaultParentUntilSelector);
   const selectOption = getSelectElementOption(step, selectOptions);
   const generator = createStep(step, parentOption, selectOption);
@@ -183,19 +242,34 @@ const buildFunctionsRawCode = ({
   selectOptions: SelectElementOptionsByStepId;
   defaultParentUntilSelector: string;
 }) => {
-  const rendered = buildFunctionsSequence({
+  const renderSegment = (segment: SupportedRecordStep[]) => {
+    const rendered = buildFunctionsSequence({
+      steps: segment,
+      startIndex: 0,
+      inputNames: [],
+      inputSource: null,
+      parentOptions,
+      selectOptions,
+      defaultParentUntilSelector,
+    });
+
+    return [rendered.definitions.join("\n\n"), rendered.invocations.join("\n")]
+      .filter((section) => section.trim().length > 0)
+      .join("\n\n");
+  };
+
+  const segments = splitStepsByResetTopLevel({
     steps,
-    startIndex: 0,
-    inputNames: [],
-    inputSource: null,
     parentOptions,
     selectOptions,
     defaultParentUntilSelector,
   });
 
-  return [rendered.definitions.join("\n\n"), rendered.invocations.join("\n")]
-    .filter((section) => section.trim().length > 0)
-    .join("\n\n");
+  if (!canSplitFunctionsTopLevel(segments)) {
+    return renderSegment(steps);
+  }
+
+  return segments.map(renderSegment).filter((section) => section.trim().length > 0).join("\n\n");
 };
 
 const buildCombinedRawCode = ({
@@ -213,14 +287,31 @@ const buildCombinedRawCode = ({
     return "";
   }
 
-  return buildCombinedSequence({
+  const segments = splitStepsByResetTopLevel({
     steps,
-    startIndex: 0,
-    state: { hasSelectedElementVar: false, hasClipboardVar: false },
     parentOptions,
     selectOptions,
     defaultParentUntilSelector,
-  }).lines.join("\n");
+  });
+  const hoistClipboardVar = segments.length > 1 && usesClipboardVariable(steps);
+  const lines = hoistClipboardVar ? ["let clipboardHtml = null"] : [];
+
+  for (const segment of segments) {
+    const rendered = buildCombinedSequence({
+      steps: segment,
+      startIndex: 0,
+      state: {
+        hasSelectedElementVar: false,
+        hasClipboardVar: hoistClipboardVar,
+      },
+      parentOptions,
+      selectOptions,
+      defaultParentUntilSelector,
+    });
+    lines.push(...rendered.lines);
+  }
+
+  return lines.join("\n");
 };
 
 const resolveGeneratedCode = (rawCode: string, existingCode: string): GeneratedReviewCodeByModeEntry => {

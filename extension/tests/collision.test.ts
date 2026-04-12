@@ -52,4 +52,19 @@ describe("resolveRecordConverterCollisions", () => {
     });
     expect(result.renameMap).toEqual({ step: "step3" });
   });
+
+  test("renames identifier references without renaming member property names", () => {
+    const result = resolveRecordConverterCollisions({
+      code: [
+        "const selector = pq.selector({})",
+        "selector.onElementMatches(() => {})",
+      ].join("\n"),
+      existingCode: "const selector = existingSelector;",
+    });
+
+    expect(result.renameMap).toEqual({ selector: "selector2" });
+    expect(result.finalCode).toContain("const selector2 = pq.selector({})");
+    expect(result.finalCode).toContain("selector2.onElementMatches(() => {})");
+    expect(result.finalCode).not.toContain("pq.selector2({})");
+  });
 });
