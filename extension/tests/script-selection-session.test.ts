@@ -319,6 +319,55 @@ describe("script selection session", () => {
     expect(latestMessage).toBeNull();
   });
 
+  test("creates a new blank script using the active tab domain when the current website glob is stale", async () => {
+    const localStorageState = getStorageState("local");
+    localStorageState[toStorageKey("Page Proxy")] = buildStoredState("Page Proxy", "https://docs.example.com/*", 1);
+
+    const state = {
+      activeTabId: 1,
+      activeTabUrl: "https://docs.example.com/reference/api",
+      activeWebsiteGlob: "*://*/*",
+      activeScriptName: "Page Proxy",
+      defaultScriptName: "Page Proxy",
+      availableScriptOptions: [{ scriptName: "Page Proxy", websiteGlob: "https://docs.example.com/*" }],
+      isProtectedPage: false,
+      canPersistEditorChanges: true,
+      hasUnsavedChanges: false,
+      isProgrammaticUpdate: false,
+      editorValue: buildScriptContent("Page Proxy", "*://*/*"),
+    };
+
+    let latestEditorContent = "";
+    let latestMessage: string | null = null;
+
+    const deps = {
+      state,
+      setActiveToolId: () => undefined,
+      setAllowedGrants: () => undefined,
+      setElementEntries: () => undefined,
+      setRecordPanelActiveTab: () => undefined,
+      updateEditorContent: (content: string) => {
+        latestEditorContent = content;
+      },
+      setEditorMessage: (message: string | null) => {
+        latestMessage = message;
+      },
+      setEditorMessageFromUnknown: () => undefined,
+      scriptFormatConfig,
+      autosave: {
+        queuePendingTabRefresh: () => false,
+      },
+    };
+
+    await createNewScriptForCurrentTabInLoader(deps);
+
+    expect(state.activeScriptName).toBe("Page Proxy 2");
+    expect(state.activeWebsiteGlob).toBe("https://docs.example.com/*");
+    expect(latestEditorContent).toContain("// @title Page Proxy 2");
+    expect(latestEditorContent).toContain("// @website https://docs.example.com/*");
+    expect(latestMessage).toBeNull();
+  });
+
   test("restores another stored script that still matches active tab when deleting current script", async () => {
     const localStorageState = getStorageState("local");
     localStorageState[toStorageKey("Docs Script")] = buildStoredState("Docs Script", "https://docs.example.com/*", 1);

@@ -208,7 +208,7 @@ export const createNewScriptForCurrentTab = async (deps: TabLoaderDeps): Promise
   }
 
   const nextScriptName = await resolveNewScriptName(state);
-  const websiteGlob = state.activeWebsiteGlob?.trim() || buildWebsiteGlobForUrl(state.activeTabUrl);
+  const websiteGlob = buildWebsiteGlobForUrl(state.activeTabUrl) || state.activeWebsiteGlob?.trim() || "";
   const baseContent = buildDefaultScript(websiteGlob, scriptFormatConfig, nextScriptName);
   const nextContent = buildEditorDisplayContent({
     content: baseContent,
