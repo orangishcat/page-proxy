@@ -56,6 +56,8 @@ export type TabLoaderDeps = {
   state: TabLoaderState;
   setActiveToolId: (tool: string) => void;
   setAllowedGrants: (grants: unknown[]) => void;
+  setActiveScriptName: (scriptName: string | null) => void;
+  setScriptOptions: (options: ScriptSelectionOption[]) => void;
   setElementEntries: (entries: unknown[]) => void;
   setRecordPanelActiveTab: (tabId: number | null) => void;
   updateEditorContent: (content: string, opts?: { persist?: boolean }) => void;
@@ -77,6 +79,8 @@ export const loadStateForUrl = async (url: string | null, deps: TabLoaderDeps): 
     state.availableScriptOptions = [];
     deps.setActiveToolId("none");
     deps.setAllowedGrants([]);
+    deps.setActiveScriptName(blankScriptName);
+    deps.setScriptOptions([]);
     const baseContent = buildDefaultScript("", scriptFormatConfig, blankScriptName);
     const displayContent = buildEditorDisplayContent({
       content: baseContent,
@@ -95,6 +99,8 @@ export const loadStateForUrl = async (url: string | null, deps: TabLoaderDeps): 
   state.availableScriptOptions = resolvedState.matches.map(toScriptSelectionOption);
   deps.setActiveToolId(coerceToolPanelTool(resolvedState.state.activeTool));
   deps.setAllowedGrants(resolvedState.state.permissions.allowedGrants);
+  deps.setActiveScriptName(resolvedState.scriptName);
+  deps.setScriptOptions(state.availableScriptOptions);
   const displayContent = buildEditorDisplayContent({
     content: resolvedState.state.codeEditor.content,
     websiteGlob: resolvedState.websiteGlob,
@@ -124,6 +130,8 @@ export const applyActiveTab = async (tab: ActiveTab | null, deps: TabLoaderDeps)
     state.defaultScriptName = null;
     state.availableScriptOptions = [];
     deps.setActiveToolId("none");
+    deps.setActiveScriptName(null);
+    deps.setScriptOptions([]);
     const protectedContent = buildEditorDisplayContent({
       content: buildDefaultScript("", scriptFormatConfig),
       websiteGlob: "",
@@ -221,6 +229,8 @@ export const createNewScriptForCurrentTab = async (deps: TabLoaderDeps): Promise
   state.activeWebsiteGlob = websiteGlob || null;
   deps.setActiveToolId("none");
   deps.setAllowedGrants([]);
+  deps.setActiveScriptName(nextScriptName);
+  deps.setScriptOptions(state.availableScriptOptions);
   deps.setElementEntries([]);
   deps.updateEditorContent(nextContent, { persist: false });
   deps.setEditorMessage(null, "error");

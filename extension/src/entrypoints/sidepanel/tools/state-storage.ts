@@ -116,6 +116,28 @@ export const readStoredToolState = async (scriptName: string) => {
   return coerceStoredToolState(stored[key], normalized);
 };
 
+export const readStoredScriptEnabled = async (scriptName: string) =>
+  (await readStoredToolState(scriptName))?.permissions.enabled ?? true;
+
+export const saveStoredScriptEnabled = async (scriptName: string, enabled: boolean) => {
+  const state = await readStoredToolState(scriptName);
+  if (!state) {
+    throw new Error(`No stored script found for "${scriptName}".`);
+  }
+
+  const nextState: StoredToolState = {
+    ...state,
+    permissions: {
+      ...state.permissions,
+      enabled,
+    },
+    updatedAt: Date.now(),
+  };
+
+  await saveStoredToolState(nextState);
+  return nextState;
+};
+
 export const removeStoredToolState = async (scriptName: string) => {
   const normalized = scriptName.trim();
   if (!normalized) {

@@ -104,6 +104,7 @@ const buildStoredState = (scriptName: string, websiteGlob: string, updatedAt: nu
   },
   permissions: {
     allowedGrants: [],
+    enabled: true,
   },
   websiteGlob,
   updatedAt,
@@ -247,6 +248,44 @@ describe("script name conflicts", () => {
     expect(storageState[toStorageKey("Grantless Script")]).toMatchObject({
       permissions: {
         allowedGrants: [],
+      },
+    });
+  });
+
+  test("preserves per-script enabled state when saving an existing disabled script", async () => {
+    const storageState = getStorageState();
+    storageState[toStorageKey("Disabled Script")] = {
+      ...buildStoredState("Disabled Script", "https://example.com/*", 1),
+      permissions: {
+        allowedGrants: [],
+        enabled: false,
+      },
+    };
+    const content = normalizeContentForStorage(
+      `${buildScriptContent("Disabled Script", "https://example.com/*").trimEnd()}\nconsole.log("still disabled");\n`,
+      false,
+      scriptFormatConfig,
+    );
+
+    await saveState({
+      content,
+      selectorEntries: [],
+      allowedGrants: [],
+      isProtectedPage: false,
+      scriptFormatConfig,
+      activeTabUrl: "https://example.com/page",
+      activeWebsiteGlob: "https://example.com/*",
+      activeScriptName: "Disabled Script",
+      activeTool: "none",
+      getDefinitionBlock: (value) => value,
+      setActiveWebsiteGlob: () => undefined,
+      setActiveScriptName: () => undefined,
+    });
+
+    expect(storageState[toStorageKey("Disabled Script")]).toMatchObject({
+      permissions: {
+        allowedGrants: [],
+        enabled: false,
       },
     });
   });

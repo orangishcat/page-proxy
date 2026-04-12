@@ -137,8 +137,8 @@ const toRunnableScriptContent = (state: StoredToolState) => {
   return content;
 };
 
-const extractScriptGrants = (content: string, disableAllGrants: boolean) =>
-  resolveEffectiveScriptGrants(resolveMetadataFallback(content)?.grants ?? [], disableAllGrants);
+const extractScriptGrants = (content: string, disableAllGrants: boolean, scriptEnabled: boolean) =>
+  resolveEffectiveScriptGrants(resolveMetadataFallback(content)?.grants ?? [], disableAllGrants, scriptEnabled);
 
 const getMissingAllowedGrants = (state: StoredToolState, requiredGrants: ScriptGrantValue[]) =>
   requiredGrants.filter((grant) => !state.permissions.allowedGrants.includes(grant));
@@ -157,7 +157,7 @@ const countMatchingScriptsForUrl = async (url: string) => {
         return null;
       }
 
-      const scriptGrants = extractScriptGrants(content, disableAllGrants);
+      const scriptGrants = extractScriptGrants(content, disableAllGrants, entry.state.permissions.enabled);
       if (!scriptGrants.includes(runOnPageLoadGrant)) {
         return null;
       }
@@ -251,6 +251,7 @@ const resolveGrantPermissions = async (
     ...state,
     permissions: {
       allowedGrants: nextAllowedGrants,
+      enabled: state.permissions.enabled,
     },
     updatedAt: Date.now(),
   };
@@ -282,7 +283,7 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
       return;
     }
 
-    const scriptGrants = extractScriptGrants(content, disableAllGrants);
+    const scriptGrants = extractScriptGrants(content, disableAllGrants, entry.state.permissions.enabled);
     if (!scriptGrants.includes(runOnPageLoadGrant)) {
       logger.debug("runMatchingScriptsForTab: skipping entry — no run-on-page-load grant", {
         scriptName: entry.scriptName,

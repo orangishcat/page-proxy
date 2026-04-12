@@ -35,10 +35,14 @@ describe("grants", () => {
   });
 
   test("resolveEffectiveScriptGrants keeps declared grants when the global toggle is off", () => {
-    expect(resolveEffectiveScriptGrants(["run-on-page-load"], false)).toEqual(["run-on-page-load"]);
+    expect(resolveEffectiveScriptGrants(["run-on-page-load"], false, true)).toEqual(["run-on-page-load"]);
   });
 
   test("resolveEffectiveScriptGrants removes all declared grants when the global toggle is on", () => {
-    expect(resolveEffectiveScriptGrants(["run-on-page-load"], true)).toEqual([]);
+    expect(resolveEffectiveScriptGrants(["run-on-page-load"], true, true)).toEqual([]);
+  });
+
+  test("resolveEffectiveScriptGrants removes all declared grants when the script is disabled", () => {
+    expect(resolveEffectiveScriptGrants(["run-on-page-load"], false, false)).toEqual([]);
   });
 });

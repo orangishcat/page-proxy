@@ -126,6 +126,7 @@ const buildStoredState = (scriptName: string, websiteGlob: string, updatedAt: nu
   },
   permissions: {
     allowedGrants: [],
+    enabled: true,
   },
   websiteGlob,
   updatedAt,
@@ -231,6 +232,8 @@ describe("script selection session", () => {
       setAllowedGrants: (grants: unknown[]) => {
         allowedGrants = grants;
       },
+      setActiveScriptName: () => undefined,
+      setScriptOptions: () => undefined,
       setElementEntries: () => undefined,
       setRecordPanelActiveTab: () => undefined,
       updateEditorContent: (content: string) => {
@@ -290,6 +293,8 @@ describe("script selection session", () => {
       state,
       setActiveToolId: () => undefined,
       setAllowedGrants: () => undefined,
+      setActiveScriptName: () => undefined,
+      setScriptOptions: () => undefined,
       setElementEntries: () => undefined,
       setRecordPanelActiveTab: () => undefined,
       updateEditorContent: (content: string) => {
@@ -344,6 +349,8 @@ describe("script selection session", () => {
       state,
       setActiveToolId: () => undefined,
       setAllowedGrants: () => undefined,
+      setActiveScriptName: () => undefined,
+      setScriptOptions: () => undefined,
       setElementEntries: () => undefined,
       setRecordPanelActiveTab: () => undefined,
       updateEditorContent: (content: string) => {
@@ -429,6 +436,8 @@ describe("script selection session", () => {
           setAllowedGrants: (grants: unknown[]) => {
             allowedGrants = grants;
           },
+          setActiveScriptName: () => undefined,
+          setScriptOptions: () => undefined,
           setElementEntries: (entries: unknown[]) => {
             elementEntries = entries;
           },
