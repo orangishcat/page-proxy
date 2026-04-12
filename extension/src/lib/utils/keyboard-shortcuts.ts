@@ -9,7 +9,7 @@ export const getShortcutTool = (event: KeyboardEvent): SidepanelShortcutId | nul
     case "Digit1": return "select";
     case "Digit2": return "selectors";
     case "Digit3": return "record";
-    case "Digit4": return "help";
+    case "Digit4": return "settings";
     case "Digit5": return "share";
     default: return null;
   }

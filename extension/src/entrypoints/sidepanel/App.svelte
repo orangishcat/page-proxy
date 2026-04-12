@@ -9,6 +9,7 @@
   import ExportTool from "./tools/ExportTool.svelte";
   import HelpTool from "./tools/HelpTool.svelte";
   import RecordTool from "./tools/RecordTool.svelte";
+  import SettingsTool from "./tools/SettingsTool.svelte";
   import SelectorsTool from "./tools/SelectorsTool.svelte";
   import CodeEditorTool from "./tools/CodeEditorTool.svelte";
   import BannerContainer from "./banners/BannerContainer.svelte";
@@ -25,6 +26,7 @@
   import { createEditorContext, setEditorContext } from "./context/editor.svelte";
   import { isEditableTarget, isCodeEditorFocused } from "@/lib/utils/dom-checks";
   import { getShortcutTool } from "@/lib/utils/keyboard-shortcuts";
+  import { readShowHelpButtonSetting } from "@/lib/show-help-button-setting";
   import {
     isSelectorSaveMessage,
     isRecordConverterSaveMessage,
@@ -43,6 +45,7 @@
     create: CreateTool,
     selectors: SelectorsTool,
     record: RecordTool,
+    settings: SettingsTool,
     help: HelpTool,
     share: ExportTool,
   };
@@ -60,6 +63,12 @@
       ? undefined
       : `height: ${toolPanelHeightPx}px; min-height: ${minToolPanelHeightPx}px; max-height: ${maxToolPanelHeightPx}px;`,
   );
+
+  $effect(() => {
+    if (!toolCtx.showHelpButton && toolCtx.activeTool === "help") {
+      toolCtx.activeTool = "none";
+    }
+  });
 
   const setActiveTool = (tool: ToolId) => {
     if (tool === toolCtx.activeTool) {
@@ -112,6 +121,13 @@
 
       toolPanelHeightPx = storedHeight;
     });
+    void readShowHelpButtonSetting()
+      .then((showHelpButton) => {
+        toolCtx.showHelpButton = showHelpButton;
+      })
+      .catch((error) => {
+        setToolMessage(error instanceof Error ? error.message : "Unable to load extension settings.", "error");
+      });
 
     sendSelectionToggle(false);
 
@@ -201,7 +217,11 @@
             bind:this={toolPanelSection}
             style={toolPanelStyle}
           >
-            <Toolbar activeTool={toolCtx.activeTool} ontoolselect={handleToolSelect} />
+            <Toolbar
+              activeTool={toolCtx.activeTool}
+              showHelpButton={toolCtx.showHelpButton}
+              ontoolselect={handleToolSelect}
+            />
 
             {#if toolCtx.activeTool === "none"}
               <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4 justify-center place-items-center">

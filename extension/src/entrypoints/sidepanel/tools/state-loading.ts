@@ -185,6 +185,7 @@ export const buildDefaultToolState = (
   },
   permissions: {
     allowedGrants: [],
+    enabled: true,
   },
   websiteGlob,
   updatedAt: Date.now(),
@@ -196,7 +197,8 @@ export const isDefaultToolState = (state: StoredToolState, config: ScriptFormatC
   return (
     state.activeTool === defaultState.activeTool &&
     state.codeEditor.content === defaultState.codeEditor.content &&
-    state.permissions.allowedGrants.length === defaultState.permissions.allowedGrants.length
+    state.permissions.allowedGrants.length === defaultState.permissions.allowedGrants.length &&
+    state.permissions.enabled === defaultState.permissions.enabled
   );
 };
 

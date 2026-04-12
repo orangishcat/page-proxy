@@ -54,7 +54,7 @@
       <div class="min-h-0 h-full space-y-2 overflow-y-auto">
         {#each $selectorEntriesDisplay as entry (entry.key)}
           <Collapsible.Root
-            class="rounded-lg border border-[#4f4a38] bg-[#2d2b25] hover:bg-[#37332c] text-gray-100 group"
+            class="rounded-lg border border-gray-700 bg-background-overlay hover:bg-background-overlay-hover text-gray-100 group"
             onmouseenter={() => handleSelectorMouseEnter(entry)}
             onmouseleave={handleSelectorMouseLeave}
           >
@@ -91,7 +91,7 @@
               </DropdownMenu.Root>
             </div>
 
-            <Collapsible.Content class="space-y-1 border-t border-[#4f4a38] px-3 py-2">
+            <Collapsible.Content class="space-y-1 border-t border-gray-700 px-3 py-2">
               {#if entry.mode === "css"}
                 {#if entry.cssText}
                   <div

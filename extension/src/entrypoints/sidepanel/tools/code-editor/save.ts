@@ -104,6 +104,7 @@ export const saveState = async (options: SaveStateOptions) => {
     },
     permissions: {
       allowedGrants: Array.from(options.allowedGrants),
+      enabled: existingState?.permissions.enabled ?? true,
     },
     websiteGlob,
     updatedAt: Date.now(),

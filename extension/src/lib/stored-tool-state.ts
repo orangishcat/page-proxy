@@ -7,7 +7,7 @@ import {
 import { parseScriptMetadata } from "./utils/script-metadata";
 import { matchWebsiteGlob } from "./utils/website-glob";
 
-export type ToolId = "select" | "create" | "selectors" | "record" | "help" | "share" | "none";
+export type ToolId = "select" | "create" | "selectors" | "record" | "settings" | "help" | "share" | "none";
 
 export type StoredSelectorEntry = {
   name: string;
@@ -24,6 +24,7 @@ export type StoredToolState = {
   selectorPanel: { entries: StoredSelectorEntry[] };
   permissions: {
     allowedGrants: ScriptGrantValue[];
+    enabled: boolean;
   };
   websiteGlob: string;
   updatedAt: number;
@@ -37,6 +38,7 @@ export const isToolId = (value: unknown): value is ToolId =>
   value === "create" ||
   value === "selectors" ||
   value === "record" ||
+  value === "settings" ||
   value === "help" ||
   value === "share" ||
   value === "none";
@@ -103,7 +105,7 @@ export const coerceStoredToolState = (value: unknown, scriptNameFromKey: string)
   const codeEditor = data.codeEditor as { content?: unknown } | undefined;
   if (typeof codeEditor?.content !== "string") return null;
   const selectorPanel = data.selectorPanel as { entries?: unknown } | undefined;
-  const permissions = data.permissions as { allowedGrants?: unknown } | undefined;
+  const permissions = data.permissions as { allowedGrants?: unknown; enabled?: unknown } | undefined;
   const metadata = resolveMetadataFallback(codeEditor.content);
   const metadataScriptName = metadata?.title?.trim() ?? "";
   const resolvedScriptName =
@@ -122,6 +124,7 @@ export const coerceStoredToolState = (value: unknown, scriptNameFromKey: string)
     selectorPanel: { entries: coerceStoredSelectorEntries(selectorPanel?.entries) },
     permissions: {
       allowedGrants: coerceScriptGrantValues(permissions?.allowedGrants),
+      enabled: permissions?.enabled !== false,
     },
     websiteGlob:
       typeof data.websiteGlob === "string" && data.websiteGlob.trim().length > 0

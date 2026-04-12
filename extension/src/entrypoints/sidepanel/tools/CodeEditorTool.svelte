@@ -143,6 +143,12 @@
     setAllowedGrants: (grants: unknown[]) => {
       editorCtx.allowedGrants = grants as typeof editorCtx.allowedGrants;
     },
+    setActiveScriptName: (scriptName: string | null) => {
+      editorCtx.activeScriptName = scriptName;
+    },
+    setScriptOptions: (options: unknown[]) => {
+      editorCtx.scriptOptions = options as typeof editorCtx.scriptOptions;
+    },
     setElementEntries: (entries: unknown[]) => {
       editorCtx.elementEntries = entries as typeof editorCtx.elementEntries;
     },
@@ -287,6 +293,8 @@
     codeEditorContent.set(tabState.editorValue);
     editorCtx.elementEntries = [];
     editorCtx.allowedGrants = [];
+    editorCtx.scriptOptions = [];
+    editorCtx.activeScriptName = null;
     editorCtx.disableAllGrants = false;
     setupEditor();
     editorCtx.api = {

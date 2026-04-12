@@ -1,6 +1,6 @@
 import { getContext, setContext } from "svelte";
 import type { ScriptGrantValue } from "@/lib/grants";
-import type { ElementEntry, ScriptMetadataState } from "../tools/code-editor/state";
+import type { ElementEntry, ScriptMetadataState, ScriptSelectionOption } from "../tools/code-editor/state";
 
 const key = Symbol("editor");
 
@@ -20,6 +20,8 @@ export function createEditorContext() {
     credits: "",
   });
   let allowedGrants = $state<ScriptGrantValue[]>([]);
+  let scriptOptions = $state<ScriptSelectionOption[]>([]);
+  let activeScriptName = $state<string | null>(null);
   let disableAllGrants = $state(false);
   let api = $state<EditorApi | null>(null);
 
@@ -53,6 +55,10 @@ export function createEditorContext() {
     set scriptMetadata(v: ScriptMetadataState) { scriptMetadata = v; },
     get allowedGrants() { return allowedGrants; },
     set allowedGrants(v: ScriptGrantValue[]) { allowedGrants = v; },
+    get scriptOptions() { return scriptOptions; },
+    set scriptOptions(v: ScriptSelectionOption[]) { scriptOptions = v; },
+    get activeScriptName() { return activeScriptName; },
+    set activeScriptName(v: string | null) { activeScriptName = v; },
     get disableAllGrants() { return disableAllGrants; },
     set disableAllGrants(v: boolean) { disableAllGrants = v; },
     get api() { return api; },

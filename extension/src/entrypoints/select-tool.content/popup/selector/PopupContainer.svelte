@@ -217,90 +217,90 @@
 </script>
 
 <ModalOverlay centered={false} class={visible && !popupHidden ? "" : "invisible"}>
-<div
-  bind:this={containerEl}
-  class="absolute pointer-events-auto"
-  style="top: {position.top}px; left: {position.left}px; width: min(45.3125em, 92vw); height: min(28.0625em, 80vh);"
->
-  {#if direction !== "center"}
-    <div
-      class="absolute h-3 w-3 rotate-45 border border-[#4f4a38] bg-[#24231f] {arrowClasses[direction]}"
-      style={direction === "top" || direction === "bottom" ? `left: ${arrowOffset.left}` : `top: ${arrowOffset.top}`}
-    ></div>
-  {/if}
-
-  <div
-    class={`${POPUP_SHARED_CLASS} flex h-full w-full flex-col overflow-hidden rounded-lg text-gray-100 shadow-2xl`}
-    style={POPUP_SHARED_STYLE}
+  border-gray-700 <div
+    bind:this={containerEl}
+    class="absolute pointer-events-auto"
+    style="top: {position.top}px; left: {position.left}px; width: min(45.3125em, 92vw); height: min(28.0625em, 80vh);"
   >
-    <div class="flex items-center h-12 px-4 gap-2.5 bg-gray-900 border-b border-gray-800">
-      <span class="text-lead">{popupMode === "pp-api" ? "Selector editor" : "CSS inspector"}</span>
-      {#if popupMode === "pp-api"}
-        <a
-          href="https://orangishcat.github.io/page-proxy/docs/pp/pq-query#pqselectordefinition"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="text-caption text-accent-400 hover:text-accent-300 hover:underline">Selector documentation</a
-        >
-      {:else}
-        <a
-          href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_selectors"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="text-caption text-accent-400 hover:text-accent-300 hover:underline">CSS selector reference</a
-        >
-      {/if}
-      <div class="flex-1"></div>
-      <select
-        value={popupMode}
-        onchange={(event) => (popupMode = event.currentTarget.value as PopupMode)}
-        class="rounded border border-white/15 bg-white/10 py-1 px-2 text-caption text-white cursor-pointer"
-        aria-label="Inspector mode"
-      >
-        <option value="pp-api">pp-api</option>
-        <option value="css">CSS</option>
-      </select>
-      <Button
-        variant="outline"
-        onclick={onCancel}
-        class="!rounded !border !border-white/20 !p-1 !text-gray-500 hover:!bg-white/10 hover:!text-gray-300 dark:!text-gray-400 dark:hover:!text-gray-200"
-        aria-label="Close popup"
-      >
-        x
-      </Button>
-    </div>
+    {#if direction !== "center"}
+      <div
+        class="absolute h-3 w-3 rotate-45 border border-gray-700 bg-[#24231f] {arrowClasses[direction]}"
+        style={direction === "top" || direction === "bottom" ? `left: ${arrowOffset.left}` : `top: ${arrowOffset.top}`}
+      ></div>
+    {/if}
 
-    <div class="flex-1 min-h-0 overflow-hidden">
-      <div class={`h-full ${popupMode === "pp-api" ? "" : "hidden"}`}>
-        <SelectorPopup
-          {info}
-          {propertyItems}
-          {onSave}
-          {onCancel}
-          {baseSelector}
-          initialCode={mode === "pp-api" ? initialCode : undefined}
-          active={popupMode === "pp-api"}
-          onBaseSelectorChange={handleBaseSelectorChange}
-          onVisibilityChange={handlePopupVisibilityChange}
-        />
+    <div
+      class={`${POPUP_SHARED_CLASS} flex h-full w-full flex-col overflow-hidden rounded-lg text-gray-100 shadow-2xl`}
+      style={POPUP_SHARED_STYLE}
+    >
+      <div class="flex items-center h-12 px-4 gap-2.5 bg-gray-900 border-b border-gray-800">
+        <span class="text-lead">{popupMode === "pp-api" ? "Selector editor" : "CSS inspector"}</span>
+        {#if popupMode === "pp-api"}
+          <a
+            href="https://orangishcat.github.io/page-proxy/docs/pp/pq-query#pqselectordefinition"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-caption text-accent-400 hover:text-accent-300 hover:underline">Selector documentation</a
+          >
+        {:else}
+          <a
+            href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_selectors"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-caption text-accent-400 hover:text-accent-300 hover:underline">CSS selector reference</a
+          >
+        {/if}
+        <div class="flex-1"></div>
+        <select
+          value={popupMode}
+          onchange={(event) => (popupMode = event.currentTarget.value as PopupMode)}
+          class="rounded border border-white/15 bg-white/10 py-1 px-2 text-caption text-white cursor-pointer"
+          aria-label="Inspector mode"
+        >
+          <option value="pp-api">pp-api</option>
+          <option value="css">CSS</option>
+        </select>
+        <Button
+          variant="outline"
+          onclick={onCancel}
+          class="!rounded !border !border-white/20 !p-1 !text-gray-500 hover:!bg-white/10 hover:!text-gray-300 dark:!text-gray-400 dark:hover:!text-gray-200"
+          aria-label="Close popup"
+        >
+          x
+        </Button>
       </div>
 
-      <div class={`h-full ${popupMode === "css" ? "" : "hidden"}`}>
-        <CssInspector
-          {info}
-          {propertyItems}
-          {targetElement}
-          {onSave}
-          {onCancel}
-          {baseSelector}
-          {initialCssContent}
-          initialCode={mode === "css" ? initialCode : undefined}
-          active={popupMode === "css"}
-          onBaseSelectorChange={handleBaseSelectorChange}
-          onVisibilityChange={handlePopupVisibilityChange}
-        />
+      <div class="flex-1 min-h-0 overflow-hidden">
+        <div class={`h-full ${popupMode === "pp-api" ? "" : "hidden"}`}>
+          <SelectorPopup
+            {info}
+            {propertyItems}
+            {onSave}
+            {onCancel}
+            {baseSelector}
+            initialCode={mode === "pp-api" ? initialCode : undefined}
+            active={popupMode === "pp-api"}
+            onBaseSelectorChange={handleBaseSelectorChange}
+            onVisibilityChange={handlePopupVisibilityChange}
+          />
+        </div>
+
+        <div class={`h-full ${popupMode === "css" ? "" : "hidden"}`}>
+          <CssInspector
+            {info}
+            {propertyItems}
+            {targetElement}
+            {onSave}
+            {onCancel}
+            {baseSelector}
+            {initialCssContent}
+            initialCode={mode === "css" ? initialCode : undefined}
+            active={popupMode === "css"}
+            onBaseSelectorChange={handleBaseSelectorChange}
+            onVisibilityChange={handlePopupVisibilityChange}
+          />
+        </div>
       </div>
     </div>
   </div>
-</div>
 </ModalOverlay>

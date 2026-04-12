@@ -42,7 +42,13 @@ module.exports = {
           700: "#5e9334",
           800: "#4a7429",
         },
-        background: "#1d1e1d",
+        background: {
+          DEFAULT: "#1d1e1d",
+          overlay: {
+            DEFAULT: "#2D2B25",
+            hover: "#393830",
+          },
+        },
       },
       fontFamily: {
         sans: ["Open Sans", "ui-sans-serif", "system-ui"],

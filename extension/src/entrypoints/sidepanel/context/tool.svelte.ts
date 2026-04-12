@@ -5,10 +5,13 @@ const key = Symbol("tool");
 
 export function createToolContext() {
   let activeTool = $state<ToolId>("none");
+  let showHelpButton = $state(true);
 
   return {
     get activeTool() { return activeTool; },
     set activeTool(v: ToolId) { activeTool = v; },
+    get showHelpButton() { return showHelpButton; },
+    set showHelpButton(v: boolean) { showHelpButton = v; },
   };
 }
 

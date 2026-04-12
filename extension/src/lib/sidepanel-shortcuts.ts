@@ -1,6 +1,6 @@
 import type { ToolId } from "./stored-tool-state";
 
-export type SidepanelShortcutId = "select" | "selectors" | "record" | "help" | "share";
+export type SidepanelShortcutId = "select" | "selectors" | "record" | "settings" | "share";
 
 export type SidepanelShortcutMessage = {
   type: "sidepanel:shortcut";

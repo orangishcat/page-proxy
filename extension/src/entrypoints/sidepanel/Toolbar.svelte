@@ -1,17 +1,17 @@
 <script lang="ts">
-  import { CircleQuestionMark, Disc, MousePointer, Share } from "lucide-svelte";
+  import { CircleQuestionMark, Disc, MousePointer, Settings, Share } from "lucide-svelte";
   import Button from "@/lib/components/Button.svelte";
   import type { ToolId } from "./tools/state-storage";
-  import type { SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
 
   type Props = {
     activeTool: ToolId;
+    showHelpButton: boolean;
     ontoolselect: (tool: ToolId) => void;
   };
 
-  const { activeTool, ontoolselect }: Props = $props();
+  const { activeTool, showHelpButton, ontoolselect }: Props = $props();
 
-  type ToolbarControlId = SidepanelShortcutId;
+  type ToolbarControlId = "select" | "selectors" | "record" | "settings" | "help" | "share";
 
   let hoveredTool = $state<ToolbarControlId | null>(null);
   let lastHoveredTool = $state<ToolbarControlId | null>(null);
@@ -22,22 +22,23 @@
     create: "Create",
     selectors: "Selectors",
     record: "Record",
+    settings: "Settings",
     share: "Export",
     help: "Help",
     none: "",
   };
 
-  const shortcutLabels: Record<ToolbarControlId, string> = {
+  const shortcutLabels: Partial<Record<ToolbarControlId, string>> = {
     select: "⇧1",
     selectors: "⇧2",
     record: "⇧3",
-    help: "⇧4",
+    settings: "⇧4",
     share: "⇧5",
   };
 
   const activeToolLabel = $derived(toolLabels[activeTool]);
   const hoverCandidate = $derived(hoveredTool ?? lastHoveredTool);
-  const hoveredShortcutLabel = $derived(hoverCandidate ? shortcutLabels[hoverCandidate] : "");
+  const hoveredShortcutLabel = $derived(hoverCandidate ? shortcutLabels[hoverCandidate] ?? "" : "");
   const hoveredToolLabel = $derived(hoverCandidate ? toolLabels[hoverCandidate] : "");
   const hoveredToolText = $derived(
     hoverCandidate ? `${hoveredToolLabel}${hoveredShortcutLabel ? ` (${hoveredShortcutLabel})` : ""}` : "",
@@ -108,15 +109,27 @@
     </span>
   </div>
   <div class="h-full flex flex-row gap-4 place-items-center">
+    {#if showHelpButton}
+      <Button
+        class={toolButtonClasses(activeTool === "help")}
+        variant="outline"
+        aria-label="Help"
+        onmouseenter={() => onHover("help")}
+        onmouseleave={onLeave}
+        onclick={() => ontoolselect("help")}
+      >
+        <CircleQuestionMark class={iconSize} />
+      </Button>
+    {/if}
     <Button
-      class={toolButtonClasses(activeTool === "help")}
+      class={toolButtonClasses(activeTool === "settings")}
       variant="outline"
-      aria-label="Help"
-      onmouseenter={() => onHover("help")}
+      aria-label="Settings"
+      onmouseenter={() => onHover("settings")}
       onmouseleave={onLeave}
-      onclick={() => ontoolselect("help")}
+      onclick={() => ontoolselect("settings")}
     >
-      <CircleQuestionMark class={iconSize} />
+      <Settings class={iconSize} />
     </Button>
     <Button
       class="{toolButtonClasses(activeTool === 'share')} bg-secondary-500"
