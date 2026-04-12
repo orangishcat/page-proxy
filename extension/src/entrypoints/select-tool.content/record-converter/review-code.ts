@@ -475,7 +475,7 @@ const buildCombinedSequenceFromStepPreviews = ({
     return {
       lines: [
         ...observerSetup.setupLines,
-        `${observerSetup.selectorVarName}.onElementMatches(async (${observerSetup.callbackParamName}) => {`,
+        `${observerSetup.selectorVarName}.onElementMatches((${observerSetup.callbackParamName}) => {`,
         ...indentLines(
           observerSetup.callbackParamName === selectedElementName
             ? nested.lines

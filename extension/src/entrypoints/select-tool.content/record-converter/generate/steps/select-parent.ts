@@ -170,7 +170,7 @@ const modeImpls: Record<ParentTraversalMode, (option: ParentTraversalOption) => 
           selectorName: `selector${stepNumber}`,
           selectorValue: normalizeUntilSelector(option.untilSelector),
         }),
-        `selector${stepNumber}.onElementMatches(async (${stepInputOutputName}) => {`,
+        `selector${stepNumber}.onElementMatches((${stepInputOutputName}) => {`,
         ...indentLines(callbackLines),
         "})",
       ];
