@@ -5,7 +5,7 @@ import {
   findBestMatchingWebsiteGlob,
   fromStorageKey,
   getWebsiteGlobsFromContent,
-  normalizeStoredToolState,
+  StoredToolStateSchema,
   toStorageKey,
   type StoredSelectorEntry,
   type StoredToolState,
@@ -102,7 +102,7 @@ export const hasStoredScriptNameConflict = async (
 export const saveStoredToolState = async (state: StoredToolState) => {
   const key = toStorageKey(state.scriptName);
   await browser.storage.local.set({
-    [key]: normalizeStoredToolState(state),
+    [key]: StoredToolStateSchema.parse(state),
   });
 };
 

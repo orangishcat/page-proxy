@@ -111,14 +111,12 @@ describe("flushAppStatePersistence", () => {
     expect(local["pageproxy:Docs Script"]).toMatchObject({ scriptName: "Docs Script" });
   });
 
-  test("writes object-shaped allowed grants back as a list", async () => {
+  test("writes allowed grants back as a list", async () => {
     const local = getStorageState("local");
     local["pageproxy:Docs Script"] = {
       ...buildStoredState("Docs Script", "https://docs.example.com/*", 1),
       permissions: {
-        allowedGrants: {
-          0: "run-on-page-load",
-        },
+        allowedGrants: ["run-on-page-load"],
         enabled: true,
       },
     };

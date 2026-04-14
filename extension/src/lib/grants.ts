@@ -1,10 +1,37 @@
+import { z } from "zod";
+
 export const supportedScriptGrants = ["run-on-page-load"] as const;
 
 export type ScriptGrantValue = (typeof supportedScriptGrants)[number];
 
 const supportedScriptGrantSet = new Set<string>(supportedScriptGrants);
+const ScriptGrantSchema = z.enum(supportedScriptGrants);
 
 const normalizeGrantToken = (value: string) => value.trim().toLowerCase();
+
+export const ScriptGrantValuesSchema = z
+  .array(z.unknown())
+  .catch([])
+  .transform((values): ScriptGrantValue[] => {
+    const parsed: ScriptGrantValue[] = [];
+    values.forEach((item) => {
+      if (typeof item !== "string") {
+        return;
+      }
+
+      const normalized = normalizeGrantToken(item);
+      if (!supportedScriptGrantSet.has(normalized)) {
+        return;
+      }
+
+      const typedValue = ScriptGrantSchema.parse(normalized);
+      if (!parsed.includes(typedValue)) {
+        parsed.push(typedValue);
+      }
+    });
+
+    return parsed;
+  });
 
 export const parseScriptGrantValues = (rawValue: string): ScriptGrantValue[] => {
   const tokens = rawValue
@@ -28,29 +55,7 @@ export const parseScriptGrantValues = (rawValue: string): ScriptGrantValue[] => 
 };
 
 export const coerceScriptGrantValues = (value: unknown): ScriptGrantValue[] => {
-  if (!value || typeof value !== "object") {
-    return [];
-  }
-
-  const rawValues = Array.isArray(value) ? value : Object.values(value);
-  const parsed: ScriptGrantValue[] = [];
-  rawValues.forEach((item) => {
-    if (typeof item !== "string") {
-      return;
-    }
-
-    const normalized = normalizeGrantToken(item);
-    if (!supportedScriptGrantSet.has(normalized)) {
-      return;
-    }
-
-    const typedValue = normalized as ScriptGrantValue;
-    if (!parsed.includes(typedValue)) {
-      parsed.push(typedValue);
-    }
-  });
-
-  return parsed;
+  return ScriptGrantValuesSchema.parse(value);
 };
 
 export const resolveEffectiveScriptGrants = (
