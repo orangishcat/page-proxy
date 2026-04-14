@@ -28,12 +28,13 @@ export const parseScriptGrantValues = (rawValue: string): ScriptGrantValue[] => 
 };
 
 export const coerceScriptGrantValues = (value: unknown): ScriptGrantValue[] => {
-  if (!Array.isArray(value)) {
+  if (!value || typeof value !== "object") {
     return [];
   }
 
+  const rawValues = Array.isArray(value) ? value : Object.values(value);
   const parsed: ScriptGrantValue[] = [];
-  value.forEach((item) => {
+  rawValues.forEach((item) => {
     if (typeof item !== "string") {
       return;
     }

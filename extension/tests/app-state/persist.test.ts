@@ -109,4 +109,26 @@ describe("flushAppStatePersistence", () => {
     expect(local["pageproxy:disable-all-grants"]).toBe(true);
     expect(local["pageproxy:Docs Script"]).toMatchObject({ scriptName: "Docs Script" });
   });
+
+  test("writes object-shaped allowed grants back as a list", async () => {
+    const local = getStorageState("local");
+    local["pageproxy:Docs Script"] = {
+      ...buildStoredState("Docs Script", "https://docs.example.com/*", 1),
+      permissions: {
+        allowedGrants: {
+          0: "run-on-page-load",
+        },
+        enabled: true,
+      },
+    };
+
+    replaceAppState(await hydrateAppState());
+    await flushAppStatePersistence();
+
+    const stored = getStorageState("local")["pageproxy:Docs Script"] as
+      | { permissions?: { allowedGrants?: unknown } }
+      | undefined;
+
+    expect(stored?.permissions?.allowedGrants).toEqual(["run-on-page-load"]);
+  });
 });
