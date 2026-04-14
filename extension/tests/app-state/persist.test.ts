@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
+import type { StoredToolState } from "../../src/lib/stored-tool-state";
 
 type StorageShape = Record<string, unknown>;
 
@@ -63,7 +64,7 @@ const { flushAppStatePersistence, hydrateAppState, replaceAppState, appStateActi
   "../../src/lib/app-state.ts"
 );
 
-const buildStoredState = (scriptName: string, websiteGlob: string, updatedAt: number) => ({
+const buildStoredState = (scriptName: string, websiteGlob: string, updatedAt: number): StoredToolState => ({
   scriptName,
   activeTool: "none",
   codeEditor: {

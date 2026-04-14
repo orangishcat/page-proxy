@@ -4,7 +4,7 @@ import { findBestMatchingWebsiteGlob, getWebsiteGlobsFromContent } from "../../.
 import { parseScriptMetadata } from "../../../lib/utils/script-metadata";
 import { buildWebsiteGlobForUrl, matchWebsiteGlob, readHostnameFromUrl } from "../../../lib/utils/website-glob";
 import { buildDefaultScript, type DefaultScriptConfig } from "../../../lib/default-script";
-import { isAppStateHydrated } from "../../../lib/app-state/hydration";
+import { isAppStateHydrated } from "../../../lib/app-state/storage/hydrate/hydration";
 
 import {
   findStoredToolStatesForUrl,

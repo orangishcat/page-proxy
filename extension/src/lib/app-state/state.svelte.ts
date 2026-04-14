@@ -3,7 +3,7 @@ import {
   createStateProxy,
   setAppStateHydrated as setAppStateHydratedFlag,
   setApplyingRemoteSync as setApplyingRemoteSyncFlag,
-} from "./hydration";
+} from "./storage/hydrate/hydration";
 import type { AppState } from "./types";
 
 export const appState: AppState = createStateProxy(createDefaultAppState());

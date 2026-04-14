@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { AppStatePersistHandler, type AppStatePersistEntry } from "../../src/lib/app-state/persist-handler";
+import { AppStatePersistHandler, type AppStatePersistEntry } from "../../src/lib/app-state/storage/persist/persist-handler";
 
 describe("AppStatePersistHandler", () => {
   test("uses deep equality for registry values", async () => {
