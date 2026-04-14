@@ -1,15 +1,15 @@
 import { browser } from "wxt/browser";
-import { createDefaultAppState } from "./defaults";
+import { createDefaultAppState } from "../../defaults";
 import {
   RecordPanelMapSchema,
   ScriptStorageMapSchema,
   SessionOpenTabsSchema,
   SessionSelectedScriptMapSchema,
   SidepanelLocalOptionsSchema,
-} from "./schema";
-import { createLocalStorageAdapter } from "./storage/local-adapter";
-import { createSessionStorageAdapter } from "./storage/session-adapter";
-import type { AppState } from "./types";
+} from "../../schema";
+import { createLocalStorageAdapter } from "../local-adapter";
+import { createSessionStorageAdapter } from "../session-adapter";
+import type { AppState } from "../../types";
 
 const scriptStorageAdapter = createLocalStorageAdapter({
   prefix: "pageproxy:",

@@ -45,7 +45,7 @@ const handleSessionSelectionChange = (key: string, newValue: unknown) => {
   delete appState.session.selectedScriptByHostname[hostname];
 };
 
-const handleChange = (changes: Record<string, { newValue: unknown }>, areaName: string) => {
+const handleChange = (changes: Record<string, chrome.storage.StorageChange>, areaName: chrome.storage.AreaName) => {
   setApplyingRemoteSync(true);
   try {
     for (const [key, change] of Object.entries(changes)) {

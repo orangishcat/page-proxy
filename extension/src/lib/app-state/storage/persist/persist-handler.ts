@@ -3,11 +3,9 @@ import { snapshot } from "svelte/internal/client";
 
 export type AppStatePersistEntry<T = unknown> = {
   name: string;
-  read: () => T;
-  persist: (current: T, previous: T) => Promise<void> | void;
+  read(): T;
+  persist(current: T, previous: T): Promise<void> | void;
 };
-
-export const defineAppStatePersistEntry = <T>(entry: AppStatePersistEntry<T>) => entry;
 
 const snapshotState = snapshot as <T>(value: T) => T;
 const clone = <T>(value: T): T => snapshotState(value);

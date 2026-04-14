@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import { isAppStateHydrated } from "./app-state/hydration";
+import { isAppStateHydrated } from "./app-state/storage/hydrate/hydration";
 
 const loadAppState: () => Promise<typeof import("./app-state.ts")> = () => import("./app-state.ts");
 

@@ -27,7 +27,7 @@
     replaceAppState,
     appStateActions,
   } from "../../lib/app-state.ts";
-  import { appStateStatus } from "../../lib/app-state/hydration";
+  import { appStateStatus } from "../../lib/app-state/storage/hydrate/hydration";
   import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "../../lib/sidepanel-shortcuts";
   import { codeEditorContent, selectorEntries } from "./tools/code-editor/state";
   import { type ToolId } from "./tools/state-storage";
