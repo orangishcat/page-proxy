@@ -1,7 +1,7 @@
 import { get } from "svelte/store";
-import type { ScriptGrantValue } from "@/lib/grants";
-import { defaultBlankScriptTitle } from "@/lib/script-names";
-import { readHostnameFromUrl } from "@/lib/utils/website-glob";
+import type { ScriptGrantValue } from "../../../../lib/grants";
+import { defaultBlankScriptTitle } from "../../../../lib/script-names";
+import { readHostnameFromUrl } from "../../../../lib/utils/website-glob";
 import type { ToolId } from "../state-storage";
 import { saveState } from "./save";
 import { selectorEntries } from "./state";

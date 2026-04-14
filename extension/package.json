@@ -23,10 +23,12 @@
     "loglevel": "1.9.2",
     "lucide-svelte": "1.0.1",
     "monaco-editor": "0.55.1",
+    "perfect-debounce": "^2.1.0",
     "picomatch": "4.0.4",
     "svelte": "5.55.1",
     "terser": "^5.46.1",
-    "vite": "^8.0.7"
+    "vite": "^8.0.7",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

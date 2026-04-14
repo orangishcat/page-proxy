@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import { buildAutoNumberedScriptName, matchesScriptName } from "@/lib/script-names";
+import { buildAutoNumberedScriptName, matchesScriptName } from "../../../lib/script-names";
 import {
   coerceStoredToolState,
   findBestMatchingWebsiteGlob,
@@ -9,7 +9,7 @@ import {
   type StoredSelectorEntry,
   type StoredToolState,
   type ToolId,
-} from "@/lib/stored-tool-state";
+} from "../../../lib/stored-tool-state";
 
 export type { StoredSelectorEntry, StoredToolState, ToolId };
 export { toStorageKey, fromStorageKey };

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ScriptRunLogEntry, ScriptRunLogLevel } from "@/lib/script-runner";
+  import type { ScriptRunLogEntry, ScriptRunLogLevel } from "../../../../lib/script-runner";
   import ConsoleObjectViewer from "./ConsoleObjectViewer.svelte";
 
   export type ConsoleNotification = {

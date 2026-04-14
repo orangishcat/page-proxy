@@ -1,7 +1,7 @@
-import { buildAutoNumberedScriptName, defaultBlankScriptTitle } from "@/lib/script-names";
+import { buildAutoNumberedScriptName, defaultBlankScriptTitle } from "../../../../lib/script-names";
 import { browser } from "wxt/browser";
-import { buildWebsiteGlobForUrl, isRestrictedUrl, readHostnameFromUrl } from "@/lib/utils/website-glob";
-import log from "@/lib/logger";
+import { buildWebsiteGlobForUrl, isRestrictedUrl, readHostnameFromUrl } from "../../../../lib/utils/website-glob";
+import log from "../../../../lib/logger";
 import {
   buildEditorDisplayContent,
   buildDefaultScript,
@@ -12,7 +12,7 @@ import {
 import { listStoredScriptNames, resolveBlankScriptName } from "../state-storage";
 import { clearSelectedScriptForHostname, writeSelectedScriptForHostname } from "../script-selection-session";
 import { getTabUrl, resolveActiveTab, shouldHandleTabUpdate, type ActiveTab } from "./tabs";
-import { coerceToolPanelTool } from "@/lib/sidepanel-shortcuts";
+import { coerceToolPanelTool } from "../../../../lib/sidepanel-shortcuts";
 import type { AutosaveManager } from "./autosave";
 import type { ScriptSelectionOption } from "./state";
 

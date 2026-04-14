@@ -3,7 +3,7 @@ import {
   setMonacoEditorMarkers,
   type MonacoCodeEditorHandle,
   type MonacoEditorMarker,
-} from "@/lib/code-editor";
+} from "../../../../lib/code-editor";
 
 const scriptRunErrorMarkerOwner = "script-run-error";
 const scriptLocationPattern = /(?:<script>|blob:[^\s)]+):(\d+)(?::(\d+))?/;

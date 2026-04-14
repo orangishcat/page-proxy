@@ -1,13 +1,14 @@
-import { defaultBlankScriptTitle } from "@/lib/script-names";
-import { createEmptyStoredRuntimeStorage } from "@/lib/script-runtime-storage";
-import { parseScriptMetadata } from "@/lib/utils/script-metadata";
-import { buildWebsiteGlobForUrl, matchWebsiteGlob, readHostnameFromUrl } from "@/lib/utils/website-glob";
-import { buildDefaultScript, type DefaultScriptConfig } from "@/lib/default-script";
+import { defaultBlankScriptTitle, buildAutoNumberedScriptName } from "../../../lib/script-names";
+import { createEmptyStoredRuntimeStorage } from "../../../lib/script-runtime-storage";
+import { findBestMatchingWebsiteGlob, getWebsiteGlobsFromContent } from "../../../lib/stored-tool-state";
+import { parseScriptMetadata } from "../../../lib/utils/script-metadata";
+import { buildWebsiteGlobForUrl, matchWebsiteGlob, readHostnameFromUrl } from "../../../lib/utils/website-glob";
+import { buildDefaultScript, type DefaultScriptConfig } from "../../../lib/default-script";
+import { isAppStateHydrated } from "../../../lib/app-state/hydration";
 
 import {
   findStoredToolStatesForUrl,
   resolveBlankScriptName,
-  type StoredStateMatch,
   type StoredToolState,
 } from "./state-storage";
 import {
@@ -24,6 +25,12 @@ export { buildDefaultScript };
 export type ResolvedScriptMatch = {
   scriptName: string;
   websiteGlob: string;
+  state: StoredToolState;
+};
+
+type StoredStateMatch = {
+  scriptName: string;
+  matchedWebsiteGlob: string;
   state: StoredToolState;
 };
 
@@ -203,12 +210,49 @@ export const isDefaultToolState = (state: StoredToolState, config: ScriptFormatC
 };
 
 export const resolveStoredToolStateForUrl = async (url: string, config: ScriptFormatConfig) => {
-  const matchedStates = await findStoredToolStatesForUrl(url);
+  const appStateModule: typeof import("../../../lib/app-state.ts") | null = isAppStateHydrated
+    ? await import("../../../lib/app-state.ts")
+    : null;
+  const matchedStates: StoredStateMatch[] = isAppStateHydrated
+    ? Object.values(appStateModule?.appState.scriptsByName ?? {}).map((state) => ({
+        scriptName: state.scriptName,
+        matchedWebsiteGlob: "",
+        state,
+      }))
+    : (await findStoredToolStatesForUrl(url)).map((entry) => ({
+        scriptName: entry.scriptName,
+        matchedWebsiteGlob: entry.matchedWebsiteGlob,
+        state: entry.state,
+      }));
+
+  const normalizedMatchedStates = matchedStates
+    .map((match) => {
+      const websiteGlobs = getWebsiteGlobsFromContent(match.state.codeEditor.content);
+      const matchedWebsiteGlob = findBestMatchingWebsiteGlob(websiteGlobs, url);
+      if (!matchedWebsiteGlob) {
+        return null;
+      }
+
+      return {
+        scriptName: match.scriptName,
+        matchedWebsiteGlob,
+        state: match.state,
+      } satisfies StoredStateMatch;
+    })
+    .filter((entry): entry is StoredStateMatch => entry !== null)
+    .sort((left, right) => {
+      const byGlobLength = right.matchedWebsiteGlob.length - left.matchedWebsiteGlob.length;
+      if (byGlobLength !== 0) {
+        return byGlobLength;
+      }
+
+      return right.state.updatedAt - left.state.updatedAt;
+    });
   const fallbackWebsiteGlob = buildWebsiteGlobForUrl(url);
   const hostname = readHostnameFromUrl(url);
 
-  if (matchedStates.length > 0) {
-    const matches = matchedStates.map(toResolvedScriptMatch);
+  if (normalizedMatchedStates.length > 0) {
+    const matches = normalizedMatchedStates.map(toResolvedScriptMatch);
     const defaultMatch = matches[0];
     const storedSelectedScriptName = hostname ? await readSelectedScriptForHostname(hostname) : null;
     const selectedOverride = storedSelectedScriptName
@@ -237,7 +281,9 @@ export const resolveStoredToolStateForUrl = async (url: string, config: ScriptFo
     await clearSelectedScriptForHostname(hostname);
   }
 
-  const scriptName = await resolveBlankScriptName(defaultBlankScriptTitle);
+  const scriptName = isAppStateHydrated
+    ? buildAutoNumberedScriptName(defaultBlankScriptTitle, Object.keys(appStateModule?.appState.scriptsByName ?? {}))
+    : await resolveBlankScriptName(defaultBlankScriptTitle);
   const state = buildDefaultToolState(fallbackWebsiteGlob, config, scriptName);
   const fallbackMatch = {
     scriptName,
