@@ -5,10 +5,6 @@
   import { readStoredScriptEnabled, saveStoredScriptEnabled } from "./state-storage";
   import type { ScriptSelectionOption } from "./code-editor/state";
   import { setToolMessage } from "./tool-errors";
-  import { saveShowHelpButtonSetting } from "@/lib/show-help-button-setting";
-  import log from "@/lib/logger";
-
-  const logger = log.getLogger("settings tool");
 
   type ScriptSettingEntry = ScriptSelectionOption & {
     enabled: boolean;
@@ -92,20 +88,6 @@
         setToolMessage("Unable to update script settings.", "error");
       });
   };
-
-  $effect(() => {
-    logger.debug("show help button setting:", toolCtx.showHelpButton);
-    if (toolCtx.showHelpButton === undefined) {
-      return;
-    }
-    void saveShowHelpButtonSetting(toolCtx.showHelpButton)
-      .then(() => {
-        setToolMessage(null, "error");
-      })
-      .catch(() => {
-        setToolMessage("Unable to update extension settings.", "error");
-      });
-  });
 </script>
 
 <div class="px-4 py-4 overflow-auto space-y-4">

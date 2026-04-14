@@ -136,3 +136,11 @@ export const coerceStoredToolState = (value: unknown, scriptNameFromKey: string)
       : createEmptyStoredRuntimeStorage(),
   };
 };
+
+export const normalizeStoredToolState = (state: StoredToolState): StoredToolState => ({
+  ...state,
+  permissions: {
+    ...state.permissions,
+    allowedGrants: coerceScriptGrantValues(state.permissions.allowedGrants),
+  },
+});
