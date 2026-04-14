@@ -81,7 +81,7 @@ const buildStoredState = (): StoredToolState => ({
     entries: [],
   },
   permissions: {
-    allowedGrants: { 0: "run-on-page-load" } as unknown as StoredToolState["permissions"]["allowedGrants"],
+    allowedGrants: ["run-on-page-load"],
     enabled: true,
   },
   websiteGlob: "https://example.com/*",
@@ -98,7 +98,7 @@ describe("stored tool state persistence", () => {
     Object.keys(storageState).forEach((key) => delete storageState[key]);
   });
 
-  test("writes object-shaped allowed grants back as a list and reads them as a list", async () => {
+  test("writes allowed grants as a list and reads them as a list", async () => {
     const state = buildStoredState();
 
     await saveStoredToolState(state);

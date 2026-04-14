@@ -3,24 +3,27 @@ import {
   storageKeyPrefix,
   type RawStorageAdapter,
 } from "@page-proxy/pp/pp-storage";
+import { z } from "zod";
 
 export type StoredRuntimeStorage = {
   pt: Record<string, string>;
   pn: Record<string, string>;
 };
 
-const coerceStringRecord = (value: unknown): Record<string, string> => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return {};
-  }
-
-  return Object.entries(value).reduce<Record<string, string>>((result, [key, entryValue]) => {
-    if (typeof entryValue === "string") {
-      result[key] = entryValue;
+const StoredStringRecordSchema = z.record(z.string(), z.unknown()).catch({}).transform((record): Record<string, string> => {
+  const next: Record<string, string> = {};
+  Object.entries(record).forEach(([key, value]) => {
+    if (typeof value === "string") {
+      next[key] = value;
     }
-    return result;
-  }, {});
-};
+  });
+  return next;
+});
+
+export const StoredRuntimeStorageSchema = z.object({
+  pt: StoredStringRecordSchema,
+  pn: StoredStringRecordSchema,
+});
 
 export const createEmptyStoredRuntimeStorage = (): StoredRuntimeStorage => ({
   pt: {},
@@ -33,15 +36,8 @@ export const cloneStoredRuntimeStorage = (value: StoredRuntimeStorage): StoredRu
 });
 
 export const coerceStoredRuntimeStorage = (value: unknown): StoredRuntimeStorage => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return createEmptyStoredRuntimeStorage();
-  }
-
-  const data = value as { pt?: unknown; pn?: unknown };
-  return {
-    pt: coerceStringRecord(data.pt),
-    pn: coerceStringRecord(data.pn),
-  };
+  const parsed = StoredRuntimeStorageSchema.safeParse(value);
+  return parsed.success ? parsed.data : createEmptyStoredRuntimeStorage();
 };
 
 const resolveStorageBucket = (storageKey: string): keyof StoredRuntimeStorage | null => {

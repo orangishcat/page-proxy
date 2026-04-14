@@ -1,7 +1,8 @@
-import { coerceScriptGrantValues, type ScriptGrantValue } from "./grants";
+import { z } from "zod";
+import { ScriptGrantValuesSchema, type ScriptGrantValue } from "./grants";
 import {
-  coerceStoredRuntimeStorage,
   createEmptyStoredRuntimeStorage,
+  StoredRuntimeStorageSchema,
   type StoredRuntimeStorage,
 } from "./script-runtime-storage";
 import { parseScriptMetadata } from "./utils/script-metadata";
@@ -31,6 +32,40 @@ export type StoredToolState = {
   runtimeStorage: StoredRuntimeStorage;
 };
 
+const ToolIdSchema = z.enum(["select", "create", "selectors", "record", "settings", "help", "share", "none"]);
+
+const StoredSelectorEntrySchema = z
+  .object({
+    name: z.string().catch(""),
+    ruleKeys: z.array(z.string()).catch([]),
+    rules: z.array(z.string()).optional(),
+    mode: z.enum(["pp-api", "css"]).optional(),
+    cssText: z.string().optional(),
+  })
+  .passthrough();
+
+const StoredSelectorEntriesSchema = z.array(StoredSelectorEntrySchema).catch([]).transform((entries) =>
+  entries.filter((entry) => entry.name.trim().length > 0 && entry.ruleKeys.length > 0),
+);
+
+export const StoredToolStateSchema = z
+  .object({
+    scriptName: z.string().catch(""),
+    activeTool: ToolIdSchema.catch("none"),
+    codeEditor: z.object({ content: z.string().catch("") }).catch({ content: "" }),
+    selectorPanel: z.object({ entries: StoredSelectorEntriesSchema }).catch({ entries: [] }),
+    permissions: z
+      .object({
+        allowedGrants: ScriptGrantValuesSchema,
+        enabled: z.boolean().catch(true),
+      })
+      .catch({ allowedGrants: [], enabled: true }),
+    websiteGlob: z.string().catch(""),
+    updatedAt: z.unknown().transform((value) => (typeof value === "number" && Number.isFinite(value) ? value : Date.now())),
+    runtimeStorage: StoredRuntimeStorageSchema.catch(createEmptyStoredRuntimeStorage()),
+  })
+  .passthrough();
+
 export const storageKeyPrefix = "pageproxy:";
 
 export const isToolId = (value: unknown): value is ToolId =>
@@ -45,21 +80,6 @@ export const isToolId = (value: unknown): value is ToolId =>
 
 export const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === "string");
-
-export const coerceStoredSelectorEntries = (value: unknown): StoredSelectorEntry[] => {
-  if (!Array.isArray(value)) return [];
-  const entries: StoredSelectorEntry[] = [];
-  value.forEach((entry) => {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return;
-    const data = entry as { name?: unknown; ruleKeys?: unknown; rules?: unknown; mode?: unknown; cssText?: unknown };
-    if (typeof data.name !== "string" || !isStringArray(data.ruleKeys)) return;
-    const rules = isStringArray(data.rules) ? data.rules : undefined;
-    const mode = data.mode === "pp-api" || data.mode === "css" ? data.mode : undefined;
-    const cssText = typeof data.cssText === "string" ? data.cssText : undefined;
-    entries.push({ name: data.name, ruleKeys: data.ruleKeys, rules, mode, cssText });
-  });
-  return entries;
-};
 
 export const toStorageKey = (scriptName: string) => `${storageKeyPrefix}${scriptName.trim()}`;
 
@@ -91,56 +111,25 @@ export const findBestMatchingWebsiteGlob = (websiteGlobs: string[], url: string)
 
 export const coerceStoredToolState = (value: unknown, scriptNameFromKey: string): StoredToolState | null => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const data = value as {
-    scriptName?: unknown;
-    activeTool?: unknown;
-    codeEditor?: unknown;
-    selectorPanel?: unknown;
-    permissions?: unknown;
-    websiteGlob?: unknown;
-    updatedAt?: unknown;
-    runtimeStorage?: unknown;
-  };
-  if (!isToolId(data.activeTool)) return null;
-  const codeEditor = data.codeEditor as { content?: unknown } | undefined;
-  if (typeof codeEditor?.content !== "string") return null;
-  const selectorPanel = data.selectorPanel as { entries?: unknown } | undefined;
-  const permissions = data.permissions as { allowedGrants?: unknown; enabled?: unknown } | undefined;
-  const metadata = resolveMetadataFallback(codeEditor.content);
+  const parsed = StoredToolStateSchema.safeParse(value);
+  if (!parsed.success) return null;
+
+  const data = parsed.data;
+  const metadata = resolveMetadataFallback(data.codeEditor.content);
   const metadataScriptName = metadata?.title?.trim() ?? "";
   const resolvedScriptName =
-    typeof data.scriptName === "string" && data.scriptName.trim().length > 0
-      ? data.scriptName.trim()
-      : metadataScriptName.length > 0
-        ? metadataScriptName
-        : scriptNameFromKey;
+    data.scriptName.trim().length > 0 ? data.scriptName.trim() : metadataScriptName.length > 0 ? metadataScriptName : scriptNameFromKey;
   const metadataWebsites = metadata?.websites.map((w) => w.trim()).filter((w) => w.length > 0) ?? [];
   const metadataWebsite = metadata?.website?.trim() ?? "";
   const fallbackWebsiteGlob = metadataWebsites[0] ?? metadataWebsite;
   return {
     scriptName: resolvedScriptName,
     activeTool: data.activeTool,
-    codeEditor: { content: codeEditor.content },
-    selectorPanel: { entries: coerceStoredSelectorEntries(selectorPanel?.entries) },
-    permissions: {
-      allowedGrants: coerceScriptGrantValues(permissions?.allowedGrants),
-      enabled: permissions?.enabled !== false,
-    },
-    websiteGlob:
-      typeof data.websiteGlob === "string" && data.websiteGlob.trim().length > 0
-        ? data.websiteGlob
-        : fallbackWebsiteGlob,
-    updatedAt: typeof data.updatedAt === "number" ? data.updatedAt : Date.now(),
-    runtimeStorage: data.runtimeStorage
-      ? coerceStoredRuntimeStorage(data.runtimeStorage)
-      : createEmptyStoredRuntimeStorage(),
+    codeEditor: { content: data.codeEditor.content },
+    selectorPanel: { entries: data.selectorPanel.entries },
+    permissions: data.permissions,
+    websiteGlob: data.websiteGlob.trim().length > 0 ? data.websiteGlob : fallbackWebsiteGlob,
+    updatedAt: data.updatedAt,
+    runtimeStorage: data.runtimeStorage,
   };
 };
-
-export const normalizeStoredToolState = (state: StoredToolState): StoredToolState => ({
-  ...state,
-  permissions: {
-    ...state.permissions,
-    allowedGrants: coerceScriptGrantValues(state.permissions.allowedGrants),
-  },
-});
