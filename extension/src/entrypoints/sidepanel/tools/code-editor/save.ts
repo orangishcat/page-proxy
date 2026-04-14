@@ -1,7 +1,7 @@
-import { defaultBlankScriptTitle } from "@/lib/script-names";
-import { parseScriptMetadata } from "@/lib/utils/script-metadata";
-import type { ScriptGrantValue } from "@/lib/grants";
-import { matchWebsiteGlob } from "@/lib/utils/website-glob";
+import { defaultBlankScriptTitle } from "../../../../lib/script-names";
+import { parseScriptMetadata } from "../../../../lib/utils/script-metadata";
+import type { ScriptGrantValue } from "../../../../lib/grants";
+import { matchWebsiteGlob } from "../../../../lib/utils/website-glob";
 import {
   ensureWebsiteMetadata,
   isDefaultToolState,

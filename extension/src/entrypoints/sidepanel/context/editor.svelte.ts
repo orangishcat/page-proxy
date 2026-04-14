@@ -1,5 +1,6 @@
 import { getContext, setContext } from "svelte";
-import type { ScriptGrantValue } from "@/lib/grants";
+import { appState, appStateActions, appStateSelectors } from "../../../lib/app-state.ts";
+import type { ScriptGrantValue } from "../../../lib/grants";
 import type { ElementEntry, ScriptMetadataState, ScriptSelectionOption } from "../tools/code-editor/state";
 
 const key = Symbol("editor");
@@ -19,10 +20,6 @@ export function createEditorContext() {
     author: "",
     credits: "",
   });
-  let allowedGrants = $state<ScriptGrantValue[]>([]);
-  let scriptOptions = $state<ScriptSelectionOption[]>([]);
-  let activeScriptName = $state<string | null>(null);
-  let disableAllGrants = $state(false);
   let api = $state<EditorApi | null>(null);
 
   const insertDefinitions = (lines: string[]): boolean => {
@@ -53,14 +50,42 @@ export function createEditorContext() {
     set elementEntries(v: ElementEntry[]) { elementEntries = v; },
     get scriptMetadata() { return scriptMetadata; },
     set scriptMetadata(v: ScriptMetadataState) { scriptMetadata = v; },
-    get allowedGrants() { return allowedGrants; },
-    set allowedGrants(v: ScriptGrantValue[]) { allowedGrants = v; },
-    get scriptOptions() { return scriptOptions; },
-    set scriptOptions(v: ScriptSelectionOption[]) { scriptOptions = v; },
-    get activeScriptName() { return activeScriptName; },
-    set activeScriptName(v: string | null) { activeScriptName = v; },
-    get disableAllGrants() { return disableAllGrants; },
-    set disableAllGrants(v: boolean) { disableAllGrants = v; },
+    get allowedGrants() {
+      return appStateSelectors.getActiveScript()?.permissions.allowedGrants ?? [];
+    },
+    set allowedGrants(v: ScriptGrantValue[]) {
+      const activeScript = appStateSelectors.getActiveScript();
+      if (!activeScript) {
+        return;
+      }
+
+      appStateActions.updateActiveScript((script) => ({
+        ...script,
+        permissions: {
+          ...script.permissions,
+          allowedGrants: v,
+        },
+        updatedAt: Date.now(),
+      }));
+    },
+    get scriptOptions() {
+      return appStateSelectors.getAvailableScriptOptions();
+    },
+    set scriptOptions(v: ScriptSelectionOption[]) {
+      appState.currentTab.availableScriptOptions = v;
+    },
+    get activeScriptName() {
+      return appStateSelectors.getActiveScriptName();
+    },
+    set activeScriptName(v: string | null) {
+      appState.currentTab.activeScriptName = v;
+    },
+    get disableAllGrants() {
+      return appStateSelectors.getDisableAllGrants();
+    },
+    set disableAllGrants(v: boolean) {
+      appStateActions.setDisableAllGrants(v);
+    },
     get api() { return api; },
     set api(v: EditorApi | null) { api = v; },
     insertDefinitions,

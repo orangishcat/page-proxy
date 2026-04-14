@@ -1,5 +1,5 @@
-import { supportedScriptGrants, type ScriptGrantValue } from "@/lib/grants";
-import { isRecord } from "@/lib/utils/type-guards";
+import { supportedScriptGrants, type ScriptGrantValue } from "./grants";
+import { isRecord } from "./utils/type-guards";
 
 export type GrantPermissionRequestPayload = {
   scriptName: string;

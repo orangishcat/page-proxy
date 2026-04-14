@@ -1,5 +1,5 @@
 import { applyScriptRunErrorMarker, clearScriptRunErrorMarker } from "./error-markers";
-import type { MonacoCodeEditorHandle } from "@/lib/code-editor";
+import type { MonacoCodeEditorHandle } from "../../../../lib/code-editor";
 
 export type UpdateRunErrorDeps = {
   getLastRunError: () => string | null;

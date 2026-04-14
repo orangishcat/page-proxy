@@ -1,5 +1,5 @@
 import { derived, writable } from "svelte/store";
-import { extractScriptSelectorEntries, type ParsedScriptSelectorEntry } from "@/lib/utils/script-selector-parsing";
+import { extractScriptSelectorEntries, type ParsedScriptSelectorEntry } from "../../../../lib/utils/script-selector-parsing";
 
 export type BoundingBox = {
   x: number;

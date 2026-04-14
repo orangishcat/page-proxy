@@ -1,4 +1,4 @@
-import { parseScriptGrantValues, type ScriptGrantValue } from "@/lib/grants";
+import { parseScriptGrantValues, type ScriptGrantValue } from "../grants";
 
 export type ScriptMetadata = {
   title: string;

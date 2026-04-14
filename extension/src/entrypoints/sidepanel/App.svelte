@@ -18,15 +18,23 @@
   import ResizeHandle from "./ResizeHandle.svelte";
   import { attachSelectionListener, sendSelectionToggle } from "./tools/select-tool/actions";
   import { setEditorMessage, setToolMessage, toolMessage } from "./tools/tool-errors";
-  import { isGrantResolvedMessage } from "@/lib/grant-permissions";
-  import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
+  import { isGrantResolvedMessage } from "../../lib/grant-permissions";
+  import {
+    appStateSelectors,
+    flushAppStatePersistence,
+    hydrateAppState,
+    registerAppStateSync,
+    replaceAppState,
+    appStateActions,
+  } from "../../lib/app-state.ts";
+  import { appStateStatus } from "../../lib/app-state/hydration";
+  import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "../../lib/sidepanel-shortcuts";
   import { codeEditorContent, selectorEntries } from "./tools/code-editor/state";
-  import { readToolPanelHeightSetting, saveToolPanelHeightSetting, type ToolId } from "./tools/state-storage";
+  import { type ToolId } from "./tools/state-storage";
   import { createToolContext, setToolContext } from "./context/tool.svelte";
   import { createEditorContext, setEditorContext } from "./context/editor.svelte";
-  import { isEditableTarget, isCodeEditorFocused } from "@/lib/utils/dom-checks";
-  import { getShortcutTool } from "@/lib/utils/keyboard-shortcuts";
-  import { readShowHelpButtonSetting } from "@/lib/show-help-button-setting";
+  import { isEditableTarget, isCodeEditorFocused } from "../../lib/utils/dom-checks";
+  import { getShortcutTool } from "../../lib/utils/keyboard-shortcuts";
   import {
     isSelectorSaveMessage,
     isRecordConverterSaveMessage,
@@ -63,6 +71,23 @@
       ? undefined
       : `height: ${toolPanelHeightPx}px; min-height: ${minToolPanelHeightPx}px; max-height: ${maxToolPanelHeightPx}px;`,
   );
+
+  $effect(() => {
+    if (!appStateStatus.isAppStateHydrated || appStateStatus.isApplyingRemoteSync) {
+      return;
+    }
+
+    appStateSelectors.getShowHelpButton();
+    appStateSelectors.getDisableAllGrants();
+    appStateSelectors.getToolPanelHeight();
+    appStateSelectors.getActiveTool();
+    appStateSelectors.getActiveScript();
+    appStateSelectors.getAvailableScriptOptions();
+    appStateSelectors.getActiveScriptName();
+    appStateSelectors.getDefaultScriptName();
+    appStateSelectors.getActiveWebsiteGlob();
+    void flushAppStatePersistence();
+  });
 
   $effect(() => {
     if (!toolCtx.showHelpButton && toolCtx.activeTool === "help") {
@@ -113,17 +138,11 @@
   });
 
   onMount(() => {
-    toolPanelHeightPx = minToolPanelHeightPx;
-    void readToolPanelHeightSetting().then((storedHeight) => {
-      if (storedHeight === null) {
-        return;
-      }
-
-      toolPanelHeightPx = storedHeight;
-    });
-    void readShowHelpButtonSetting()
-      .then((showHelpButton) => {
-        toolCtx.showHelpButton = showHelpButton;
+    registerAppStateSync();
+    void hydrateAppState()
+      .then((state) => {
+        replaceAppState(state);
+        toolPanelHeightPx = state.sidepanel.toolPanelHeightPx ?? minToolPanelHeightPx;
       })
       .catch((error) => {
         setToolMessage(error instanceof Error ? error.message : "Unable to load extension settings.", "error");
@@ -250,7 +269,7 @@
             onheightchange={(clientY) => { toolPanelHeightPx = clientY; }}
             onresizefinish={(clientY) => {
               toolPanelHeightPx = clientY;
-              void saveToolPanelHeightSetting(clientY);
+              appStateActions.setToolPanelHeight(clientY);
             }}
           />
 
