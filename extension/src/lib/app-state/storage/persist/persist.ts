@@ -13,7 +13,7 @@ import { createSessionStorageAdapter } from "../session-adapter";
 import { AppStatePersistHandler, type AppStatePersistEntry } from "./persist-handler";
 import type { AppStateSettings, AppStateSession, AppStateSidepanel } from "../../types";
 import type { RecordPanelState } from "../../../../entrypoints/sidepanel/tools/storage/record-panel";
-import type { StoredToolState } from "../../../stored-tool-state";
+import { normalizeStoredToolState, type StoredToolState } from "../../../stored-tool-state";
 
 const logger = log.getLogger("app-state-persist");
 
@@ -78,7 +78,10 @@ const appStatePersistHandler = new AppStatePersistHandler([
       return appState.scriptsByName;
     },
     async persist(current: Record<string, StoredToolState>, previous: Record<string, StoredToolState>) {
-      await scriptStorageAdapter.persist(current, previous);
+      const normalizeScriptMap = (value: Record<string, StoredToolState>) =>
+        Object.fromEntries(Object.entries(value).map(([key, state]) => [key, normalizeStoredToolState(state)]));
+
+      await scriptStorageAdapter.persist(normalizeScriptMap(current), normalizeScriptMap(previous));
     },
   },
   {
