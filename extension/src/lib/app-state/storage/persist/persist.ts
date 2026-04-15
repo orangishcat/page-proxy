@@ -115,10 +115,22 @@ const appStatePersistHandler = new AppStatePersistHandler([
   },
 ] satisfies readonly AppStatePersistEntry[]);
 
+const logPersistSnapshot = (label: string) => {
+  logger.debug(label, {
+    scriptCount: Object.keys(appState.scriptsByName).length,
+    recordPanelCount: Object.keys(appState.recordPanelsByTabId).length,
+    openTabCount: Object.keys(appState.session.openTabsByTabId).length,
+    selectedScriptCount: Object.keys(appState.session.selectedScriptByHostname).length,
+    sidepanel: appState.sidepanel,
+  });
+};
+
 const persistNow = async () => {
   try {
+    logPersistSnapshot("flushAppStatePersistence start");
     await appStatePersistHandler.checkPersist();
     appState.currentTab.lastPersistenceError = null;
+    logPersistSnapshot("flushAppStatePersistence done");
   } catch (error) {
     logger.error("persist failed", { error });
     appState.currentTab.lastPersistenceError = error instanceof Error ? error.message : "Unable to persist app state.";
