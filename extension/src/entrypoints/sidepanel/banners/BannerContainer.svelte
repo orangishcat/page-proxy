@@ -6,8 +6,11 @@
 
   import { appState } from "@/lib/app-state/state.svelte.ts";
   import { appStateActions } from "@/lib/app-state/actions.ts";
-  import { BrowserSupport, detectBrowserSupport } from "@/lib/utils/browser-support";
-  import { ensureCodeRunnerUserscript, UserscriptRunnerStatus } from "@/lib/userscript-runner";
+  import { detectBrowserSupport } from "@/lib/utils/browser-support";
+  import type { BrowserSupport } from "@/lib/utils/browser-support";
+
+  import { ensureCodeRunnerUserscript } from "@/lib/userscript-runner";
+  import type { UserscriptRunnerStatus } from "@/lib/userscript-runner";
   import { setToolMessage } from "../tools/tool-errors";
   import Banner from "./Banner.svelte";
 

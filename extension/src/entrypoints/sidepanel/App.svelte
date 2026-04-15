@@ -73,8 +73,13 @@
       : `height: ${toolPanelHeightPx}px; min-height: ${minToolPanelHeightPx}px; max-height: ${maxToolPanelHeightPx}px;`,
   );
 
+  const appStateHydratePromise = hydrateAppState().then((state) => {
+    replaceAppState(state);
+    return state;
+  });
+
   /** App state fields that are tracked by the $effect below, and automatically persisted to extension local storage */
-  const deps = {
+  const deps = $derived.by(() => ({
     showHelpButton: appState.settings.showHelpButton,
     disableAllGrants: appState.settings.disableAllGrants,
     toolPanelHeightPx: appState.sidepanel.toolPanelHeightPx,
@@ -89,7 +94,7 @@
     selectedScriptsCount: Object.keys(appState.session.selectedScriptByHostname).length, // this is just for prettier output in debug logging
     recordPanelsCount: Object.keys(appState.recordPanelsByTabId).length,
     scriptsCount: Object.keys(appState.scriptsByName).length,
-  };
+  }));
 
   $effect(() => {
     if (!appStateStatus.isAppStateHydrated) {
@@ -99,13 +104,13 @@
       return;
     }
 
-    deps; // referencing deps here to add all defined fields to the effect's dependency list
+    deps;
     logger.debug("flush app-state persistence from sidepanel", deps);
     void flushAppStatePersistence();
   });
 
   $effect(() => {
-    if (!toolCtx.showHelpButton && toolCtx.activeTool === "help") {
+    if (!appState.settings.showHelpButton && toolCtx.activeTool === "help") {
       toolCtx.activeTool = "none";
     }
   });
@@ -153,9 +158,8 @@
   });
 
   onMount(() => {
-    void hydrateAppState()
+    void appStateHydratePromise
       .then((state) => {
-        replaceAppState(state);
         toolPanelHeightPx = state.sidepanel.toolPanelHeightPx ?? minToolPanelHeightPx;
       })
       .catch((error) => {
@@ -251,7 +255,7 @@
           >
             <Toolbar
               activeTool={toolCtx.activeTool}
-              showHelpButton={toolCtx.showHelpButton}
+              showHelpButton={appState.settings.showHelpButton}
               ontoolselect={handleToolSelect}
             />
 
