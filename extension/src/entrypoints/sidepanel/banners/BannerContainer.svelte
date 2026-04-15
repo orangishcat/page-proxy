@@ -4,14 +4,10 @@
   import { browser } from "wxt/browser";
   import { CircleQuestionMark } from "lucide-svelte";
 
+  import { appState } from "@/lib/app-state/state.svelte.ts";
+  import { appStateActions } from "@/lib/app-state/actions.ts";
   import { detectBrowserSupport } from "@/lib/utils/browser-support";
   import { ensureCodeRunnerUserscript } from "@/lib/userscript-runner";
-  import {
-    readHelpBannerDismissedSetting,
-    readUserscriptReloadBannerDismissedSetting,
-    saveHelpBannerDismissedSetting,
-    saveUserscriptReloadBannerDismissedSetting,
-  } from "../tools/state-storage";
   import {
     setToolMessage,
   } from "../tools/tool-errors";
@@ -38,21 +34,17 @@
       userscriptEnableWithFirefoxPermissions = supportedBrowser === "firefox";
     });
 
-    void Promise.all([ensureCodeRunnerUserscript(), readUserscriptReloadBannerDismissedSetting()]).then(
-      ([status, reloadBannerDismissed]) => {
-        userscriptReloadBannerDismissed = reloadBannerDismissed;
-        if (!status.ok && status.needsEnablement) {
-          showUserscriptEnableBanner = true;
-          return;
-        }
+    void ensureCodeRunnerUserscript().then((status) => {
+      userscriptReloadBannerDismissed = appState.sidepanel.userscriptReloadBannerDismissed;
+      if (!status.ok && status.needsEnablement) {
+        showUserscriptEnableBanner = true;
+        return;
+      }
 
-        showUserscriptReloadBanner = status.ok && !reloadBannerDismissed;
-      },
-    );
-
-    void readHelpBannerDismissedSetting().then((dismissed) => {
-      showHelpBanner = !dismissed;
+      showUserscriptReloadBanner = status.ok && !userscriptReloadBannerDismissed;
     });
+
+    showHelpBanner = !appState.sidepanel.helpBannerDismissed;
   });
 
   const dismissUnsupportedBrowserBanner = () => {
@@ -70,12 +62,12 @@
   const dismissUserscriptReloadBanner = () => {
     showUserscriptReloadBanner = false;
     userscriptReloadBannerDismissed = true;
-    void saveUserscriptReloadBannerDismissedSetting(true);
+    appStateActions.dismissBanner("userscriptReloadBannerDismissed");
   };
 
   const dismissHelpBanner = () => {
     showHelpBanner = false;
-    void saveHelpBannerDismissedSetting(true);
+    appStateActions.dismissBanner("helpBannerDismissed");
   };
 
   const requestFirefoxUserscriptPermission = (event: MouseEvent) => {

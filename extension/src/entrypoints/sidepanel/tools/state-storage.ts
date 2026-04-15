@@ -17,40 +17,28 @@ export { toStorageKey, fromStorageKey };
 export type { RecordTimelineEntry, RecordPanelState } from "./storage/record-panel";
 export { buildDefaultRecordPanelState } from "./storage/record-panel";
 
-export {
-  readHelpBannerDismissedSetting,
-  saveHelpBannerDismissedSetting,
-  readUserscriptReloadBannerDismissedSetting,
-  saveUserscriptReloadBannerDismissedSetting,
-} from "./storage/banners";
-
 export type StoredStateMatch = {
   scriptName: string;
   matchedWebsiteGlob: string;
   state: StoredToolState;
 };
 
-export const listStoredToolStates = (): Promise<StoredToolState[]> => Promise.resolve(appStateSelectors.getStoredToolStates());
+export const listStoredToolStates = (): Promise<StoredToolState[]> =>
+  Promise.resolve(appStateSelectors.getStoredToolStates());
 
 export const listStoredScriptNames = (): Promise<string[]> =>
   listStoredToolStates().then((entries) => entries.map((entry) => entry.scriptName));
 
-export const resolveBlankScriptName = (
-  baseScriptName: string,
-  excludedScriptNames: readonly string[] = [],
-) => {
-  return listStoredScriptNames().then((storedScriptNames) => {
-    const filteredStoredScriptNames = storedScriptNames.filter(
-      (scriptName) => !excludedScriptNames.some((excludedScriptName) => matchesScriptName(scriptName, excludedScriptName)),
-    );
-    return buildAutoNumberedScriptName(baseScriptName, filteredStoredScriptNames);
-  });
+export const resolveBlankScriptName = async (baseScriptName: string, excludedScriptNames: readonly string[] = []) => {
+  const storedScriptNames = await listStoredScriptNames();
+  const filteredStoredScriptNames = storedScriptNames.filter(
+    (scriptName) =>
+      !excludedScriptNames.some((excludedScriptName) => matchesScriptName(scriptName, excludedScriptName)),
+  );
+  return buildAutoNumberedScriptName(baseScriptName, filteredStoredScriptNames);
 };
 
-export const hasStoredScriptNameConflict = (
-  scriptName: string,
-  excludedScriptNames: readonly string[] = [],
-) => {
+export const hasStoredScriptNameConflict = (scriptName: string, excludedScriptNames: readonly string[] = []) => {
   const normalizedScriptName = scriptName.trim();
   if (!normalizedScriptName) {
     return false;
