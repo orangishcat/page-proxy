@@ -19,13 +19,16 @@ export const appStateActions = {
     appState.sidepanel.toolPanelHeightPx = value;
     logger.debug("set toolPanelHeightPx", { value });
   },
-  dismissBanner(id: "helpBannerDismissed" | "userscriptReloadBannerDismissed") {
+  dismissBanner(
+    id:
+      | "helpBannerDismissed"
+      | "unsupportedBrowserBannerDismissed"
+      | "firefoxExperimentalBannerDismissed"
+      | "userscriptEnableBannerDismissed"
+      | "userscriptReloadBannerDismissed",
+  ) {
     appState.sidepanel[id] = true;
     logger.debug("dismiss banner", { id });
-  },
-  resetBanner(id: "helpBannerDismissed" | "userscriptReloadBannerDismissed") {
-    appState.sidepanel[id] = false;
-    logger.debug("reset banner", { id });
   },
   upsertStoredToolState(value: StoredToolState) {
     appState.scriptsByName[value.scriptName] = {

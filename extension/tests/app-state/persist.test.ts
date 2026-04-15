@@ -105,6 +105,10 @@ describe("flushAppStatePersistence", () => {
 
     appStateActions.setShowHelpButton(false);
     appStateActions.setDisableAllGrants(true);
+    appStateActions.dismissBanner("helpBannerDismissed");
+    appStateActions.dismissBanner("unsupportedBrowserBannerDismissed");
+    appStateActions.dismissBanner("firefoxExperimentalBannerDismissed");
+    appStateActions.dismissBanner("userscriptEnableBannerDismissed");
     appStateActions.upsertStoredToolState(buildStoredState("Docs Script", "https://docs.example.com/*", 1));
 
     await flushAppStatePersistence();
@@ -112,6 +116,10 @@ describe("flushAppStatePersistence", () => {
     const local = getStorageState("local");
     expect(local["pageproxy:show-help-button"]).toBe(false);
     expect(local["pageproxy:disable-all-grants"]).toBe(true);
+    expect(local["sidepanel:helpBannerDismissed"]).toBe(true);
+    expect(local["sidepanel:unsupportedBrowserBannerDismissed"]).toBe(true);
+    expect(local["sidepanel:firefoxExperimentalBannerDismissed"]).toBe(true);
+    expect(local["sidepanel:userscriptEnableBannerDismissed"]).toBe(true);
     expect(local["pageproxy:Docs Script"]).toMatchObject({ scriptName: "Docs Script" });
   });
 

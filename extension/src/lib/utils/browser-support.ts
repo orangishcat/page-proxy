@@ -1,6 +1,6 @@
 type BrowserKind = "chrome" | "brave" | "firefox" | "unsupported";
 
-type BrowserSupport = {
+export type BrowserSupport = {
   browser: BrowserKind;
   supported: boolean;
 };
@@ -31,14 +31,7 @@ const chromiumForkTokens = [
   "YaBrowser/",
 ];
 
-const firefoxForkTokens = [
-  "Basilisk/",
-  "Floorp/",
-  "LibreWolf/",
-  "PaleMoon/",
-  "SeaMonkey/",
-  "Waterfox/",
-];
+const firefoxForkTokens = ["Basilisk/", "Floorp/", "LibreWolf/", "PaleMoon/", "SeaMonkey/", "Waterfox/"];
 
 const includesAnyToken = (value: string, tokens: string[]) => tokens.some((token) => value.includes(token));
 
@@ -84,9 +77,10 @@ export const detectBrowserSupport = async (): Promise<BrowserSupport> => {
     return { browser: "firefox", supported: true };
   }
 
-  const chromeBrowser = userAgent.includes("Chrome/")
-    && navigatorObject.vendor === "Google Inc."
-    && !includesAnyToken(userAgent, chromiumForkTokens);
+  const chromeBrowser =
+    userAgent.includes("Chrome/") &&
+    navigatorObject.vendor === "Google Inc." &&
+    !includesAnyToken(userAgent, chromiumForkTokens);
 
   if (chromeBrowser) {
     return { browser: "chrome", supported: true };

@@ -13,6 +13,9 @@ export type AppStateSettings = {
 
 export type AppStateSidepanel = {
   helpBannerDismissed: boolean;
+  unsupportedBrowserBannerDismissed: boolean;
+  firefoxExperimentalBannerDismissed: boolean;
+  userscriptEnableBannerDismissed: boolean;
   toolPanelHeightPx: number | undefined;
   userscriptReloadBannerDismissed: boolean;
 };
