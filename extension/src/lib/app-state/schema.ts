@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { buildDefaultRecordPanelState, type RecordPanelState } from "../../entrypoints/sidepanel/tools/storage/record-panel";
 import {
-  coerceStoredToolState,
-  type StoredToolState,
-} from "../stored-tool-state";
+  buildDefaultRecordPanelState,
+  type RecordPanelState,
+} from "../../entrypoints/sidepanel/tools/storage/record-panel";
+import { coerceStoredToolState, type StoredToolState } from "../stored-tool-state";
 
 const coerceRecordTimelineEntry = (value: unknown) => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -86,10 +86,10 @@ export const ScriptStorageMapSchema = z.record(z.string().trim().min(1), z.unkno
 export const SidepanelLocalOptionsSchema = z
   .object({
     helpBannerDismissed: z.boolean().optional(),
-    toolPanelHeightPx: z.number().finite().positive().optional(),
+    toolPanelHeightPx: z.number().positive().optional(),
     userscriptReloadBannerDismissed: z.boolean().optional(),
   })
-  .strict();
+  .strip();
 
 export const RecordPanelEntrySchema = z
   .unknown()
