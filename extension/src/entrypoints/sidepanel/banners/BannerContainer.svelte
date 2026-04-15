@@ -8,9 +8,7 @@
   import { appStateActions } from "@/lib/app-state/actions.ts";
   import { detectBrowserSupport } from "@/lib/utils/browser-support";
   import { ensureCodeRunnerUserscript } from "@/lib/userscript-runner";
-  import {
-    setToolMessage,
-  } from "../tools/tool-errors";
+  import { setToolMessage } from "../tools/tool-errors";
   import Banner from "./Banner.svelte";
 
   const chromeUserscriptEnableInstructionsUrl =
@@ -19,6 +17,7 @@
 
   let { children }: { children?: Snippet } = $props();
 
+  // TODO: make this use the unified state persistence system thingy as well
   let showUnsupportedBrowserBanner = $state(false);
   let showFirefoxExperimentalBanner = $state(false);
   let showUserscriptEnableBanner = $state(false);
@@ -159,11 +158,7 @@
   {/if}
 
   {#if !showUnsupportedBrowserBanner && showHelpBanner}
-    <Banner
-      variant="info"
-      dismissAriaLabel="Dismiss help notice"
-      onDismiss={dismissHelpBanner}
-    >
+    <Banner variant="info" dismissAriaLabel="Dismiss help notice" onDismiss={dismissHelpBanner}>
       <span>Something not working? Check the Help tool</span>
       <CircleQuestionMark class="h-4 w-4" aria-hidden="true" />
       <span>for troubleshooting or</span>
