@@ -39,3 +39,17 @@
 - After edits, use `bun run check` and `bun run lint` to check for errors, fixing issues and rerunning until clean.
 - Extension UI should use all colors, styles, and components from the web UI, and resemble existing pages from the web
   UI.
+
+### App state usage
+
+- Treat `appState` as the source of truth for extension UI state.
+- Use `appStateActions` to mutate state and `appStateSelectors` to read it from UI code.
+- Hydration loads keyed storage entries, persistence writes keyed storage entries, and sync mirrors external storage changes back into `appState`.
+- Storage layout:
+  - `settings` -> `pageproxy:show-help-button`, `pageproxy:disable-all-grants`
+  - `scriptsByName` -> `pageproxy:<scriptName>`
+  - `sidepanel` local flags -> `sidepanel:toolPanelHeightPx`, `sidepanel:helpBannerDismissed`, `sidepanel:userscriptReloadBannerDismissed`
+  - `recordPanelsByTabId` -> `sidepanel:recordPanel:<tabId>`
+  - `session.selectedScriptByHostname` -> `sidepanel:<hostname>`
+  - `session.openTabsByTabId` -> `sidepanel:openTabs`
+- Avoid direct `browser.storage` reads or writes in UI code unless a module is explicitly responsible for app-state hydration, persistence, or sync.

@@ -1,4 +1,5 @@
 import { browser } from "wxt/browser";
+import log from "../../../logger";
 import { createDefaultAppState } from "../../defaults";
 import {
   RecordPanelMapSchema,
@@ -38,6 +39,8 @@ const selectedScriptAdapter = createSessionStorageAdapter({
   schema: SessionSelectedScriptMapSchema,
 });
 
+const logger = log.getLogger("app-state-hydrate");
+
 export const hydrateAppState = async (): Promise<AppState> => {
   const state = createDefaultAppState();
 
@@ -64,8 +67,18 @@ export const hydrateAppState = async (): Promise<AppState> => {
       ? SessionOpenTabsSchema.parse(sessionValues["sidepanel:openTabs"])
       : {};
     state.session.selectedScriptByHostname = selectedScriptByHostname;
+    logger.debug("hydrateAppState loaded", {
+      scriptCount: Object.keys(state.scriptsByName).length,
+      sidepanelKeys: Object.keys(sidepanelOptions),
+      recordPanelCount: Object.keys(state.recordPanelsByTabId).length,
+      openTabCount: Object.keys(state.session.openTabsByTabId).length,
+      selectedScriptCount: Object.keys(state.session.selectedScriptByHostname).length,
+    });
   } catch (error) {
     state.currentTab.lastHydrationError = error instanceof Error ? error.message : "Unable to hydrate app state.";
+    logger.debug("hydrateAppState failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 
   return state;

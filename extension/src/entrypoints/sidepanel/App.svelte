@@ -3,6 +3,7 @@
   import { Tooltip } from "bits-ui";
   import { browser } from "wxt/browser";
   import { get } from "svelte/store";
+  import log from "../../lib/logger";
 
   import SelectTool from "./tools/SelectTool.svelte";
   import CreateTool from "./tools/CreateTool.svelte";
@@ -48,6 +49,7 @@
   setToolContext(toolCtx);
   const editorCtx = createEditorContext();
   setEditorContext(editorCtx);
+  const logger = log.getLogger("sidepanel-app-state");
   const toolComponents: Partial<Record<ToolId, Component>> = {
     select: SelectTool,
     create: CreateTool,
@@ -74,18 +76,37 @@
 
   $effect(() => {
     if (!appStateStatus.isAppStateHydrated || appStateStatus.isApplyingRemoteSync) {
+      logger.debug("skip app-state flush", {
+        hydrated: appStateStatus.isAppStateHydrated,
+        applyingRemoteSync: appStateStatus.isApplyingRemoteSync,
+      });
       return;
     }
 
     appStateSelectors.getShowHelpButton();
     appStateSelectors.getDisableAllGrants();
     appStateSelectors.getToolPanelHeight();
+    const sidepanelState = appStateSelectors.getSidepanelState();
+    sidepanelState.helpBannerDismissed;
+    sidepanelState.userscriptReloadBannerDismissed;
+    const openTabsByTabId = appStateSelectors.getOpenTabsByTabId();
+    const selectedScriptByHostname = appStateSelectors.getSelectedScriptByHostnameMap();
+    const recordPanelsByTabId = appStateSelectors.getRecordPanelsByTabId();
     appStateSelectors.getActiveTool();
     appStateSelectors.getActiveScript();
     appStateSelectors.getAvailableScriptOptions();
     appStateSelectors.getActiveScriptName();
     appStateSelectors.getDefaultScriptName();
     appStateSelectors.getActiveWebsiteGlob();
+    logger.debug("flush app-state persistence from sidepanel", {
+      showHelpButton: appStateSelectors.getShowHelpButton(),
+      disableAllGrants: appStateSelectors.getDisableAllGrants(),
+      toolPanelHeightPx: appStateSelectors.getToolPanelHeight(),
+      sidepanel: sidepanelState,
+      openTabs: Object.keys(openTabsByTabId).length,
+      selectedScripts: Object.keys(selectedScriptByHostname).length,
+      recordPanels: Object.keys(recordPanelsByTabId).length,
+    });
     void flushAppStatePersistence();
   });
 
