@@ -1,63 +1,10 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { get } from "svelte/store";
 
-type StorageShape = Record<string, unknown>;
-
-const storageSlot = globalThis as typeof globalThis & {
-  __pageProxyRecordStorageState?: StorageShape;
-};
-
-const getStorageState = () => {
-  if (!storageSlot.__pageProxyRecordStorageState) {
-    storageSlot.__pageProxyRecordStorageState = {};
-  }
-
-  return storageSlot.__pageProxyRecordStorageState;
-};
-
-const cloneStorageState = () => ({ ...getStorageState() });
-
-const storageApi = {
-  get: (keys: null | string | string[]) => {
-    if (keys === null) {
-      return Promise.resolve(cloneStorageState());
-    }
-
-    if (typeof keys === "string") {
-      const storageState = getStorageState();
-      return Promise.resolve(keys in storageState ? { [keys]: storageState[keys] } : {});
-    }
-
-    const storageState = getStorageState();
-    return Promise.resolve(keys.reduce<StorageShape>((result, key) => {
-      if (key in storageState) {
-        result[key] = storageState[key];
-      }
-      return result;
-    }, {}));
-  },
-  set: (items: StorageShape) => {
-    const storageState = getStorageState();
-    Object.assign(storageState, items);
-    return Promise.resolve();
-  },
-  remove: (keys: string | string[]) => {
-    const storageState = getStorageState();
-    const normalizedKeys = Array.isArray(keys) ? keys : [keys];
-    normalizedKeys.forEach((key) => {
-      delete storageState[key];
-    });
-    return Promise.resolve();
-  },
-};
-
-void mock.module("wxt/browser", () => ({
-  browser: {
-    storage: {
-      local: storageApi,
-    },
-  },
-}));
+import { createDefaultAppState } from "../src/lib/app-state/defaults.ts";
+import { appStateActions } from "../src/lib/app-state/actions.ts";
+import { replaceAppState } from "../src/lib/app-state/state.svelte.ts";
+import { appStateSelectors } from "../src/lib/app-state/selectors.ts";
 
 const {
   popRecordPanelTimelineEntry,
@@ -89,18 +36,14 @@ const makeRecordState = (updatedAt: number) => ({
 
 describe("record tool state", () => {
   beforeEach(async () => {
-    const storageState = getStorageState();
-    Object.keys(storageState).forEach((key) => {
-      delete storageState[key];
-    });
+    replaceAppState(createDefaultAppState());
     setRecordPanelActiveTab(null);
     await flushAsyncWork();
   });
 
-  test("opening the Record tool trims old recordings and reloads the active tab state", async () => {
-    const storageState = getStorageState();
+  test("opening the Record tool trims old panels and reloads active tab state", async () => {
     for (let index = 1; index <= 6; index += 1) {
-      storageState[`sidepanel:recordPanel:${index}`] = makeRecordState(index);
+      appStateActions.setRecordPanelState(index, makeRecordState(index));
     }
 
     setRecordPanelActiveTab(1);
@@ -110,48 +53,33 @@ describe("record tool state", () => {
 
     await prepareRecordToolForDisplay();
 
-    expect("sidepanel:recordPanel:1" in storageState).toBe(false);
-    expect(Object.keys(storageState).sort()).toEqual([
-      "sidepanel:recordPanel:2",
-      "sidepanel:recordPanel:3",
-      "sidepanel:recordPanel:4",
-      "sidepanel:recordPanel:5",
-      "sidepanel:recordPanel:6",
-    ]);
+    expect(appStateSelectors.getRecordPanelState(1)).toBeNull();
+    expect(appStateSelectors.getRecordPanelState(2)).toEqual(makeRecordState(2));
+    expect(appStateSelectors.getRecordPanelState(3)).toEqual(makeRecordState(3));
+    expect(appStateSelectors.getRecordPanelState(4)).toEqual(makeRecordState(4));
+    expect(appStateSelectors.getRecordPanelState(5)).toEqual(makeRecordState(5));
+    expect(appStateSelectors.getRecordPanelState(6)).toEqual(makeRecordState(6));
     expect(get(recordPanelState).timeline).toEqual([]);
   });
 
-  test("toggling recording with no actions does not create storage", async () => {
-    const storageState = getStorageState();
+  test("toggling recording with no actions does not persist state", async () => {
     setRecordPanelActiveTab(10);
     await flushAsyncWork();
 
     toggleRecordPanelRecording();
     await flushAsyncWork();
 
-    expect(storageState).toEqual({});
+    expect(appStateSelectors.getRecordPanelState(10)).toBeNull();
   });
 
-  test("the first recorded action creates storage for the active tab", async () => {
-    const storageState = getStorageState();
+  test("the first recorded action stores state for active tab", async () => {
     setRecordPanelActiveTab(11);
     await flushAsyncWork();
 
     recordSidepanelAction("Click", "Save button");
     await flushAsyncWork();
 
-    const storedState = storageState["sidepanel:recordPanel:11"] as
-      | {
-          isRecording: boolean;
-          timeline: Array<{
-            id: string;
-            action: string;
-            detail: string;
-            timestamp: number;
-          }>;
-          updatedAt: number;
-        }
-      | undefined;
+    const storedState = appStateSelectors.getRecordPanelState(11);
 
     expect(storedState).toBeDefined();
     expect(storedState?.isRecording).toBe(true);
@@ -165,8 +93,7 @@ describe("record tool state", () => {
     expect(typeof storedState?.updatedAt).toBe("number");
   });
 
-  test("popping the last recorded action updates in-memory and persisted state", async () => {
-    const storageState = getStorageState();
+  test("popping the last recorded action updates in-memory and app-state state", async () => {
     setRecordPanelActiveTab(12);
     await flushAsyncWork();
 
@@ -187,27 +114,10 @@ describe("record tool state", () => {
       detail: "selector: .card",
     });
     expect(get(recordPanelState).timeline).toHaveLength(1);
-
-    const storedState = storageState["sidepanel:recordPanel:12"] as
-      | {
-          timeline: Array<{
-            id: string;
-            action: string;
-            detail: string;
-            timestamp: number;
-          }>;
-        }
-      | undefined;
-
-    expect(storedState?.timeline).toHaveLength(1);
-    expect(storedState?.timeline[0]?.action).toBe("Selected element");
-    expect(storedState?.timeline[0]?.detail).toBe("selector: .card");
-    expect(typeof storedState?.timeline[0]?.id).toBe("string");
-    expect(typeof storedState?.timeline[0]?.timestamp).toBe("number");
+    expect(appStateSelectors.getRecordPanelState(12)?.timeline).toHaveLength(1);
   });
 
-  test("popping the final recorded action clears the record timeline and persisted storage", async () => {
-    const storageState = getStorageState();
+  test("popping the final recorded action clears record state", async () => {
     setRecordPanelActiveTab(13);
     await flushAsyncWork();
 
@@ -223,6 +133,6 @@ describe("record tool state", () => {
     });
     expect(result.timeline).toEqual([]);
     expect(get(recordPanelState).timeline).toEqual([]);
-    expect(storageState["sidepanel:recordPanel:13"]).toBeUndefined();
+    expect(appStateSelectors.getRecordPanelState(13)).toBeNull();
   });
 });

@@ -1,39 +1,27 @@
-import { createSidepanelBannerManager, type BannerDefinition } from "../../banners/banner-manager";
+import { appState } from "@/lib/app-state/state.svelte.ts";
+import { appStateActions } from "@/lib/app-state/actions.ts";
 
-const helpBannerDismissedStorageKey = "sidepanel:helpBannerDismissed";
-const userscriptReloadBannerDismissedStorageKey = "sidepanel:userscriptReloadBannerDismissed";
-const sidepanelBannerManager = createSidepanelBannerManager();
-const helpBanner: BannerDefinition = {
-  id: "helpBannerDismissed",
-  storageKey: helpBannerDismissedStorageKey,
-};
-const userscriptReloadBanner: BannerDefinition = {
-  id: "userscriptReloadBannerDismissed",
-  storageKey: userscriptReloadBannerDismissedStorageKey,
-};
+export const readHelpBannerDismissedSetting = (): Promise<boolean> => Promise.resolve(appState.sidepanel.helpBannerDismissed);
 
-export const readHelpBannerDismissedSetting = async () => {
-  return sidepanelBannerManager.isDismissed(helpBanner);
-};
-
-export const saveHelpBannerDismissedSetting = async (dismissed: boolean) => {
+export const saveHelpBannerDismissedSetting = (dismissed: boolean): Promise<void> => {
   if (dismissed) {
-    await sidepanelBannerManager.dismiss(helpBanner);
-    return;
+    appStateActions.dismissBanner("helpBannerDismissed");
+    return Promise.resolve();
   }
 
-  await sidepanelBannerManager.reset(helpBanner);
+  appStateActions.resetBanner("helpBannerDismissed");
+  return Promise.resolve();
 };
 
-export const readUserscriptReloadBannerDismissedSetting = async () => {
-  return sidepanelBannerManager.isDismissed(userscriptReloadBanner);
-};
+export const readUserscriptReloadBannerDismissedSetting = (): Promise<boolean> =>
+  Promise.resolve(appState.sidepanel.userscriptReloadBannerDismissed);
 
-export const saveUserscriptReloadBannerDismissedSetting = async (dismissed: boolean) => {
+export const saveUserscriptReloadBannerDismissedSetting = (dismissed: boolean): Promise<void> => {
   if (dismissed) {
-    await sidepanelBannerManager.dismiss(userscriptReloadBanner);
-    return;
+    appStateActions.dismissBanner("userscriptReloadBannerDismissed");
+    return Promise.resolve();
   }
 
-  await sidepanelBannerManager.reset(userscriptReloadBanner);
+  appStateActions.resetBanner("userscriptReloadBannerDismissed");
+  return Promise.resolve();
 };

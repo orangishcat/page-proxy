@@ -1,66 +1,12 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 
-type StorageShape = Record<string, unknown>;
-
-const storageSlot = globalThis as typeof globalThis & {
-  __pageProxyLocalStorageState?: StorageShape;
-};
-
-const getStorageState = () => {
-  if (!storageSlot.__pageProxyLocalStorageState) {
-    storageSlot.__pageProxyLocalStorageState = {};
-  }
-
-  return storageSlot.__pageProxyLocalStorageState;
-};
-
-const storageApi = {
-  get: (keys: null | string | string[]) => {
-    const storageState = getStorageState();
-    if (keys === null) {
-      return Promise.resolve({ ...storageState });
-    }
-
-    if (typeof keys === "string") {
-      return Promise.resolve(keys in storageState ? { [keys]: storageState[keys] } : {});
-    }
-
-    return Promise.resolve(
-      keys.reduce<Record<string, unknown>>((result, key) => {
-        if (key in storageState) {
-          result[key] = storageState[key];
-        }
-        return result;
-      }, {}),
-    );
-  },
-  set: (items: StorageShape) => {
-    Object.assign(getStorageState(), items);
-    return Promise.resolve();
-  },
-  remove: (keys: string | string[]) => {
-    const storageState = getStorageState();
-    const normalizedKeys = Array.isArray(keys) ? keys : [keys];
-    normalizedKeys.forEach((key) => {
-      delete storageState[key];
-    });
-    return Promise.resolve();
-  },
-};
-
-void mock.module("wxt/browser", () => ({
-  browser: {
-    storage: {
-      local: storageApi,
-      session: storageApi,
-    },
-  },
-}));
+import { createDefaultAppState } from "../src/lib/app-state/defaults.ts";
+import { replaceAppState } from "../src/lib/app-state/state.svelte.ts";
+import type { StoredToolState } from "../src/lib/stored-tool-state";
 
 const { saveStoredToolState, readStoredToolState, toStorageKey } = await import(
   "../src/entrypoints/sidepanel/tools/state-storage"
 );
-import type { StoredToolState } from "../src/lib/stored-tool-state";
 
 const buildStoredState = (): StoredToolState => ({
   scriptName: "Page Proxy",
@@ -92,10 +38,9 @@ const buildStoredState = (): StoredToolState => ({
   },
 });
 
-describe("stored tool state persistence", () => {
+describe("stored tool state", () => {
   beforeEach(() => {
-    const storageState = getStorageState();
-    Object.keys(storageState).forEach((key) => delete storageState[key]);
+    replaceAppState(createDefaultAppState());
   });
 
   test("writes allowed grants as a list and reads them as a list", async () => {
@@ -103,11 +48,8 @@ describe("stored tool state persistence", () => {
 
     await saveStoredToolState(state);
 
-    const raw = getStorageState()[toStorageKey("Page Proxy")] as { permissions?: { allowedGrants?: unknown } } | undefined;
-    expect(Array.isArray(raw?.permissions?.allowedGrants)).toBe(true);
-    expect(raw?.permissions?.allowedGrants).toEqual(["run-on-page-load"]);
-
     const loaded = await readStoredToolState("Page Proxy");
     expect(loaded?.permissions.allowedGrants).toEqual(["run-on-page-load"]);
+    expect(toStorageKey("Page Proxy")).toBe("pageproxy:Page Proxy");
   });
 });

@@ -60,6 +60,9 @@ export const appStateActions = {
   setRecordPanelState(tabId: number, value: RecordPanelState) {
     appState.recordPanelsByTabId[String(tabId)] = value;
   },
+  removeRecordPanelState(tabId: number) {
+    delete appState.recordPanelsByTabId[String(tabId)];
+  },
   trimRecordPanels(limit = 5) {
     appState.recordPanelsByTabId = Object.fromEntries(
       Object.entries(appState.recordPanelsByTabId)
