@@ -66,10 +66,6 @@ void mock.module("wxt/browser", () => ({
   },
 }));
 
-const { hydrateAppState, registerAppStateSync, replaceAppState, appStateSelectors } = await import(
-  "../../src/lib/app-state.ts"
-);
-
 describe("registerAppStateSync", () => {
   beforeEach(() => {
     const local = getStorageState("local");
@@ -80,6 +76,11 @@ describe("registerAppStateSync", () => {
   });
 
   test("merges remote hostname overrides without writing local state", async () => {
+    const { hydrateAppState } = await import("../../src/lib/app-state/storage/hydrate/hydrate.ts");
+    const { registerAppStateSync } = await import("../../src/lib/app-state/sync.ts");
+    const { replaceAppState } = await import("../../src/lib/app-state/state.svelte.ts");
+    const { appStateSelectors } = await import("../../src/lib/app-state/selectors.ts");
+
     replaceAppState(await hydrateAppState());
     registerAppStateSync();
 

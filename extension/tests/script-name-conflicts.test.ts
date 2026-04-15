@@ -1,71 +1,16 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
+
+import { createDefaultAppState } from "../src/lib/app-state/defaults.ts";
+import { replaceAppState } from "../src/lib/app-state/state.svelte.ts";
+import { appStateSelectors } from "../src/lib/app-state/selectors.ts";
 import type { StoredToolState } from "../src/entrypoints/sidepanel/tools/state-storage";
-
-type StorageShape = Record<string, unknown>;
-
-const storageSlot = globalThis as typeof globalThis & {
-  __pageProxyScriptNameStorageState?: StorageShape;
-};
-
-const getStorageState = () => {
-  if (!storageSlot.__pageProxyScriptNameStorageState) {
-    storageSlot.__pageProxyScriptNameStorageState = {};
-  }
-
-  return storageSlot.__pageProxyScriptNameStorageState;
-};
-
-const cloneStorageState = () => ({ ...getStorageState() });
-
-const storageApi = {
-  get: (keys: null | string | string[]) => {
-    if (keys === null) {
-      return Promise.resolve(cloneStorageState());
-    }
-
-    if (typeof keys === "string") {
-      const storageState = getStorageState();
-      return Promise.resolve(keys in storageState ? { [keys]: storageState[keys] } : {});
-    }
-
-    const storageState = getStorageState();
-    return Promise.resolve(keys.reduce<StorageShape>((result, key) => {
-      if (key in storageState) {
-        result[key] = storageState[key];
-      }
-      return result;
-    }, {}));
-  },
-  set: (items: StorageShape) => {
-    const storageState = getStorageState();
-    Object.assign(storageState, items);
-    return Promise.resolve();
-  },
-  remove: (keys: string | string[]) => {
-    const storageState = getStorageState();
-    const normalizedKeys = Array.isArray(keys) ? keys : [keys];
-    normalizedKeys.forEach((key) => {
-      delete storageState[key];
-    });
-    return Promise.resolve();
-  },
-};
-
-void mock.module("wxt/browser", () => ({
-  browser: {
-    storage: {
-      local: storageApi,
-      session: storageApi,
-    },
-  },
-}));
 
 const {
   resolveStoredToolStateForUrl,
   normalizeContentForStorage,
 } = await import("../src/entrypoints/sidepanel/tools/state-loading");
 const { saveState } = await import("../src/entrypoints/sidepanel/tools/code-editor/save");
-const { toStorageKey } = await import("../src/entrypoints/sidepanel/tools/state-storage");
+const { saveStoredToolState } = await import("../src/entrypoints/sidepanel/tools/state-storage");
 
 const scriptFormatConfig = {
   ppImportLines: ['import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";'],
@@ -116,16 +61,12 @@ const buildStoredState = (scriptName: string, websiteGlob: string, updatedAt: nu
 
 describe("script name conflicts", () => {
   beforeEach(() => {
-    const storageState = getStorageState();
-    Object.keys(storageState).forEach((key) => {
-      delete storageState[key];
-    });
+    replaceAppState(createDefaultAppState());
   });
 
   test("generates the next blank Page Proxy title when matching names already exist", async () => {
-    const storageState = getStorageState();
-    storageState[toStorageKey("Page Proxy")] = buildStoredState("Page Proxy", "https://other.example.com/*", 1);
-    storageState[toStorageKey("Page Proxy 2")] = buildStoredState("Page Proxy 2", "https://another.example.com/*", 2);
+    await saveStoredToolState(buildStoredState("Page Proxy", "https://other.example.com/*", 1));
+    await saveStoredToolState(buildStoredState("Page Proxy 2", "https://another.example.com/*", 2));
 
     const result = await resolveStoredToolStateForUrl("https://example.com/page", scriptFormatConfig);
 
@@ -135,9 +76,8 @@ describe("script name conflicts", () => {
   });
 
   test("blocks saving when the target script name already belongs to another stored script", async () => {
-    const storageState = getStorageState();
-    storageState[toStorageKey("Original Script")] = buildStoredState("Original Script", "https://example.com/*", 1);
-    storageState[toStorageKey("Conflicting Script")] = buildStoredState("Conflicting Script", "https://example.com/*", 2);
+    await saveStoredToolState(buildStoredState("Original Script", "https://example.com/*", 1));
+    await saveStoredToolState(buildStoredState("Conflicting Script", "https://example.com/*", 2));
 
     const nextContent = normalizeContentForStorage(
       buildScriptContent("Conflicting Script", "https://example.com/*"),
@@ -172,10 +112,10 @@ describe("script name conflicts", () => {
       },
     );
 
-    expect(storageState[toStorageKey("Original Script")]).toEqual(
+    expect(appStateSelectors.getStoredToolState("Original Script")).toEqual(
       buildStoredState("Original Script", "https://example.com/*", 1),
     );
-    expect(storageState[toStorageKey("Conflicting Script")]).toEqual(
+    expect(appStateSelectors.getStoredToolState("Conflicting Script")).toEqual(
       buildStoredState("Conflicting Script", "https://example.com/*", 2),
     );
   });
@@ -192,8 +132,7 @@ describe("script name conflicts", () => {
         },
       },
     } satisfies StoredToolState;
-    const storageState = getStorageState();
-    storageState[toStorageKey("Original Script")] = existingState;
+    await saveStoredToolState(existingState);
 
     const renamedContent = normalizeContentForStorage(
       `${buildScriptContent("Renamed Script", "https://example.com/*").trimEnd()}\npt.setItem("token", "secret");\n`,
@@ -216,14 +155,13 @@ describe("script name conflicts", () => {
       setActiveScriptName: () => undefined,
     });
 
-    expect(storageState[toStorageKey("Original Script")]).toBeUndefined();
-    expect(storageState[toStorageKey("Renamed Script")]).toMatchObject({
+    expect(appStateSelectors.getStoredToolState("Original Script")).toBeNull();
+    expect(appStateSelectors.getStoredToolState("Renamed Script")).toMatchObject({
       runtimeStorage: existingState.runtimeStorage,
     });
   });
 
   test("does not persist a global disableAllGrants flag into script state", async () => {
-    const storageState = getStorageState();
     const content = normalizeContentForStorage(
       `${buildScriptContent("Grantless Script", "https://example.com/*").trimEnd()}\npt.setItem("mode", "grantless");\n`,
       false,
@@ -245,22 +183,17 @@ describe("script name conflicts", () => {
       setActiveScriptName: () => undefined,
     });
 
-    expect(storageState[toStorageKey("Grantless Script")]).toMatchObject({
-      permissions: {
-        allowedGrants: [],
-      },
-    });
+    expect(appStateSelectors.getStoredToolState("Grantless Script")?.permissions.allowedGrants).toEqual([]);
   });
 
   test("preserves per-script enabled state when saving an existing disabled script", async () => {
-    const storageState = getStorageState();
-    storageState[toStorageKey("Disabled Script")] = {
+    await saveStoredToolState({
       ...buildStoredState("Disabled Script", "https://example.com/*", 1),
       permissions: {
         allowedGrants: [],
         enabled: false,
       },
-    };
+    });
     const content = normalizeContentForStorage(
       `${buildScriptContent("Disabled Script", "https://example.com/*").trimEnd()}\nconsole.log("still disabled");\n`,
       false,
@@ -282,11 +215,7 @@ describe("script name conflicts", () => {
       setActiveScriptName: () => undefined,
     });
 
-    expect(storageState[toStorageKey("Disabled Script")]).toMatchObject({
-      permissions: {
-        allowedGrants: [],
-        enabled: false,
-      },
-    });
+    expect(appStateSelectors.getStoredToolState("Disabled Script")?.permissions.allowedGrants).toEqual([]);
+    expect(appStateSelectors.getStoredToolState("Disabled Script")?.permissions.enabled).toBe(false);
   });
 });

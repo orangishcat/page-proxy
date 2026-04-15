@@ -4,7 +4,6 @@
   import { browser } from "wxt/browser";
 
   import { createMonacoEditor, updateMonacoEditorValue, type MonacoCodeEditorHandle } from "@/lib/code-editor";
-  import { readDisableAllGrantsSetting, saveDisableAllGrantsSetting } from "@/lib/disable-all-grants-setting";
   import { applyScriptRunErrorMarker, clearScriptRunErrorMarker } from "./code-editor/error-markers";
   import { createAutosaveManager } from "./code-editor/autosave";
   import { parseScriptMetadata } from "@/lib/utils/script-metadata";
@@ -225,10 +224,6 @@
 
     const nextValue = !editorCtx.disableAllGrants;
     editorCtx.disableAllGrants = nextValue;
-    void saveDisableAllGrantsSetting(nextValue).catch((error) => {
-      editorCtx.disableAllGrants = !nextValue;
-      setEditorMessageFromUnknown(error, "Unable to update grant settings.");
-    });
   };
 
   const selectScriptForCurrentTab = (scriptName: string) => {
@@ -295,20 +290,12 @@
     editorCtx.allowedGrants = [];
     editorCtx.scriptOptions = [];
     editorCtx.activeScriptName = null;
-    editorCtx.disableAllGrants = false;
     setupEditor();
     editorCtx.api = {
       insertDefinitions: insertDefinitionLinesInEditor,
       replaceEditorContent: (content) => updateEditorContent(content),
       resetToDefault: () => resetScriptToDefaultImpl(buildEditorActionsDeps()),
     };
-    void readDisableAllGrantsSetting()
-      .then((value) => {
-        editorCtx.disableAllGrants = value;
-      })
-      .catch((error) => {
-        setEditorMessageFromUnknown(error, "Unable to load grant settings.");
-      });
     refreshActiveTab();
     browser.tabs.onActivated.addListener(handleTabActivated);
     browser.tabs.onUpdated.addListener(handleTabUpdated);

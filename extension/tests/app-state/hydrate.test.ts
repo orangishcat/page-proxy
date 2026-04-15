@@ -59,8 +59,6 @@ void mock.module("wxt/browser", () => ({
   },
 }));
 
-const { hydrateAppState, replaceAppState, appStateSelectors } = await import("../../src/lib/app-state.ts");
-
 const buildStoredState = (scriptName: string, websiteGlob: string, updatedAt: number) => ({
   scriptName,
   activeTool: "none",
@@ -94,6 +92,10 @@ describe("hydrateAppState", () => {
   });
 
   test("loads scripts and settings from keyed storage entries", async () => {
+    const { hydrateAppState } = await import("../../src/lib/app-state/storage/hydrate/hydrate.ts");
+    const { replaceAppState } = await import("../../src/lib/app-state/state.svelte.ts");
+    const { appStateSelectors } = await import("../../src/lib/app-state/selectors.ts");
+
     const local = getStorageState("local");
     const session = getStorageState("session");
     local["pageproxy:show-help-button"] = false;

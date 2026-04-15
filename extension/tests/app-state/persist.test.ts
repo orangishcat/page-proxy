@@ -60,10 +60,6 @@ void mock.module("wxt/browser", () => ({
   },
 }));
 
-const { flushAppStatePersistence, hydrateAppState, replaceAppState, appStateActions } = await import(
-  "../../src/lib/app-state.ts"
-);
-
 const buildStoredState = (scriptName: string, websiteGlob: string, updatedAt: number): StoredToolState => ({
   scriptName,
   activeTool: "none",
@@ -97,6 +93,11 @@ describe("flushAppStatePersistence", () => {
   });
 
   test("writes active script and settings back to keyed storage", async () => {
+    const { flushAppStatePersistence } = await import("../../src/lib/app-state/storage/persist/persist.ts");
+    const { hydrateAppState } = await import("../../src/lib/app-state/storage/hydrate/hydrate.ts");
+    const { replaceAppState } = await import("../../src/lib/app-state/state.svelte.ts");
+    const { appStateActions } = await import("../../src/lib/app-state/actions.ts");
+
     replaceAppState(await hydrateAppState());
 
     appStateActions.setShowHelpButton(false);
@@ -112,6 +113,9 @@ describe("flushAppStatePersistence", () => {
   });
 
   test("writes allowed grants back as a list", async () => {
+    const { flushAppStatePersistence } = await import("../../src/lib/app-state/storage/persist/persist.ts");
+    const { hydrateAppState } = await import("../../src/lib/app-state/storage/hydrate/hydrate.ts");
+    const { replaceAppState } = await import("../../src/lib/app-state/state.svelte.ts");
     const local = getStorageState("local");
     local["pageproxy:Docs Script"] = {
       ...buildStoredState("Docs Script", "https://docs.example.com/*", 1),

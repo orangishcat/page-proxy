@@ -1,12 +1,10 @@
 import log from "@/lib/logger";
 import { get, writable } from "svelte/store";
+import { appStateActions } from "@/lib/app-state/actions.ts";
+import { appStateSelectors } from "@/lib/app-state/selectors.ts";
 
 import {
   buildDefaultRecordPanelState,
-  readRecordPanelStateForTab,
-  removeRecordPanelStateForTab,
-  saveRecordPanelStateForTab,
-  trimStoredRecordPanelStates,
   type RecordPanelState,
   type RecordTimelineEntry,
 } from "../state-storage";
@@ -53,10 +51,10 @@ const resetRecordPanelState = () => {
   });
 };
 
-const loadRecordPanelStateForTab = async (tabId: number, currentLoadVersion: number) => {
-  const state = await readRecordPanelStateForTab(tabId);
+const loadRecordPanelStateForTab = (tabId: number, currentLoadVersion: number) => {
+  const state = appStateSelectors.getRecordPanelState(tabId) ?? buildDefaultRecordPanelState();
   if (currentLoadVersion !== loadVersion || activeTabId !== tabId) {
-    return;
+    return Promise.resolve();
   }
 
   const currentState = get(recordPanelState);
@@ -68,6 +66,7 @@ const loadRecordPanelStateForTab = async (tabId: number, currentLoadVersion: num
     ...state,
     timeline: trimTimeline(normalizeTimeline(state.timeline)),
   });
+  return Promise.resolve();
 };
 
 const persistRecordPanelState = () => {
@@ -76,12 +75,17 @@ const persistRecordPanelState = () => {
   }
 
   const state = get(recordPanelState);
-  void saveRecordPanelStateForTab(activeTabId, {
+  const nextState = {
     ...state,
     updatedAt: Date.now(),
-  }).catch((error: unknown) => {
-    logger.warn("Unable to save record tool state.", { tabId: activeTabId, error });
-  });
+  };
+
+  if (nextState.timeline.length === 0) {
+    appStateActions.removeRecordPanelState(activeTabId);
+    return;
+  }
+
+  appStateActions.setRecordPanelState(activeTabId, nextState);
 };
 
 export const setRecordPanelActiveTab = (tabId: number | null) => {
@@ -114,7 +118,7 @@ export const prepareRecordToolForDisplay = async () => {
 
   if (tabId === null) {
     try {
-      await trimStoredRecordPanelStates();
+      appStateActions.trimRecordPanels();
     } catch (error: unknown) {
       logger.warn("Unable to trim stored record tool state.", { error });
     }
@@ -124,7 +128,7 @@ export const prepareRecordToolForDisplay = async () => {
   resetRecordPanelState();
 
   try {
-    await trimStoredRecordPanelStates();
+    appStateActions.trimRecordPanels();
   } catch (error: unknown) {
     logger.warn("Unable to trim stored record tool state.", { tabId, error });
   }
@@ -191,9 +195,7 @@ export const clearRecordPanelState = () => {
 
   const tabId = activeTabId;
   recordPanelState.set(buildDefaultRecordPanelState());
-  void removeRecordPanelStateForTab(tabId).catch((error: unknown) => {
-    logger.warn("Unable to clear record tool state.", { tabId, error });
-  });
+  appStateActions.removeRecordPanelState(tabId);
 };
 
 export const popRecordPanelTimelineEntry = (): RecordPanelTimelinePopResult => {

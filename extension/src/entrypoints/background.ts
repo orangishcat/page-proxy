@@ -1,7 +1,6 @@
 import { defineBackground } from "wxt/utils/define-background";
 
 import { browser } from "wxt/browser";
-import { readDisableAllGrantsSetting } from "@/lib/disable-all-grants-setting";
 import { coerceScriptGrantValues, resolveEffectiveScriptGrants, type ScriptGrantValue } from "@/lib/grants";
 import {
   isGrantPermissionResolveMessage,
@@ -18,14 +17,19 @@ import { buildDefaultScript } from "@/lib/default-script";
 import { createEmptyStoredRuntimeStorage } from "@/lib/script-runtime-storage";
 import { ensureCodeRunnerUserscript } from "@/lib/userscript-runner";
 import {
-  coerceStoredToolState,
   findBestMatchingWebsiteGlob,
-  fromStorageKey,
   getWebsiteGlobsFromContent,
   resolveMetadataFallback,
-  toStorageKey,
   type StoredToolState,
 } from "@/lib/stored-tool-state";
+import {
+  appStateActions,
+  appStateSelectors,
+  flushAppStatePersistence,
+  hydrateAppState,
+  registerAppStateSync,
+  replaceAppState,
+} from "@/lib/app-state.ts";
 import log from "@/lib/logger";
 
 type StoredStateMatch = {
@@ -45,28 +49,18 @@ const defaultScriptConfig = {
 } as const;
 const logger = log.getLogger("background");
 
+const appStateReady = (async () => {
+  registerAppStateSync();
+  const state = await hydrateAppState();
+  replaceAppState(state);
+})();
+
 const listStoredToolStates = async () => {
-  const allValues = await browser.storage.local.get(null);
-  const dedupedStates = new Map<string, { scriptName: string; state: StoredToolState }>();
-
-  Object.entries(allValues).forEach(([key, value]) => {
-    const scriptName = fromStorageKey(key);
-    if (!scriptName) {
-      return;
-    }
-
-    const state = coerceStoredToolState(value, scriptName);
-    if (!state) {
-      return;
-    }
-
-    const existing = dedupedStates.get(state.scriptName);
-    if (!existing || state.updatedAt >= existing.state.updatedAt) {
-      dedupedStates.set(state.scriptName, { scriptName: state.scriptName, state });
-    }
-  });
-
-  return Array.from(dedupedStates.values());
+  await appStateReady;
+  return appStateSelectors.getStoredToolStates().map((state) => ({
+    scriptName: state.scriptName,
+    state,
+  }));
 };
 
 const findStoredToolStatesForUrl = async (url: string) => {
@@ -96,15 +90,14 @@ const findStoredToolStatesForUrl = async (url: string) => {
 };
 
 const readStoredToolState = async (scriptName: string) => {
-  const key = toStorageKey(scriptName);
-  const stored = await browser.storage.local.get(key);
-  return coerceStoredToolState(stored[key], scriptName);
+  await appStateReady;
+  return appStateSelectors.getStoredToolState(scriptName);
 };
 
 const saveStoredToolState = async (state: StoredToolState) => {
-  await browser.storage.local.set({
-    [toStorageKey(state.scriptName)]: state,
-  });
+  await appStateReady;
+  appStateActions.upsertStoredToolState(state);
+  void flushAppStatePersistence();
 };
 
 const ensureDefineBlock = (content: string) => {
@@ -144,12 +137,13 @@ const getMissingAllowedGrants = (state: StoredToolState, requiredGrants: ScriptG
   requiredGrants.filter((grant) => !state.permissions.allowedGrants.includes(grant));
 
 const countMatchingScriptsForUrl = async (url: string) => {
+  await appStateReady;
   if (isRestrictedUrl(url)) {
     return 0;
   }
 
   const matchedStates = await findStoredToolStatesForUrl(url);
-  const disableAllGrants = await readDisableAllGrantsSetting();
+  const disableAllGrants = appStateSelectors.getDisableAllGrants();
   return matchedStates
     .map((entry) => {
       const content = toRunnableScriptContent(entry.state);
@@ -227,6 +221,7 @@ const resolveGrantPermissions = async (
   requestedGrants: ScriptGrantValue[],
   allow: boolean,
 ): Promise<GrantPermissionResolveResult> => {
+  await appStateReady;
   const normalizedScriptName = scriptName.trim();
   if (!normalizedScriptName) {
     return { ok: false, error: "Missing script name for permission request." };
@@ -261,6 +256,7 @@ const resolveGrantPermissions = async (
 };
 
 const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
+  await appStateReady;
   logger.debug("runMatchingScriptsForTab called", { tabId, url });
 
   if (isRestrictedUrl(url)) {
@@ -270,7 +266,7 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
 
   const tabUrl = url ?? "";
   const matchedStates = await findStoredToolStatesForUrl(tabUrl);
-  const disableAllGrants = await readDisableAllGrantsSetting();
+  const disableAllGrants = appStateSelectors.getDisableAllGrants();
   logger.debug("runMatchingScriptsForTab: matched states", { count: matchedStates.length, tabUrl });
 
   const scripts: Array<{ code: string; state: StoredToolState }> = [];
@@ -374,7 +370,9 @@ export default defineBackground(() => {
               type: "grant:resolved",
               payload: { allowedGrants: result.allowedGrants, allow },
             } satisfies GrantResolvedMessage)
-            .catch(() => { logger.debug("No sidepanel receiver for grant:resolved message."); });
+            .catch(() => {
+              logger.debug("No sidepanel receiver for grant:resolved message.");
+            });
         }
       })
       .catch((error: unknown) => {
@@ -436,7 +434,9 @@ export default defineBackground(() => {
   });
 
   browser.windows.onFocusChanged.addListener((windowId) => {
-    void badgeUpdater.refreshBadgeForWindowFocus(windowId).catch(() => { logger.debug("Badge refresh on window focus failed."); });
+    void badgeUpdater.refreshBadgeForWindowFocus(windowId).catch(() => {
+      logger.debug("Badge refresh on window focus failed.");
+    });
   });
 
   browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
