@@ -32,5 +32,14 @@ export const createDefaultAppState = (): AppState => ({
     isProgrammaticUpdate: false,
     lastHydrationError: null,
     lastPersistenceError: null,
+    elementEntries: [],
+    scriptMetadata: {
+      title: "Page Proxy",
+      website: "",
+      description: "",
+      author: "",
+      credits: "",
+    },
+    editorApi: null,
   },
 });

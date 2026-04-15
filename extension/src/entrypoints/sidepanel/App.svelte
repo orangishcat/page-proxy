@@ -26,13 +26,12 @@
     hydrateAppState,
     replaceAppState,
     appStateActions,
+    appStateSelectors,
   } from "../../lib/app-state.ts";
   import { appStateStatus } from "../../lib/app-state/storage/hydrate/hydration";
   import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "../../lib/sidepanel-shortcuts";
   import { codeEditorContent, selectorEntries } from "./tools/code-editor/state";
   import { type ToolId } from "./tools/state-storage";
-  import { createToolContext, setToolContext } from "./context/tool.svelte";
-  import { createEditorContext, setEditorContext } from "./context/editor.svelte";
   import { isEditableTarget, isCodeEditorFocused } from "../../lib/utils/dom-checks";
   import { getShortcutTool } from "../../lib/utils/keyboard-shortcuts";
   import {
@@ -44,10 +43,6 @@
   } from "./message-handler";
   import { recordSidepanelAction } from "./tools/record/state";
 
-  const toolCtx = createToolContext();
-  setToolContext(toolCtx);
-  const editorCtx = createEditorContext();
-  setEditorContext(editorCtx);
   const logger = log.getLogger("sidepanel-app-state");
   const toolComponents: Partial<Record<ToolId, Component>> = {
     select: SelectTool,
@@ -58,6 +53,7 @@
     help: HelpTool,
     share: ExportTool,
   };
+  const activeTool = $derived.by(() => appStateSelectors.getActiveTool());
 
   let toolPanelHeightPx = $state<number | null>(null);
   let toolPanelSection = $state<HTMLElement | null>(null);
@@ -110,18 +106,18 @@
   });
 
   $effect(() => {
-    if (!appState.settings.showHelpButton && toolCtx.activeTool === "help") {
-      toolCtx.activeTool = "none";
+    if (!appState.settings.showHelpButton && activeTool === "help") {
+      appStateActions.setActiveTool("none");
     }
   });
 
   const setActiveTool = (tool: ToolId) => {
-    if (tool === toolCtx.activeTool) {
+    if (tool === activeTool) {
       return;
     }
 
-    const wasSelectTool = toolCtx.activeTool === "select";
-    toolCtx.activeTool = tool;
+    const wasSelectTool = activeTool === "select";
+    appStateActions.setActiveTool(tool);
     if (wasSelectTool && tool !== "select") {
       sendSelectionToggle(false, { clearSelection: false });
     }
@@ -129,7 +125,7 @@
 
   const activateSelectTool = () => {
     sendSelectionToggle(true);
-    if (toolCtx.activeTool === "select") {
+    if (activeTool === "select") {
       return;
     }
 
@@ -150,10 +146,26 @@
 
   const buildDeps = () => ({
     getSelectorEntries: () => get(selectorEntries),
-    getElementEntries: () => editorCtx.elementEntries,
+    getElementEntries: () => appState.currentTab.elementEntries,
     getEditorContent: () => get(codeEditorContent),
-    insertDefinitions: (lines: string[]) => editorCtx.insertDefinitions(lines),
-    replaceEditorContent: (content: string) => editorCtx.replaceEditorContent(content),
+    insertDefinitions: (lines: string[]) => {
+      const editorApi = appState.currentTab.editorApi;
+      if (!editorApi) {
+        return false;
+      }
+
+      editorApi.insertDefinitions(lines);
+      return true;
+    },
+    replaceEditorContent: (content: string) => {
+      const editorApi = appState.currentTab.editorApi;
+      if (!editorApi) {
+        return false;
+      }
+
+      editorApi.replaceEditorContent(content);
+      return true;
+    },
     setError: (msg: string | null) => setEditorMessage(msg, "error"),
   });
 
@@ -190,7 +202,7 @@
       }
 
       if (isGrantResolvedMessage(message)) {
-        editorCtx.allowedGrants = message.payload.allowedGrants;
+        appStateActions.setActiveScriptAllowedGrants(message.payload.allowedGrants);
         if (message.payload.allow) {
           setToolMessage("Grant permissions saved (reload the page for permissions to take effect).", "success");
         } else {
@@ -216,7 +228,7 @@
         return;
       }
 
-      if (event.key === "Escape" && toolCtx.activeTool === "select") {
+      if (event.key === "Escape" && activeTool === "select") {
         event.preventDefault();
         sendSelectionToggle(false, { clearSelection: false });
         return;
@@ -253,23 +265,19 @@
             bind:this={toolPanelSection}
             style={toolPanelStyle}
           >
-            <Toolbar
-              activeTool={toolCtx.activeTool}
-              showHelpButton={appState.settings.showHelpButton}
-              ontoolselect={handleToolSelect}
-            />
+            <Toolbar {activeTool} showHelpButton={appState.settings.showHelpButton} ontoolselect={handleToolSelect} />
 
-            {#if toolCtx.activeTool === "none"}
+            {#if activeTool === "none"}
               <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4 justify-center place-items-center">
                 <p class="text-caption text-gray-500 dark:text-gray-400">Select a tool from the top bar</p>
               </div>
             {:else}
-              {@const ToolComponent = toolComponents[toolCtx.activeTool]}
+              {@const ToolComponent = toolComponents[activeTool]}
               {#if ToolComponent}
                 <ToolComponent />
               {:else}
                 <div class="flex h-full w-full flex-1 flex-col gap-4 px-4 py-4">
-                  <p class="text-body">Unknown tool: {toolCtx.activeTool}</p>
+                  <p class="text-body">Unknown tool: {activeTool}</p>
                 </div>
               {/if}
             {/if}

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { Collapsible } from "bits-ui";
   import Button from "@/lib/components/Button.svelte";
+  import { appState } from "@/lib/app-state";
   import { codeEditorContent } from "./code-editor/state";
-  import { getEditorContext } from "../context/editor.svelte";
   import {
     buildWebsiteMetadataListing,
     extractWebsiteMetadataGlobs,
@@ -16,8 +16,6 @@
     type ExportFormat,
     type ExportOptions,
   } from "@/lib/script-export";
-
-  const editorCtx = getEditorContext();
 
   type ExportFormatOption = {
     value: ExportFormat;
@@ -60,7 +58,7 @@
   const canExportSelectedFormat = $derived(selectedFormatOption.available);
 
   const normalizedWebsiteGlob = $derived(
-    buildWebsiteMetadataListing(extractWebsiteMetadataGlobs(editorContentValue), editorCtx.scriptMetadata.website),
+    buildWebsiteMetadataListing(extractWebsiteMetadataGlobs(editorContentValue), appState.currentTab.scriptMetadata.website),
   );
 
   const downloadExportArtifact = (fileName: string, body: string, mimeType: string) => {
@@ -155,7 +153,12 @@
 
     isDeletingScript = true;
     try {
-      await editorCtx.resetToDefault();
+      const editorApi = appState.currentTab.editorApi;
+      if (!editorApi) {
+        throw new Error("Editor is not ready.");
+      }
+
+      await editorApi.resetToDefault();
       statusMessage = "Script deleted. Restored default script.";
       isDeleteWarningVisible = false;
     } catch (error) {
@@ -171,7 +174,7 @@
     <div class="grid grid-cols-[fit-content(7rem)_minmax(0,1fr)] gap-x-4 gap-y-2 text-body whitespace-pre-line">
       <span class="min-w-0 text-right truncate text-gray-500">Title</span>
       <span class="min-w-0 wrap-break-word text-left font-mono"
-        >{editorCtx.scriptMetadata.title || "Untitled script"}</span
+        >{appState.currentTab.scriptMetadata.title || "Untitled script"}</span
       >
 
       <span class="min-w-0 text-right truncate text-gray-500">Website</span>
@@ -179,15 +182,15 @@
 
       <span class="min-w-0 text-right truncate text-gray-500">Description</span>
       <span class="min-w-0 wrap-break-word text-left font-mono"
-        >{editorCtx.scriptMetadata.description || "No description"}</span
+        >{appState.currentTab.scriptMetadata.description || "No description"}</span
       >
 
       <span class="min-w-0 text-right truncate text-gray-500">Author</span>
-      <span class="min-w-0 wrap-break-word text-left font-mono">{editorCtx.scriptMetadata.author || "No author"}</span>
+      <span class="min-w-0 wrap-break-word text-left font-mono">{appState.currentTab.scriptMetadata.author || "No author"}</span>
 
-      {#if editorCtx.scriptMetadata.credits.trim()}
+      {#if appState.currentTab.scriptMetadata.credits.trim()}
         <span class="min-w-0 text-right truncate text-gray-500">Credits</span>
-        <span class="min-w-0 wrap-break-word text-left font-mono">{editorCtx.scriptMetadata.credits}</span>
+        <span class="min-w-0 wrap-break-word text-left font-mono">{appState.currentTab.scriptMetadata.credits}</span>
       {/if}
 
       <div class="col-span-2 my-1 border-t border-gray-700/80"></div>
