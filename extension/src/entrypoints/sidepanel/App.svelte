@@ -73,7 +73,7 @@
       : `height: ${toolPanelHeightPx}px; min-height: ${minToolPanelHeightPx}px; max-height: ${maxToolPanelHeightPx}px;`,
   );
 
-  /** App state fields that are tracked by the effect, and automatically persisted to extension local storage */
+  /** App state fields that are tracked by the $effect below, and automatically persisted to extension local storage */
   const deps = {
     showHelpButton: appState.settings.showHelpButton,
     disableAllGrants: appState.settings.disableAllGrants,
@@ -85,7 +85,7 @@
     activeWebsiteGlob: appState.currentTab.activeWebsiteGlob,
     defaultScriptName: appState.currentTab.defaultScriptName,
     availableScriptOptionsCount: appState.currentTab.availableScriptOptions.length,
-    openTabsCount: Object.keys(appState.session.openTabsByTabId).length, // what you put as the value doesn't matter as long as the field you want to persist is used
+    openTabsCount: Object.keys(appState.session.openTabsByTabId).length, // what you put as the value doesn't matter as long as the field you want to persist is referenced
     selectedScriptsCount: Object.keys(appState.session.selectedScriptByHostname).length, // this is just for prettier output in debug logging
     recordPanelsCount: Object.keys(appState.recordPanelsByTabId).length,
     scriptsCount: Object.keys(appState.scriptsByName).length,
@@ -99,7 +99,7 @@
       return;
     }
 
-    deps;
+    deps; // referencing deps here to add all defined fields to the effect's dependency list
     logger.debug("flush app-state persistence from sidepanel", deps);
     void flushAppStatePersistence();
   });
