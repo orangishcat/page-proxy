@@ -27,7 +27,6 @@ import {
   appStateSelectors,
   flushAppStatePersistence,
   hydrateAppState,
-  registerAppStateSync,
   replaceAppState,
 } from "@/lib/app-state.ts";
 import log from "@/lib/logger";
@@ -50,9 +49,14 @@ const defaultScriptConfig = {
 const logger = log.getLogger("background");
 
 const appStateReady = (async () => {
-  registerAppStateSync();
   const state = await hydrateAppState();
   replaceAppState(state);
+  logger.debug("background app-state hydrated", {
+    scriptCount: Object.keys(state.scriptsByName).length,
+    recordPanelCount: Object.keys(state.recordPanelsByTabId).length,
+    openTabCount: Object.keys(state.session.openTabsByTabId).length,
+    selectedScriptCount: Object.keys(state.session.selectedScriptByHostname).length,
+  });
 })();
 
 const listStoredToolStates = async () => {
