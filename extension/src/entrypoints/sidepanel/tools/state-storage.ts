@@ -15,13 +15,7 @@ export type { StoredSelectorEntry, StoredToolState, ToolId };
 export { toStorageKey, fromStorageKey };
 
 export type { RecordTimelineEntry, RecordPanelState } from "./storage/record-panel";
-export {
-  buildDefaultRecordPanelState,
-  readRecordPanelStateForTab,
-  saveRecordPanelStateForTab,
-  removeRecordPanelStateForTab,
-  trimStoredRecordPanelStates,
-} from "./storage/record-panel";
+export { buildDefaultRecordPanelState } from "./storage/record-panel";
 
 export {
   readHelpBannerDismissedSetting,
