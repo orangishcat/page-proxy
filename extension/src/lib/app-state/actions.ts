@@ -1,5 +1,6 @@
 import type { RecordPanelState } from "../../entrypoints/sidepanel/tools/storage/record-panel";
 import type { StoredToolState } from "../stored-tool-state";
+import { coerceScriptGrantValues } from "../grants";
 import { appState } from "./state.svelte";
 
 export const appStateActions = {
@@ -19,7 +20,13 @@ export const appStateActions = {
     appState.sidepanel[id] = false;
   },
   upsertStoredToolState(value: StoredToolState) {
-    appState.scriptsByName[value.scriptName] = value;
+    appState.scriptsByName[value.scriptName] = {
+      ...value,
+      permissions: {
+        ...value.permissions,
+        allowedGrants: coerceScriptGrantValues(value.permissions.allowedGrants),
+      },
+    };
   },
   updateActiveScript(updater: (script: StoredToolState) => StoredToolState) {
     const activeScriptName = appState.currentTab.activeScriptName;
@@ -33,7 +40,13 @@ export const appStateActions = {
     }
 
     const next = updater(current);
-    appState.scriptsByName[next.scriptName] = next;
+    appState.scriptsByName[next.scriptName] = {
+      ...next,
+      permissions: {
+        ...next.permissions,
+        allowedGrants: coerceScriptGrantValues(next.permissions.allowedGrants),
+      },
+    };
     if (next.scriptName !== activeScriptName) {
       delete appState.scriptsByName[activeScriptName];
     }
@@ -49,6 +62,7 @@ export const appStateActions = {
       ...current,
       permissions: {
         ...current.permissions,
+        allowedGrants: coerceScriptGrantValues(current.permissions.allowedGrants),
         enabled,
       },
       updatedAt: Date.now(),

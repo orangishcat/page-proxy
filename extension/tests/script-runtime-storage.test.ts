@@ -105,7 +105,7 @@ describe("script runtime storage", () => {
     expect(state?.permissions.enabled).toBe(true);
   });
 
-  test("drops object-shaped stored permissions grants", () => {
+  test("coerces object-shaped stored permissions grants into a list", () => {
     const state = coerceStoredToolState(
       {
         ...buildStoredState(),
@@ -119,7 +119,7 @@ describe("script runtime storage", () => {
       "Page Proxy",
     );
 
-    expect(state?.permissions.allowedGrants).toEqual([]);
+    expect(state?.permissions.allowedGrants).toEqual(["run-on-page-load"]);
   });
 
   test("defaults missing per-script enabled to true", () => {

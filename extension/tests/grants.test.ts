@@ -24,6 +24,10 @@ describe("grants", () => {
     expect(coerced).toEqual(["run-on-page-load"]);
   });
 
+  test("coerceScriptGrantValues coerces object-shaped lists into arrays", () => {
+    expect(coerceScriptGrantValues({ 0: "run-on-page-load" })).toEqual(["run-on-page-load"]);
+  });
+
   test("coerceScriptGrantValues returns empty list for non-array", () => {
     expect(coerceScriptGrantValues("run-on-page-load")).toEqual([]);
   });

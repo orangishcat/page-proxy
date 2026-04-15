@@ -101,6 +101,7 @@ describe("hydrateAppState", () => {
     local["pageproxy:show-help-button"] = false;
     local["pageproxy:disable-all-grants"] = true;
     local["pageproxy:Docs Script"] = buildStoredState("Docs Script", "https://docs.example.com/*", 1);
+    local["sidepanel:legacy-selected-script"] = "Docs Script";
     local["sidepanel:toolPanelHeightPx"] = 320;
     local["sidepanel:helpBannerDismissed"] = true;
     local["sidepanel:recordPanel:12"] = {

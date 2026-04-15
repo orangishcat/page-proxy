@@ -8,10 +8,22 @@ const supportedScriptGrantSet = new Set<string>(supportedScriptGrants);
 const ScriptGrantSchema = z.enum(supportedScriptGrants);
 
 const normalizeGrantToken = (value: string) => value.trim().toLowerCase();
+const normalizeGrantValues = (value: unknown): unknown[] => {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (value && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>);
+  }
+
+  return [];
+};
 
 export const ScriptGrantValuesSchema = z
-  .array(z.unknown())
-  .catch([])
+  .unknown()
+  .transform(normalizeGrantValues)
+  .pipe(z.array(z.unknown()))
   .transform((values): ScriptGrantValue[] => {
     const parsed: ScriptGrantValue[] = [];
     values.forEach((item) => {

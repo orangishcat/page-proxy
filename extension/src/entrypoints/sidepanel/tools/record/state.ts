@@ -59,7 +59,7 @@ const loadRecordPanelStateForTab = (tabId: number, currentLoadVersion: number) =
 
   const currentState = get(recordPanelState);
   if (currentState.updatedAt > state.updatedAt) {
-    return;
+    return Promise.resolve();
   }
 
   recordPanelState.set({
