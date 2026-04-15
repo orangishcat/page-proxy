@@ -21,10 +21,9 @@
   import { setEditorMessage, setToolMessage, toolMessage } from "./tools/tool-errors";
   import { isGrantResolvedMessage } from "../../lib/grant-permissions";
   import {
-    appStateSelectors,
+    appState,
     flushAppStatePersistence,
     hydrateAppState,
-    registerAppStateSync,
     replaceAppState,
     appStateActions,
   } from "../../lib/app-state.ts";
@@ -74,39 +73,34 @@
       : `height: ${toolPanelHeightPx}px; min-height: ${minToolPanelHeightPx}px; max-height: ${maxToolPanelHeightPx}px;`,
   );
 
+  /** App state fields that are tracked by the effect, and automatically persisted to extension local storage */
+  const deps = {
+    showHelpButton: appState.settings.showHelpButton,
+    disableAllGrants: appState.settings.disableAllGrants,
+    toolPanelHeightPx: appState.sidepanel.toolPanelHeightPx,
+    helpBannerDismissed: appState.sidepanel.helpBannerDismissed,
+    userscriptReloadBannerDismissed: appState.sidepanel.userscriptReloadBannerDismissed,
+    activeTabId: appState.currentTab.activeTabId,
+    activeScriptName: appState.currentTab.activeScriptName,
+    activeWebsiteGlob: appState.currentTab.activeWebsiteGlob,
+    defaultScriptName: appState.currentTab.defaultScriptName,
+    availableScriptOptionsCount: appState.currentTab.availableScriptOptions.length,
+    openTabsCount: Object.keys(appState.session.openTabsByTabId).length, // what you put as the value doesn't matter as long as the field you want to persist is used
+    selectedScriptsCount: Object.keys(appState.session.selectedScriptByHostname).length, // this is just for prettier output in debug logging
+    recordPanelsCount: Object.keys(appState.recordPanelsByTabId).length,
+    scriptsCount: Object.keys(appState.scriptsByName).length,
+  };
+
   $effect(() => {
-    if (!appStateStatus.isAppStateHydrated || appStateStatus.isApplyingRemoteSync) {
+    if (!appStateStatus.isAppStateHydrated) {
       logger.debug("skip app-state flush", {
         hydrated: appStateStatus.isAppStateHydrated,
-        applyingRemoteSync: appStateStatus.isApplyingRemoteSync,
       });
       return;
     }
 
-    appStateSelectors.getShowHelpButton();
-    appStateSelectors.getDisableAllGrants();
-    appStateSelectors.getToolPanelHeight();
-    const sidepanelState = appStateSelectors.getSidepanelState();
-    sidepanelState.helpBannerDismissed;
-    sidepanelState.userscriptReloadBannerDismissed;
-    const openTabsByTabId = appStateSelectors.getOpenTabsByTabId();
-    const selectedScriptByHostname = appStateSelectors.getSelectedScriptByHostnameMap();
-    const recordPanelsByTabId = appStateSelectors.getRecordPanelsByTabId();
-    appStateSelectors.getActiveTool();
-    appStateSelectors.getActiveScript();
-    appStateSelectors.getAvailableScriptOptions();
-    appStateSelectors.getActiveScriptName();
-    appStateSelectors.getDefaultScriptName();
-    appStateSelectors.getActiveWebsiteGlob();
-    logger.debug("flush app-state persistence from sidepanel", {
-      showHelpButton: appStateSelectors.getShowHelpButton(),
-      disableAllGrants: appStateSelectors.getDisableAllGrants(),
-      toolPanelHeightPx: appStateSelectors.getToolPanelHeight(),
-      sidepanel: sidepanelState,
-      openTabs: Object.keys(openTabsByTabId).length,
-      selectedScripts: Object.keys(selectedScriptByHostname).length,
-      recordPanels: Object.keys(recordPanelsByTabId).length,
-    });
+    deps;
+    logger.debug("flush app-state persistence from sidepanel", deps);
     void flushAppStatePersistence();
   });
 
@@ -159,7 +153,6 @@
   });
 
   onMount(() => {
-    registerAppStateSync();
     void hydrateAppState()
       .then((state) => {
         replaceAppState(state);
@@ -250,7 +243,6 @@
     <div class="h-full w-full min-h-0 min-w-full">
       <BannerContainer>
         <div class="flex h-full w-full min-h-0 flex-col">
-
           <section
             class="relative flex w-full shrink-0 flex-col bg-[#282824]"
             aria-label="Tool panel"
@@ -279,15 +271,14 @@
             {/if}
 
             {#if activeToolMessage}
-              <StatusMessage
-                message={activeToolMessage}
-                onDismiss={() => setToolMessage(null, "error")}
-              />
+              <StatusMessage message={activeToolMessage} onDismiss={() => setToolMessage(null, "error")} />
             {/if}
           </section>
 
           <ResizeHandle
-            onheightchange={(clientY) => { toolPanelHeightPx = clientY; }}
+            onheightchange={(clientY) => {
+              toolPanelHeightPx = clientY;
+            }}
             onresizefinish={(clientY) => {
               toolPanelHeightPx = clientY;
               appStateActions.setToolPanelHeight(clientY);

@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { createDefaultAppState } from "../../src/lib/app-state/defaults";
+import { replaceAppState } from "../../src/lib/app-state/state.svelte.ts";
 import type { StoredToolState } from "../../src/lib/stored-tool-state";
 
 type StorageShape = Record<string, unknown>;
@@ -90,6 +92,7 @@ describe("flushAppStatePersistence", () => {
     const session = getStorageState("session");
     Object.keys(local).forEach((key) => delete local[key]);
     Object.keys(session).forEach((key) => delete session[key]);
+    replaceAppState(createDefaultAppState());
   });
 
   test("writes active script and settings back to keyed storage", async () => {
