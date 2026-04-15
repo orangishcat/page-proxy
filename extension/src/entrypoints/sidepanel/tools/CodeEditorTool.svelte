@@ -13,8 +13,6 @@
   import { buildDefaultScript, ensureDefineBlock, type ScriptFormatConfig } from "./state-loading";
   import StatusMessage from "./StatusMessage.svelte";
   import { editorMessage, setEditorMessage, setEditorMessageFromUnknown } from "./tool-errors";
-  import { getToolContext } from "../context/tool.svelte";
-  import { getEditorContext } from "../context/editor.svelte";
   import {
     getDefinitionBlock,
     insertDefinitionLines,
@@ -38,9 +36,10 @@
     type EditorActionsDeps,
   } from "./code-editor/editor-actions";
   import EditorToolbar from "./code-editor/EditorToolbar.svelte";
-
-  const toolCtx = getToolContext();
-  const editorCtx = getEditorContext();
+  import { appState, appStateActions, appStateSelectors } from "@/lib/app-state";
+  import type { ToolId } from "../tools/state-storage";
+  import type { StoredToolState } from "@/lib/stored-tool-state";
+  import type { ElementEntry } from "@/lib/sidepanel-editor-state";
   const ppImportLines = ['import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";'];
   const protectedComment =
     "// This page is protected. Either switch to a different page or allow the extension access to this page to run scripts.";
@@ -59,6 +58,13 @@
   let lastRunErrorStack = $state<string | null>(null);
   let editorDomNode: HTMLElement | null = null;
   let unsubscribeEditorMessageStore = () => {};
+  const defaultScriptMetadata = {
+    title: "Page Proxy",
+    website: "",
+    description: "",
+    author: "",
+    credits: "",
+  };
 
   let tabState = $state<TabLoaderState>({
     activeTabId: null,
@@ -78,15 +84,15 @@
   const updateScriptMetadata = (content: string) => {
     try {
       const metadata = parseScriptMetadata(content);
-      editorCtx.scriptMetadata = {
+      appStateActions.setCurrentTabScriptMetadata({
         title: metadata.title || "Page Proxy",
         website: metadata.website,
         description: metadata.description,
         author: metadata.author,
         credits: metadata.credits,
-      };
+      });
     } catch {
-      editorCtx.scriptMetadata = { title: "Page Proxy", website: "", description: "", author: "", credits: "" };
+      appStateActions.setCurrentTabScriptMetadata(defaultScriptMetadata);
     }
   };
 
@@ -118,9 +124,9 @@
 
   const buildEditorActionsDeps = (): EditorActionsDeps => ({
     tabState,
-    allowedGrants: editorCtx.allowedGrants,
-    activeTool: toolCtx.activeTool,
-    scriptMetadata: editorCtx.scriptMetadata,
+    allowedGrants: appStateSelectors.getActiveScript()?.permissions.allowedGrants ?? [],
+    activeTool: appStateSelectors.getActiveTool() as ToolId,
+    scriptMetadata: appState.currentTab.scriptMetadata,
     scriptFormatConfig,
     setHasUnsavedChanges: (v) => {
       hasUnsavedChanges = v;
@@ -137,19 +143,19 @@
   const buildTabLoaderDeps = () => ({
     state: tabState,
     setActiveToolId: (tool: string) => {
-      toolCtx.activeTool = tool as typeof toolCtx.activeTool;
+      appStateActions.setActiveTool(tool as ToolId);
     },
     setAllowedGrants: (grants: unknown[]) => {
-      editorCtx.allowedGrants = grants as typeof editorCtx.allowedGrants;
+      appStateActions.setActiveScriptAllowedGrants(grants as StoredToolState["permissions"]["allowedGrants"]);
     },
     setActiveScriptName: (scriptName: string | null) => {
-      editorCtx.activeScriptName = scriptName;
+      appState.currentTab.activeScriptName = scriptName;
     },
     setScriptOptions: (options: unknown[]) => {
-      editorCtx.scriptOptions = options as typeof editorCtx.scriptOptions;
+      appState.currentTab.availableScriptOptions = options as typeof appState.currentTab.availableScriptOptions;
     },
     setElementEntries: (entries: unknown[]) => {
-      editorCtx.elementEntries = entries as typeof editorCtx.elementEntries;
+      appStateActions.setCurrentTabElementEntries(entries as ElementEntry[]);
     },
     setRecordPanelActiveTab,
     updateEditorContent,
@@ -222,8 +228,8 @@
       return;
     }
 
-    const nextValue = !editorCtx.disableAllGrants;
-    editorCtx.disableAllGrants = nextValue;
+    const nextValue = !appState.settings.disableAllGrants;
+    appStateActions.setDisableAllGrants(nextValue);
   };
 
   const selectScriptForCurrentTab = (scriptName: string) => {
@@ -286,22 +292,23 @@
     tabState.canPersistEditorChanges = false;
     tabState.editorValue = buildDefaultScript("", scriptFormatConfig);
     codeEditorContent.set(tabState.editorValue);
-    editorCtx.elementEntries = [];
-    editorCtx.allowedGrants = [];
-    editorCtx.scriptOptions = [];
-    editorCtx.activeScriptName = null;
+    appStateActions.setCurrentTabElementEntries([]);
+    appStateActions.setActiveScriptAllowedGrants([]);
+    appState.currentTab.availableScriptOptions = [];
+    appState.currentTab.activeScriptName = null;
+    appStateActions.setCurrentTabScriptMetadata(defaultScriptMetadata);
     setupEditor();
-    editorCtx.api = {
+    appStateActions.setCurrentTabEditorApi({
       insertDefinitions: insertDefinitionLinesInEditor,
       replaceEditorContent: (content) => updateEditorContent(content),
       resetToDefault: () => resetScriptToDefaultImpl(buildEditorActionsDeps()),
-    };
+    });
     refreshActiveTab();
     browser.tabs.onActivated.addListener(handleTabActivated);
     browser.tabs.onUpdated.addListener(handleTabUpdated);
 
     return () => {
-      editorCtx.api = null;
+      appStateActions.setCurrentTabEditorApi(null);
       browser.tabs.onActivated.removeListener(handleTabActivated);
       browser.tabs.onUpdated.removeListener(handleTabUpdated);
       autosave.dispose();
@@ -327,12 +334,12 @@
   aria-label="Code editor panel"
 >
   <EditorToolbar
-    scriptTitle={editorCtx.scriptMetadata.title}
+    scriptTitle={appState.currentTab.scriptMetadata.title}
     scriptOptions={tabState.availableScriptOptions}
     selectedScriptName={tabState.activeScriptName}
     {hasUnsavedChanges}
     {isRunning}
-    disableAllGrants={editorCtx.disableAllGrants}
+    disableAllGrants={appState.settings.disableAllGrants}
     onRun={runScript}
     onDisableGrantToggle={toggleDisableAllGrants}
     oncreatenewscript={createNewScriptForCurrentTab}

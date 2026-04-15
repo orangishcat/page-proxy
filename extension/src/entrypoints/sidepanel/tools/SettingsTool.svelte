@@ -1,8 +1,6 @@
 <script lang="ts">
   import { Switch } from "bits-ui";
-  import { appState } from "@/lib/app-state/state.svelte.ts";
-  import { appStateActions } from "@/lib/app-state/actions.ts";
-  import { getEditorContext } from "../context/editor.svelte";
+  import { appState, appStateActions } from "@/lib/app-state";
   import { readStoredScriptEnabled, saveStoredScriptEnabled } from "./state-storage";
   import type { ScriptSelectionOption } from "./code-editor/state";
   import { setToolMessage } from "./tool-errors";
@@ -11,8 +9,6 @@
     enabled: boolean;
     isSaving: boolean;
   };
-
-  const editorCtx = getEditorContext();
 
   let scriptSettings = $state<ScriptSettingEntry[]>([]);
   let isLoadingScriptSettings = $state(false);
@@ -28,7 +24,7 @@
   };
 
   $effect(() => {
-    const scriptOptions = editorCtx.scriptOptions;
+    const scriptOptions = appState.currentTab.availableScriptOptions;
     const requestId = ++loadRequestId;
 
     if (scriptOptions.length === 0) {
@@ -111,7 +107,7 @@
               <div class="flex items-center gap-2">
                 <span
                   class="truncate text-sm text-accent-500"
-                  class:text-accent-500={editorCtx.activeScriptName === entry.scriptName}>{entry.scriptName}</span
+                  class:text-accent-500={appState.currentTab.activeScriptName === entry.scriptName}>{entry.scriptName}</span
                 >
               </div>
             </div>

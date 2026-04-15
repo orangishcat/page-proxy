@@ -77,9 +77,9 @@ export const loadStateForUrl = async (url: string | null, deps: TabLoaderDeps): 
     state.defaultScriptName = null;
     state.activeWebsiteGlob = null;
     state.availableScriptOptions = [];
+    deps.setActiveScriptName(blankScriptName);
     deps.setActiveToolId("none");
     deps.setAllowedGrants([]);
-    deps.setActiveScriptName(blankScriptName);
     deps.setScriptOptions([]);
     const baseContent = buildDefaultScript("", scriptFormatConfig, blankScriptName);
     const displayContent = buildEditorDisplayContent({
@@ -97,9 +97,9 @@ export const loadStateForUrl = async (url: string | null, deps: TabLoaderDeps): 
   state.defaultScriptName = resolvedState.defaultMatch.scriptName;
   state.activeWebsiteGlob = resolvedState.websiteGlob;
   state.availableScriptOptions = resolvedState.matches.map(toScriptSelectionOption);
+  deps.setActiveScriptName(resolvedState.scriptName);
   deps.setActiveToolId(coerceToolPanelTool(resolvedState.state.activeTool));
   deps.setAllowedGrants(resolvedState.state.permissions.allowedGrants);
-  deps.setActiveScriptName(resolvedState.scriptName);
   deps.setScriptOptions(state.availableScriptOptions);
   const displayContent = buildEditorDisplayContent({
     content: resolvedState.state.codeEditor.content,
@@ -124,13 +124,13 @@ export const applyActiveTab = async (tab: ActiveTab | null, deps: TabLoaderDeps)
 
   if (state.isProtectedPage) {
     deps.setElementEntries([]);
+    deps.setActiveScriptName(null);
     deps.setAllowedGrants([]);
     state.activeWebsiteGlob = null;
     state.activeScriptName = null;
     state.defaultScriptName = null;
     state.availableScriptOptions = [];
     deps.setActiveToolId("none");
-    deps.setActiveScriptName(null);
     deps.setScriptOptions([]);
     const protectedContent = buildEditorDisplayContent({
       content: buildDefaultScript("", scriptFormatConfig),
@@ -227,9 +227,9 @@ export const createNewScriptForCurrentTab = async (deps: TabLoaderDeps): Promise
 
   state.activeScriptName = nextScriptName;
   state.activeWebsiteGlob = websiteGlob || null;
+  deps.setActiveScriptName(nextScriptName);
   deps.setActiveToolId("none");
   deps.setAllowedGrants([]);
-  deps.setActiveScriptName(nextScriptName);
   deps.setScriptOptions(state.availableScriptOptions);
   deps.setElementEntries([]);
   deps.updateEditorContent(nextContent, { persist: false });

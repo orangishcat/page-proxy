@@ -1,8 +1,11 @@
 import type { RecordPanelState } from "../../entrypoints/sidepanel/tools/storage/record-panel";
 import type { StoredToolState } from "../stored-tool-state";
+import type { EditorApi, ElementEntry, ScriptMetadataState } from "../sidepanel-editor-state";
 import { coerceScriptGrantValues } from "../grants";
 import log from "../logger";
 import { appState } from "./state.svelte";
+import type { ToolId } from "../../entrypoints/sidepanel/tools/state-storage";
+import { appStateSelectors } from "./selectors";
 
 const logger = log.getLogger("app-state-actions");
 
@@ -14,6 +17,23 @@ export const appStateActions = {
   setDisableAllGrants(value: boolean) {
     appState.settings.disableAllGrants = value;
     logger.debug("set disableAllGrants", { value });
+  },
+  setActiveTool(value: ToolId) {
+    const activeScript = appStateSelectors.getActiveScript();
+    if (!activeScript) {
+      return;
+    }
+
+    appState.scriptsByName[activeScript.scriptName] = {
+      ...activeScript,
+      activeTool: value,
+      updatedAt: Date.now(),
+      permissions: {
+        ...activeScript.permissions,
+        allowedGrants: coerceScriptGrantValues(activeScript.permissions.allowedGrants),
+      },
+    };
+    logger.debug("set activeTool", { value });
   },
   setToolPanelHeight(value: number | undefined) {
     appState.sidepanel.toolPanelHeightPx = value;
@@ -64,6 +84,22 @@ export const appStateActions = {
     }
     appState.currentTab.activeScriptName = next.scriptName;
     logger.debug("update active script", { from: activeScriptName, to: next.scriptName });
+  },
+  setActiveScriptAllowedGrants(value: StoredToolState["permissions"]["allowedGrants"]) {
+    const activeScript = appStateSelectors.getActiveScript();
+    if (!activeScript) {
+      return;
+    }
+
+    appState.scriptsByName[activeScript.scriptName] = {
+      ...activeScript,
+      permissions: {
+        ...activeScript.permissions,
+        allowedGrants: coerceScriptGrantValues(value),
+      },
+      updatedAt: Date.now(),
+    };
+    logger.debug("set active script allowedGrants", { valueCount: value.length });
   },
   setStoredScriptEnabled(scriptName: string, enabled: boolean) {
     const current = appState.scriptsByName[scriptName];
@@ -120,5 +156,17 @@ export const appStateActions = {
   clearSelectedScriptForHostname(hostname: string) {
     delete appState.session.selectedScriptByHostname[hostname.trim().toLowerCase()];
     logger.debug("clear selected script override", { hostname });
+  },
+  setCurrentTabElementEntries(value: ElementEntry[]) {
+    appState.currentTab.elementEntries = value;
+    logger.debug("set currentTab.elementEntries", { count: value.length });
+  },
+  setCurrentTabScriptMetadata(value: ScriptMetadataState) {
+    appState.currentTab.scriptMetadata = value;
+    logger.debug("set currentTab.scriptMetadata", { title: value.title });
+  },
+  setCurrentTabEditorApi(value: EditorApi | null) {
+    appState.currentTab.editorApi = value;
+    logger.debug("set currentTab.editorApi", { isReady: value !== null });
   },
 };

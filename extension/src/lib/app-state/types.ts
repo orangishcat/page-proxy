@@ -1,5 +1,6 @@
 import type { RecordPanelState } from "../../entrypoints/sidepanel/tools/storage/record-panel";
 import type { StoredToolState } from "../stored-tool-state";
+import type { EditorApi, ElementEntry, ScriptMetadataState } from "../sidepanel-editor-state";
 
 export type ScriptSelectionOption = {
   scriptName: string;
@@ -38,6 +39,9 @@ export type AppStateCurrentTab = {
   isProgrammaticUpdate: boolean;
   lastHydrationError: string | null;
   lastPersistenceError: string | null;
+  elementEntries: ElementEntry[];
+  scriptMetadata: ScriptMetadataState;
+  editorApi: EditorApi | null;
 };
 
 export type AppState = {
