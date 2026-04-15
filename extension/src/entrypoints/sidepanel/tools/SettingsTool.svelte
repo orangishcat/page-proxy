@@ -1,7 +1,8 @@
 <script lang="ts">
   import { Switch } from "bits-ui";
+  import { appState } from "@/lib/app-state/state.svelte.ts";
+  import { appStateActions } from "@/lib/app-state/actions.ts";
   import { getEditorContext } from "../context/editor.svelte";
-  import { getToolContext } from "../context/tool.svelte";
   import { readStoredScriptEnabled, saveStoredScriptEnabled } from "./state-storage";
   import type { ScriptSelectionOption } from "./code-editor/state";
   import { setToolMessage } from "./tool-errors";
@@ -12,7 +13,6 @@
   };
 
   const editorCtx = getEditorContext();
-  const toolCtx = getToolContext();
 
   let scriptSettings = $state<ScriptSettingEntry[]>([]);
   let isLoadingScriptSettings = $state(false);
@@ -137,12 +137,12 @@
   <section class="rounded-lg border border-gray-700 bg-background-overlay overflow-hidden">
     <button
       class="flex items-center justify-between w-full gap-3 hover:bg-background-overlay-hover px-3 py-2 text-gray-100 select-none cursor-pointer"
-      onclick={() => (toolCtx.showHelpButton = !toolCtx.showHelpButton)}
+      onclick={() => appStateActions.setShowHelpButton(!appState.settings.showHelpButton)}
     >
       <div class="min-w-0">
         <span class="text-sm">Show help tool</span>
       </div>
-      <Switch.Root checked={toolCtx.showHelpButton} class={switchClasses}>
+      <Switch.Root checked={appState.settings.showHelpButton} class={switchClasses}>
         <Switch.Thumb class={switchThumbClasses} />
       </Switch.Root>
     </button>

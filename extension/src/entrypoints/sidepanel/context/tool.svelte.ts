@@ -21,12 +21,6 @@ export function createToolContext() {
         updatedAt: Date.now(),
       }));
     },
-    get showHelpButton() {
-      return appStateSelectors.getShowHelpButton();
-    },
-    set showHelpButton(v: boolean) {
-      appStateActions.setShowHelpButton(v);
-    },
   };
 }
 
