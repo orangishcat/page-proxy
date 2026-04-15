@@ -86,6 +86,9 @@ export const ScriptStorageMapSchema = z.record(z.string().trim().min(1), z.unkno
 export const SidepanelLocalOptionsSchema = z
   .object({
     helpBannerDismissed: z.boolean().optional(),
+    unsupportedBrowserBannerDismissed: z.boolean().optional(),
+    firefoxExperimentalBannerDismissed: z.boolean().optional(),
+    userscriptEnableBannerDismissed: z.boolean().optional(),
     toolPanelHeightPx: z.number().positive().optional(),
     userscriptReloadBannerDismissed: z.boolean().optional(),
   })

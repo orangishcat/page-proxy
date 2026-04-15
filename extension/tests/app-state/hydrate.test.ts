@@ -104,6 +104,9 @@ describe("hydrateAppState", () => {
     local["sidepanel:legacy-selected-script"] = "Docs Script";
     local["sidepanel:toolPanelHeightPx"] = 320;
     local["sidepanel:helpBannerDismissed"] = true;
+    local["sidepanel:unsupportedBrowserBannerDismissed"] = true;
+    local["sidepanel:firefoxExperimentalBannerDismissed"] = true;
+    local["sidepanel:userscriptEnableBannerDismissed"] = true;
     local["sidepanel:recordPanel:12"] = {
       isRecording: false,
       timeline: [{ id: "entry-1", action: "Click", detail: "", timestamp: 1 }],
@@ -119,6 +122,9 @@ describe("hydrateAppState", () => {
     expect(state.settings.disableAllGrants).toBe(true);
     expect(state.sidepanel.toolPanelHeightPx).toBe(320);
     expect(state.sidepanel.helpBannerDismissed).toBe(true);
+    expect(state.sidepanel.unsupportedBrowserBannerDismissed).toBe(true);
+    expect(state.sidepanel.firefoxExperimentalBannerDismissed).toBe(true);
+    expect(state.sidepanel.userscriptEnableBannerDismissed).toBe(true);
     expect(state.scriptsByName["Docs Script"]?.scriptName).toBe("Docs Script");
     expect(state.recordPanelsByTabId["12"]?.isRecording).toBe(false);
     expect(state.session.openTabsByTabId).toEqual({ "12": true });

@@ -6,8 +6,8 @@
 
   import { appState } from "@/lib/app-state/state.svelte.ts";
   import { appStateActions } from "@/lib/app-state/actions.ts";
-  import { detectBrowserSupport } from "@/lib/utils/browser-support";
-  import { ensureCodeRunnerUserscript } from "@/lib/userscript-runner";
+  import { BrowserSupport, detectBrowserSupport } from "@/lib/utils/browser-support";
+  import { ensureCodeRunnerUserscript, UserscriptRunnerStatus } from "@/lib/userscript-runner";
   import { setToolMessage } from "../tools/tool-errors";
   import Banner from "./Banner.svelte";
 
@@ -17,57 +17,47 @@
 
   let { children }: { children?: Snippet } = $props();
 
-  // TODO: make this use the unified state persistence system thingy as well
-  let showUnsupportedBrowserBanner = $state(false);
-  let showFirefoxExperimentalBanner = $state(false);
-  let showUserscriptEnableBanner = $state(false);
-  let showUserscriptReloadBanner = $state(false);
-  let userscriptEnableWithFirefoxPermissions = $state(false);
-  let userscriptReloadBannerDismissed = $state(false);
-  let showHelpBanner = $state(true);
+  let browserSupport = $state<BrowserSupport | null>(null);
+  let userscriptRunnerStatus = $state<UserscriptRunnerStatus | null>(null);
+
+  void (async () => {
+    const [support, runner] = await Promise.all([detectBrowserSupport(), ensureCodeRunnerUserscript()]);
+
+    browserSupport = support;
+    userscriptRunnerStatus = runner;
+  })();
+
+  const showUnsupportedBrowserBanner = $derived(
+    !!browserSupport && !browserSupport.supported && !appState.sidepanel.unsupportedBrowserBannerDismissed,
+  );
+
+  const showFirefoxExperimentalBanner = $derived(
+    browserSupport?.browser === "firefox" && !appState.sidepanel.firefoxExperimentalBannerDismissed,
+  );
+
+  const showUserscriptEnableBanner = $derived(
+    !!userscriptRunnerStatus &&
+      !userscriptRunnerStatus.ok &&
+      userscriptRunnerStatus.needsEnablement &&
+      !appState.sidepanel.userscriptEnableBannerDismissed,
+  );
+
+  const showUserscriptReloadBanner = $derived(
+    !!userscriptRunnerStatus?.ok && !appState.sidepanel.userscriptReloadBannerDismissed,
+  );
+
+  const showHelpBanner = $derived(!appState.sidepanel.helpBannerDismissed);
+  const userscriptEnableWithFirefoxPermissions = $derived(browserSupport?.browser === "firefox");
 
   onMount(() => {
     void detectBrowserSupport().then(({ browser: supportedBrowser, supported }) => {
-      showUnsupportedBrowserBanner = !supported;
-      showFirefoxExperimentalBanner = supportedBrowser === "firefox";
-      userscriptEnableWithFirefoxPermissions = supportedBrowser === "firefox";
+      browserSupport = { browser: supportedBrowser, supported };
     });
 
     void ensureCodeRunnerUserscript().then((status) => {
-      userscriptReloadBannerDismissed = appState.sidepanel.userscriptReloadBannerDismissed;
-      if (!status.ok && status.needsEnablement) {
-        showUserscriptEnableBanner = true;
-        return;
-      }
-
-      showUserscriptReloadBanner = status.ok && !userscriptReloadBannerDismissed;
+      userscriptRunnerStatus = status;
     });
-
-    showHelpBanner = !appState.sidepanel.helpBannerDismissed;
   });
-
-  const dismissUnsupportedBrowserBanner = () => {
-    showUnsupportedBrowserBanner = false;
-  };
-
-  const dismissFirefoxExperimentalBanner = () => {
-    showFirefoxExperimentalBanner = false;
-  };
-
-  const dismissUserscriptEnableBanner = () => {
-    showUserscriptEnableBanner = false;
-  };
-
-  const dismissUserscriptReloadBanner = () => {
-    showUserscriptReloadBanner = false;
-    userscriptReloadBannerDismissed = true;
-    appStateActions.dismissBanner("userscriptReloadBannerDismissed");
-  };
-
-  const dismissHelpBanner = () => {
-    showHelpBanner = false;
-    appStateActions.dismissBanner("helpBannerDismissed");
-  };
 
   const requestFirefoxUserscriptPermission = (event: MouseEvent) => {
     event.preventDefault();
@@ -80,13 +70,11 @@
         }
 
         return ensureCodeRunnerUserscript().then((status) => {
+          userscriptRunnerStatus = status;
           if (!status.ok) {
             setToolMessage(status.message, "error");
             return;
           }
-
-          showUserscriptEnableBanner = false;
-          showUserscriptReloadBanner = !userscriptReloadBannerDismissed;
           setToolMessage("Userscripts API enabled.", "success");
         });
       })
@@ -101,7 +89,7 @@
     <Banner
       variant="danger"
       dismissAriaLabel="Dismiss unsupported browser notice"
-      onDismiss={dismissUnsupportedBrowserBanner}
+      onDismiss={() => appStateActions.dismissBanner("unsupportedBrowserBannerDismissed")}
     >
       <span>Your browser is not supported. Please use Chrome, Brave, or Firefox to avoid unexpected issues.</span>
     </Banner>
@@ -111,7 +99,7 @@
     <Banner
       variant="warning"
       dismissAriaLabel="Dismiss Firefox experimental notice"
-      onDismiss={dismissFirefoxExperimentalBanner}
+      onDismiss={() => appStateActions.dismissBanner("firefoxExperimentalBannerDismissed")}
     >
       <span>Firefox support is experimental.</span>
     </Banner>
@@ -121,7 +109,7 @@
     <Banner
       variant="caution"
       dismissAriaLabel="Dismiss Userscripts API notice"
-      onDismiss={dismissUserscriptEnableBanner}
+      onDismiss={() => appStateActions.dismissBanner("userscriptEnableBannerDismissed")}
     >
       <span>Page Proxy needs the Userscripts API to run untrusted scripts.</span>
       {#if userscriptEnableWithFirefoxPermissions}
@@ -151,14 +139,18 @@
     <Banner
       variant="info"
       dismissAriaLabel="Dismiss Userscript reload notice"
-      onDismiss={dismissUserscriptReloadBanner}
+      onDismiss={() => appStateActions.dismissBanner("userscriptReloadBannerDismissed")}
     >
       <span>Note: you may need to reload all your tabs for the Userscript API to take effect.</span>
     </Banner>
   {/if}
 
   {#if !showUnsupportedBrowserBanner && showHelpBanner}
-    <Banner variant="info" dismissAriaLabel="Dismiss help notice" onDismiss={dismissHelpBanner}>
+    <Banner
+      variant="info"
+      dismissAriaLabel="Dismiss help notice"
+      onDismiss={() => appStateActions.dismissBanner("helpBannerDismissed")}
+    >
       <span>Something not working? Check the Help tool</span>
       <CircleQuestionMark class="h-4 w-4" aria-hidden="true" />
       <span>for troubleshooting or</span>

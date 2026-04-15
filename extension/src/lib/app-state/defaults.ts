@@ -7,6 +7,9 @@ export const createDefaultAppState = (): AppState => ({
   },
   sidepanel: {
     helpBannerDismissed: false,
+    unsupportedBrowserBannerDismissed: false,
+    firefoxExperimentalBannerDismissed: false,
+    userscriptEnableBannerDismissed: false,
     toolPanelHeightPx: undefined,
     userscriptReloadBannerDismissed: false,
   },
