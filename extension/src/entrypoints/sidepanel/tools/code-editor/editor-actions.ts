@@ -3,7 +3,7 @@ import type { ScriptGrantValue } from "@/lib/grants";
 import { defaultBlankScriptTitle } from "@/lib/script-names";
 import { appState } from "@/lib/app-state";
 import { readHostnameFromUrl } from "@/lib/utils/website-glob";
-import type { ToolId } from "../state-storage";
+import type { ToolId } from "@/lib/stored-tool-state";
 import { saveState } from "./save";
 import { selectorEntries } from "./state";
 import { resolveBlankScriptName } from "../state-loading";

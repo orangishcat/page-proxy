@@ -1,7 +1,7 @@
 <script lang="ts">
   import { CircleQuestionMark, Disc, MousePointer, Settings, Share } from "lucide-svelte";
   import Button from "@/lib/components/Button.svelte";
-  import type { ToolId } from "./tools/state-storage";
+  import type { ToolId } from "@/lib/stored-tool-state";
 
   type Props = {
     activeTool: ToolId;

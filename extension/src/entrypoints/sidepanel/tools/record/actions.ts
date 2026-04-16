@@ -4,7 +4,7 @@ import { isRecord } from "@/lib/utils/type-guards";
 
 import type { RecordConverterOpenResult, SelectToolMessage } from "@/lib/selection";
 import { codeEditorContent } from "../code-editor/state";
-import type { RecordTimelineEntry } from "../state-storage";
+import type { RecordTimelineEntry } from "../storage/record-panel";
 import { isRestrictedUrl, readActiveTabContext, sendSelectToolMessage } from "../select-tool/content-messaging";
 import { setToolMessage } from "../tool-errors";
 

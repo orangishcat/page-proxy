@@ -1,6 +1,6 @@
-import log from "../../../lib/logger";
-import { appStateActions } from "../../../lib/app-state/actions.ts";
-import { appStateSelectors } from "../../../lib/app-state/selectors.ts";
+import log from "@/lib/logger";
+import { appStateActions } from "@/lib/app-state/actions.ts";
+import { appStateSelectors } from "@/lib/app-state/selectors.ts";
 
 const logger = log.getLogger("script-selection-session");
 

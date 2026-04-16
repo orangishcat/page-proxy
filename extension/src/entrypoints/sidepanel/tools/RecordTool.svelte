@@ -12,7 +12,7 @@
     recordPanelState,
     toggleRecordPanelRecording,
   } from "./record/state";
-  import type { RecordTimelineEntry } from "./state-storage";
+  import type { RecordTimelineEntry } from "./storage/record-panel";
 
   const recordState = $derived($recordPanelState);
   let timelineContainer = $state<HTMLDivElement | null>(null);
