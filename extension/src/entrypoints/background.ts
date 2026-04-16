@@ -147,20 +147,13 @@ const countMatchingScriptsForUrl = async (url: string) => {
   return matchedStates
     .map((entry) => {
       const content = toRunnableScriptContent(entry.state);
-      if (!content) {
-        return null;
-      }
+      if (!content) return null;
 
       const scriptGrants = extractScriptGrants(content, disableAllGrants, entry.state.permissions.enabled);
-      if (!scriptGrants.includes(runOnPageLoadGrant)) {
-        return null;
-      }
+      if (!scriptGrants.includes(runOnPageLoadGrant)) return null;
 
       const missingGrants = getMissingAllowedGrants(entry.state, scriptGrants);
-      if (missingGrants.length > 0) {
-        return null;
-      }
-
+      if (missingGrants.length > 0) return null;
       return content;
     })
     .filter((code) => code !== null).length;
