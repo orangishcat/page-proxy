@@ -14,6 +14,7 @@ import {
 } from "@/lib/devtools-selection";
 import {
   isCommandResultMessage,
+  isPortConnectedMessage,
   isSelectionGetRequestMessage,
   isSelectionParentRequestMessage,
   isSelectionUpdateMessage,
@@ -262,6 +263,11 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
       const messageType = getMessageType(message);
       logger.debug("port message received", { type: messageType });
       const tabIdFromPort = portTabIdByPort.get(port);
+
+      if (isPortConnectedMessage(message)) {
+        trackPort(port, message.tabId);
+        return;
+      }
 
       if (isSelectionUpdateMessage(message)) {
         logger.debug("devtools selection update received", {

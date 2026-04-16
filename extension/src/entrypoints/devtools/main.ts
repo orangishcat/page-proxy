@@ -4,6 +4,7 @@ import log from "@/lib/logger";
 import {
   devtoolsSelectionPortName,
   type DevtoolsElementSelection,
+  type DevtoolsPortConnectedMessage,
   type DevtoolsSelectionCommandMessage,
   type DevtoolsSelectionCommandResultMessage,
   type DevtoolsSelectionUpdateMessage,
@@ -18,14 +19,11 @@ type EvalSelectionResult = {
 };
 
 const logger = log.getLogger("devtools-bridge");
-const selectionPublishRetryDelayMs = 100;
-const maxSelectionPublishAttempts = 2;
 
 const inspectedTabId = chrome.devtools.inspectedWindow.tabId;
 const selectionPort = browser.runtime.connect({
   name: devtoolsSelectionPortName,
 });
-let publishCurrentSelectionRetryTimeoutId: ReturnType<typeof globalThis.setTimeout> | null = null;
 
 const selectionEvalSource = (selectParent: boolean) =>
   `(${evalSource.replace(/^export default\s+/, "")})(${JSON.stringify(selectParent)})`;
@@ -92,21 +90,20 @@ const postSelectionUpdate = (selection: DevtoolsElementSelection | null) => {
   selectionPort.postMessage(message);
 };
 
-const clearPublishCurrentSelectionRetry = () => {
-  if (publishCurrentSelectionRetryTimeoutId === null) {
-    return;
-  }
+const postConnectedMessage = () => {
+  const message: DevtoolsPortConnectedMessage = {
+    type: "devtools:connect",
+    tabId: inspectedTabId,
+  };
 
-  globalThis.clearTimeout(publishCurrentSelectionRetryTimeoutId);
-  publishCurrentSelectionRetryTimeoutId = null;
+  logger.debug("port message sent", { type: message.type, tabId: inspectedTabId });
+  selectionPort.postMessage(message);
 };
 
-const publishCurrentSelection = (attempt = 0) => {
-  clearPublishCurrentSelectionRetry();
+const publishCurrentSelection = () => {
   void evaluateSelection(false).then((result) => {
     logger.debug("evaluated current DevTools selection", {
       tabId: inspectedTabId,
-      attempt,
       ok: result.ok,
       hasSelection: Boolean(result.selection),
       error: result.error ?? null,
@@ -114,24 +111,17 @@ const publishCurrentSelection = (attempt = 0) => {
 
     if (!result.ok) {
       logger.debug("Unable to publish current DevTools selection.", { error: result.error });
-    } else if (result.selection) {
-      postSelectionUpdate(result.selection);
       return;
     }
 
-    if (attempt + 1 < maxSelectionPublishAttempts) {
-      logger.debug("retrying current DevTools selection publish", {
-        tabId: inspectedTabId,
-        attempt: attempt + 1,
-      });
-      publishCurrentSelectionRetryTimeoutId = globalThis.setTimeout(() => {
-        publishCurrentSelection(attempt + 1);
-      }, selectionPublishRetryDelayMs);
+    // DevTools can fire onSelectionChanged before $0 is readable for the new node.
+    // A transient empty read should not clear the sidepanel's current selection.
+    if (!result.selection) {
+      logger.debug("skip publishing empty current DevTools selection", { tabId: inspectedTabId });
       return;
     }
 
-    logger.debug("publishing empty current DevTools selection", { tabId: inspectedTabId, attempt });
-    postSelectionUpdate(null);
+    postSelectionUpdate(result.selection);
   });
 };
 
@@ -171,7 +161,7 @@ chrome.devtools.panels.elements.onSelectionChanged.addListener(() => {
 
 selectionPort.onDisconnect.addListener(() => {
   logger.debug("DevTools bridge disconnected.");
-  clearPublishCurrentSelectionRetry();
 });
 
+postConnectedMessage();
 publishCurrentSelection();

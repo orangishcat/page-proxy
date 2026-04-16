@@ -1,5 +1,6 @@
 import type {
   DevtoolsSelectionCommandResultMessage,
+  DevtoolsPortConnectedMessage,
   DevtoolsSelectionGetRequestMessage,
   DevtoolsSelectionParentRequestMessage,
   DevtoolsSelectionStatusRequestMessage,
@@ -15,6 +16,9 @@ export const isSelectionGetRequestMessage = (value: unknown): value is DevtoolsS
 
 export const isSelectionParentRequestMessage = (value: unknown): value is DevtoolsSelectionParentRequestMessage =>
   isRecord(value) && value.type === "devtools:selection:parent" && typeof value.tabId === "number";
+
+export const isPortConnectedMessage = (value: unknown): value is DevtoolsPortConnectedMessage =>
+  isRecord(value) && value.type === "devtools:connect" && typeof value.tabId === "number";
 
 export const isSelectionUpdateMessage = (value: unknown): value is DevtoolsSelectionUpdateMessage =>
   isRecord(value) && value.type === "devtools:selection:update" && typeof value.tabId === "number" && "selection" in value;
