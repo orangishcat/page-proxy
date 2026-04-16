@@ -7,7 +7,6 @@ import type {
   DevtoolsSelectionStatusChangedRuntimeMessage,
   DevtoolsSelectionResponseMessage,
 } from "@/lib/devtools-selection";
-import type { ElementInfo } from "@/lib/selection";
 import { isRecord } from "@/lib/utils/type-guards";
 import { setToolMessage } from "../tool-errors";
 import {
@@ -17,12 +16,7 @@ import {
   setSelection,
   setSelectModeEnabled,
 } from "./state";
-import {
-  isRestrictedUrl,
-  type ActiveTabContext,
-  readActiveTabContext,
-  runContentSelectionToggle,
-} from "./content-messaging";
+import { isRestrictedUrl, readActiveTabContext, runContentSelectionToggle } from "./content-messaging";
 import {
   isDevtoolsSelectionChangedMessage,
   isDevtoolsStatusChangedMessage,
@@ -42,9 +36,20 @@ const isFollowingDevtoolsSelection = () => get(followDevtoolsSelection);
 
 export const applyDevtoolsSelection = (tabId: number, response: DevtoolsSelectionResponseMessage) => {
   if (!response.ok || !response.selection) {
+    logger.debug("skip applying devtools selection response", {
+      tabId,
+      ok: response.ok,
+      hasSelection: Boolean(response.selection),
+    });
     return false;
   }
 
+  logger.debug("apply devtools selection response", {
+    tabId,
+    selector: response.selection.info.selector,
+    frameId: response.selection.frameId,
+    frameUrl: response.selection.frameUrl,
+  });
   setSelection(response.selection.info, {
     source: "devtools",
     tabId,
@@ -57,12 +62,19 @@ export const applyDevtoolsSelection = (tabId: number, response: DevtoolsSelectio
 };
 
 const syncSelectionFromDevtools = async (tabId: number) => {
+  logger.debug("sync devtools selection start", { tabId });
   const response = await requestDevtoolsSelection(tabId, "devtools:selection:get");
   if (!response || !response.ok) {
+    logger.debug("sync devtools selection failed", {
+      tabId,
+      ok: response?.ok ?? null,
+      hasSelection: Boolean(response?.selection),
+    });
     return false;
   }
 
   if (!response.selection) {
+    logger.debug("sync devtools selection cleared selection", { tabId });
     setSelection(null);
     setSelectModeEnabled(false);
     setToolMessage(null, "error");
@@ -108,214 +120,138 @@ const refreshDevtoolsIntegrationForActiveTab = () => {
     });
 };
 
-export type ApplyDevtoolsSelectionChangedMessageDeps = {
-  readActiveTabContext: () => Promise<ActiveTabContext | null>;
-  setDevtoolsIntegrationDetected: (detected: boolean) => void;
-  isFollowingDevtoolsSelection: () => boolean;
-  setSelection: (info: ElementInfo | null, context?: Parameters<typeof setSelection>[1]) => void;
-  setSelectModeEnabled: (enabled: boolean) => void;
-  recordSelectedElement: (info: ElementInfo) => void;
-};
+export const applyDevtoolsSelectionChangedMessage = (message: DevtoolsSelectionChangedRuntimeMessage) => {
+  logger.debug("apply devtools selection changed message", {
+    tabId: message.tabId,
+    hasSelection: Boolean(message.selection),
+    selector: message.selection?.info.selector ?? null,
+    frameId: message.selection?.frameId ?? null,
+    frameUrl: message.selection?.frameUrl ?? null,
+  });
+  setDevtoolsIntegrationDetected(true);
 
-const defaultApplyDevtoolsSelectionChangedMessageDeps: ApplyDevtoolsSelectionChangedMessageDeps = {
-  readActiveTabContext,
-  setDevtoolsIntegrationDetected,
-  isFollowingDevtoolsSelection,
-  setSelection,
-  setSelectModeEnabled,
-  recordSelectedElement,
-};
-
-export const applyDevtoolsSelectionChangedMessage = async (
-  message: DevtoolsSelectionChangedRuntimeMessage,
-  deps: ApplyDevtoolsSelectionChangedMessageDeps = defaultApplyDevtoolsSelectionChangedMessageDeps,
-) => {
-  const tabContext = await deps.readActiveTabContext();
-  if (!tabContext || tabContext.tabId !== message.tabId) {
-    return;
-  }
-
-  deps.setDevtoolsIntegrationDetected(true);
-
-  if (!deps.isFollowingDevtoolsSelection()) {
+  if (!isFollowingDevtoolsSelection()) {
+    logger.debug("skip devtools selection changed message because follow mode is off", {
+      tabId: message.tabId,
+    });
     return;
   }
 
   if (!message.selection) {
-    deps.setSelection(null);
+    logger.debug("clear selection from devtools message", { tabId: message.tabId });
+    setSelection(null);
     return;
   }
 
-  deps.setSelection(message.selection.info, {
+  logger.debug("apply selection from devtools message", {
+    tabId: message.tabId,
+    selector: message.selection.info.selector,
+    frameId: message.selection.frameId,
+    frameUrl: message.selection.frameUrl,
+  });
+  setSelection(message.selection.info, {
     source: "devtools",
     tabId: message.tabId,
     frameId: message.selection.frameId,
     frameUrl: message.selection.frameUrl,
   });
-  deps.setSelectModeEnabled(false);
-  deps.recordSelectedElement(message.selection.info);
+  setSelectModeEnabled(false);
+  recordSelectedElement(message.selection.info);
 };
-
-export type ToggleFollowDevtoolsSelectionDeps = {
-  isFollowingDevtoolsSelection: () => boolean;
-  setFollowDevtoolsSelection: (enabled: boolean) => void;
-  setSelectModeEnabled: (enabled: boolean) => void;
-  readActiveTabContext: () => Promise<ActiveTabContext | null>;
-  isRestrictedUrl: (url: string | undefined) => boolean;
-  runContentSelectionToggle: (
-    tabId: number,
-    enabled: boolean,
-    options?: Parameters<typeof runContentSelectionToggle>[2],
-  ) => Promise<void>;
-  requestDevtoolsStatus: (tabId: number) => Promise<boolean>;
-  setDevtoolsIntegrationDetected: (detected: boolean) => void;
-  syncSelectionFromDevtools: (tabId: number) => Promise<boolean>;
-  logIgnoredError: (message: string, error: unknown, extra?: Record<string, unknown>) => void;
-};
-
-const defaultToggleFollowDevtoolsSelectionDeps: ToggleFollowDevtoolsSelectionDeps = {
-  isFollowingDevtoolsSelection,
-  setFollowDevtoolsSelection,
-  setSelectModeEnabled,
-  readActiveTabContext,
-  isRestrictedUrl,
-  runContentSelectionToggle,
-  requestDevtoolsStatus,
-  setDevtoolsIntegrationDetected,
-  syncSelectionFromDevtools,
-  logIgnoredError,
-};
-
-export function toggleFollowDevtoolsSelection(): void;
-export function toggleFollowDevtoolsSelection(deps: ToggleFollowDevtoolsSelectionDeps): void;
-export function toggleFollowDevtoolsSelection(deps = defaultToggleFollowDevtoolsSelectionDeps) {
-  const nextEnabled = !deps.isFollowingDevtoolsSelection();
+export function toggleFollowDevtoolsSelection() {
+  const nextEnabled = !isFollowingDevtoolsSelection();
   logger.debug("toggle follow devtools selection", { enabled: nextEnabled });
-  deps.setFollowDevtoolsSelection(nextEnabled);
+  setFollowDevtoolsSelection(nextEnabled);
 
   if (!nextEnabled) {
     return;
   }
 
-  deps.setSelectModeEnabled(false);
-  void deps
-    .readActiveTabContext()
+  setSelectModeEnabled(false);
+  void readActiveTabContext()
     .then(async (tabContext) => {
-      if (!tabContext || deps.isRestrictedUrl(tabContext.url)) {
+      if (!tabContext || isRestrictedUrl(tabContext.url)) {
+        logger.debug("skip enabling follow mode for inactive or restricted tab", {
+          tabId: tabContext?.tabId ?? null,
+          url: tabContext?.url ?? null,
+        });
         return;
       }
 
+      logger.debug("enable follow mode for active tab", {
+        tabId: tabContext.tabId,
+        url: tabContext.url ?? null,
+      });
       try {
-        await deps.runContentSelectionToggle(tabContext.tabId, false);
+        await runContentSelectionToggle(tabContext.tabId, false);
       } catch (error) {
-        deps.logIgnoredError("Unable to disable content selection while following DevTools selection.", error, {
+        logIgnoredError("Unable to disable content selection while following DevTools selection.", error, {
           tabId: tabContext.tabId,
         });
       }
 
-      const devtoolsOpen = await deps.requestDevtoolsStatus(tabContext.tabId);
-      deps.setDevtoolsIntegrationDetected(devtoolsOpen);
+      const devtoolsOpen = await requestDevtoolsStatus(tabContext.tabId);
+      setDevtoolsIntegrationDetected(devtoolsOpen);
+      logger.debug("devtools open state after enabling follow mode", {
+        tabId: tabContext.tabId,
+        open: devtoolsOpen,
+      });
       if (!devtoolsOpen) {
         return;
       }
 
       try {
-        await deps.syncSelectionFromDevtools(tabContext.tabId);
+        await syncSelectionFromDevtools(tabContext.tabId);
       } catch (error) {
-        deps.logIgnoredError("Unable to sync followed DevTools selection.", error, { tabId: tabContext.tabId });
+        logIgnoredError("Unable to sync followed DevTools selection.", error, { tabId: tabContext.tabId });
       }
     })
     .catch((error) => {
-      deps.logIgnoredError("Unable to enable DevTools follow mode.", error);
+      logIgnoredError("Unable to enable DevTools follow mode.", error);
     });
 }
 
 const updateSelectionFromDevtoolsMessage = (message: DevtoolsSelectionChangedRuntimeMessage) => {
-  void applyDevtoolsSelectionChangedMessage(message).catch((error) => {
+  try {
+    applyDevtoolsSelectionChangedMessage(message);
+  } catch (error) {
     logIgnoredError("Unable to handle DevTools selection change message.", error, { tabId: message.tabId });
-  });
+  }
 };
 
 const updateDevtoolsStatusForActiveTab = (message: DevtoolsSelectionStatusChangedRuntimeMessage) => {
-  void readActiveTabContext()
-    .then(async (tabContext) => {
-      if (!tabContext || tabContext.tabId !== message.tabId) {
-        return;
-      }
+  logger.debug("apply devtools status changed message", { tabId: message.tabId, open: message.open });
+  setDevtoolsIntegrationDetected(message.open);
+  if (!message.open || !isFollowingDevtoolsSelection()) {
+    return;
+  }
 
-      setDevtoolsIntegrationDetected(message.open);
-      if (!message.open || !isFollowingDevtoolsSelection()) {
-        return;
-      }
-
-      try {
-        await syncSelectionFromDevtools(message.tabId);
-      } catch (error) {
-        logIgnoredError("Unable to sync selection after DevTools status update.", error, { tabId: message.tabId });
-      }
-    })
-    .catch((error) => {
-      logIgnoredError("Unable to handle DevTools status update.", error, { tabId: message.tabId });
-    });
+  void syncSelectionFromDevtools(message.tabId).catch((error) => {
+    logIgnoredError("Unable to sync selection after DevTools status update.", error, { tabId: message.tabId });
+  });
 };
 
-type SelectionListenerBrowser = {
-  runtime: {
-    onMessage: Pick<typeof browser.runtime.onMessage, "addListener" | "removeListener">;
-  };
-  tabs: {
-    onActivated: Pick<typeof browser.tabs.onActivated, "addListener" | "removeListener">;
-    onUpdated: Pick<typeof browser.tabs.onUpdated, "addListener" | "removeListener">;
-  };
-};
-
-export type AttachSelectionListenerDeps = {
-  browser: SelectionListenerBrowser;
-  refreshDevtoolsIntegrationForActiveTab: () => void;
-  updateDevtoolsStatusForActiveTab: (message: DevtoolsSelectionStatusChangedRuntimeMessage) => void;
-  updateSelectionFromDevtoolsMessage: (message: DevtoolsSelectionChangedRuntimeMessage) => void;
-  isSelectToolMessage: typeof isSelectToolMessage;
-  setSelectModeEnabled: (enabled: boolean) => void;
-  setSelection: (info: ElementInfo | null, context?: Parameters<typeof setSelection>[1]) => void;
-  shouldSuppressSelectedElementRecord: () => boolean;
-  recordSelectedElement: (info: ElementInfo) => void;
-  setToolMessage: (message: string | null, status: "success" | "error") => void;
-};
-
-const defaultAttachSelectionListenerDeps: AttachSelectionListenerDeps = {
-  browser,
-  refreshDevtoolsIntegrationForActiveTab,
-  updateDevtoolsStatusForActiveTab,
-  updateSelectionFromDevtoolsMessage,
-  isSelectToolMessage,
-  setSelectModeEnabled,
-  setSelection,
-  shouldSuppressSelectedElementRecord,
-  recordSelectedElement,
-  setToolMessage,
-};
-
-export const attachSelectionListener = (deps: AttachSelectionListenerDeps = defaultAttachSelectionListenerDeps) => {
+export const attachSelectionListener = () => {
   const listener = (message: unknown) => {
     const messageType = isRecord(message) && typeof message.type === "string" ? message.type : "unknown";
     logger.debug("runtime message received", { type: messageType });
 
     if (isDevtoolsStatusChangedMessage(message)) {
-      deps.updateDevtoolsStatusForActiveTab(message);
+      updateDevtoolsStatusForActiveTab(message);
       return;
     }
 
     if (isDevtoolsSelectionChangedMessage(message)) {
-      deps.updateSelectionFromDevtoolsMessage(message);
+      updateSelectionFromDevtoolsMessage(message);
       return;
     }
 
-    if (!deps.isSelectToolMessage(message)) {
+    if (!isSelectToolMessage(message)) {
       return;
     }
 
     if (message.type === "select:mode") {
-      deps.setSelectModeEnabled(message.enabled);
+      setSelectModeEnabled(message.enabled);
       return;
     }
 
@@ -324,21 +260,21 @@ export const attachSelectionListener = (deps: AttachSelectionListenerDeps = defa
     }
 
     if (message.type === "select:selected") {
-      deps.setSelection(message.payload ?? null, {
+      setSelection(message.payload ?? null, {
         source: "content",
         tabId: null,
         frameId: 0,
         frameUrl: null,
       });
-      if (message.payload && !deps.shouldSuppressSelectedElementRecord()) {
-        deps.recordSelectedElement(message.payload);
+      if (message.payload && !shouldSuppressSelectedElementRecord()) {
+        recordSelectedElement(message.payload);
       }
-      deps.setToolMessage(null, "error");
+      setToolMessage(null, "error");
     }
   };
 
   const activatedListener: Parameters<typeof browser.tabs.onActivated.addListener>[0] = () => {
-    deps.refreshDevtoolsIntegrationForActiveTab();
+    refreshDevtoolsIntegrationForActiveTab();
   };
 
   const updatedListener: Parameters<typeof browser.tabs.onUpdated.addListener>[0] = (_tabId, changeInfo, tab) => {
@@ -347,18 +283,18 @@ export const attachSelectionListener = (deps: AttachSelectionListenerDeps = defa
     }
 
     if (typeof changeInfo.status === "string" || typeof changeInfo.url === "string") {
-      deps.refreshDevtoolsIntegrationForActiveTab();
+      refreshDevtoolsIntegrationForActiveTab();
     }
   };
 
-  deps.refreshDevtoolsIntegrationForActiveTab();
-  deps.browser.runtime.onMessage.addListener(listener);
-  deps.browser.tabs.onActivated.addListener(activatedListener);
-  deps.browser.tabs.onUpdated.addListener(updatedListener);
+  refreshDevtoolsIntegrationForActiveTab();
+  browser.runtime.onMessage.addListener(listener);
+  browser.tabs.onActivated.addListener(activatedListener);
+  browser.tabs.onUpdated.addListener(updatedListener);
 
   return () => {
-    deps.browser.runtime.onMessage.removeListener(listener);
-    deps.browser.tabs.onActivated.removeListener(activatedListener);
-    deps.browser.tabs.onUpdated.removeListener(updatedListener);
+    browser.runtime.onMessage.removeListener(listener);
+    browser.tabs.onActivated.removeListener(activatedListener);
+    browser.tabs.onUpdated.removeListener(updatedListener);
   };
 };
