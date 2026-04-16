@@ -112,10 +112,7 @@
   });
 
   const setActiveTool = (tool: ToolId) => {
-    if (tool === activeTool) {
-      return;
-    }
-
+    if (tool === activeTool) return;
     const wasSelectTool = activeTool === "select";
     appStateActions.setActiveTool(tool);
     if (wasSelectTool && tool !== "select") {
@@ -125,10 +122,7 @@
 
   const activateSelectTool = () => {
     sendSelectionToggle(true);
-    if (activeTool === "select") {
-      return;
-    }
-
+    if (activeTool === "select") return;
     setActiveTool("select");
   };
 
@@ -150,18 +144,13 @@
     getEditorContent: () => get(codeEditorContent),
     insertDefinitions: (lines: string[]) => {
       const editorApi = appState.currentTab.editorApi;
-      if (!editorApi) {
-        return false;
-      }
-
+      if (!editorApi) return false;
       editorApi.insertDefinitions(lines);
       return true;
     },
     replaceEditorContent: (content: string) => {
       const editorApi = appState.currentTab.editorApi;
-      if (!editorApi) {
-        return false;
-      }
+      if (!editorApi) return false;
 
       editorApi.replaceEditorContent(content);
       return true;
