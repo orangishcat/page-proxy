@@ -25,6 +25,11 @@ export type DevtoolsSelectionCommandResultMessage = {
   error?: string;
 };
 
+export type DevtoolsPortConnectedMessage = {
+  type: "devtools:connect";
+  tabId: number;
+};
+
 export type DevtoolsSelectionUpdateMessage = {
   type: "devtools:selection:update";
   tabId: number;
@@ -32,6 +37,7 @@ export type DevtoolsSelectionUpdateMessage = {
 };
 
 export type DevtoolsSelectionPortMessage =
+  | DevtoolsPortConnectedMessage
   | DevtoolsSelectionCommandMessage
   | DevtoolsSelectionCommandResultMessage
   | DevtoolsSelectionUpdateMessage;

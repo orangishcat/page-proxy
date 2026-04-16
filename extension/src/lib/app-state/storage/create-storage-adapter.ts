@@ -62,6 +62,7 @@ export const createStorageAdapter = <TRecord extends Record<string, unknown>>({
           }),
         );
         const parsed = schema.safeParse(raw);
+        logger.debug("loaded storage", { prefix, raw, parsed });
         return parsed.success ? parsed.data : schema.parse({});
       } catch (error) {
         logger.error("storage load failed", { prefix, error });
@@ -70,6 +71,7 @@ export const createStorageAdapter = <TRecord extends Record<string, unknown>>({
     },
     async persist(nextRecord: TRecord, previousRecord: TRecord = {} as TRecord) {
       try {
+        logger.debug("attempting to persist storage", { prefix, nextRecord, previousRecord });
         const setPayload = Object.fromEntries(
           Object.entries(nextRecord)
             .filter(([, value]) => !removeWhen(value))
@@ -81,6 +83,7 @@ export const createStorageAdapter = <TRecord extends Record<string, unknown>>({
           .map(toStorageKey);
 
         if (Object.keys(setPayload).length > 0) {
+          logger.debug("persisting payload", { prefix, setPayload });
           await area.set(setPayload);
         }
         if (removeKeys.length > 0) {
