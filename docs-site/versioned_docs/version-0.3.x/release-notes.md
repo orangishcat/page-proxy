@@ -4,6 +4,20 @@ title: Release notes
 
 # Release notes (v0.3.x)
 
+## New in v0.3.9
+
+- Added script metadata version support:
+    - New blank scripts now include an explicit `@version` field in the Page Proxy metadata block.
+    - Userscript exports now keep the script version and fall back to the default script version when the field is left blank.
+- Added a dedicated Settings tool in the sidepanel:
+    - The toolbar now has a Settings entry with shortcut `Shift + 4`.
+    - Settings can show or hide the Help tool button and disable declared grants for individual saved scripts.
+- Improved extension state reliability:
+    - Sidepanel settings, selected scripts, record panels, and stored script state now flow through the unified app-state storage system.
+    - Recent storage fixes address script selection, banner persistence, and grant-related edge cases.
+- Fixed DevTools-follow selection sync:
+    - DevTools element following now evaluates the selected element more reliably and keeps the sidepanel selection in sync.
+
 ## New in v0.3.8
 
 - Improved export controls:

@@ -26,8 +26,12 @@ Toolbar shortcuts:
 - `Shift + 1`: Select
 - `Shift + 2`: Selectors
 - `Shift + 3`: Record
-- `Shift + 4`: Help
+- `Shift + 4`: Settings
 - `Shift + 5`: Export
+
+New in v0.3.9: the sidepanel now includes a dedicated **Settings** tool. The
+Help button can be shown or hidden from Settings instead of always taking a
+toolbar slot.
 
 </div>
 
@@ -66,7 +70,8 @@ New in v0.3.6: when the current tab already has a matching saved script, the
 toolbar script dropdown stays available and includes a **New script** action for
 starting another script on the same tab. New in v0.3.8: the toolbar includes a
 **Disable all grants** button that disables grants (just `run-on-page-load`) for
-now globally.
+now globally. New in v0.3.9: the Settings tool adds per-script grant toggles, so
+you can disable declared grants for one saved script without changing the rest.
 
 On protected pages (for example browser internal pages), editing and execution
 are disabled and a protected-page message is shown.
@@ -89,5 +94,6 @@ are disabled and a protected-page message is shown.
 - [Select tool](./select-tool)
 - [Selectors tool](./selectors-tool)
 - [Record tool](./record-tool)
+- [Settings tool](./settings-tool)
 - [Help tool](./help-tool)
 - [Export tool](./export-tool)
