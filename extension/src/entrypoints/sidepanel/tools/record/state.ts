@@ -7,7 +7,7 @@ import {
   buildDefaultRecordPanelState,
   type RecordPanelState,
   type RecordTimelineEntry,
-} from "../state-storage";
+} from "../storage/record-panel";
 
 const logger = log.getLogger("record-tool-state");
 

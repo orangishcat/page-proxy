@@ -37,7 +37,7 @@
   } from "./code-editor/editor-actions";
   import EditorToolbar from "./code-editor/EditorToolbar.svelte";
   import { appState, appStateActions, appStateSelectors } from "@/lib/app-state";
-  import type { ToolId } from "../tools/state-storage";
+  import type { ToolId } from "@/lib/stored-tool-state";
   import type { StoredToolState } from "@/lib/stored-tool-state";
   import type { ElementEntry } from "@/lib/sidepanel-editor-state";
   const ppImportLines = ['import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";'];

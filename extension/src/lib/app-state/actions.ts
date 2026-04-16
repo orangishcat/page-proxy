@@ -4,7 +4,7 @@ import type { EditorApi, ElementEntry, ScriptMetadataState } from "../sidepanel-
 import { coerceScriptGrantValues } from "../grants";
 import log from "../logger";
 import { appState } from "./state.svelte";
-import type { ToolId } from "../../entrypoints/sidepanel/tools/state-storage";
+import type { ToolId } from "../stored-tool-state";
 import { appStateSelectors } from "./selectors";
 
 const logger = log.getLogger("app-state-actions");

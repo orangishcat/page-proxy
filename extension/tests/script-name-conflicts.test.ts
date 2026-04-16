@@ -4,7 +4,7 @@ import { appState } from "../src/lib/app-state";
 import { createDefaultAppState } from "../src/lib/app-state/defaults.ts";
 import { replaceAppState } from "../src/lib/app-state/state.svelte.ts";
 import { appStateSelectors } from "../src/lib/app-state/selectors.ts";
-import type { StoredToolState } from "../src/entrypoints/sidepanel/tools/state-storage";
+import type { StoredToolState } from "../src/lib/stored-tool-state";
 
 const {
   resolveStoredToolStateForUrl,

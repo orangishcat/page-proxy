@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { selectionStartsWithSelectedElement } from "../src/entrypoints/sidepanel/tools/record/actions";
-import type { RecordTimelineEntry } from "../src/entrypoints/sidepanel/tools/state-storage";
+import type { RecordTimelineEntry } from "../src/entrypoints/sidepanel/tools/storage/record-panel";
 
 const makeEntry = (action: string, timestamp: number): RecordTimelineEntry => ({
   id: `entry-${timestamp}`,

@@ -2,7 +2,7 @@ import log from "@/lib/logger";
 import type { SelectToolMessage } from "@/lib/selection";
 import { findLastRecordedSelector } from "../record/actions";
 import { popRecordPanelTimelineEntry } from "../record/state";
-import type { RecordTimelineEntry } from "../state-storage";
+import type { RecordTimelineEntry } from "../storage/record-panel";
 import { setToolMessage } from "../tool-errors";
 import { setSelection } from "./state";
 import { isSelectParentResponse } from "./guards";

@@ -3,7 +3,7 @@
   import { Tooltip } from "bits-ui";
   import { browser } from "wxt/browser";
   import { get } from "svelte/store";
-  import log from "../../lib/logger";
+  import log from "@/lib/logger";
 
   import SelectTool from "./tools/SelectTool.svelte";
   import CreateTool from "./tools/CreateTool.svelte";
@@ -19,7 +19,7 @@
   import ResizeHandle from "./ResizeHandle.svelte";
   import { attachSelectionListener, sendSelectionToggle } from "./tools/select-tool/actions";
   import { setEditorMessage, setToolMessage, toolMessage } from "./tools/tool-errors";
-  import { isGrantResolvedMessage } from "../../lib/grant-permissions";
+  import { isGrantResolvedMessage } from "@/lib/grant-permissions";
   import {
     appState,
     flushAppStatePersistence,
@@ -27,13 +27,13 @@
     replaceAppState,
     appStateActions,
     appStateSelectors,
-  } from "../../lib/app-state.ts";
-  import { appStateStatus } from "../../lib/app-state/storage/hydrate/hydration";
-  import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "../../lib/sidepanel-shortcuts";
+  } from "@/lib/app-state.ts";
+  import { appStateStatus } from "@/lib/app-state/storage/hydrate/hydration";
+  import { isSidepanelShortcutMessage, type SidepanelShortcutId } from "@/lib/sidepanel-shortcuts";
   import { codeEditorContent, selectorEntries } from "./tools/code-editor/state";
-  import { type ToolId } from "./tools/state-storage";
-  import { isEditableTarget, isCodeEditorFocused } from "../../lib/utils/dom-checks";
-  import { getShortcutTool } from "../../lib/utils/keyboard-shortcuts";
+  import type { ToolId } from "@/lib/stored-tool-state";
+  import { isEditableTarget, isCodeEditorFocused } from "@/lib/utils/dom-checks";
+  import { getShortcutTool } from "@/lib/utils/keyboard-shortcuts";
   import {
     isSelectorSaveMessage,
     isRecordConverterSaveMessage,

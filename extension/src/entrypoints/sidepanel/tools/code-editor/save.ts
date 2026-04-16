@@ -10,7 +10,7 @@ import {
   resolveWebsiteGlob,
   type ScriptFormatConfig,
 } from "../state-loading";
-import { type StoredSelectorEntry, type StoredToolState, type ToolId } from "../state-storage";
+import type { StoredSelectorEntry, StoredToolState, ToolId } from "@/lib/stored-tool-state";
 
 const getStoredToolState = (scriptName: string): StoredToolState | null => appState.scriptsByName[scriptName] ?? null;
 

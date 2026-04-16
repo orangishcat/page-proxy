@@ -1,16 +1,13 @@
-import { buildAutoNumberedScriptName, defaultBlankScriptTitle, matchesScriptName } from "../../../lib/script-names";
-import { appState } from "../../../lib/app-state";
-import { createEmptyStoredRuntimeStorage } from "../../../lib/script-runtime-storage";
-import { findBestMatchingWebsiteGlob, getWebsiteGlobsFromContent } from "../../../lib/stored-tool-state";
-import { parseScriptMetadata } from "../../../lib/utils/script-metadata";
-import { buildWebsiteGlobForUrl, matchWebsiteGlob, readHostnameFromUrl } from "../../../lib/utils/website-glob";
-import { buildDefaultScript, type DefaultScriptConfig } from "../../../lib/default-script";
+import { buildAutoNumberedScriptName, defaultBlankScriptTitle, matchesScriptName } from "@/lib/script-names";
+import { appState } from "@/lib/app-state";
+import { createEmptyStoredRuntimeStorage } from "@/lib/script-runtime-storage";
+import { findBestMatchingWebsiteGlob, getWebsiteGlobsFromContent } from "@/lib/stored-tool-state";
+import { parseScriptMetadata } from "@/lib/utils/script-metadata";
+import { buildWebsiteGlobForUrl, matchWebsiteGlob, readHostnameFromUrl } from "@/lib/utils/website-glob";
+import { buildDefaultScript, type DefaultScriptConfig } from "@/lib/default-script";
 
-import type { StoredToolState } from "./state-storage";
-import {
-  clearSelectedScriptForHostname,
-  readSelectedScriptForHostname,
-} from "./script-selection-session";
+import { clearSelectedScriptForHostname, readSelectedScriptForHostname } from "./script-selection-session";
+import type { StoredToolState } from "@/lib/stored-tool-state";
 
 export type ScriptFormatConfig = DefaultScriptConfig & {
   protectedComment: string;
@@ -186,7 +183,9 @@ export const buildEditorDisplayContent = ({
 
 export const resolveWebsiteGlob = (content: string, activeTabUrl: string | null, activeWebsiteGlob: string | null) => {
   const metadata = parseScriptMetadata(content);
-  const websitesFromMetadata = metadata.websites.map((website) => website.trim()).filter((website) => website.length > 0);
+  const websitesFromMetadata = metadata.websites
+    .map((website) => website.trim())
+    .filter((website) => website.length > 0);
 
   if (websitesFromMetadata.length > 0) {
     if (activeTabUrl) {
@@ -279,7 +278,7 @@ export const resolveStoredToolStateForUrl = async (url: string, config: ScriptFo
     const defaultMatch = matches[0];
     const storedSelectedScriptName = hostname ? await readSelectedScriptForHostname(hostname) : null;
     const selectedOverride = storedSelectedScriptName
-      ? matches.find((match) => match.scriptName === storedSelectedScriptName) ?? null
+      ? (matches.find((match) => match.scriptName === storedSelectedScriptName) ?? null)
       : null;
     const selectedMatch = selectedOverride ?? defaultMatch;
     const shouldClearStoredSelection =

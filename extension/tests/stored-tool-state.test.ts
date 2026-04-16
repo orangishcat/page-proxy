@@ -5,7 +5,7 @@ import { createDefaultAppState } from "../src/lib/app-state/defaults.ts";
 import { replaceAppState } from "../src/lib/app-state/state.svelte.ts";
 import type { StoredToolState } from "../src/lib/stored-tool-state";
 
-const { toStorageKey } = await import("../src/entrypoints/sidepanel/tools/state-storage");
+const { toStorageKey } = await import("../src/lib/stored-tool-state");
 
 const buildStoredState = (): StoredToolState => ({
   scriptName: "Page Proxy",

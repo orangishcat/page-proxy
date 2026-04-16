@@ -9,7 +9,7 @@ import type { StoredToolState } from "../src/lib/stored-tool-state";
 const { normalizeContentForStorage, resolveStoredToolStateForUrl } = await import(
   "../src/entrypoints/sidepanel/tools/state-loading"
 );
-const { toStorageKey } = await import("../src/entrypoints/sidepanel/tools/state-storage");
+const { toStorageKey } = await import("../src/lib/stored-tool-state");
 const {
   buildSelectedScriptStorageKey,
   clearSelectedScriptForHostname,
