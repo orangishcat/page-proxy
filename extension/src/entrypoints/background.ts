@@ -73,9 +73,7 @@ const findStoredToolStatesForUrl = async (url: string) => {
   states.forEach((entry) => {
     const websiteGlobs = getWebsiteGlobsFromContent(entry.state.codeEditor.content);
     const matchedWebsiteGlob = findBestMatchingWebsiteGlob(websiteGlobs, url);
-    if (!matchedWebsiteGlob) {
-      return;
-    }
+    if (!matchedWebsiteGlob) return;
 
     matches.push({
       scriptName: entry.state.scriptName,
@@ -86,9 +84,7 @@ const findStoredToolStatesForUrl = async (url: string) => {
 
   return matches.sort((left, right) => {
     const byGlobLength = right.matchedWebsiteGlob.length - left.matchedWebsiteGlob.length;
-    if (byGlobLength !== 0) {
-      return byGlobLength;
-    }
+    if (byGlobLength !== 0) return byGlobLength;
     return right.state.updatedAt - left.state.updatedAt;
   });
 };
