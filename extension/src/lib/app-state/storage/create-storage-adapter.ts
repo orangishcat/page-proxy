@@ -1,5 +1,7 @@
+import { snapshot } from "svelte/internal/client";
 import type { ZodType } from "zod";
 import log from "../../logger";
+import equal from "fast-deep-equal";
 
 export type StorageAreaLike = {
   get: (keys: null | string | string[]) => Promise<Record<string, unknown>>;
@@ -27,7 +29,7 @@ export type StorageAdapter<TRecord extends Record<string, unknown>> = {
 const isExcludedKey = (rawKey: string, excludeKeys: Set<string>) =>
   Array.from(excludeKeys).some((excludedKey) => rawKey === excludedKey || rawKey.startsWith(excludedKey));
 
-const isSameValue = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
+const toPlain = snapshot as <T>(value: T) => T;
 
 export const createStorageAdapter = <TRecord extends Record<string, unknown>>({
   area,
@@ -75,7 +77,7 @@ export const createStorageAdapter = <TRecord extends Record<string, unknown>>({
         const setPayload = Object.fromEntries(
           Object.entries(nextRecord)
             .filter(([, value]) => !removeWhen(value))
-            .filter(([key, value]) => !isSameValue(previousRecord[key as keyof TRecord], value))
+            .filter(([key, value]) => !equal(previousRecord[key as keyof TRecord], value))
             .map(([key, value]) => [toStorageKey(key), value]),
         );
         const removeKeys = Object.keys(previousRecord)
@@ -83,8 +85,9 @@ export const createStorageAdapter = <TRecord extends Record<string, unknown>>({
           .map(toStorageKey);
 
         if (Object.keys(setPayload).length > 0) {
-          logger.debug("persisting payload", { prefix, setPayload });
-          await area.set(setPayload);
+          const plainPayload = toPlain(setPayload);
+          logger.debug("persisting payload", { prefix, setPayload: plainPayload });
+          await area.set(plainPayload);
         }
         if (removeKeys.length > 0) {
           await area.remove(removeKeys);

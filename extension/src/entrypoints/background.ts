@@ -285,6 +285,7 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
     if (missingGrants.length > 0) {
       logger.debug("runMatchingScriptsForTab: grant request needed", {
         scriptName: entry.scriptName,
+        entry: entry,
         missingGrants,
         allowedGrants: entry.state.permissions.allowedGrants,
       });
@@ -297,7 +298,7 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
       return;
     }
 
-    logger.debug("runMatchingScriptsForTab: script ready to run", { scriptName: entry.scriptName });
+    logger.debug("runMatchingScriptsForTab: script ready to run", { scriptName: entry.scriptName, entry: entry });
     scripts.push({
       code: content,
       state: entry.state,
