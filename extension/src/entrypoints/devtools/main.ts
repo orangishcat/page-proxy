@@ -11,6 +11,7 @@ import {
 } from "@/lib/devtools-selection";
 import { isRecord } from "@/lib/utils/type-guards";
 import evalSource from "./eval-selection.js?raw";
+import { buildSelectionEvalSource } from "./eval-source";
 
 type EvalSelectionResult = {
   ok: boolean;
@@ -24,9 +25,6 @@ const inspectedTabId = chrome.devtools.inspectedWindow.tabId;
 const selectionPort = browser.runtime.connect({
   name: devtoolsSelectionPortName,
 });
-
-const selectionEvalSource = (selectParent: boolean) =>
-  `(${evalSource.replace(/^export default\s+/, "")})(${JSON.stringify(selectParent)})`;
 
 const getMessageType = (message: unknown) => {
   if (!isRecord(message)) {
@@ -48,15 +46,30 @@ const isCommandMessage = (message: unknown): message is DevtoolsSelectionCommand
   typeof message.requestId === "string" &&
   (message.action === "get-selected" || message.action === "select-parent");
 
-const isExceptionInfo = (value: unknown): value is { isException?: boolean; value?: unknown } => isRecord(value);
+const isExceptionInfo = (
+  value: unknown,
+): value is {
+  isError?: boolean;
+  isException?: boolean;
+  code?: unknown;
+  description?: unknown;
+  value?: unknown;
+} => isRecord(value);
 
 const evaluateSelection = (selectParent: boolean) =>
   new Promise<EvalSelectionResult>((resolve) => {
     chrome.devtools.inspectedWindow.eval(
-      selectionEvalSource(selectParent),
+      buildSelectionEvalSource(evalSource, selectParent),
       (result: unknown, exceptionInfo: unknown) => {
-        if (isExceptionInfo(exceptionInfo) && exceptionInfo.isException) {
-          const valueText = typeof exceptionInfo.value === "string" ? exceptionInfo.value : "Unable to evaluate $0.";
+        if (isExceptionInfo(exceptionInfo) && (exceptionInfo.isError || exceptionInfo.isException)) {
+          const valueText =
+            typeof exceptionInfo.description === "string"
+              ? exceptionInfo.description
+              : typeof exceptionInfo.value === "string"
+                ? exceptionInfo.value
+                : typeof exceptionInfo.code === "string"
+                  ? exceptionInfo.code
+                  : "Unable to evaluate $0.";
           resolve({
             ok: false,
             selection: null,

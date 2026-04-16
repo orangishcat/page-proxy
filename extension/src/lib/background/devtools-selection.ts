@@ -241,7 +241,7 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
     globalThis.clearTimeout(pending.timeoutId);
 
     const selection = cloneSelection(message.selection);
-    if (tabId !== null) {
+    if (tabId !== null && message.ok) {
       updateSelectionCache(tabId, selection);
     }
 
