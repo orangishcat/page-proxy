@@ -18,6 +18,7 @@
         "extension-usage/create-tool",
         "extension-usage/selectors-tool",
         "extension-usage/record-tool",
+        "extension-usage/settings-tool",
         "extension-usage/help-tool",
         "extension-usage/export-tool"
       ]
