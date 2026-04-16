@@ -49,22 +49,23 @@
     const nextEnabled = !currentEntry.enabled;
     updateScriptSettings(scriptName, (entry) => ({ ...entry, enabled: nextEnabled, isSaving: true }));
 
-    void Promise.resolve().then(() => {
-      const currentScript = appState.scriptsByName[scriptName];
-      if (!currentScript) {
-        throw new Error(`No stored script found for "${scriptName}".`);
-      }
+    void Promise.resolve()
+      .then(() => {
+        const currentScript = appState.scriptsByName[scriptName];
+        if (!currentScript) {
+          throw new Error(`No stored script found for "${scriptName}".`);
+        }
 
-      appState.scriptsByName[scriptName] = {
-        ...currentScript,
-        permissions: {
-          ...currentScript.permissions,
-          allowedGrants: coerceScriptGrantValues(currentScript.permissions.allowedGrants),
-          enabled: nextEnabled,
-        },
-        updatedAt: Date.now(),
-      };
-    })
+        appState.scriptsByName[scriptName] = {
+          ...currentScript,
+          permissions: {
+            ...currentScript.permissions,
+            allowedGrants: coerceScriptGrantValues(currentScript.permissions.allowedGrants),
+            enabled: nextEnabled,
+          },
+          updatedAt: Date.now(),
+        };
+      })
       .then(() => {
         updateScriptSettings(scriptName, (entry) => ({ ...entry, isSaving: false }));
         setToolMessage(null, "error");
@@ -78,16 +79,16 @@
 
 <div class="px-4 py-4 overflow-auto space-y-4">
   <section class="flex min-h-0 flex-1 flex-col gap-1.5">
-    {#if isLoadingScriptSettings}
-      <div class="flex min-h-0 flex-1 items-center justify-center text-body text-gray-500 dark:text-gray-400">
-        Loading script settings…
-      </div>
-    {:else if scriptSettings.length === 0}
-      <div class="flex min-h-0 flex-1 items-center justify-center text-body text-gray-500 dark:text-gray-400">
-        It&apos;s empty in here
-      </div>
-    {:else}
-      <div class="rounded-lg border border-gray-700 bg-background-overlay text-gray-100 overflow-hidden">
+    <div class="rounded-lg border border-gray-700 bg-background-overlay text-gray-100 overflow-hidden">
+      {#if isLoadingScriptSettings}
+        <div class="flex min-h-0 flex-1 items-center justify-center text-body text-gray-500 dark:text-gray-400">
+          Loading script settings…
+        </div>
+      {:else if scriptSettings.length === 0}
+        <div class="flex min-h-0 flex-1 py-3 items-center justify-center text-body text-gray-500 dark:text-gray-400">
+          No active scripts on this tab
+        </div>
+      {:else}
         {#each scriptSettings as entry (entry.scriptName)}
           <button
             class="flex w-full items-center justify-between gap-3 px-3 py-2 hover:bg-background-overlay-hover cursor-pointer"
@@ -118,8 +119,8 @@
             </div>
           </button>
         {/each}
-      </div>
-    {/if}
+      {/if}
+    </div>
   </section>
   <section class="rounded-lg border border-gray-700 bg-background-overlay overflow-hidden">
     <button

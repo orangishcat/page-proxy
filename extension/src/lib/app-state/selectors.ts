@@ -6,7 +6,10 @@ export const appStateSelectors = {
   getDisableAllGrants: () => appState.settings.disableAllGrants,
   getSidepanelState: () => appState.sidepanel,
   getToolPanelHeight: () => appState.sidepanel.toolPanelHeightPx,
-  getActiveTool: () => appState.currentTab.activeScriptName ? appState.scriptsByName[appState.currentTab.activeScriptName]?.activeTool ?? "none" : "none",
+  getActiveTool: () =>
+    appState.currentTab.activeScriptName
+      ? appState.scriptsByName[appState.currentTab.activeScriptName]?.activeTool ?? appState.currentTab.activeTool
+      : appState.currentTab.activeTool,
   getActiveScript: () =>
     appState.currentTab.activeScriptName ? appState.scriptsByName[appState.currentTab.activeScriptName] ?? null : null,
   getStoredToolStates: () => Object.values(appState.scriptsByName),
