@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 
+import { appState } from "../src/lib/app-state";
 import { createDefaultAppState } from "../src/lib/app-state/defaults.ts";
 import { replaceAppState } from "../src/lib/app-state/state.svelte.ts";
 import { appStateSelectors } from "../src/lib/app-state/selectors.ts";
@@ -15,7 +16,6 @@ const {
   readSelectedScriptForHostname,
   writeSelectedScriptForHostname,
 } = await import("../src/entrypoints/sidepanel/tools/script-selection-session");
-const { saveStoredToolState } = await import("../src/entrypoints/sidepanel/tools/state-storage");
 
 const scriptFormatConfig = {
   ppImportLines: ['import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";'],
@@ -83,8 +83,8 @@ describe("script selection session", () => {
   });
 
   test("resolves the selected script from the hostname override when multiple scripts match", async () => {
-    await saveStoredToolState(buildStoredState("Page Proxy", "https://docs.example.com/*", 1));
-    await saveStoredToolState(buildStoredState("Page Proxy 2", "https://docs.example.com/reference/*", 2));
+    appState.scriptsByName["Page Proxy"] = buildStoredState("Page Proxy", "https://docs.example.com/*", 1);
+    appState.scriptsByName["Page Proxy 2"] = buildStoredState("Page Proxy 2", "https://docs.example.com/reference/*", 2);
     await writeSelectedScriptForHostname("docs.example.com", "Page Proxy");
 
     const result = await resolveStoredToolStateForUrl("https://docs.example.com/reference/api", scriptFormatConfig);
@@ -98,7 +98,7 @@ describe("script selection session", () => {
   });
 
   test("clears stale hostname overrides when the stored selection is no longer needed", async () => {
-    await saveStoredToolState(buildStoredState("Page Proxy", "https://docs.example.com/*", 1));
+    appState.scriptsByName["Page Proxy"] = buildStoredState("Page Proxy", "https://docs.example.com/*", 1);
     await writeSelectedScriptForHostname("docs.example.com", "Missing Script");
 
     const result = await resolveStoredToolStateForUrl("https://docs.example.com/page", scriptFormatConfig);

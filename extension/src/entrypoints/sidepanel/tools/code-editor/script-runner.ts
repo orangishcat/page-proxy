@@ -1,5 +1,5 @@
 import { applyScriptRunErrorMarker, clearScriptRunErrorMarker } from "./error-markers";
-import type { MonacoCodeEditorHandle } from "../../../../lib/code-editor";
+import type { MonacoCodeEditorHandle } from "@/lib/code-editor";
 
 export type UpdateRunErrorDeps = {
   getLastRunError: () => string | null;
@@ -68,7 +68,10 @@ export const runScript = (editorValue: string, deps: RunScriptDeps): void => {
 
   deps.setIsRunning(true);
   deps.saveNow(editorValue);
-  const resolvedScriptName = deps.getActiveScriptName()?.trim() || (deps.parseScriptMetadata(editorValue) as { title?: string }).title?.trim() || "Page Proxy";
+  const resolvedScriptName =
+    deps.getActiveScriptName()?.trim() ||
+    (deps.parseScriptMetadata(editorValue) as { title?: string }).title?.trim() ||
+    "Page Proxy";
   void deps
     .requestScriptRun(editorValue, resolvedScriptName)
     .then((result) => {
