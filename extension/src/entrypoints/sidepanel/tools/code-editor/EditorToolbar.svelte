@@ -1,7 +1,7 @@
 <script lang="ts">
   import { DropdownMenu, Tooltip } from "bits-ui";
   import { Ban, Check, ChevronDown, Play, Plus } from "lucide-svelte";
-  import Button from "../../../../lib/components/Button.svelte";
+  import Button from "@/lib/components/Button.svelte";
   import { shouldShowScriptDropdown, type ScriptSelectionOption } from "./state";
 
   const actionMenuClasses =

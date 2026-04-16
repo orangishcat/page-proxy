@@ -1,15 +1,12 @@
-import { defaultBlankScriptTitle } from "../../../lib/script-names";
+import { buildAutoNumberedScriptName, defaultBlankScriptTitle, matchesScriptName } from "../../../lib/script-names";
+import { appState } from "../../../lib/app-state";
 import { createEmptyStoredRuntimeStorage } from "../../../lib/script-runtime-storage";
 import { findBestMatchingWebsiteGlob, getWebsiteGlobsFromContent } from "../../../lib/stored-tool-state";
 import { parseScriptMetadata } from "../../../lib/utils/script-metadata";
 import { buildWebsiteGlobForUrl, matchWebsiteGlob, readHostnameFromUrl } from "../../../lib/utils/website-glob";
 import { buildDefaultScript, type DefaultScriptConfig } from "../../../lib/default-script";
 
-import {
-  findStoredToolStatesForUrl,
-  resolveBlankScriptName,
-  type StoredToolState,
-} from "./state-storage";
+import type { StoredToolState } from "./state-storage";
 import {
   clearSelectedScriptForHostname,
   readSelectedScriptForHostname,
@@ -38,6 +35,46 @@ const toResolvedScriptMatch = (match: StoredStateMatch): ResolvedScriptMatch => 
   websiteGlob: match.matchedWebsiteGlob,
   state: match.state,
 });
+
+const listStoredToolStates = (): StoredToolState[] => Object.values(appState.scriptsByName);
+
+const listStoredScriptNames = (): string[] => listStoredToolStates().map((entry) => entry.scriptName);
+
+export const resolveBlankScriptName = (baseScriptName: string, excludedScriptNames: readonly string[] = []) => {
+  const storedScriptNames = listStoredScriptNames();
+  const filteredStoredScriptNames = storedScriptNames.filter(
+    (scriptName) =>
+      !excludedScriptNames.some((excludedScriptName) => matchesScriptName(scriptName, excludedScriptName)),
+  );
+  return buildAutoNumberedScriptName(baseScriptName, filteredStoredScriptNames);
+};
+
+const findStoredToolStatesForUrl = (url: string): StoredStateMatch[] => {
+  const matches: StoredStateMatch[] = [];
+
+  listStoredToolStates().forEach((entry) => {
+    const websiteGlobs = getWebsiteGlobsFromContent(entry.codeEditor.content);
+    const matchedWebsiteGlob = findBestMatchingWebsiteGlob(websiteGlobs, url);
+    if (!matchedWebsiteGlob) {
+      return;
+    }
+
+    matches.push({
+      scriptName: entry.scriptName,
+      matchedWebsiteGlob,
+      state: entry,
+    });
+  });
+
+  return matches.sort((left, right) => {
+    const byGlobLength = right.matchedWebsiteGlob.length - left.matchedWebsiteGlob.length;
+    if (byGlobLength !== 0) {
+      return byGlobLength;
+    }
+
+    return right.state.updatedAt - left.state.updatedAt;
+  });
+};
 
 export const ensureDefineBlock = (content: string, config: ScriptFormatConfig) => {
   const lines = content.split("\n");
@@ -209,11 +246,7 @@ export const isDefaultToolState = (state: StoredToolState, config: ScriptFormatC
 };
 
 export const resolveStoredToolStateForUrl = async (url: string, config: ScriptFormatConfig) => {
-  const matchedStates: StoredStateMatch[] = (await findStoredToolStatesForUrl(url)).map((entry) => ({
-    scriptName: entry.scriptName,
-    matchedWebsiteGlob: entry.matchedWebsiteGlob,
-    state: entry.state,
-  }));
+  const matchedStates = findStoredToolStatesForUrl(url);
 
   const normalizedMatchedStates = matchedStates
     .map((match) => {
@@ -271,7 +304,7 @@ export const resolveStoredToolStateForUrl = async (url: string, config: ScriptFo
     await clearSelectedScriptForHostname(hostname);
   }
 
-  const scriptName = await resolveBlankScriptName(defaultBlankScriptTitle);
+  const scriptName = resolveBlankScriptName(defaultBlankScriptTitle);
   const state = buildDefaultToolState(fallbackWebsiteGlob, config, scriptName);
   const fallbackMatch = {
     scriptName,

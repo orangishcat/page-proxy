@@ -1,11 +1,12 @@
 import { get } from "svelte/store";
-import type { ScriptGrantValue } from "../../../../lib/grants";
-import { defaultBlankScriptTitle } from "../../../../lib/script-names";
-import { readHostnameFromUrl } from "../../../../lib/utils/website-glob";
+import type { ScriptGrantValue } from "@/lib/grants";
+import { defaultBlankScriptTitle } from "@/lib/script-names";
+import { appState } from "@/lib/app-state";
+import { readHostnameFromUrl } from "@/lib/utils/website-glob";
 import type { ToolId } from "../state-storage";
 import { saveState } from "./save";
 import { selectorEntries } from "./state";
-import { removeStoredToolState, resolveBlankScriptName } from "../state-storage";
+import { resolveBlankScriptName } from "../state-loading";
 import { clearSelectedScriptForHostname, writeSelectedScriptForHostname } from "../script-selection-session";
 import {
   buildDefaultScript,
@@ -46,7 +47,7 @@ export const saveToolState = async (content: string, deps: EditorActionsDeps): P
   const previousDefaultScriptName = deps.tabState.defaultScriptName?.trim() ?? "";
 
   try {
-    await saveState({
+    saveState({
       content,
       selectorEntries: get(selectorEntries),
       allowedGrants: deps.allowedGrants,
@@ -57,15 +58,18 @@ export const saveToolState = async (content: string, deps: EditorActionsDeps): P
       activeScriptName: deps.tabState.activeScriptName,
       activeTool: deps.activeTool,
       getDefinitionBlock,
-      setActiveWebsiteGlob: (v) => { deps.tabState.activeWebsiteGlob = v; },
-      setActiveScriptName: (v) => { deps.tabState.activeScriptName = v; },
+      setActiveWebsiteGlob: (v) => {
+        deps.tabState.activeWebsiteGlob = v;
+      },
+      setActiveScriptName: (v) => {
+        deps.tabState.activeScriptName = v;
+      },
     });
     const nextActiveScriptName = deps.tabState.activeScriptName?.trim() ?? "";
     if (previousActiveScriptName && nextActiveScriptName && previousActiveScriptName !== nextActiveScriptName) {
       deps.tabState.availableScriptOptions = deps.tabState.availableScriptOptions.map((option) =>
-        option.scriptName === previousActiveScriptName
-          ? { ...option, scriptName: nextActiveScriptName }
-          : option);
+        option.scriptName === previousActiveScriptName ? { ...option, scriptName: nextActiveScriptName } : option,
+      );
 
       if (previousDefaultScriptName === previousActiveScriptName) {
         deps.tabState.defaultScriptName = nextActiveScriptName;
@@ -105,15 +109,12 @@ export const resetScriptToDefault = async (deps: EditorActionsDeps): Promise<voi
   const metadataScriptName = deps.scriptMetadata.title.trim();
   const metadataWebsite = deps.scriptMetadata.website.trim();
   const websiteGlob = activeWebsite || metadataWebsite;
-  const scriptNamesToRemove = Array.from(
-    new Set([activeScript, metadataScriptName].filter((name) => name.length > 0)),
-  );
+  const scriptNamesToRemove = Array.from(new Set([activeScript, metadataScriptName].filter((name) => name.length > 0)));
 
   if (scriptNamesToRemove.length > 0) {
-    await Promise.all(scriptNamesToRemove.map((name) => removeStoredToolState(name))).catch((error: unknown) => {
-      const message = error instanceof Error ? error.message : "Unknown storage error.";
-      throw new Error(`Unable to delete script from extension storage: ${message}`);
-    });
+    for (const name of scriptNamesToRemove) {
+      delete appState.scriptsByName[name];
+    }
   }
 
   const hostname = readHostnameFromUrl(deps.tabState.activeTabUrl);
@@ -128,9 +129,12 @@ export const resetScriptToDefault = async (deps: EditorActionsDeps): Promise<voi
     return;
   }
 
-  const defaultScriptName = await resolveBlankScriptName(defaultBlankScriptTitle, scriptNamesToRemove);
+  const defaultScriptName = resolveBlankScriptName(defaultBlankScriptTitle, scriptNamesToRemove);
   const defaultContent = buildDefaultScript(websiteGlob, deps.scriptFormatConfig, defaultScriptName);
-  const normalizedContent = ensureWebsiteMetadata(ensureDefineBlock(defaultContent, deps.scriptFormatConfig), websiteGlob);
+  const normalizedContent = ensureWebsiteMetadata(
+    ensureDefineBlock(defaultContent, deps.scriptFormatConfig),
+    websiteGlob,
+  );
   deps.tabState.activeWebsiteGlob = websiteGlob || null;
   deps.tabState.activeScriptName = null;
   deps.tabState.defaultScriptName = null;

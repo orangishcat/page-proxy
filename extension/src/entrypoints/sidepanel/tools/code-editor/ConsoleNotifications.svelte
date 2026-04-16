@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ScriptRunLogEntry, ScriptRunLogLevel } from "../../../../lib/script-runner";
+  import type { ScriptRunLogEntry, ScriptRunLogLevel } from "@/lib/script-runner";
   import ConsoleObjectViewer from "./ConsoleObjectViewer.svelte";
 
   export type ConsoleNotification = {
@@ -27,9 +27,13 @@
 </script>
 
 {#if notifications.length > 0}
-  <div class="pointer-events-none absolute right-2 top-10 z-20 flex max-h-[45%] w-[90%] max-w-[24rem] flex-col gap-2 overflow-y-auto">
+  <div
+    class="pointer-events-none absolute right-2 top-10 z-20 flex max-h-[45%] w-[90%] max-w-[24rem] flex-col gap-2 overflow-y-auto"
+  >
     {#each notifications as notification (notification.id)}
-      <div class={`pointer-events-auto rounded-md border px-2 py-2 text-xs shadow-lg ${levelClassMap[notification.log.level]}`}>
+      <div
+        class={`pointer-events-auto rounded-md border px-2 py-2 text-xs shadow-lg ${levelClassMap[notification.log.level]}`}
+      >
         <div class="mb-1 flex items-center justify-between gap-2">
           <div class="font-semibold uppercase tracking-wide">
             {notification.log.level === "notification" ? "notification" : `console.${notification.log.level}`}
@@ -52,7 +56,10 @@
         {:else}
           <div class="flex flex-col gap-1 font-mono text-[0.6875rem] leading-5">
             {#each notification.log.values as value, index (`${notification.id}-${index}`)}
-              <ConsoleObjectViewer value={value} propertyName={notification.log.values.length > 1 ? `arg${index}` : undefined} />
+              <ConsoleObjectViewer
+                {value}
+                propertyName={notification.log.values.length > 1 ? `arg${index}` : undefined}
+              />
             {/each}
           </div>
         {/if}

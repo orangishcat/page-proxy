@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Switch } from "bits-ui";
   import { appState, appStateActions } from "@/lib/app-state";
-  import { readStoredScriptEnabled, saveStoredScriptEnabled } from "./state-storage";
+  import { coerceScriptGrantValues } from "@/lib/grants";
   import type { ScriptSelectionOption } from "./code-editor/state";
   import { setToolMessage } from "./tool-errors";
 
@@ -12,7 +12,6 @@
 
   let scriptSettings = $state<ScriptSettingEntry[]>([]);
   let isLoadingScriptSettings = $state(false);
-  let loadRequestId = 0;
 
   const switchClasses =
     "group inline-flex h-6 w-9 shrink-0 items-center rounded-full border border-gray-700 bg-gray-900 p-0.25 cursor-pointer transition data-[state=checked]:border-transparent data-[state=checked]:bg-accent-600 data-[disabled]:opacity-60";
@@ -25,7 +24,6 @@
 
   $effect(() => {
     const scriptOptions = appState.currentTab.availableScriptOptions;
-    const requestId = ++loadRequestId;
 
     if (scriptOptions.length === 0) {
       isLoadingScriptSettings = false;
@@ -36,33 +34,10 @@
     isLoadingScriptSettings = true;
     scriptSettings = scriptOptions.map((option) => ({
       ...option,
-      enabled: true,
+      enabled: appState.scriptsByName[option.scriptName]?.permissions.enabled ?? true,
       isSaving: false,
     }));
-
-    void Promise.all(
-      scriptOptions.map(async (option) => ({
-        ...option,
-        enabled: await readStoredScriptEnabled(option.scriptName),
-        isSaving: false,
-      })),
-    )
-      .then((entries) => {
-        if (requestId !== loadRequestId) {
-          return;
-        }
-
-        scriptSettings = entries;
-        isLoadingScriptSettings = false;
-      })
-      .catch(() => {
-        if (requestId !== loadRequestId) {
-          return;
-        }
-
-        isLoadingScriptSettings = false;
-        setToolMessage("Unable to load script settings.", "error");
-      });
+    isLoadingScriptSettings = false;
   });
 
   const toggleScriptEnabled = (scriptName: string) => {
@@ -74,7 +49,22 @@
     const nextEnabled = !currentEntry.enabled;
     updateScriptSettings(scriptName, (entry) => ({ ...entry, enabled: nextEnabled, isSaving: true }));
 
-    void saveStoredScriptEnabled(scriptName, nextEnabled)
+    void Promise.resolve().then(() => {
+      const currentScript = appState.scriptsByName[scriptName];
+      if (!currentScript) {
+        throw new Error(`No stored script found for "${scriptName}".`);
+      }
+
+      appState.scriptsByName[scriptName] = {
+        ...currentScript,
+        permissions: {
+          ...currentScript.permissions,
+          allowedGrants: coerceScriptGrantValues(currentScript.permissions.allowedGrants),
+          enabled: nextEnabled,
+        },
+        updatedAt: Date.now(),
+      };
+    })
       .then(() => {
         updateScriptSettings(scriptName, (entry) => ({ ...entry, isSaving: false }));
         setToolMessage(null, "error");
@@ -107,7 +97,8 @@
               <div class="flex items-center gap-2">
                 <span
                   class="truncate text-sm text-accent-500"
-                  class:text-accent-500={appState.currentTab.activeScriptName === entry.scriptName}>{entry.scriptName}</span
+                  class:text-accent-500={appState.currentTab.activeScriptName === entry.scriptName}
+                  >{entry.scriptName}</span
                 >
               </div>
             </div>

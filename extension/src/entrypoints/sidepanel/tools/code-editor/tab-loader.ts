@@ -1,18 +1,19 @@
-import { buildAutoNumberedScriptName, defaultBlankScriptTitle } from "../../../../lib/script-names";
+import { buildAutoNumberedScriptName, defaultBlankScriptTitle } from "@/lib/script-names";
+import { appState } from "@/lib/app-state";
 import { browser } from "wxt/browser";
-import { buildWebsiteGlobForUrl, isRestrictedUrl, readHostnameFromUrl } from "../../../../lib/utils/website-glob";
-import log from "../../../../lib/logger";
+import { buildWebsiteGlobForUrl, isRestrictedUrl, readHostnameFromUrl } from "@/lib/utils/website-glob";
+import log from "@/lib/logger";
 import {
   buildEditorDisplayContent,
   buildDefaultScript,
+  resolveBlankScriptName,
   resolveStoredToolStateForUrl,
   type ResolvedScriptMatch,
   type ScriptFormatConfig,
 } from "../state-loading";
-import { listStoredScriptNames, resolveBlankScriptName } from "../state-storage";
 import { clearSelectedScriptForHostname, writeSelectedScriptForHostname } from "../script-selection-session";
 import { getTabUrl, resolveActiveTab, shouldHandleTabUpdate, type ActiveTab } from "./tabs";
-import { coerceToolPanelTool } from "../../../../lib/sidepanel-shortcuts";
+import { coerceToolPanelTool } from "@/lib/sidepanel-shortcuts";
 import type { AutosaveManager } from "./autosave";
 import type { ScriptSelectionOption } from "./state";
 
@@ -26,8 +27,10 @@ const toScriptSelectionOption = (match: ResolvedScriptMatch): ScriptSelectionOpt
   websiteGlob: match.websiteGlob,
 });
 
-const resolveNewScriptName = async (state: TabLoaderState) => {
-  const storedScriptNames = await listStoredScriptNames();
+const listStoredScriptNames = (): string[] => Object.values(appState.scriptsByName).map((entry) => entry.scriptName);
+
+const resolveNewScriptName = (state: TabLoaderState) => {
+  const storedScriptNames = listStoredScriptNames();
   const inMemoryScriptNames = [
     state.activeScriptName,
     ...state.availableScriptOptions.map((option) => option.scriptName),
@@ -72,7 +75,7 @@ export const loadStateForUrl = async (url: string | null, deps: TabLoaderDeps): 
   const normalizedUrl = url?.trim() ?? "";
 
   if (!normalizedUrl) {
-    const blankScriptName = await resolveBlankScriptName(defaultBlankScriptTitle);
+    const blankScriptName = resolveBlankScriptName(defaultBlankScriptTitle);
     state.activeScriptName = blankScriptName;
     state.defaultScriptName = null;
     state.activeWebsiteGlob = null;
@@ -183,18 +186,14 @@ export const selectScriptForCurrentTab = async (scriptName: string, deps: TabLoa
     return;
   }
 
-  if (state.activeScriptName?.trim() === normalizedScriptName) {
+  if (
+    state.activeScriptName?.trim() === normalizedScriptName ||
+    deps.autosave.queuePendingTabRefresh(state.editorValue, state.hasUnsavedChanges, state.isProgrammaticUpdate)
+  )
     return;
-  }
-
-  if (deps.autosave.queuePendingTabRefresh(state.editorValue, state.hasUnsavedChanges, state.isProgrammaticUpdate)) {
-    return;
-  }
 
   const hostname = readHostnameFromUrl(state.activeTabUrl);
-  if (!hostname) {
-    return;
-  }
+  if (!hostname) return;
 
   if (state.defaultScriptName === normalizedScriptName) {
     await clearSelectedScriptForHostname(hostname);
@@ -205,17 +204,17 @@ export const selectScriptForCurrentTab = async (scriptName: string, deps: TabLoa
   await loadStateForUrl(state.activeTabUrl, deps);
 };
 
-export const createNewScriptForCurrentTab = async (deps: TabLoaderDeps): Promise<void> => {
+export const createNewScriptForCurrentTab = (deps: TabLoaderDeps): void => {
   const { state, scriptFormatConfig } = deps;
-  if (!state.activeTabUrl || state.isProtectedPage || !state.canPersistEditorChanges) {
+  if (
+    !state.activeTabUrl ||
+    state.isProtectedPage ||
+    !state.canPersistEditorChanges ||
+    deps.autosave.queuePendingTabRefresh(state.editorValue, state.hasUnsavedChanges, state.isProgrammaticUpdate)
+  )
     return;
-  }
 
-  if (deps.autosave.queuePendingTabRefresh(state.editorValue, state.hasUnsavedChanges, state.isProgrammaticUpdate)) {
-    return;
-  }
-
-  const nextScriptName = await resolveNewScriptName(state);
+  const nextScriptName = resolveNewScriptName(state);
   const websiteGlob = buildWebsiteGlobForUrl(state.activeTabUrl) || state.activeWebsiteGlob?.trim() || "";
   const baseContent = buildDefaultScript(websiteGlob, scriptFormatConfig, nextScriptName);
   const nextContent = buildEditorDisplayContent({
@@ -262,11 +261,11 @@ export const handleTabUpdated = (
 ): void => {
   const { state } = deps;
 
-  if (!shouldHandleTabUpdate(state.activeTabId, tabId, changeInfo)) {
+  if (
+    !shouldHandleTabUpdate(state.activeTabId, tabId, changeInfo) ||
+    deps.autosave.queuePendingTabRefresh(state.editorValue, state.hasUnsavedChanges, state.isProgrammaticUpdate)
+  )
     return;
-  }
-  if (deps.autosave.queuePendingTabRefresh(state.editorValue, state.hasUnsavedChanges, state.isProgrammaticUpdate)) {
-    return;
-  }
+
   void applyActiveTab(tab ?? null, deps);
 };

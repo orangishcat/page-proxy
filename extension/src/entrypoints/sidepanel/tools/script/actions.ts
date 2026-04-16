@@ -1,5 +1,6 @@
 import { browser } from "wxt/browser";
 import log from "@/lib/logger";
+import { appState } from "@/lib/app-state";
 
 import {
   buildScriptRunResponse,
@@ -14,7 +15,6 @@ import {
 import { ensureCodeRunnerUserscript, getUserscriptEnableMessage } from "@/lib/userscript-runner";
 import { isRestrictedUrl } from "@/lib/utils/website-glob";
 import { isNoReceiverError } from "@/lib/utils/error-detection";
-import { readStoredToolState, saveStoredToolState } from "../state-storage";
 
 const emptyRunResult: ScriptRunResult = { errors: [], errorStacks: [], logs: [], selectors: [] };
 const responseTimeoutMs = 1800;
@@ -293,7 +293,7 @@ export const requestScriptRun = async (code: string, scriptName: string): Promis
     return toRunResult(userscriptStatus.message);
   }
 
-  const storedState = await readStoredToolState(scriptName);
+  const storedState = appState.scriptsByName[scriptName] ?? null;
   const request: ScriptRunRequest = {
     type: "script:run",
     requestId: buildRequestId(),
@@ -303,12 +303,12 @@ export const requestScriptRun = async (code: string, scriptName: string): Promis
   };
 
   const attemptResult = await requestScriptRunAttempt(activeTab.id, activeTab.url, request, 1);
-  const latestState = await readStoredToolState(scriptName);
+  const latestState = appState.scriptsByName[scriptName] ?? null;
   if (latestState) {
-    await saveStoredToolState({
+    appState.scriptsByName[scriptName] = {
       ...latestState,
       runtimeStorage: attemptResult.runtimeStorage,
-    });
+    };
   }
 
   return attemptResult.result;

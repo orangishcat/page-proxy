@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ScriptRunLogValue } from "../../../../lib/script-runner";
+  import type { ScriptRunLogValue } from "@/lib/script-runner";
   import StackTraceView from "../StackTraceView.svelte";
   import Self from "./ConsoleObjectViewer.svelte";
 

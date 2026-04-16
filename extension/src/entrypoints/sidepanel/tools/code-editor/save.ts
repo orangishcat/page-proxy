@@ -1,7 +1,8 @@
-import { defaultBlankScriptTitle } from "../../../../lib/script-names";
-import { parseScriptMetadata } from "../../../../lib/utils/script-metadata";
-import type { ScriptGrantValue } from "../../../../lib/grants";
-import { matchWebsiteGlob } from "../../../../lib/utils/website-glob";
+import { defaultBlankScriptTitle, matchesScriptName } from "@/lib/script-names";
+import { appState } from "@/lib/app-state";
+import { parseScriptMetadata } from "@/lib/utils/script-metadata";
+import type { ScriptGrantValue } from "@/lib/grants";
+import { matchWebsiteGlob } from "@/lib/utils/website-glob";
 import {
   ensureWebsiteMetadata,
   isDefaultToolState,
@@ -9,15 +10,26 @@ import {
   resolveWebsiteGlob,
   type ScriptFormatConfig,
 } from "../state-loading";
-import {
-  hasStoredScriptNameConflict,
-  readStoredToolState,
-  removeStoredToolState,
-  saveStoredToolState,
-  type StoredSelectorEntry,
-  type StoredToolState,
-  type ToolId,
-} from "../state-storage";
+import { type StoredSelectorEntry, type StoredToolState, type ToolId } from "../state-storage";
+
+const getStoredToolState = (scriptName: string): StoredToolState | null => appState.scriptsByName[scriptName] ?? null;
+
+const hasStoredScriptNameConflict = (scriptName: string, excludedScriptNames: readonly string[] = []) => {
+  const normalizedScriptName = scriptName.trim();
+  if (!normalizedScriptName) {
+    return false;
+  }
+
+  return Object.values(appState.scriptsByName).some((storedScript) => {
+    if (!matchesScriptName(storedScript.scriptName, normalizedScriptName)) {
+      return false;
+    }
+
+    return !excludedScriptNames.some((excludedScriptName) =>
+      matchesScriptName(storedScript.scriptName, excludedScriptName),
+    );
+  });
+};
 
 type SaveStateOptions = {
   content: string;
@@ -34,7 +46,7 @@ type SaveStateOptions = {
   setActiveScriptName: (scriptName: string) => void;
 };
 
-export const saveState = async (options: SaveStateOptions) => {
+export const saveState = (options: SaveStateOptions) => {
   if (options.isProtectedPage) {
     return;
   }
@@ -78,19 +90,17 @@ export const saveState = async (options: SaveStateOptions) => {
     throw new Error(`Website glob "${websiteGlob}" does not match the current website (${options.activeTabUrl}).`);
   }
 
-  if (await hasStoredScriptNameConflict(scriptName, activeScriptName ? [activeScriptName] : [])) {
+  if (hasStoredScriptNameConflict(scriptName, activeScriptName ? [activeScriptName] : [])) {
     throw new Error(`A script named "${scriptName}" already exists.`);
   }
 
   const contentWithWebsite = ensureWebsiteMetadata(normalizedContent, websiteGlob);
   const existingState =
-    (activeScriptName ? await readStoredToolState(activeScriptName) : null) ??
-    (scriptName ? await readStoredToolState(scriptName) : null);
+    (activeScriptName ? getStoredToolState(activeScriptName) : null) ??
+    (scriptName ? getStoredToolState(scriptName) : null);
 
   if (activeScriptName && activeScriptName !== scriptName) {
-    await removeStoredToolState(activeScriptName).catch(() => {
-      throw new Error("Unable to save script state to extension storage.");
-    });
+    delete appState.scriptsByName[activeScriptName];
   }
 
   const state: StoredToolState = {
@@ -118,15 +128,9 @@ export const saveState = async (options: SaveStateOptions) => {
   options.setActiveScriptName(scriptName);
 
   if (isDefaultToolState(state, options.scriptFormatConfig)) {
-    await removeStoredToolState(scriptName)
-      .catch((e: Error) => {
-        throw new Error(`Unable to save script state to extension storage: ${e.message}`);
-      });
+    delete appState.scriptsByName[scriptName];
     return;
   }
 
-  await saveStoredToolState(state)
-    .catch((e: Error) => {
-      throw new Error(`Unable to save script state to extension storage: ${e.message}`);
-    });
+  appState.scriptsByName[scriptName] = state;
 };

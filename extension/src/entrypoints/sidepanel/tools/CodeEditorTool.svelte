@@ -239,9 +239,7 @@
   };
 
   const createNewScriptForCurrentTab = () => {
-    void createNewScriptForCurrentTabImpl(buildTabLoaderDeps()).catch((error) => {
-      setEditorMessageFromUnknown(error, "Unable to create a new script.");
-    });
+    createNewScriptForCurrentTabImpl(buildTabLoaderDeps());
   };
 
   const refreshActiveTab = () => refreshActiveTabImpl(buildTabLoaderDeps());
