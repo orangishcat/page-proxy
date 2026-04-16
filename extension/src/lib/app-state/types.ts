@@ -1,6 +1,7 @@
 import type { RecordPanelState } from "../../entrypoints/sidepanel/tools/storage/record-panel";
 import type { StoredToolState } from "../stored-tool-state";
 import type { EditorApi, ElementEntry, ScriptMetadataState } from "../sidepanel-editor-state";
+import type { ToolId } from "../stored-tool-state";
 
 export type ScriptSelectionOption = {
   scriptName: string;
@@ -29,6 +30,7 @@ export type AppStateSession = {
 export type AppStateCurrentTab = {
   activeTabId: number | null;
   activeTabUrl: string | null;
+  activeTool: ToolId;
   activeWebsiteGlob: string | null;
   activeScriptName: string | null;
   defaultScriptName: string | null;

@@ -22,6 +22,7 @@ export const createDefaultAppState = (): AppState => ({
   currentTab: {
     activeTabId: null,
     activeTabUrl: null,
+    activeTool: "none",
     activeWebsiteGlob: null,
     activeScriptName: null,
     defaultScriptName: null,

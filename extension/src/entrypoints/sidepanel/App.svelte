@@ -127,6 +127,8 @@
   };
 
   const handleToolSelect = (tool: ToolId) => {
+    setToolMessage(null, "error");
+
     if (tool === "select") {
       activateSelectTool();
       return;
