@@ -264,6 +264,13 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
       const tabIdFromPort = portTabIdByPort.get(port);
 
       if (isSelectionUpdateMessage(message)) {
+        logger.debug("devtools selection update received", {
+          tabId: message.tabId,
+          hasSelection: Boolean(message.selection),
+          selector: message.selection?.info.selector ?? null,
+          frameId: message.selection?.frameId ?? null,
+          frameUrl: message.selection?.frameUrl ?? null,
+        });
         trackPort(port, message.tabId);
         updateSelectionCache(message.tabId, message.selection);
         return;

@@ -69,11 +69,6 @@
       </div>
     {/if}
   </div>
-  {#if $devtoolsIntegrationDetected && $followDevtoolsSelection}
-    <div class="mt-2 text-center text-caption text-gray-500 dark:text-gray-400">
-      Currently matching the DevTools panel's selected element
-    </div>
-  {/if}
   <div class="mt-4 grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
     <div class="flex items-center gap-2 justify-self-start">
       <Tooltip.Root>
@@ -148,6 +143,33 @@
     </div>
     {#if $hasSelection || $devtoolsIntegrationDetected}
       <div class="flex items-center justify-self-end gap-1">
+        {#if $devtoolsIntegrationDetected}
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <Button
+                  {...props}
+                  class={`${iconActionButtonClass} ${wrenchStateClasses($followDevtoolsSelection)}`}
+                  variant="outline"
+                  aria-label="Toggle follow DevTools selected element"
+                  aria-pressed={$followDevtoolsSelection}
+                  onclick={toggleFollowDevtoolsSelection}
+                >
+                  <Wrench class="h-4 w-4" />
+                </Button>
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                sideOffset={6}
+                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
+              >
+                Follow DevTools selected element
+                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        {/if}
         {#if $hasSelection}
           <DropdownMenu.Root>
             <DropdownMenu.Trigger>
@@ -195,34 +217,6 @@
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
-        {/if}
-
-        {#if $devtoolsIntegrationDetected}
-          <Tooltip.Root>
-            <Tooltip.Trigger>
-              {#snippet child({ props })}
-                <Button
-                  {...props}
-                  class={`${iconActionButtonClass} ${wrenchStateClasses($followDevtoolsSelection)}`}
-                  variant="outline"
-                  aria-label="Toggle follow DevTools selected element"
-                  aria-pressed={$followDevtoolsSelection}
-                  onclick={toggleFollowDevtoolsSelection}
-                >
-                  <Wrench class="h-4 w-4" />
-                </Button>
-              {/snippet}
-            </Tooltip.Trigger>
-            <Tooltip.Portal>
-              <Tooltip.Content
-                sideOffset={6}
-                class="rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-caption text-gray-900 shadow-lg dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-100"
-              >
-                Follow DevTools selected element
-                <Tooltip.Arrow class="fill-gray-50 dark:fill-[#1b1b1b]" />
-              </Tooltip.Content>
-            </Tooltip.Portal>
-          </Tooltip.Root>
         {/if}
       </div>
     {/if}
