@@ -9,7 +9,7 @@
     "dev": "node ./scripts/generate-pp-monaco-extra-lib.mjs && wxt",
     "build": "node ./scripts/generate-pp-monaco-extra-lib.mjs && wxt build --browser firefox && wxt build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
-    "lint": "eslint .",
+    "lint": "eslint . --fix",
     "test": "bun test tests",
     "clean": "wxt clean"
   },

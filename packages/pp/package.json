@@ -4,7 +4,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "lint": "eslint .",
+    "lint": "eslint . --fix",
     "test": "bun test --preload ./tests/setup-dom.ts tests"
   },
   "dependencies": {

@@ -26,14 +26,6 @@ const selectionPort = browser.runtime.connect({
   name: devtoolsSelectionPortName,
 });
 
-const getMessageType = (message: unknown) => {
-  if (!isRecord(message)) {
-    return "unknown";
-  }
-
-  return typeof message.type === "string" ? message.type : "unknown";
-};
-
 const isEvalSelectionResult = (value: unknown): value is EvalSelectionResult =>
   isRecord(value) &&
   typeof value.ok === "boolean" &&
@@ -137,8 +129,6 @@ const publishCurrentSelection = () => {
 };
 
 selectionPort.onMessage.addListener((message: unknown) => {
-  const messageType = getMessageType(message);
-
   if (!isCommandMessage(message)) {
     return;
   }

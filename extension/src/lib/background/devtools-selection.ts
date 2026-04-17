@@ -41,15 +41,6 @@ const buildRequestId = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-const getMessageType = (message: unknown) => {
-  if (message === null || typeof message !== "object" || Array.isArray(message)) {
-    return "unknown";
-  }
-
-  const messageRecord = message as Record<string, unknown>;
-  return typeof messageRecord.type === "string" ? messageRecord.type : "unknown";
-};
-
 const cloneSelection = (selection: DevtoolsElementSelection | null): DevtoolsElementSelection | null => {
   if (!selection) {
     return null;
@@ -257,7 +248,6 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
     logger.debug("DevTools port connected");
 
     port.onMessage.addListener((message: unknown) => {
-      const messageType = getMessageType(message);
       const tabIdFromPort = portTabIdByPort.get(port);
 
       if (isPortConnectedMessage(message)) {
