@@ -4,7 +4,7 @@ title: Release notes
 
 # Release notes (v0.3.x)
 
-## New in v0.3.9
+## New in v0.3.9 (not released yet due to major bugs and instability)
 
 - Added script metadata version support:
     - New blank scripts now include an explicit `@version` field in the Page
