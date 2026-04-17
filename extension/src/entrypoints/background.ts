@@ -52,7 +52,7 @@ const logger = log.getLogger("background");
 const appStateReady = (async () => {
   const state = await hydrateAppState();
   replaceAppState(state);
-  logger.debug("background app-state hydrated", {
+  logger.debug("app-state hydrated", {
     scriptCount: Object.keys(state.scriptsByName).length,
     recordPanelCount: Object.keys(state.recordPanelsByTabId).length,
     openTabCount: Object.keys(state.session.openTabsByTabId).length,
