@@ -124,12 +124,12 @@ export class SelectorPopupManager {
       for (const [key, value] of Object.entries(cssValues)) {
         target.style.setProperty(key, value);
       }
-      logger.debug("runtime message sent", { type: "selector:apply-style:save" });
-      await browser.runtime
-        .sendMessage({ type: "selector:apply-style:save", cssValues } satisfies SelectToolMessage)
-        .catch((error: unknown) => {
-          logger.error("Failed to send apply-style:save", { error });
-        });
+
+      const message: SelectToolMessage = { type: "selector:apply-style:save", cssValues };
+      logger.debug("save css inspector sent", { type: "selector:apply-style:save" });
+      await browser.runtime.sendMessage(message).catch((error: unknown) => {
+        logger.error("Failed to send apply-style:save", { error });
+      });
       this.clear();
       return { ok: true };
     }
