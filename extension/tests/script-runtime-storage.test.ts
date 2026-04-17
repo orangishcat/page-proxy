@@ -34,7 +34,6 @@ const runtimeStorage = {
 
 const buildStoredState = (): StoredToolState => ({
   scriptName: "Page Proxy",
-  activeTool: "none",
   codeEditor: {
     content: [
       "// ==Page Proxy==",

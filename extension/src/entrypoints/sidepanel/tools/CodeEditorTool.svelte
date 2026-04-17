@@ -37,7 +37,6 @@
   } from "./code-editor/editor-actions";
   import EditorToolbar from "./code-editor/EditorToolbar.svelte";
   import { appState, appStateActions, appStateSelectors } from "@/lib/app-state";
-  import type { ToolId } from "@/lib/stored-tool-state";
   import type { StoredToolState } from "@/lib/stored-tool-state";
   import type { ElementEntry } from "@/lib/sidepanel-editor-state";
   const ppImportLines = ['import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";'];
@@ -125,7 +124,6 @@
   const buildEditorActionsDeps = (): EditorActionsDeps => ({
     tabState,
     allowedGrants: appStateSelectors.getActiveScript()?.permissions.allowedGrants ?? [],
-    activeTool: appStateSelectors.getActiveTool() as ToolId,
     scriptMetadata: appState.currentTab.scriptMetadata,
     scriptFormatConfig,
     setHasUnsavedChanges: (v) => {
@@ -142,9 +140,6 @@
 
   const buildTabLoaderDeps = () => ({
     state: tabState,
-    setActiveToolId: (tool: string) => {
-      appStateActions.setActiveTool(tool as ToolId);
-    },
     setAllowedGrants: (grants: unknown[]) => {
       appStateActions.setActiveScriptAllowedGrants(grants as StoredToolState["permissions"]["allowedGrants"]);
     },

@@ -14,6 +14,7 @@ export type AppStateSettings = {
 };
 
 export type AppStateSidepanel = {
+  activeTool: ToolId;
   helpBannerDismissed: boolean;
   unsupportedBrowserBannerDismissed: boolean;
   firefoxExperimentalBannerDismissed: boolean;
@@ -30,7 +31,6 @@ export type AppStateSession = {
 export type AppStateCurrentTab = {
   activeTabId: number | null;
   activeTabUrl: string | null;
-  activeTool: ToolId;
   activeWebsiteGlob: string | null;
   activeScriptName: string | null;
   defaultScriptName: string | null;

@@ -1,5 +1,5 @@
 import { buildAutoNumberedScriptName, defaultBlankScriptTitle } from "@/lib/script-names";
-import { appState } from "@/lib/app-state";
+import { appState } from "@/lib/app-state/state.svelte.ts";
 import { browser } from "wxt/browser";
 import { buildWebsiteGlobForUrl, isRestrictedUrl, readHostnameFromUrl } from "@/lib/utils/website-glob";
 import log from "@/lib/logger";
@@ -13,7 +13,6 @@ import {
 } from "../state-loading";
 import { clearSelectedScriptForHostname, writeSelectedScriptForHostname } from "../script-selection-session";
 import { getTabUrl, resolveActiveTab, shouldHandleTabUpdate, type ActiveTab } from "./tabs";
-import { coerceToolPanelTool } from "@/lib/sidepanel-shortcuts";
 import type { AutosaveManager } from "./autosave";
 import type { ScriptSelectionOption } from "./state";
 
@@ -57,7 +56,6 @@ export type TabLoaderState = {
 
 export type TabLoaderDeps = {
   state: TabLoaderState;
-  setActiveToolId: (tool: string) => void;
   setAllowedGrants: (grants: unknown[]) => void;
   setActiveScriptName: (scriptName: string | null) => void;
   setScriptOptions: (options: ScriptSelectionOption[]) => void;
@@ -81,7 +79,6 @@ export const loadStateForUrl = async (url: string | null, deps: TabLoaderDeps): 
     state.activeWebsiteGlob = null;
     state.availableScriptOptions = [];
     deps.setActiveScriptName(blankScriptName);
-    deps.setActiveToolId("none");
     deps.setAllowedGrants([]);
     deps.setScriptOptions([]);
     const baseContent = buildDefaultScript("", scriptFormatConfig, blankScriptName);
@@ -101,7 +98,6 @@ export const loadStateForUrl = async (url: string | null, deps: TabLoaderDeps): 
   state.activeWebsiteGlob = resolvedState.websiteGlob;
   state.availableScriptOptions = resolvedState.matches.map(toScriptSelectionOption);
   deps.setActiveScriptName(resolvedState.scriptName);
-  deps.setActiveToolId(coerceToolPanelTool(resolvedState.state.activeTool));
   deps.setAllowedGrants(resolvedState.state.permissions.allowedGrants);
   deps.setScriptOptions(state.availableScriptOptions);
   const displayContent = buildEditorDisplayContent({
@@ -133,7 +129,6 @@ export const applyActiveTab = async (tab: ActiveTab | null, deps: TabLoaderDeps)
     state.activeScriptName = null;
     state.defaultScriptName = null;
     state.availableScriptOptions = [];
-    deps.setActiveToolId("none");
     deps.setScriptOptions([]);
     const protectedContent = buildEditorDisplayContent({
       content: buildDefaultScript("", scriptFormatConfig),
@@ -227,7 +222,6 @@ export const createNewScriptForCurrentTab = (deps: TabLoaderDeps): void => {
   state.activeScriptName = nextScriptName;
   state.activeWebsiteGlob = websiteGlob || null;
   deps.setActiveScriptName(nextScriptName);
-  deps.setActiveToolId("none");
   deps.setAllowedGrants([]);
   deps.setScriptOptions(state.availableScriptOptions);
   deps.setElementEntries([]);

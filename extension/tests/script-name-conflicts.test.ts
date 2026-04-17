@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 
-import { appState } from "../src/lib/app-state";
 import { createDefaultAppState } from "../src/lib/app-state/defaults.ts";
-import { replaceAppState } from "../src/lib/app-state/state.svelte.ts";
+import { appState, replaceAppState } from "../src/lib/app-state/state.svelte.ts";
 import { appStateSelectors } from "../src/lib/app-state/selectors.ts";
 import type { StoredToolState } from "../src/lib/stored-tool-state";
 
@@ -40,7 +39,6 @@ const buildScriptContent = (title: string, websiteGlob: string) =>
 
 const buildStoredState = (scriptName: string, websiteGlob: string, updatedAt: number): StoredToolState => ({
   scriptName,
-  activeTool: "none",
   codeEditor: {
     content: normalizeContentForStorage(buildScriptContent(scriptName, websiteGlob), false, scriptFormatConfig),
   },
@@ -95,7 +93,6 @@ describe("script name conflicts", () => {
       activeTabUrl: "https://example.com/page",
       activeWebsiteGlob: "https://example.com/*",
       activeScriptName: "Original Script",
-      activeTool: "none",
       getDefinitionBlock: (content) => content,
       setActiveWebsiteGlob: () => {
         throw new Error("saveState should not update the active website on conflict.");
@@ -143,7 +140,6 @@ describe("script name conflicts", () => {
       activeTabUrl: "https://example.com/page",
       activeWebsiteGlob: "https://example.com/*",
       activeScriptName: "Original Script",
-      activeTool: "none",
       getDefinitionBlock: (content) => content,
       setActiveWebsiteGlob: () => undefined,
       setActiveScriptName: () => undefined,
@@ -171,7 +167,6 @@ describe("script name conflicts", () => {
       activeTabUrl: "https://example.com/page",
       activeWebsiteGlob: "https://example.com/*",
       activeScriptName: null,
-      activeTool: "none",
       getDefinitionBlock: (value) => value,
       setActiveWebsiteGlob: () => undefined,
       setActiveScriptName: () => undefined,
@@ -203,7 +198,6 @@ describe("script name conflicts", () => {
       activeTabUrl: "https://example.com/page",
       activeWebsiteGlob: "https://example.com/*",
       activeScriptName: "Disabled Script",
-      activeTool: "none",
       getDefinitionBlock: (value) => value,
       setActiveWebsiteGlob: () => undefined,
       setActiveScriptName: () => undefined,

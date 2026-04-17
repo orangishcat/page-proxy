@@ -20,7 +20,6 @@ export type StoredSelectorEntry = {
 
 export type StoredToolState = {
   scriptName: string;
-  activeTool: ToolId;
   codeEditor: { content: string };
   selectorPanel: { entries: StoredSelectorEntry[] };
   permissions: {
@@ -32,7 +31,7 @@ export type StoredToolState = {
   runtimeStorage: StoredRuntimeStorage;
 };
 
-const ToolIdSchema = z.enum(["select", "create", "selectors", "record", "settings", "help", "share", "none"]);
+export const ToolIdSchema = z.enum(["select", "create", "selectors", "record", "settings", "help", "share", "none"]);
 
 const StoredSelectorEntrySchema = z
   .object({
@@ -51,7 +50,6 @@ const StoredSelectorEntriesSchema = z.array(StoredSelectorEntrySchema).catch([])
 export const StoredToolStateSchema = z
   .object({
     scriptName: z.string().catch(""),
-    activeTool: ToolIdSchema.catch("none"),
     codeEditor: z.object({ content: z.string().catch("") }).catch({ content: "" }),
     selectorPanel: z.object({ entries: StoredSelectorEntriesSchema }).catch({ entries: [] }),
     permissions: z
@@ -124,7 +122,6 @@ export const coerceStoredToolState = (value: unknown, scriptNameFromKey: string)
   const fallbackWebsiteGlob = metadataWebsites[0] ?? metadataWebsite;
   return {
     scriptName: resolvedScriptName,
-    activeTool: data.activeTool,
     codeEditor: { content: data.codeEditor.content },
     selectorPanel: { entries: data.selectorPanel.entries },
     permissions: data.permissions,

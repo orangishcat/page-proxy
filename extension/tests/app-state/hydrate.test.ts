@@ -59,9 +59,15 @@ void mock.module("wxt/browser", () => ({
   },
 }));
 
+const hydrateModule = await import("../../src/lib/app-state/storage/hydrate/hydrate.ts");
+const stateModule = await import("../../src/lib/app-state/state.svelte.ts");
+const selectorsModule = await import("../../src/lib/app-state/selectors.ts");
+const runHydrateAppState = hydrateModule.hydrateAppState;
+const replaceHydratedState = stateModule.replaceAppState;
+const appStateSelectors = selectorsModule.appStateSelectors;
+
 const buildStoredState = (scriptName: string, websiteGlob: string, updatedAt: number) => ({
   scriptName,
-  activeTool: "none",
   codeEditor: {
     content: [
       "import { pa, pn, pq, ps, pt, pv } from \"@page-proxy/pp\";",
@@ -92,14 +98,11 @@ describe("hydrateAppState", () => {
   });
 
   test("loads scripts and settings from keyed storage entries", async () => {
-    const { hydrateAppState } = await import("../../src/lib/app-state/storage/hydrate/hydrate.ts");
-    const { replaceAppState } = await import("../../src/lib/app-state/state.svelte.ts");
-    const { appStateSelectors } = await import("../../src/lib/app-state/selectors.ts");
-
     const local = getStorageState("local");
     const session = getStorageState("session");
     local["pageproxy:show-help-button"] = false;
     local["pageproxy:disable-all-grants"] = true;
+    local["sidepanel:activeTool"] = "record";
     local["pageproxy:Docs Script"] = buildStoredState("Docs Script", "https://docs.example.com/*", 1);
     local["sidepanel:legacy-selected-script"] = "Docs Script";
     local["sidepanel:toolPanelHeightPx"] = 320;
@@ -115,11 +118,12 @@ describe("hydrateAppState", () => {
     session["sidepanel:openTabs"] = { "12": true };
     session["sidepanel:docs.example.com"] = "Docs Script";
 
-    const state = await hydrateAppState();
-    replaceAppState(state);
+    const state = await runHydrateAppState();
+    replaceHydratedState(state);
 
     expect(state.settings.showHelpButton).toBe(false);
     expect(state.settings.disableAllGrants).toBe(true);
+    expect(state.sidepanel.activeTool).toBe("record");
     expect(state.sidepanel.toolPanelHeightPx).toBe(320);
     expect(state.sidepanel.helpBannerDismissed).toBe(true);
     expect(state.sidepanel.unsupportedBrowserBannerDismissed).toBe(true);

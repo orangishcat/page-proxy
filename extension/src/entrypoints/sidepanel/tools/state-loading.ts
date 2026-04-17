@@ -1,5 +1,5 @@
 import { buildAutoNumberedScriptName, defaultBlankScriptTitle, matchesScriptName } from "@/lib/script-names";
-import { appState } from "@/lib/app-state";
+import { appState } from "@/lib/app-state/state.svelte.ts";
 import { createEmptyStoredRuntimeStorage } from "@/lib/script-runtime-storage";
 import { findBestMatchingWebsiteGlob, getWebsiteGlobsFromContent } from "@/lib/stored-tool-state";
 import { parseScriptMetadata } from "@/lib/utils/script-metadata";
@@ -218,7 +218,6 @@ export const buildDefaultToolState = (
   scriptName = defaultBlankScriptTitle,
 ): StoredToolState => ({
   scriptName,
-  activeTool: "none",
   codeEditor: {
     content: normalizeContentForStorage(buildDefaultScript(websiteGlob, config, scriptName), false, config),
   },
@@ -237,7 +236,6 @@ export const buildDefaultToolState = (
 export const isDefaultToolState = (state: StoredToolState, config: ScriptFormatConfig) => {
   const defaultState = buildDefaultToolState(state.websiteGlob, config, state.scriptName);
   return (
-    state.activeTool === defaultState.activeTool &&
     state.codeEditor.content === defaultState.codeEditor.content &&
     state.permissions.allowedGrants.length === defaultState.permissions.allowedGrants.length &&
     state.permissions.enabled === defaultState.permissions.enabled

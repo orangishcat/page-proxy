@@ -3,7 +3,7 @@ import {
   buildDefaultRecordPanelState,
   type RecordPanelState,
 } from "../../entrypoints/sidepanel/tools/storage/record-panel";
-import { coerceStoredToolState, type StoredToolState } from "../stored-tool-state";
+import { coerceStoredToolState, ToolIdSchema, type StoredToolState } from "../stored-tool-state";
 
 const coerceRecordTimelineEntry = (value: unknown) => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -85,6 +85,7 @@ export const ScriptStorageMapSchema = z.record(z.string().trim().min(1), z.unkno
 
 export const SidepanelLocalOptionsSchema = z
   .object({
+    activeTool: ToolIdSchema.optional(),
     helpBannerDismissed: z.boolean().optional(),
     unsupportedBrowserBannerDismissed: z.boolean().optional(),
     firefoxExperimentalBannerDismissed: z.boolean().optional(),

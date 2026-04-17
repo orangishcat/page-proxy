@@ -19,24 +19,8 @@ export const appStateActions = {
     logger.debug("set disableAllGrants", { value });
   },
   setActiveTool(value: ToolId) {
-    appState.currentTab.activeTool = value;
-
-    const activeScript = appStateSelectors.getActiveScript();
-    if (!activeScript) {
-      logger.debug("set currentTab activeTool", { value });
-      return;
-    }
-
-    appState.scriptsByName[activeScript.scriptName] = {
-      ...activeScript,
-      activeTool: value,
-      updatedAt: Date.now(),
-      permissions: {
-        ...activeScript.permissions,
-        allowedGrants: coerceScriptGrantValues(activeScript.permissions.allowedGrants),
-      },
-    };
-    logger.debug("set activeTool", { value, scriptName: activeScript.scriptName });
+    appState.sidepanel.activeTool = value;
+    logger.debug("set activeTool", { value });
   },
   setToolPanelHeight(value: number | undefined) {
     appState.sidepanel.toolPanelHeightPx = value;
