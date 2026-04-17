@@ -22,7 +22,6 @@ export type MessageHandlerDeps = {
   setError: (message: string | null) => void;
 };
 
-
 export const isSelectorSaveMessage = (
   message: unknown,
 ): message is { type: "selector:save"; payload: SelectorSavePayload } => {
@@ -114,7 +113,9 @@ const replaceExistingCssDefinition = (payload: SelectorSavePayload, content: str
     return null;
   }
 
-  const originalSelector = payload.originalCode ? readCssSelectorSource(payload.originalCode) : payload.baseSelector?.trim();
+  const originalSelector = payload.originalCode
+    ? readCssSelectorSource(payload.originalCode)
+    : payload.baseSelector?.trim();
   if (!originalSelector) {
     return null;
   }
@@ -147,10 +148,7 @@ const replaceExistingSelectorDefinition = (payload: SelectorSavePayload, content
   return `${content.slice(0, currentBlock.start)}${nextCode}${content.slice(currentBlock.end)}`;
 };
 
-export const saveSelectorDefinition = (
-  payload: SelectorSavePayload,
-  deps: MessageHandlerDeps,
-): SelectorSaveResult => {
+export const saveSelectorDefinition = (payload: SelectorSavePayload, deps: MessageHandlerDeps): SelectorSaveResult => {
   const rawCode = payload.code.trim();
   const existingCode = deps.getEditorContent();
   const includesSelectorDefinition = rawCode.includes("pq.selector");
@@ -160,7 +158,7 @@ export const saveSelectorDefinition = (
     const replacedContent = replaceExistingCssDefinition(payload, existingCode);
     if (replacedContent !== null) {
       if (!deps.replaceEditorContent(replacedContent)) {
-        const error = "Unable to save selector to the editor.";
+        const error = "Unable to save selector to the editor (CSS replaceEditorContent failed).";
         deps.setError(error);
         return { ok: false, error };
       }
@@ -169,7 +167,7 @@ export const saveSelectorDefinition = (
     }
 
     if (!deps.insertDefinitions([rawCode])) {
-      const error = "Unable to save selector to the editor.";
+      const error = "Unable to save selector to the editor (CSS insertDefinitions failed).";
       deps.setError(error);
       return { ok: false, error };
     }
@@ -184,12 +182,10 @@ export const saveSelectorDefinition = (
   }
 
   const existingVariableNames = new Set(
-    [...deps.getElementEntries(), ...deps.getSelectorEntries()].map((entry) =>
-      sanitizeVariableName(entry.name),
-    ),
+    [...deps.getElementEntries(), ...deps.getSelectorEntries()].map((entry) => sanitizeVariableName(entry.name)),
   );
   const originalVariableName = payload.originalCode
-    ? extractPqSelectorDefinitionBlocks(payload.originalCode)[0]?.variableName ?? null
+    ? (extractPqSelectorDefinitionBlocks(payload.originalCode)[0]?.variableName ?? null)
     : null;
   if (originalVariableName) {
     existingVariableNames.delete(sanitizeVariableName(originalVariableName));
@@ -211,7 +207,7 @@ export const saveSelectorDefinition = (
   const replacedContent = replaceExistingSelectorDefinition(payload, existingCode);
   if (replacedContent !== null) {
     if (!deps.replaceEditorContent(replacedContent)) {
-      const error = "Unable to save selector to the editor.";
+      const error = "Unable to save selector to the editor (replaceEditorContent failed).";
       deps.setError(error);
       return { ok: false, error };
     }
@@ -220,7 +216,7 @@ export const saveSelectorDefinition = (
   }
 
   if (!deps.insertDefinitions([rawCode])) {
-    const error = "Unable to save selector to the editor.";
+    const error = "Unable to save selector to the editor (selector insertDefinitions failed).";
     deps.setError(error);
     return { ok: false, error };
   }

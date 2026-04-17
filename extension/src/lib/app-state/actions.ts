@@ -146,14 +146,14 @@ export const appStateActions = {
   },
   setCurrentTabElementEntries(value: ElementEntry[]) {
     appState.currentTab.elementEntries = value;
-    logger.debug("set currentTab.elementEntries", { count: value.length });
+    logger.debug("set currentTab.elementEntries", { value });
   },
   setCurrentTabScriptMetadata(value: ScriptMetadataState) {
     appState.currentTab.scriptMetadata = value;
-    logger.debug("set currentTab.scriptMetadata", { title: value.title });
+    logger.debug("set currentTab.scriptMetadata", { value });
   },
   setCurrentTabEditorApi(value: EditorApi | null) {
     appState.currentTab.editorApi = value;
-    logger.debug("set currentTab.editorApi", { isReady: value !== null });
+    logger.debug("set currentTab.editorApi", { value });
   },
 };
