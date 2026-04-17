@@ -96,7 +96,6 @@ const notifySelectionChanged = (tabId: number, selection: DevtoolsElementSelecti
     tabId,
     selection: cloneSelection(selection),
   };
-  logger.debug("runtime message sent", { type: message.type, tabId });
   void browser.runtime.sendMessage(message satisfies DevtoolsSelectionRuntimeMessage).catch((error: unknown) => {
     logIgnoredError("Unable to publish DevTools selection change message.", error, { tabId });
   });
@@ -108,7 +107,6 @@ const notifyStatusChanged = (tabId: number, open: boolean) => {
     tabId,
     open,
   };
-  logger.debug("runtime message sent", { type: message.type, tabId, open });
   void browser.runtime.sendMessage(message satisfies DevtoolsSelectionRuntimeMessage).catch((error: unknown) => {
     logIgnoredError("Unable to publish DevTools status change message.", error, { tabId, open });
   });
@@ -211,7 +209,6 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
 
       pendingCommands.set(requestId, { resolve, timeoutId });
       try {
-        logger.debug("port message sent", { type: message.type, tabId, action, requestId });
         port.postMessage(message);
       } catch (error: unknown) {
         pendingCommands.delete(requestId);
@@ -261,7 +258,6 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
 
     port.onMessage.addListener((message: unknown) => {
       const messageType = getMessageType(message);
-      logger.debug("port message received", { type: messageType });
       const tabIdFromPort = portTabIdByPort.get(port);
 
       if (isPortConnectedMessage(message)) {
@@ -270,13 +266,6 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
       }
 
       if (isSelectionUpdateMessage(message)) {
-        logger.debug("devtools selection update received", {
-          tabId: message.tabId,
-          hasSelection: Boolean(message.selection),
-          selector: message.selection?.info.selector ?? null,
-          frameId: message.selection?.frameId ?? null,
-          frameUrl: message.selection?.frameUrl ?? null,
-        });
         trackPort(port, message.tabId);
         updateSelectionCache(message.tabId, message.selection);
         return;
@@ -296,7 +285,6 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
 
   const handleRuntimeMessage: RuntimeMessageHandler = (message, _sender, sendResponse) => {
     if (isStatusRequestMessage(message)) {
-      logger.debug("runtime message received", { message });
       const response: DevtoolsSelectionStatusResponseMessage = {
         open: getAnyPortForTab(message.tabId) !== null,
       };
@@ -305,7 +293,6 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
     }
 
     if (isSelectionGetRequestMessage(message)) {
-      logger.debug("runtime message received", { message });
       void sendCommandToTab(message.tabId, "get-selected")
         .then((response) => {
           if (response.selection) {
@@ -326,7 +313,6 @@ export const createDevtoolsSelectionRuntimeHandler = () => {
     }
 
     if (isSelectionParentRequestMessage(message)) {
-      logger.debug("runtime message received", { message });
       void sendCommandToTab(message.tabId, "select-parent")
         .then((response) => {
           if (response.selection) {

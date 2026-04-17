@@ -110,7 +110,6 @@ export class SelectionController {
   };
 
   sendRuntimeMessage = (message: SelectToolMessage | SidepanelShortcutMessage): void => {
-    logger.debug("runtime message sent", message);
     void browser.runtime.sendMessage(message).catch((error: unknown) => {
       if (this.isNoReceiverError(error)) {
         this.stopSelection("receiver-missing");

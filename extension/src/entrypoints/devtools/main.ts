@@ -99,7 +99,6 @@ const postSelectionUpdate = (selection: DevtoolsElementSelection | null) => {
     selection,
   };
 
-  logger.debug("port message sent", { type: message.type, tabId: inspectedTabId });
   selectionPort.postMessage(message);
 };
 
@@ -109,7 +108,6 @@ const postConnectedMessage = () => {
     tabId: inspectedTabId,
   };
 
-  logger.debug("port message sent", { type: message.type, tabId: inspectedTabId });
   selectionPort.postMessage(message);
 };
 
@@ -140,7 +138,6 @@ const publishCurrentSelection = () => {
 
 selectionPort.onMessage.addListener((message: unknown) => {
   const messageType = getMessageType(message);
-  logger.debug("port message received", { type: messageType });
 
   if (!isCommandMessage(message)) {
     return;
@@ -155,11 +152,6 @@ selectionPort.onMessage.addListener((message: unknown) => {
       selection: result.selection,
       error: result.error,
     };
-    logger.debug("port message sent", {
-      type: response.type,
-      requestId: response.requestId,
-      ok: response.ok,
-    });
     selectionPort.postMessage(response);
 
     if (result.ok) {

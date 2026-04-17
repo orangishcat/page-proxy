@@ -30,6 +30,7 @@ import {
   replaceAppState,
 } from "@/lib/app-state.ts";
 import log from "@/lib/logger";
+import { isRecord } from "@/lib/utils/type-guards";
 
 type StoredStateMatch = {
   scriptName: string;
@@ -314,7 +315,6 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
 
   permissionRequests.forEach((grants, scriptName) => {
     const payload = { scriptName, grants: Array.from(grants) };
-    logger.debug("runMatchingScriptsForTab: sending grant request", { scriptName, grants: payload.grants, tabId });
     void requestGrantPermissions(payload).catch(() => {
       logger.debug("No open sidepanel receiver for grant request.", { scriptName });
     });
@@ -338,6 +338,20 @@ const runMatchingScriptsForTab = async (tabId: number, url?: string) => {
 export default defineBackground(() => {
   const tabsWithPendingInitialLoad = new Set<number>();
   const devtoolsSelectionRuntime = createDevtoolsSelectionRuntimeHandler();
+
+  browser.runtime.onMessage.addListener((message, sender) => {
+    const type = isRecord(message) && typeof message.type === "string" ? message.type : "<unknown>";
+
+    logger.debug(`[${type}]`, { message: message as unknown, sender });
+  });
+
+  browser.runtime.onConnect.addListener((port) => {
+    logger.debug("[port connected]", port.name);
+
+    port.onMessage.addListener((msg) => {
+      logger.debug("[port message]", msg);
+    });
+  });
 
   void ensureCodeRunnerUserscript().then((status) => {
     if (!status.ok) {

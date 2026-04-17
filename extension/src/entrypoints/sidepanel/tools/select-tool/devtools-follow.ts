@@ -234,7 +234,6 @@ const updateDevtoolsStatusForActiveTab = (message: DevtoolsSelectionStatusChange
 export const attachSelectionListener = () => {
   const listener = (message: unknown) => {
     const messageType = isRecord(message) && typeof message.type === "string" ? message.type : "unknown";
-    logger.debug("runtime message received", { type: messageType });
 
     if (isDevtoolsStatusChangedMessage(message)) {
       updateDevtoolsStatusForActiveTab(message);
