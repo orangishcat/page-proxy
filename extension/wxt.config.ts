@@ -32,8 +32,8 @@ export default defineConfig({
       sourcemap: env.mode === "development",
     },
   }),
-  manifest: ({ browser }) => ({
-    name: "Page Proxy",
+  manifest: ({ browser, mode }) => ({
+    name: "Page Proxy" + (mode === "development" ? " (Development Mode)" : ""),
     version: rootPkg.version,
     description: "Proxy and restyle pages with an extension-based UI.",
     action: {
