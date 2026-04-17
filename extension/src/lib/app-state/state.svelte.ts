@@ -11,7 +11,8 @@ export const replaceAppState = (nextState: AppState) => {
   appState.scriptsByName = nextState.scriptsByName;
   appState.recordPanelsByTabId = nextState.recordPanelsByTabId;
   appState.session = nextState.session;
-  appState.currentTab = nextState.currentTab;
+  appState.currentTab.lastHydrationError = nextState.currentTab.lastHydrationError;
+  appState.currentTab.lastPersistenceError = nextState.currentTab.lastPersistenceError;
   isAppStateHydrated = true;
   setAppStateHydratedFlag(true);
 };
