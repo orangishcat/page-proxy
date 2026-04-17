@@ -58,7 +58,10 @@
   const canExportSelectedFormat = $derived(selectedFormatOption.available);
 
   const normalizedWebsiteGlob = $derived(
-    buildWebsiteMetadataListing(extractWebsiteMetadataGlobs(editorContentValue), appState.currentTab.scriptMetadata.website),
+    buildWebsiteMetadataListing(
+      extractWebsiteMetadataGlobs(editorContentValue),
+      appState.currentTab.scriptMetadata.website,
+    ),
   );
 
   const downloadExportArtifact = (fileName: string, body: string, mimeType: string) => {
@@ -186,7 +189,9 @@
       >
 
       <span class="min-w-0 text-right truncate text-gray-500">Author</span>
-      <span class="min-w-0 wrap-break-word text-left font-mono">{appState.currentTab.scriptMetadata.author || "No author"}</span>
+      <span class="min-w-0 wrap-break-word text-left font-mono"
+        >{appState.currentTab.scriptMetadata.author || "No author"}</span
+      >
 
       {#if appState.currentTab.scriptMetadata.credits.trim()}
         <span class="min-w-0 text-right truncate text-gray-500">Credits</span>
@@ -238,7 +243,7 @@
 
   <div class="mt-auto space-y-2 border-t border-gray-800 px-4 pt-3 pb-1">
     <div class="flex items-center gap-1">
-      <label for="export-format" class="text-gray-500">Export format</label>
+      <label for="export-format" class="text-gray-500 text-xs">Export format</label>
       <select
         id="export-format"
         class="h-8 flex-1 rounded-xl ml-3 w-full border border-gray-700 bg-[#2a2924] px-2 text-body text-gray-100 outline-none focus:border-accent-500"

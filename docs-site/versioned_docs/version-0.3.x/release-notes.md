@@ -7,30 +7,41 @@ title: Release notes
 ## New in v0.3.9
 
 - Added script metadata version support:
-    - New blank scripts now include an explicit `@version` field in the Page Proxy metadata block.
-    - Userscript exports now keep the script version and fall back to the default script version when the field is left blank.
+    - New blank scripts now include an explicit `@version` field in the Page
+      Proxy metadata block.
+    - Userscript exports now keep the script version and fall back to the
+      default script version when the field is left blank.
 - Added a dedicated Settings tool in the sidepanel:
     - The toolbar now has a Settings entry with shortcut `Shift + 4`.
-    - Settings can show or hide the Help tool button and disable declared grants for individual saved scripts.
-- Improved extension state reliability:
-    - Sidepanel settings, selected scripts, record panels, and stored script state now flow through the unified app-state storage system.
-    - Recent storage fixes address script selection, banner persistence, and grant-related edge cases.
+    - Settings can show or hide the Help tool button and disable declared grants
+      for individual saved scripts.
+- Refactored extension storage to be more maintainable:
+    - Sidepanel settings, selected scripts, record panels, and stored script
+      state now flow through the unified app-state storage system.
+    - Recent storage fixes address script selection, banner persistence, and
+      grant-related edge cases.
 - Fixed DevTools-follow selection sync:
-    - DevTools element following now evaluates the selected element more reliably and keeps the sidepanel selection in sync.
+    - DevTools element following now evaluates the selected element more
+      reliably and keeps the sidepanel selection in sync.
 
 ## New in v0.3.8
 
 - Improved export controls:
-    - Added a **Minify** toggle for `pp-script`, Tampermonkey, and CSS stylesheet exports.
-    - Exported Page Proxy scripts keep their metadata and selector blocks while minifying runnable code.
+    - Added a **Minify** toggle for `pp-script`, Tampermonkey, and CSS
+      stylesheet exports.
+    - Exported Page Proxy scripts keep their metadata and selector blocks while
+      minifying runnable code.
     - CSS stylesheet minification now uses `css-tree`.
 - Added a global grant safety toggle in the code editor:
     - The toolbar now includes **Disable all grants**.
-    - When enabled, declared grants such as `run-on-page-load` are ignored until the toggle is turned off again.
+    - When enabled, declared grants such as `run-on-page-load` are ignored until
+      the toggle is turned off again.
 - Refined editor and extension UI polish:
-    - The editor toolbar now focuses on script selection without repeating the active website glob.
+    - The editor toolbar now focuses on script selection without repeating the
+      active website glob.
     - Export tool layout and extension styling were cleaned up.
-- Internal refactors split large Select tool, selector popup, notification, and landing demo modules into smaller focused files.
+- Internal refactors split large Select tool, selector popup, notification, and
+  landing demo modules into smaller focused files.
 
 ## New in v0.3.7
 

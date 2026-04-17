@@ -5,23 +5,18 @@ sidebar_position: 6
 
 # Settings tool
 
-New in v0.3.9: the sidepanel includes a dedicated **Settings** tool for
-sidepanel-level controls that do not belong in the editor itself.
+New in v0.3.9: the sidepanel includes a dedicated Settings tool for options that
+didn't fit within in the side panel UI.
 
-## What it does
+## Grant toggles/local settings
+
+- Temporarily suppresses declared grants for the selected saved script until you
+  turn them back on.
+    - Useful when you want to block scripts from running on page load (currently
+      the only grant).
+- For extension-wide suppression, use the global **Disable all grants** button
+  in the code editor toolbar.
+
+## Extension settings
 
 - Shows or hides the Help button in the sidepanel toolbar.
-- Lets you disable declared grants for individual saved scripts.
-- Keeps these settings in the unified extension app-state so they persist with
-  the rest of the sidepanel state.
-
-## Grant toggles
-
-Grant toggles do not delete or rewrite your script metadata.
-
-Instead, they suppress declared grants for the selected saved script until you
-turn them back on. This is useful when you want to keep a script installed but
-temporarily block `run-on-page-load`.
-
-For extension-wide suppression, use the global **Disable all grants** button in
-the code editor toolbar.
