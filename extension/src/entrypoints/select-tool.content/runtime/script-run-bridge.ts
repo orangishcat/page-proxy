@@ -1,12 +1,9 @@
-import log from "@/lib/logger";
 import {
   buildScriptRunResponse,
   isScriptRunResponse,
   type ScriptRunRequest,
   type ScriptRunResponse,
 } from "@/lib/script-runner";
-
-const logger = log.getLogger("run-bridge");
 
 export const scriptRunBridgeTimeoutMs = 1800;
 

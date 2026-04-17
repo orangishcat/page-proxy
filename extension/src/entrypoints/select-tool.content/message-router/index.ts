@@ -1,5 +1,4 @@
 import { browser } from "wxt/browser";
-import log from "@/lib/logger";
 import type { SelectToolMessage } from "@/lib/selection";
 import { isGrantPermissionRequestMessage } from "@/lib/grant-permissions";
 import { isScriptRunRequest } from "@/lib/script-runner";
@@ -7,8 +6,6 @@ import { forwardScriptRunToMainWorld } from "../runtime/script-run-bridge";
 import type { SelectionController } from "../controller/SelectionController";
 import { selectToolHandlerMap } from "./select-tool-handler-map";
 import type { RoutedSelectToolMessageContent, RoutedSelectToolMessageMap, RoutedSelectToolMessageType } from "./types";
-
-const logger = log.getLogger("message-router");
 
 const routedSelectToolMessageTypes = new Set<RoutedSelectToolMessageType>([
   "selector:open",

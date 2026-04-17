@@ -7,7 +7,6 @@ import type {
   DevtoolsSelectionStatusChangedRuntimeMessage,
   DevtoolsSelectionResponseMessage,
 } from "@/lib/devtools-selection";
-import { isRecord } from "@/lib/utils/type-guards";
 import { setToolMessage } from "../tool-errors";
 import {
   followDevtoolsSelection,
@@ -233,8 +232,6 @@ const updateDevtoolsStatusForActiveTab = (message: DevtoolsSelectionStatusChange
 
 export const attachSelectionListener = () => {
   const listener = (message: unknown) => {
-    const messageType = isRecord(message) && typeof message.type === "string" ? message.type : "unknown";
-
     if (isDevtoolsStatusChangedMessage(message)) {
       updateDevtoolsStatusForActiveTab(message);
       return;
