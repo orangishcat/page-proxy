@@ -38,7 +38,6 @@ export const forwardScriptRunToMainWorld = (
   const onMessage = (event: MessageEvent) => {
     if (!isWindowSource(event.source)) return;
     if (!isScriptRunResponse(event.data) || event.data.requestId !== request.requestId) return;
-    logger.debug("window message received", { type: event.data.type, requestId: event.data.requestId });
     respond(event.data);
   };
 
@@ -56,7 +55,6 @@ export const forwardScriptRunToMainWorld = (
     );
   }, scriptRunBridgeTimeoutMs);
 
-  logger.debug("window message sent", { type: request.type, requestId: request.requestId });
   window.postMessage(request, targetOrigin);
   return true;
 };

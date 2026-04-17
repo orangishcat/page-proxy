@@ -38,17 +38,7 @@ const sendMessageToTab = async (
   message: SelectToolMessage,
   options?: { frameId: number },
 ): Promise<unknown> => {
-  logger.debug("send select tool message", {
-    tabId,
-    frameId: options?.frameId ?? null,
-    type: message.type,
-  });
   const response: unknown = await browser.tabs.sendMessage(tabId, message, options);
-  logger.debug("received select tool response", {
-    tabId,
-    frameId: options?.frameId ?? null,
-    type: message.type,
-  });
   return response;
 };
 

@@ -40,15 +40,10 @@ const dispatchRoutedSelectToolMessage = <TType extends RoutedSelectToolMessageTy
 export const addMessageListener = (ctrl: SelectionController): void => {
   browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
     if (isScriptRunRequest(message)) {
-      logger.debug("script run bridge received", { requestId: message.requestId });
       return forwardScriptRunToMainWorld(message, sendResponse);
     }
 
     if (isGrantPermissionRequestMessage(message)) {
-      logger.debug("grant:request received", {
-        scriptName: message.payload.scriptName,
-        grants: message.payload.grants,
-      });
       void ctrl.grantManager.open(message.payload);
       return false;
     }
@@ -56,8 +51,6 @@ export const addMessageListener = (ctrl: SelectionController): void => {
     if (!isSelectToolMessage(message)) {
       return false;
     }
-
-    logger.debug("select tool message received", message);
 
     if (!isRoutedSelectToolMessageType(message.type)) {
       return false;

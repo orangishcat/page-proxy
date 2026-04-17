@@ -126,7 +126,6 @@ export class SelectorPopupManager {
       }
 
       const message: SelectToolMessage = { type: "selector:apply-style:save", cssValues };
-      logger.debug("save css inspector sent", { type: "selector:apply-style:save" });
       await browser.runtime.sendMessage(message).catch((error: unknown) => {
         logger.error("Failed to send apply-style:save", { error });
       });
@@ -134,7 +133,6 @@ export class SelectorPopupManager {
       return { ok: true };
     }
 
-    logger.debug("runtime message sent", { type: "selector:save" });
     const response: unknown = await browser.runtime
       .sendMessage({ type: "selector:save", payload } satisfies SelectToolMessage)
       .catch((error: unknown) => {

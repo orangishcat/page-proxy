@@ -33,7 +33,7 @@ export default defineConfig({
     },
   }),
   manifest: ({ browser, mode }) => ({
-    name: "Page Proxy" + (mode === "development" ? " (Development Mode)" : ""),
+    name: "Page Proxy" + (mode === "development" ? " (dev mode)" : ""),
     version: rootPkg.version,
     description: "Proxy and restyle pages with an extension-based UI.",
     action: {
