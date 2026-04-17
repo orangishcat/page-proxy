@@ -78,6 +78,7 @@
   const deps = $derived.by(() => ({
     showHelpButton: appState.settings.showHelpButton,
     disableAllGrants: appState.settings.disableAllGrants,
+    activeTool: appState.sidepanel.activeTool,
     toolPanelHeightPx: appState.sidepanel.toolPanelHeightPx,
     helpBannerDismissed: appState.sidepanel.helpBannerDismissed,
     userscriptReloadBannerDismissed: appState.sidepanel.userscriptReloadBannerDismissed,

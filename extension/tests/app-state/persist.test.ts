@@ -62,9 +62,15 @@ void mock.module("wxt/browser", () => ({
   },
 }));
 
+const hydrateModule = await import("../../src/lib/app-state/storage/hydrate/hydrate.ts");
+const stateModule = await import("../../src/lib/app-state/state.svelte.ts");
+const actionsModule = await import("../../src/lib/app-state/actions.ts");
+const runHydrateAppState = hydrateModule.hydrateAppState;
+const replacePersistedState = stateModule.replaceAppState;
+const appStateActions = actionsModule.appStateActions;
+
 const buildStoredState = (scriptName: string, websiteGlob: string, updatedAt: number): StoredToolState => ({
   scriptName,
-  activeTool: "none",
   codeEditor: {
     content: [
       "import { pa, pn, pq, ps, pt, pv } from \"@page-proxy/pp\";",
@@ -96,26 +102,24 @@ describe("flushAppStatePersistence", () => {
   });
 
   test("writes active script and settings back to keyed storage", async () => {
-    const { flushAppStatePersistence } = await import("../../src/lib/app-state/storage/persist/persist.ts");
-    const { hydrateAppState } = await import("../../src/lib/app-state/storage/hydrate/hydrate.ts");
-    const { replaceAppState } = await import("../../src/lib/app-state/state.svelte.ts");
-    const { appStateActions } = await import("../../src/lib/app-state/actions.ts");
-
-    replaceAppState(await hydrateAppState());
+    const persistModule = await import("../../src/lib/app-state/storage/persist/persist.ts");
+    replacePersistedState(await runHydrateAppState());
 
     appStateActions.setShowHelpButton(false);
     appStateActions.setDisableAllGrants(true);
+    appStateActions.setActiveTool("record");
     appStateActions.dismissBanner("helpBannerDismissed");
     appStateActions.dismissBanner("unsupportedBrowserBannerDismissed");
     appStateActions.dismissBanner("firefoxExperimentalBannerDismissed");
     appStateActions.dismissBanner("userscriptEnableBannerDismissed");
     appStateActions.upsertStoredToolState(buildStoredState("Docs Script", "https://docs.example.com/*", 1));
 
-    await flushAppStatePersistence();
+    await persistModule.flushAppStatePersistence();
 
     const local = getStorageState("local");
     expect(local["pageproxy:show-help-button"]).toBe(false);
     expect(local["pageproxy:disable-all-grants"]).toBe(true);
+    expect(local["sidepanel:activeTool"]).toBe("record");
     expect(local["sidepanel:helpBannerDismissed"]).toBe(true);
     expect(local["sidepanel:unsupportedBrowserBannerDismissed"]).toBe(true);
     expect(local["sidepanel:firefoxExperimentalBannerDismissed"]).toBe(true);
@@ -124,9 +128,7 @@ describe("flushAppStatePersistence", () => {
   });
 
   test("writes allowed grants back as a list", async () => {
-    const { flushAppStatePersistence } = await import("../../src/lib/app-state/storage/persist/persist.ts");
-    const { hydrateAppState } = await import("../../src/lib/app-state/storage/hydrate/hydrate.ts");
-    const { replaceAppState } = await import("../../src/lib/app-state/state.svelte.ts");
+    const persistModule = await import("../../src/lib/app-state/storage/persist/persist.ts");
     const local = getStorageState("local");
     local["pageproxy:Docs Script"] = {
       ...buildStoredState("Docs Script", "https://docs.example.com/*", 1),
@@ -136,8 +138,8 @@ describe("flushAppStatePersistence", () => {
       },
     };
 
-    replaceAppState(await hydrateAppState());
-    await flushAppStatePersistence();
+    replacePersistedState(await runHydrateAppState());
+    await persistModule.flushAppStatePersistence();
 
     const stored = getStorageState("local")["pageproxy:Docs Script"] as
       | { permissions?: { allowedGrants?: unknown } }

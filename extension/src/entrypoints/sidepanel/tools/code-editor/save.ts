@@ -1,5 +1,5 @@
 import { defaultBlankScriptTitle, matchesScriptName } from "@/lib/script-names";
-import { appState } from "@/lib/app-state";
+import { appState } from "@/lib/app-state/state.svelte.ts";
 import { parseScriptMetadata } from "@/lib/utils/script-metadata";
 import type { ScriptGrantValue } from "@/lib/grants";
 import { matchWebsiteGlob } from "@/lib/utils/website-glob";
@@ -10,7 +10,7 @@ import {
   resolveWebsiteGlob,
   type ScriptFormatConfig,
 } from "../state-loading";
-import type { StoredSelectorEntry, StoredToolState, ToolId } from "@/lib/stored-tool-state";
+import type { StoredSelectorEntry, StoredToolState } from "@/lib/stored-tool-state";
 
 const getStoredToolState = (scriptName: string): StoredToolState | null => appState.scriptsByName[scriptName] ?? null;
 
@@ -40,7 +40,6 @@ type SaveStateOptions = {
   activeTabUrl: string | null;
   activeWebsiteGlob: string | null;
   activeScriptName: string | null;
-  activeTool: ToolId;
   getDefinitionBlock: (content: string) => string;
   setActiveWebsiteGlob: (websiteGlob: string) => void;
   setActiveScriptName: (scriptName: string) => void;
@@ -105,7 +104,6 @@ export const saveState = (options: SaveStateOptions) => {
 
   const state: StoredToolState = {
     scriptName,
-    activeTool: options.activeTool,
     codeEditor: {
       content: contentWithWebsite,
     },

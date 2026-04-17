@@ -3,7 +3,6 @@ import type { ScriptGrantValue } from "@/lib/grants";
 import { defaultBlankScriptTitle } from "@/lib/script-names";
 import { appState } from "@/lib/app-state";
 import { readHostnameFromUrl } from "@/lib/utils/website-glob";
-import type { ToolId } from "@/lib/stored-tool-state";
 import { saveState } from "./save";
 import { selectorEntries } from "./state";
 import { resolveBlankScriptName } from "../state-loading";
@@ -25,7 +24,6 @@ type EditorMessage = { text: string; status: string; stackTrace: string | null }
 export type EditorActionsDeps = {
   tabState: TabLoaderState;
   allowedGrants: ScriptGrantValue[];
-  activeTool: ToolId;
   scriptMetadata: { title: string; website: string };
   scriptFormatConfig: ScriptFormatConfig;
   setHasUnsavedChanges: (v: boolean) => void;
@@ -56,7 +54,6 @@ export const saveToolState = async (content: string, deps: EditorActionsDeps): P
       activeTabUrl: deps.tabState.activeTabUrl,
       activeWebsiteGlob: deps.tabState.activeWebsiteGlob,
       activeScriptName: deps.tabState.activeScriptName,
-      activeTool: deps.activeTool,
       getDefinitionBlock,
       setActiveWebsiteGlob: (v) => {
         deps.tabState.activeWebsiteGlob = v;

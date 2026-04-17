@@ -6,7 +6,6 @@ import type { StoredToolState } from "../../src/lib/stored-tool-state";
 
 const buildStoredState = (): StoredToolState => ({
   scriptName: "Page Proxy",
-  activeTool: "none",
   codeEditor: {
     content: [
       "// ==Page Proxy==",
@@ -39,7 +38,7 @@ describe("active tool state", () => {
     replaceAppState(createDefaultAppState());
   });
 
-  test("tracks the current tab tool when no active script is selected", async () => {
+  test("stores the active tool globally when no active script is selected", async () => {
     const { appStateActions } = await import("../../src/lib/app-state/actions.ts");
     const { appStateSelectors } = await import("../../src/lib/app-state/selectors.ts");
 
@@ -48,11 +47,11 @@ describe("active tool state", () => {
 
     appStateActions.setActiveTool("selectors");
 
-    expect(appState.currentTab.activeTool).toBe("selectors");
+    expect(appState.sidepanel.activeTool).toBe("selectors");
     expect(appStateSelectors.getActiveTool()).toBe("selectors");
   });
 
-  test("keeps the stored script and current tab tool in sync when a script is active", async () => {
+  test("does not write the active tool back into stored scripts", async () => {
     const { appStateActions } = await import("../../src/lib/app-state/actions.ts");
     const { appStateSelectors } = await import("../../src/lib/app-state/selectors.ts");
 
@@ -61,8 +60,8 @@ describe("active tool state", () => {
 
     appStateActions.setActiveTool("record");
 
-    expect(appState.currentTab.activeTool).toBe("record");
-    expect(appState.scriptsByName["Page Proxy"]?.activeTool).toBe("record");
+    expect(appState.sidepanel.activeTool).toBe("record");
+    expect("activeTool" in (appState.scriptsByName["Page Proxy"] ?? {})).toBe(false);
     expect(appStateSelectors.getActiveTool()).toBe("record");
   });
 });

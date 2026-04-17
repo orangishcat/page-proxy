@@ -1,21 +1,20 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 
-import { appState } from "../src/lib/app-state";
 import { createDefaultAppState } from "../src/lib/app-state/defaults.ts";
-import { replaceAppState } from "../src/lib/app-state/state.svelte.ts";
+import { appState, replaceAppState } from "../src/lib/app-state/state.svelte.ts";
 import { appStateSelectors } from "../src/lib/app-state/selectors.ts";
 import type { StoredToolState } from "../src/lib/stored-tool-state";
 
-const { normalizeContentForStorage, resolveStoredToolStateForUrl } = await import(
-  "../src/entrypoints/sidepanel/tools/state-loading"
-);
-const { toStorageKey } = await import("../src/lib/stored-tool-state");
-const {
-  buildSelectedScriptStorageKey,
-  clearSelectedScriptForHostname,
-  readSelectedScriptForHostname,
-  writeSelectedScriptForHostname,
-} = await import("../src/entrypoints/sidepanel/tools/script-selection-session");
+const stateLoadingModule = await import("../src/entrypoints/sidepanel/tools/state-loading");
+const storedToolStateModule = await import("../src/lib/stored-tool-state");
+const scriptSelectionSessionModule = await import("../src/entrypoints/sidepanel/tools/script-selection-session");
+const normalizeContentForStorage = stateLoadingModule.normalizeContentForStorage;
+const resolveStoredToolStateForUrl = stateLoadingModule.resolveStoredToolStateForUrl;
+const toStorageKey = storedToolStateModule.toStorageKey;
+const buildSelectedScriptStorageKey = scriptSelectionSessionModule.buildSelectedScriptStorageKey;
+const clearSelectedScriptForHostname = scriptSelectionSessionModule.clearSelectedScriptForHostname;
+const readSelectedScriptForHostname = scriptSelectionSessionModule.readSelectedScriptForHostname;
+const writeSelectedScriptForHostname = scriptSelectionSessionModule.writeSelectedScriptForHostname;
 
 const scriptFormatConfig = {
   ppImportLines: ['import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";'],
@@ -45,7 +44,6 @@ const buildScriptContent = (title: string, websiteGlob: string) =>
 
 const buildStoredState = (scriptName: string, websiteGlob: string, updatedAt: number): StoredToolState => ({
   scriptName,
-  activeTool: "none",
   codeEditor: {
     content: normalizeContentForStorage(buildScriptContent(scriptName, websiteGlob), false, scriptFormatConfig),
   },

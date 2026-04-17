@@ -6,6 +6,7 @@ export const createDefaultAppState = (): AppState => ({
     disableAllGrants: false,
   },
   sidepanel: {
+    activeTool: "none",
     helpBannerDismissed: false,
     unsupportedBrowserBannerDismissed: false,
     firefoxExperimentalBannerDismissed: false,
@@ -22,7 +23,6 @@ export const createDefaultAppState = (): AppState => ({
   currentTab: {
     activeTabId: null,
     activeTabUrl: null,
-    activeTool: "none",
     activeWebsiteGlob: null,
     activeScriptName: null,
     defaultScriptName: null,

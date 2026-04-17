@@ -1,15 +1,13 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 
-import { appState } from "../src/lib/app-state";
 import { createDefaultAppState } from "../src/lib/app-state/defaults.ts";
-import { replaceAppState } from "../src/lib/app-state/state.svelte.ts";
+import { appState, replaceAppState } from "../src/lib/app-state/state.svelte.ts";
 import type { StoredToolState } from "../src/lib/stored-tool-state";
 
 const { toStorageKey } = await import("../src/lib/stored-tool-state");
 
 const buildStoredState = (): StoredToolState => ({
   scriptName: "Page Proxy",
-  activeTool: "none",
   codeEditor: {
     content: [
       "// ==Page Proxy==",
