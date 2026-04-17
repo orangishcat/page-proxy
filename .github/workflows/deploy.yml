@@ -39,9 +39,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          bun install --frozen-lockfile
+          bun install
           cd docs-site
-          bun install --frozen-lockfile
+          bun install
 
       - name: Build website
         run: bun run web:build
