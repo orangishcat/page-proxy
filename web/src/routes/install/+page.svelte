@@ -4,7 +4,6 @@
   import { SiFirefoxbrowser, SiGooglechrome } from "@icons-pack/svelte-simple-icons";
   import SeoHead from "$lib/components/SeoHead.svelte";
   import Navbar from "$lib/components/Navbar.svelte";
-  import { releaseVersion } from "$lib/utils/release-version";
   import { ChevronDown } from "lucide-svelte";
   import { createInstallHowToJsonLd, createSoftwareApplicationJsonLd, createWebPageJsonLd } from "$lib/seo";
   import { onMount } from "svelte";
@@ -16,7 +15,7 @@
   let selectedInstallMethod = $state<"load-unpacked" | "install-from-file">("load-unpacked");
   let browserDropdownOpen = $state(false);
   let installMethodDropdownOpen = $state(false);
-  const version = releaseVersion;
+  const version = "0.3.8";
 
   const browserLabel = {
     chrome: "Chrome",
