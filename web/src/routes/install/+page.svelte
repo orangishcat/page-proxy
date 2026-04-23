@@ -16,7 +16,10 @@
   let selectedInstallMethod = $state<"load-unpacked" | "install-from-file" | "chrome-web-store">("chrome-web-store");
   let browserDropdownOpen = $state(false);
   let installMethodDropdownOpen = $state(false);
-  const version = "0.3.8";
+
+  // keep explicit type so that hardcoded version is treated as a string rather than a one option type
+  const version: string = "0.3.8";
+  const webstoreVersion: string = "0.3.6";
 
   const browserLabel = {
     chrome: "Chrome",
@@ -189,11 +192,23 @@
           {/if}
 
           {#if selectedInstallMethod === "chrome-web-store"}
-            <div class="mt-4 flex flex-col items-center gap-4 text-center">
-              <p class="text-gray-700 dark:text-gray-300">
-                The extension got approved yippee.<br />
-                Get it on the Chrome Web Store!
-              </p>
+            <div class="flex flex-col items-center gap-4 text-center">
+              <div class="text-gray-700 dark:text-gray-300 space-y-2">
+                {#if version !== webstoreVersion}
+                  <p>
+                    Note: The current version on the Chrome Web Store is <b>{webstoreVersion}</b>.
+                  </p>
+                  <p>
+                    This is usually 2-3 weeks behind the latest version. But missing features aside, it works just as
+                    well as the latest version! Try it out!
+                  </p>
+                  <p>Or choose <b>Load from unpacked</b> in the right dropdown above.</p>
+                {:else}
+                  <p>Thanks for checking out Page Proxy!</p>
+                  <p>Click below to install it from the Chrome Web Store.</p>
+                {/if}
+              </div>
+
               <a href={chromeWebStoreUrl} target="_blank" rel="noopener noreferrer">
                 <img
                   src={asset("/chrome-web-store-badge.avif")}
