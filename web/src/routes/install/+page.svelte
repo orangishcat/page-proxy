@@ -18,6 +18,7 @@
   let installMethodDropdownOpen = $state(false);
 
   // keep explicit type so that hardcoded version is treated as a string rather than a one option type
+  // todo: revert back to reading version from package.json once v0.3.9 is fixed
   const version: string = "0.3.8";
   const webstoreVersion: string = "0.3.6";
 
