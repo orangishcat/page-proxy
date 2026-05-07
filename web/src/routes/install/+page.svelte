@@ -182,14 +182,6 @@
             </div>
           {/if}
 
-          {#if usingFallbackVersion && selectedInstallMethod !== "chrome-web-store"}
-            <div
-              class="mt-3 rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-            >
-              Could not verify the latest release version. Showing fallback version <code>{fallbackVersion}</code>.
-            </div>
-          {/if}
-
           {#if selectedInstallMethod === "chrome-web-store"}
             <div class="flex flex-col items-center gap-4 text-center">
               <div class="text-gray-700 dark:text-gray-300 space-y-2">
