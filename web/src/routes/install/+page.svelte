@@ -1,17 +1,16 @@
 <script lang="ts">
   import { asset } from "$app/paths";
   import { DropdownMenu } from "bits-ui";
-  import { SiFirefoxbrowser, SiGooglechrome } from "@icons-pack/svelte-simple-icons";
   import SeoHead from "$lib/components/SeoHead.svelte";
   import Navbar from "$lib/components/Navbar.svelte";
   import { ChevronDown } from "lucide-svelte";
   import { SiGooglechrome, SiFirefoxbrowser } from "@icons-pack/svelte-simple-icons";
   import { onMount } from "svelte";
+  import { createSoftwareApplicationJsonLd, createWebPageJsonLd, createInstallHowToJsonLd } from "$lib/seo";
 
   const releaseLatestUrl = "https://github.com/orangishcat/page-proxy/releases/latest";
-  const latestReleaseApiUrl = "https://api.github.com/repos/orangishcat/page-proxy/releases/latest";
-  const fallbackVersion = "0.3.2";
   const chromeWebStoreUrl = "https://chromewebstore.google.com/detail/page-proxy/ojadokjjbdkpheppfonpfcckaehafnkk";
+  const installDescription = "Install Page Proxy as a Chrome or Firefox extension";
   let selectedBrowser = $state<"chrome" | "firefox">("chrome");
   let selectedInstallMethod = $state<"load-unpacked" | "install-from-file" | "chrome-web-store">("chrome-web-store");
   let browserDropdownOpen = $state(false);
@@ -39,7 +38,6 @@
   const itemClasses =
     "text-body cursor-pointer rounded-lg px-3 py-2 text-left hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-700 dark:active:bg-gray-600";
   const olClasses = "list-decimal space-y-3 pl-7 text-gray-700 dark:text-gray-300 [&>li]:pl-1";
-  const browserIconClasses = "h-4 w-4 shrink-0";
 
   onMount(() => {
     const userAgent = navigator.userAgent.toLowerCase();
