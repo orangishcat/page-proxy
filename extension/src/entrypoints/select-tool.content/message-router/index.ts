@@ -34,8 +34,8 @@ const dispatchRoutedSelectToolMessage = <TType extends RoutedSelectToolMessageTy
   return handler(content, { ctrl, sendResponse });
 };
 
-export const addMessageListener = (ctrl: SelectionController): void => {
-  browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+export const addMessageListener = (ctrl: SelectionController): (() => void) => {
+  const listener = (message: unknown, _sender: chrome.runtime.MessageSender, sendResponse: (response?: unknown) => void) => {
     if (isScriptRunRequest(message)) {
       return forwardScriptRunToMainWorld(message, sendResponse);
     }
@@ -56,5 +56,8 @@ export const addMessageListener = (ctrl: SelectionController): void => {
     const routedMessage = message as RoutedSelectToolMessageMap[RoutedSelectToolMessageType];
     const { type, ...content } = routedMessage;
     return dispatchRoutedSelectToolMessage(type, content as never, ctrl, sendResponse);
-  });
+  };
+
+  browser.runtime.onMessage.addListener(listener);
+  return () => browser.runtime.onMessage.removeListener(listener);
 };

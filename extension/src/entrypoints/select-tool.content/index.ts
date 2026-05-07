@@ -19,20 +19,31 @@ export default defineContentScript({
     logger.debug("select tool content script initialized", { href: window.location.href });
 
     const ctrl = new SelectionController(ctx);
-    addMessageListener(ctrl);
+    const removeMessageListener = addMessageListener(ctrl);
 
-    browser.runtime.onMessage.addListener((message, sender) => {
+    const debugMessageListener = (message: unknown, sender: chrome.runtime.MessageSender) => {
       const type = isRecord(message) && typeof message.type === "string" ? message.type : "<unknown>";
 
-      logger.debug(`[${type}]`, { message: message as unknown, sender });
-    });
+      logger.debug(`[${type}]`, { message: message, sender });
+    };
+    browser.runtime.onMessage.addListener(debugMessageListener);
+    const removeDebugMessageListener = () => browser.runtime.onMessage.removeListener(debugMessageListener);
 
     window.addEventListener("keydown", ctrl.onShortcutKeyDown, { capture: true });
 
-    window.addEventListener("unload", () => {
+    let hasCleanedUp = false;
+    const cleanup = () => {
+      if (hasCleanedUp) return;
+      hasCleanedUp = true;
+      removeMessageListener();
+      removeDebugMessageListener();
       window.removeEventListener("keydown", ctrl.onShortcutKeyDown, { capture: true });
-      ctrl.selectorManager.clear({ resumeSelection: false });
-      ctrl.recordManager.clear();
-    });
+      window.removeEventListener("unload", cleanup);
+      ctrl.detachListeners();
+      ctrl.grantManager.clear();
+    };
+
+    ctx.onInvalidated(cleanup);
+    window.addEventListener("unload", cleanup, { once: true });
   },
 });

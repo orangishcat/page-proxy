@@ -9,6 +9,7 @@ import type {
   RecordConverterSaveResult,
   SelectToolMessage,
 } from "@/lib/selection";
+import { createOpenGenerationGate } from "../lifecycle/open-generation";
 import RecordPopup from "./RecordPopup.svelte";
 
 type ContentScriptContext = Parameters<typeof createShadowRootUi>[0];
@@ -18,10 +19,12 @@ const logger = log.getLogger("record-popup-manager");
 export class RecordConverterPopupManager {
   private popupApp: ReturnType<typeof mount> | null = null;
   private shadowUi: Awaited<ReturnType<typeof createShadowRootUi>> | null = null;
+  private readonly openGate = createOpenGenerationGate();
 
   constructor(private readonly ctx: ContentScriptContext) {}
 
   clear(): void {
+    this.openGate.invalidate();
     if (this.popupApp) {
       void unmount(this.popupApp);
       this.popupApp = null;
@@ -79,9 +82,10 @@ export class RecordConverterPopupManager {
 
   async open(payload: RecordConverterOpenPayload): Promise<RecordConverterOpenResult> {
     this.clear();
+    const openToken = this.openGate.begin();
 
     try {
-      this.shadowUi = await createShadowRootUi(this.ctx, {
+      const shadowUi = await createShadowRootUi(this.ctx, {
         name: "pp-record-converter-popup",
         position: "overlay",
         anchor: "body",
@@ -100,6 +104,12 @@ export class RecordConverterPopupManager {
         },
       });
 
+      if (!this.openGate.isCurrent(openToken)) {
+        shadowUi.remove();
+        return { opened: false, error: "Record converter popup was closed before opening." };
+      }
+
+      this.shadowUi = shadowUi;
       this.shadowUi.mount();
       this.shadowUi.shadowHost.classList.add(noSelectClass, contentUiRootClass);
       logger.debug("record converter popup opened", { timelineSize: payload.timeline.length });

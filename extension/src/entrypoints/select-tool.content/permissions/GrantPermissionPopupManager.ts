@@ -5,6 +5,7 @@ import log from "@/lib/logger";
 import { noSelectClass, contentUiRootClass } from "@/lib/constants/selection";
 import type { GrantPermissionRequestPayload, GrantPermissionResolveResult } from "@/lib/grant-permissions";
 import type { GrantPermissionResolveMessage } from "@/lib/grant-permissions";
+import { createOpenGenerationGate } from "../lifecycle/open-generation";
 import GrantPopup from "./GrantPopup.svelte";
 
 type ContentScriptContext = Parameters<typeof createShadowRootUi>[0];
@@ -14,10 +15,12 @@ const logger = log.getLogger("grant-permission-popup-manager");
 export class GrantPermissionPopupManager {
   private popupApp: ReturnType<typeof mount> | null = null;
   private shadowUi: Awaited<ReturnType<typeof createShadowRootUi>> | null = null;
+  private readonly openGate = createOpenGenerationGate();
 
   constructor(private readonly ctx: ContentScriptContext) {}
 
   clear(): void {
+    this.openGate.invalidate();
     if (this.popupApp) {
       void unmount(this.popupApp);
       this.popupApp = null;
@@ -56,9 +59,10 @@ export class GrantPermissionPopupManager {
 
   async open(payload: GrantPermissionRequestPayload): Promise<void> {
     this.clear();
+    const openToken = this.openGate.begin();
 
     try {
-      this.shadowUi = await createShadowRootUi(this.ctx, {
+      const shadowUi = await createShadowRootUi(this.ctx, {
         name: "pp-grant-permission-popup",
         position: "overlay",
         anchor: "body",
@@ -78,6 +82,12 @@ export class GrantPermissionPopupManager {
         },
       });
 
+      if (!this.openGate.isCurrent(openToken)) {
+        shadowUi.remove();
+        return;
+      }
+
+      this.shadowUi = shadowUi;
       this.shadowUi.mount();
       this.shadowUi.shadowHost.classList.add(noSelectClass, contentUiRootClass);
       logger.debug("grant permission popup opened", { scriptName: payload.scriptName });

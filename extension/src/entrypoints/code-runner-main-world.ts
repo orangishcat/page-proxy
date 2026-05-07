@@ -26,6 +26,16 @@ type PpModuleBindings = {
   pv: typeof pv;
 };
 
+type ScriptRunRuntimeBindings = {
+  pa: typeof pa;
+  pn: ReturnType<typeof pn.createNetwork>;
+  pq: typeof pq;
+  ps: typeof ps;
+  pt: ReturnType<typeof pt.createStorage>;
+  pv: typeof pv;
+  pp: typeof pa.pp;
+};
+
 type WindowWithPpModules = typeof window & {
   __pageProxyPpModules__?: PpModuleBindings;
 };
@@ -46,8 +56,10 @@ const ensurePpModules = (): PpModuleBindings => {
   return target.__pageProxyPpModules__;
 };
 
-const globalBindingsLine = "const { pa, pn, pq, ps, pt, pv, pp } = globalThis;";
 const ppImportLinePattern = /^import\s*\{[^}]+\}\s*from\s*["']@page-proxy\/pp["'];?$/;
+const AsyncFunction = async function () {}.constructor as {
+  new (...args: string[]): (...values: unknown[]) => Promise<unknown>;
+};
 
 const shouldReplaceWithGlobalBindings = (line: string) => {
   const trimmed = line.trim();
@@ -78,7 +90,7 @@ const shouldReplaceWithGlobalBindings = (line: string) => {
   return false;
 };
 
-const replacePpImportsWithGlobalBindings = (code: string) => {
+const replacePpImportsWithRuntimeBindings = (code: string) => {
   const lines = code.split("\n");
   let replacedAny = false;
   const replacedLines = lines.map((line) => {
@@ -88,22 +100,14 @@ const replacePpImportsWithGlobalBindings = (code: string) => {
 
     if (!replacedAny) {
       replacedAny = true;
-      return globalBindingsLine;
+      return "";
     }
 
     // Keep line numbers stable even when multiple import variants exist.
     return "";
   });
 
-  if (!replacedAny) {
-    if (replacedLines.length === 0) {
-      return globalBindingsLine;
-    }
-
-    replacedLines[0] = `${globalBindingsLine} ${replacedLines[0]}`;
-  }
-
-  return replacedLines.join("\n");
+  return replacedAny ? replacedLines.join("\n") : code;
 };
 
 const maxLogDepth = 5;
@@ -353,19 +357,22 @@ const toCssSelectorEntry = (name: string, selectors: string[]): ScriptRunSelecto
   };
 };
 
-const runScriptCode = (code: string) => {
-  const executableCode = replacePpImportsWithGlobalBindings(code);
-  const blob = new Blob([executableCode], { type: "text/javascript" });
-  const blobUrl = URL.createObjectURL(blob);
+const runScriptCode = (code: string, bindings: ScriptRunRuntimeBindings) => {
+  const executableCode = replacePpImportsWithRuntimeBindings(code);
+  const run = new AsyncFunction(
+    "pa",
+    "pn",
+    "pq",
+    "ps",
+    "pt",
+    "pv",
+    "pp",
+    `"use strict";\n${executableCode}\n//# sourceURL=page-proxy://script-runner.js`,
+  );
 
-  return import(/* @vite-ignore */ blobUrl)
-    .then(() => {
-      URL.revokeObjectURL(blobUrl);
-    })
-    .catch((error: unknown) => {
-      URL.revokeObjectURL(blobUrl);
-      throw error;
-    });
+  return Promise.resolve(
+    run(bindings.pa, bindings.pn, bindings.pq, bindings.ps, bindings.pt, bindings.pv, bindings.pp),
+  ).then(() => undefined);
 };
 
 const getTargetOrigin = () => {
@@ -460,16 +467,17 @@ const runScriptRequest = (request: ScriptRunRequest, sendResult: (response: Scri
   window.addEventListener("unhandledrejection", onRejection);
 
   notificationSinkKey = modules.pa.notificationSinkGlobalKey;
-  (globalThis as Record<string, unknown>).pa = modules.pa;
-  (globalThis as Record<string, unknown>).pn = pageNetworkApi;
-  (globalThis as Record<string, unknown>).pq = queryApi;
-  (globalThis as Record<string, unknown>).ps = styleApi;
-  (globalThis as Record<string, unknown>).pt = pageStorageApi;
-  (globalThis as Record<string, unknown>).pv = modules.pv;
-  (globalThis as Record<string, unknown>).pp = modules.pa.pp;
   (globalThis as Record<string, unknown>)[notificationSinkKey] = sink;
 
-  void runScriptCode(request.code)
+  void runScriptCode(request.code, {
+    pa: modules.pa,
+    pn: pageNetworkApi,
+    pq: queryApi,
+    ps: styleApi,
+    pt: pageStorageApi,
+    pv: modules.pv,
+    pp: modules.pa.pp,
+  })
     .then(() => {
       respond(null);
     })
