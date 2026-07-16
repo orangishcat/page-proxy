@@ -1,9 +1,9 @@
 import { createDefaultAppState } from "./defaults";
-import { createStateProxy, setAppStateHydrated as setAppStateHydratedFlag } from "./storage/hydrate/hydration";
+import { createStateProxy, setAppStateHydrated } from "./storage/hydrate/hydration";
 import type { AppState } from "./types";
 
 export const appState: AppState = createStateProxy(createDefaultAppState());
-export let isAppStateHydrated: boolean = false;
+export { isAppStateHydrated } from "./storage/hydrate/hydration";
 
 export const replaceAppState = (nextState: AppState) => {
   appState.settings = nextState.settings;
@@ -13,6 +13,5 @@ export const replaceAppState = (nextState: AppState) => {
   appState.session = nextState.session;
   appState.currentTab.lastHydrationError = nextState.currentTab.lastHydrationError;
   appState.currentTab.lastPersistenceError = nextState.currentTab.lastPersistenceError;
-  isAppStateHydrated = true;
-  setAppStateHydratedFlag(true);
+  setAppStateHydrated(true);
 };

@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 
 type StorageShape = Record<string, unknown>;
+type StorageChangeListener = (changes: StorageShape, areaName: string) => unknown;
 
 const storageSlot = globalThis as typeof globalThis & {
   __pageProxyLocalStorageState?: StorageShape;
   __pageProxySessionStorageState?: StorageShape;
+  __pageProxyStorageChangeListeners?: Set<StorageChangeListener>;
 };
+
+const getStorageChangeListeners = () =>
+  (storageSlot.__pageProxyStorageChangeListeners ??= new Set<StorageChangeListener>());
 
 const getStorageState = (kind: "local" | "session") => {
   const key = kind === "local" ? "__pageProxyLocalStorageState" : "__pageProxySessionStorageState";
@@ -55,6 +60,10 @@ void mock.module("wxt/browser", () => ({
     storage: {
       local: createStorageApi("local"),
       session: createStorageApi("session"),
+      onChanged: {
+        addListener: (listener: StorageChangeListener) => getStorageChangeListeners().add(listener),
+        removeListener: (listener: StorageChangeListener) => getStorageChangeListeners().delete(listener),
+      },
     },
   },
 }));
@@ -62,6 +71,7 @@ void mock.module("wxt/browser", () => ({
 const hydrateModule = await import("../../src/lib/app-state/storage/hydrate/hydrate.ts");
 const stateModule = await import("../../src/lib/app-state/state.svelte.ts");
 const selectorsModule = await import("../../src/lib/app-state/selectors.ts");
+const syncModule = await import("../../src/lib/app-state/storage/sync.ts");
 const runHydrateAppState = hydrateModule.hydrateAppState;
 const replaceHydratedState = stateModule.replaceAppState;
 const appStateSelectors = selectorsModule.appStateSelectors;
@@ -95,6 +105,7 @@ describe("hydrateAppState", () => {
     const session = getStorageState("session");
     Object.keys(local).forEach((key) => delete local[key]);
     Object.keys(session).forEach((key) => delete session[key]);
+    getStorageChangeListeners().clear();
   });
 
   test("loads scripts and settings from keyed storage entries", async () => {
@@ -135,5 +146,28 @@ describe("hydrateAppState", () => {
     expect(state.session.selectedScriptByHostname["docs.example.com"]).toBe("Docs Script");
 
     expect(appStateSelectors.getShowHelpButton()).toBe(false);
+  });
+
+  test("synchronizes script edits from another extension context", async () => {
+    const local = getStorageState("local");
+    local["pageproxy:Docs Script"] = buildStoredState("Docs Script", "https://docs.example.com/*", 1);
+    replaceHydratedState(await runHydrateAppState());
+
+    const updatedState = buildStoredState("Docs Script", "https://docs.example.com/*", 2);
+    updatedState.codeEditor.content += "\nconsole.log(\"updated\");\n";
+    local["pageproxy:Docs Script"] = updatedState;
+
+    const stopSync = syncModule.startAppStateStorageSync();
+    const listener = Array.from(getStorageChangeListeners())[0];
+    await listener?.({ "pageproxy:Docs Script": { newValue: updatedState } }, "local");
+
+    expect(appStateSelectors.getStoredToolState("Docs Script")?.codeEditor.content).toContain('console.log("updated")');
+    stopSync();
+    expect(getStorageChangeListeners()).toHaveLength(0);
+  });
+
+  test("ignores unrelated storage changes", () => {
+    expect(syncModule.isAppStateStorageChange({ unrelated: { newValue: true } }, "local")).toBe(false);
+    expect(syncModule.isAppStateStorageChange({ "pageproxy:Docs Script": {} }, "sync")).toBe(false);
   });
 });

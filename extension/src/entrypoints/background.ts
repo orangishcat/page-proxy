@@ -28,6 +28,7 @@ import {
   flushAppStatePersistence,
   hydrateAppState,
   replaceAppState,
+  startAppStateStorageSync,
 } from "@/lib/app-state.ts";
 import log from "@/lib/logger";
 import { isRecord } from "@/lib/utils/type-guards";
@@ -59,6 +60,8 @@ const appStateReady = (async () => {
     selectedScriptCount: Object.keys(state.session.selectedScriptByHostname).length,
   });
 })();
+
+void startAppStateStorageSync(appStateReady);
 
 const listStoredToolStates = async () => {
   await appStateReady;
