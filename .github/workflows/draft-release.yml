@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -24,7 +24,7 @@ jobs:
 
       - name: Resolve build workflow run ID for latest commit
         id: resolve_build_run
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -70,7 +70,7 @@ jobs:
             core.info(`Using build workflow run ID ${matchingRun.id} for commit ${latestSha}.`);
 
       - name: Download artifacts from selected build workflow run
-        uses: dawidd6/action-download-artifact@v20
+        uses: dawidd6/action-download-artifact@v21
         with:
           run_id: ${{ steps.resolve_build_run.outputs.build_run_id }}
           workflow: build.yml
@@ -136,7 +136,7 @@ jobs:
           fi
 
       - name: Create draft release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.PROJECT_VERSION }}
           name: ${{ env.PROJECT_VERSION }}
