@@ -9,8 +9,8 @@
   },
   "dependencies": {
     "css-tree": "^3.2.1",
-    "dompurify": "3.3.3",
-    "marked": "17.0.5"
+    "dompurify": "3.4.12",
+    "marked": "18.0.6"
   },
   "exports": {
     ".": "./src/index.ts",
