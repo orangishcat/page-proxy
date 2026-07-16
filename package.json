@@ -34,7 +34,7 @@
     "pp:build-runtime": "node ./packages/pp/scripts/build-browser-bundle.mjs",
     "pp:lint": "bun run --cwd packages/pp lint",
     "pp:test": "bun run --cwd packages/pp test",
-    "clean": "bun run --cwd extension clean && rm -rf node_modules/.vite && rm -rf extension/node_modules"
+    "clean": "bun run --cwd extension clean && rm -rf node_modules/.vite && rm -rf extension/node_modules && rm -rf extension/.wxt"
   },
   "devDependencies": {
     "@types/bun": "^1.3.9",

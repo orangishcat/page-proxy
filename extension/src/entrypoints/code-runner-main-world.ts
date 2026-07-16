@@ -13,6 +13,7 @@ import { cloneStoredRuntimeStorage, createStoredRuntimeStorageAdapter } from "@/
 import { pa, pn, pq, ps, pt, pv } from "@page-proxy/pp";
 import { extractCssSelectorsFromStyleText } from "@/lib/utils/css-rule-parsing";
 import { extractPqSelectorDefinitionBlocks } from "@/lib/utils/pq-selector-parsing";
+import { markScriptInjected } from "@/lib/script-injection-marker";
 import log from "@/lib/logger";
 
 const logger = log.getLogger("code-runner-main-world");
@@ -386,6 +387,20 @@ const getTargetOrigin = () => {
 const isWindowSource = (source: MessageEventSource | null) => source === window || source === null;
 
 const runScriptRequest = (request: ScriptRunRequest, sendResult: (response: ScriptRunResponse) => void) => {
+  if (!markScriptInjected(document, request.code)) {
+    sendResult(
+      buildScriptRunResponse(
+        request.requestId,
+        null,
+        [],
+        [],
+        null,
+        cloneStoredRuntimeStorage(request.runtimeStorage),
+      ),
+    );
+    return;
+  }
+
   const { logs, sink } = createNotificationCapture();
   const selectorEntries = new Map<string, ScriptRunSelectorEntry>();
   const unnamedSelectorVariableNames = extractPqSelectorDefinitionBlocks(request.code)
