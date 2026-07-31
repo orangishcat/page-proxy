@@ -1,12 +1,9 @@
 name: GitHub Pages deployment
 
 on:
-  workflow_run:
-    workflows: ["Web Tests"]
-    types:
-      - completed
-    branches:
-      - main
+  push:
+    branches: ["main"]
+  pull_request:
   workflow_dispatch:
 
 permissions:
