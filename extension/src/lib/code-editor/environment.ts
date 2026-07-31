@@ -1,7 +1,7 @@
-import editorWorkerInline from "monaco-editor/esm/vs/editor/editor.worker?worker&inline";
-import editorWorkerUrl from "monaco-editor/esm/vs/editor/editor.worker?worker&url";
-import tsWorkerInline from "monaco-editor/esm/vs/language/typescript/ts.worker?worker&inline";
-import tsWorkerUrl from "monaco-editor/esm/vs/language/typescript/ts.worker?worker&url";
+import editorWorkerInline from "monaco-editor/editor/editor.worker?worker&inline";
+import editorWorkerUrl from "monaco-editor/editor/editor.worker?worker&url";
+import tsWorkerInline from "monaco-editor/language/typescript/ts.worker?worker&inline";
+import tsWorkerUrl from "monaco-editor/language/typescript/ts.worker?worker&url";
 
 export const MONACO_WORKER_ERROR_EVENT = "pp:monaco-worker-error";
 

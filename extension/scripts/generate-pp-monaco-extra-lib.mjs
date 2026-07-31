@@ -3,54 +3,54 @@
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { mkdir, writeFile } from "node:fs/promises";
-import ts from "typescript";
+import { execFile } from "node:child_process";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { promisify } from "node:util";
 import { getPpSourceFiles, getPpSourceModuleSpecs, rewritePpImports } from "./pp-source-files.mjs";
 
+const runFile = promisify(execFile);
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const extensionDir = path.resolve(scriptDir, "..");
 const workspaceDir = path.resolve(extensionDir, "..");
 const ppPackageSrcDir = path.join(workspaceDir, "packages/pp/src");
 const outputFile = path.join(extensionDir, "src/types/pp-monaco-extra-lib.txt");
 const outDir = path.join(extensionDir, ".tmp/pp-monaco-types");
+const typescriptDir = path.dirname(fileURLToPath(import.meta.resolve("typescript/package.json")));
+const tscPath = path.join(typescriptDir, "lib/tsc.js");
 const sourceFiles = await getPpSourceFiles(workspaceDir);
 const sourceModuleSpecs = await getPpSourceModuleSpecs(workspaceDir);
 
-const compilerOptions = {
-  target: ts.ScriptTarget.ES2022,
-  module: ts.ModuleKind.ESNext,
-  moduleResolution: ts.ModuleResolutionKind.Bundler,
-  declaration: true,
-  emitDeclarationOnly: true,
-  noEmitOnError: true,
-  allowImportingTsExtensions: true,
-  strict: true,
-  skipLibCheck: true,
-  rootDir: ppPackageSrcDir,
+await rm(outDir, { recursive: true, force: true });
+await runFile(process.execPath, [
+  tscPath,
+  "--ignoreConfig",
+  "--target",
+  "ES2022",
+  "--module",
+  "ESNext",
+  "--moduleResolution",
+  "Bundler",
+  "--declaration",
+  "--emitDeclarationOnly",
+  "--noEmitOnError",
+  "--allowImportingTsExtensions",
+  "--strict",
+  "--skipLibCheck",
+  "--rootDir",
+  ppPackageSrcDir,
+  "--outDir",
   outDir,
-};
+  ...sourceFiles,
+]);
 
-const emittedDeclarations = new Map();
-const host = ts.createCompilerHost(compilerOptions);
-host.writeFile = (fileName, content) => {
-  if (!fileName.endsWith(".d.ts")) {
-    return;
-  }
-  const declarationPath = path.relative(outDir, fileName).split(path.sep).join("/");
-  emittedDeclarations.set(declarationPath, content);
-};
-
-const program = ts.createProgram(sourceFiles, compilerOptions, host);
-const emitResult = program.emit();
-const diagnostics = ts.getPreEmitDiagnostics(program).concat(emitResult.diagnostics);
-if (diagnostics.length > 0) {
-  const message = ts.formatDiagnosticsWithColorAndContext(diagnostics, {
-    getCurrentDirectory: () => extensionDir,
-    getCanonicalFileName: (value) => value,
-    getNewLine: () => "\n",
-  });
-  throw new Error(message);
-}
+const emittedDeclarations = new Map(
+  await Promise.all(
+    sourceModuleSpecs.map(async ({ sourceFile }) => [
+      sourceFile,
+      await readFile(path.join(outDir, sourceFile), "utf8"),
+    ]),
+  ),
+);
 
 const wrapModuleDeclaration = (moduleName, sourceFile, source) => {
   const trimmedSource = rewritePpImports(source.trim(), sourceFile);

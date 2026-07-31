@@ -1,4 +1,4 @@
-import { ModuleKind, ModuleResolutionKind, ScriptTarget } from "monaco-editor/esm/vs/language/typescript/monaco.contribution.js";
+import { ModuleKind, ModuleResolutionKind, ScriptTarget } from "monaco-editor/language/typescript/monaco.contribution";
 
 export const javaScriptDiagnosticsOptions = {
   noSemanticValidation: false,

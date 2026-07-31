@@ -1,7 +1,5 @@
-import * as monaco from "monaco-editor/esm/vs/editor/editor.api.js";
-import "monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution.js";
-import "monaco-editor/esm/vs/basic-languages/css/css.contribution.js";
-import "monaco-editor/esm/vs/editor/edcore.main.js";
+import * as monaco from "monaco-editor/editor/editor.api";
+import "monaco-editor/editor/editor.main";
 import type { CreateMonacoEditorOptions, MonacoCodeEditorHandle, MonacoEditorMarker } from "./types";
 import { ensureMonacoEnvironment } from "./environment";
 import { configureJavaScriptLanguageService } from "./language-service";

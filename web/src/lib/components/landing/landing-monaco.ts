@@ -1,8 +1,6 @@
-import * as monaco from "monaco-editor/esm/vs/editor/editor.api.js";
-import "monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution.js";
-import "monaco-editor/esm/vs/editor/edcore.main.js";
-import "monaco-editor/min/vs/editor/editor.main.css";
-import EditorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
+import * as monaco from "monaco-editor/editor/editor.api";
+import "monaco-editor/editor/editor.main";
+import EditorWorker from "monaco-editor/editor/editor.worker?worker";
 
 type MonacoEnvironment = {
   getWorker?: (moduleId: string, label: string) => Worker;

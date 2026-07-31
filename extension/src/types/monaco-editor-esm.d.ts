@@ -1,4 +1,4 @@
-declare module "monaco-editor/esm/vs/language/typescript/monaco.contribution.js" {
+declare module "monaco-editor/language/typescript/monaco.contribution" {
   export type JavaScriptDefaults = {
     setEagerModelSync: (value: boolean) => void;
     setDiagnosticsOptions: (options: { noSemanticValidation: boolean; noSyntaxValidation: boolean }) => void;
@@ -37,8 +37,8 @@ declare module "monaco-editor/esm/vs/language/typescript/monaco.contribution.js"
   };
 }
 
-declare module "monaco-editor/esm/vs/language/typescript/tsMode.js" {
+declare module "monaco-editor/languages/features/typescript/tsMode" {
   export const setupJavaScript: (
-    defaults: import("monaco-editor/esm/vs/language/typescript/monaco.contribution.js").JavaScriptDefaults,
+    defaults: import("monaco-editor/language/typescript/monaco.contribution").JavaScriptDefaults,
   ) => void;
 }

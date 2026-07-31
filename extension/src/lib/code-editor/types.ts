@@ -1,4 +1,4 @@
-import type * as monaco from "monaco-editor/esm/vs/editor/editor.api.js";
+import type * as monaco from "monaco-editor/editor/editor.api";
 
 export type MonacoEditor = monaco.editor.IStandaloneCodeEditor;
 

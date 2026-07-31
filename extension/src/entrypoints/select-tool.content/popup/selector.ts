@@ -1,5 +1,5 @@
 import { cssSelectorGenerator } from "css-selector-generator";
-import { CssSelectorGeneratorOptionsInput } from "css-selector-generator/types/types.js";
+import type { CssSelectorGeneratorOptionsInput } from "css-selector-generator/types/types";
 
 const selectorFallback = "body";
 const selectorMatchLimitDefault = 10;

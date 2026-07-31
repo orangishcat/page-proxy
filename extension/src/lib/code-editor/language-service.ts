@@ -1,6 +1,6 @@
 import {
   javascriptDefaults,
-} from "monaco-editor/esm/vs/language/typescript/monaco.contribution.js";
+} from "monaco-editor/language/typescript/monaco.contribution";
 import ppModuleDeclarations from "@/types/pp-monaco-extra-lib.txt?raw";
 import { javaScriptCompilerOptions, javaScriptDiagnosticsOptions } from "./language-service-options";
 

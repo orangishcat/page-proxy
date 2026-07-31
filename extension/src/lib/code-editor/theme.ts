@@ -1,4 +1,4 @@
-import * as monaco from "monaco-editor/esm/vs/editor/editor.api.js";
+import * as monaco from "monaco-editor/editor/editor.api";
 
 export const pageProxyMonacoThemeName = "page-proxy-dark";
 
