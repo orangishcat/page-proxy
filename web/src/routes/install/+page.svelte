@@ -19,7 +19,7 @@
   // keep explicit type so that hardcoded version is treated as a string rather than a one option type
   // todo: revert back to reading version from package.json once v0.3.9 is fixed
   const version: string = "0.3.8";
-  const webstoreVersion: string = "0.3.6";
+  const webstoreVersion: string = "0.3.8";
 
   const browserLabel = {
     chrome: "Chrome",
@@ -184,7 +184,7 @@
 
           {#if selectedInstallMethod === "chrome-web-store"}
             <div class="flex flex-col items-center gap-4 text-center">
-              <div class="text-gray-700 dark:text-gray-300 space-y-2">
+              <div class="text-gray-700 dark:text-gray-300 space-y-2 mt-4">
                 {#if version !== webstoreVersion}
                   <p>
                     Note: The current version on the Chrome Web Store is <b>{webstoreVersion}</b>.
