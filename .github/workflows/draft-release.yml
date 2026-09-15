@@ -70,7 +70,7 @@ jobs:
             core.info(`Using build workflow run ID ${matchingRun.id} for commit ${latestSha}.`);
 
       - name: Download artifacts from selected build workflow run
-        uses: dawidd6/action-download-artifact@v21
+        uses: dawidd6/action-download-artifact@v24
         with:
           run_id: ${{ steps.resolve_build_run.outputs.build_run_id }}
           workflow: build.yml
