@@ -39,7 +39,7 @@ Options:
 - `linkReferrerPolicy?: string` (default `"no-referrer"`): Applied to every rendered link as `referrerpolicy`, controlling whether browser referrer information is sent on navigation.
 
 ```js
-const html = pa.renderMarkdown("See [docs](https://orangishcat.github.io/page-proxy/docs)");
+const html = pa.renderMarkdown("See [docs](https://page-proxy.orangishcat.dev/docs)");
 document.querySelector("#help")?.insertAdjacentHTML("beforeend", html);
 ```
 

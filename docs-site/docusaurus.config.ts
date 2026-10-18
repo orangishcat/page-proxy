@@ -96,7 +96,7 @@ const config: Config = {
   tagline: "Documentation for the pp library",
   favicon: "img/logo_filled.avif",
   url: process.env.NODE_ENV === "development" ? "http://localhost:3288" : "https://orangishcat.github.io",
-  baseUrl: "/page-proxy/docs/",
+  baseUrl: "/docs/",
   organizationName: "orangishcat",
   projectName: "page-proxy",
   onBrokenLinks: "throw",
@@ -144,7 +144,7 @@ const config: Config = {
       logo: {
         alt: "Page Proxy",
         src: "img/logo_filled.avif",
-        href: "https://orangishcat.github.io/page-proxy",
+        href: "https://page-proxy.orangishcat.dev",
       },
       items: [
         {

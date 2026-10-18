@@ -27,7 +27,7 @@ export type ExportOptions = {
   minify: boolean;
 };
 
-export const hostedPpUserscriptRequireUrl = "https://orangishcat.github.io/page-proxy/pp/pp.min.js";
+export const hostedPpUserscriptRequireUrl = "https://page-proxy.orangishcat.dev/pp/pp.min.js";
 
 const pageProxyMetadataBlockPattern = /\/\/\s*==\s*Page\s*Proxy\s*==[\s\S]*?\/\/\s*==\s*\/\s*Page\s*Proxy\s*==/m;
 const ppImportLinePattern = /^import\s*\{[^}]+\}\s*from\s*["']@page-proxy\/pp["'];?\s*$/gm;

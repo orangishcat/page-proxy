@@ -237,7 +237,7 @@
         <span class="text-lead">{popupMode === "pp-api" ? "Selector editor" : "CSS inspector"}</span>
         {#if popupMode === "pp-api"}
           <a
-            href="https://orangishcat.github.io/page-proxy/docs/pp/pq-query#pqselectordefinition"
+            href="https://page-proxy.orangishcat.dev/docs/pp/pq-query#pqselectordefinition"
             target="_blank"
             rel="noopener noreferrer"
             class="text-caption text-accent-400 hover:text-accent-300 hover:underline">Selector documentation</a

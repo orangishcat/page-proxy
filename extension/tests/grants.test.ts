@@ -34,7 +34,7 @@ describe("grants", () => {
 
   test("getGrantDocumentationUrl returns a fragment URL", () => {
     expect(getGrantDocumentationUrl(supportedScriptGrants[0])).toBe(
-      "https://orangishcat.github.io/page-proxy/docs/permissions#grant-run-on-page-load",
+      "https://page-proxy.orangishcat.dev/docs/permissions#grant-run-on-page-load",
     );
   });
 

@@ -1,6 +1,6 @@
 export const siteName = "Page Proxy";
 export const siteAuthor = "orangishcat";
-export const siteUrl = "https://orangishcat.github.io/page-proxy/";
+export const siteUrl = "https://page-proxy.orangishcat.dev/";
 export const siteLocale = "en_US";
 export const siteDescription =
   "Page Proxy is a browser extension and userscript manager for Chrome and Firefox with GUI tools, recording workflows, and a built-in Monaco editor to turn page interactions into reusable userscripts.";

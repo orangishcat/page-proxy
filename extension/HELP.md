@@ -7,12 +7,12 @@ and script APIs. It simplifies userscript creation by allowing you to turn page
 interactions into code, making the process less tedious.
 
 Looking for scripts? Try the
-[examples](https://orangishcat.github.io/page-proxy/#explore) on the landing
+[examples](https://page-proxy.orangishcat.dev/#explore) on the landing
 page!
 
 Refer to the
-[extension usage guide](https://orangishcat.github.io/page-proxy/docs/extension-usage)
-and [API documentation](https://orangishcat.github.io/page-proxy/docs/) to write
+[extension usage guide](https://page-proxy.orangishcat.dev/docs/extension-usage)
+and [API documentation](https://page-proxy.orangishcat.dev/docs/) to write
 your first script!
 
 ## Known issues

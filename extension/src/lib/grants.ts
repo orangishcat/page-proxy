@@ -76,7 +76,7 @@ export const resolveEffectiveScriptGrants = (
   scriptEnabled = true,
 ): ScriptGrantValue[] => (disableAllGrants || !scriptEnabled ? [] : declaredGrants);
 
-export const grantDocumentationLink = "https://orangishcat.github.io/page-proxy/docs/permissions";
+export const grantDocumentationLink = "https://page-proxy.orangishcat.dev/docs/permissions";
 
 export const grantDocumentationHashtags: Record<ScriptGrantValue, string> = {
   "run-on-page-load": "grant-run-on-page-load",

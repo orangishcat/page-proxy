@@ -13,12 +13,12 @@ Page Proxy is an all-in-one userscript manager and creator with custom GUI tools
 and an API covering common use cases to convert page interactions to
 userscripts, making the process more beginner-friendly and less tedious.
 
-[Longer description](https://orangishcat.github.io/page-proxy/docs/purpose)
+[Longer description](https://page-proxy.orangishcat.dev/docs/purpose)
 
 ## Usage instructions
 
-- [Installation](https://orangishcat.github.io/page-proxy/install)
-- [Documentation](https://orangishcat.github.io/page-proxy/docs)
+- [Installation](https://page-proxy.orangishcat.dev/install)
+- [Documentation](https://page-proxy.orangishcat.dev/docs)
 - There's a help button in the extension which contains known issues and usage
   tips.
 - Back up your scripts often! The extension is still very unstable.
@@ -87,7 +87,7 @@ patterns commonly found in userscripts:
 - Export tool: export the current script as a Page Proxy script, Tampermonkey
   userscript, or CSS-only stylesheet from the sidepanel.
 
-View the [documentation](https://orangishcat.github.io/page-proxy/docs/) to
+View the [documentation](https://page-proxy.orangishcat.dev/docs/) to
 learn more.
 
 ## Local Development

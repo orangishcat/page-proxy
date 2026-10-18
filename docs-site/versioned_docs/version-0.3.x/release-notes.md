@@ -47,7 +47,7 @@ title: Release notes
 
 - Tampermonkey and CSS stylesheet export options are now enabled!
     - View the
-      [docs](https://orangishcat.github.io/page-proxy/docs/extension-usage/export-tool#export-formats)
+      [docs](https://page-proxy.orangishcat.dev/docs/extension-usage/export-tool#export-formats)
       for more information
 - pq.selector's name and matches field are now both optional.
     - No more writing `matches: e => true` everywhere, and also no more having

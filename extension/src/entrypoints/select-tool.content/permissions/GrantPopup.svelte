@@ -46,7 +46,7 @@
           {#if grant === "run-on-page-load"}
             <a
               class="text-accent-500 underline decoration-accent-500/60 underline-offset-4 hover:text-accent-400"
-              href="https://orangishcat.github.io/page-proxy/docs/permissions#grant-run-on-page-load"
+              href="https://page-proxy.orangishcat.dev/docs/permissions#grant-run-on-page-load"
               target="_blank"
               rel="noopener noreferrer"
             >
